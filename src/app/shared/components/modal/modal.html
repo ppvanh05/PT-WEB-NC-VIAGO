@@ -1,1 +1,18 @@
-<p>modal works!</p>
+<div *ngIf="open" class="modal-backdrop" role="presentation" (click)="onBackdropClick()" (keydown.escape)="onEscape()">
+  <section class="modal-panel" [class.modal-panel--small]="size === 'small'" [class.modal-panel--large]="size === 'large'" [class.modal-panel--danger]="danger" role="dialog" aria-modal="true" [attr.aria-label]="title || null" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <div>
+        <h2 *ngIf="title" class="modal-title">{{ title }}</h2>
+        <p *ngIf="description" class="modal-description">{{ description }}</p>
+      </div>
+      <button *ngIf="showCloseButton" type="button" class="modal-close" aria-label="Đóng" [disabled]="loading" (click)="closed.emit()"><span aria-hidden="true">×</span></button>
+    </header>
+    <div class="modal-body"><ng-content></ng-content></div>
+    <footer *ngIf="confirmMode" class="modal-footer">
+      <button type="button" class="modal-button modal-button--secondary" [disabled]="loading" (click)="cancel()">{{ cancelText }}</button>
+      <button type="button" class="modal-button" [class.modal-button--danger]="danger" [class.modal-button--primary]="!danger" [disabled]="loading || disableConfirm" (click)="confirm()">
+        <span *ngIf="loading" class="modal-spinner" aria-hidden="true"></span>{{ loading ? 'Đang xử lý...' : confirmText }}
+      </button>
+    </footer>
+  </section>
+</div>
