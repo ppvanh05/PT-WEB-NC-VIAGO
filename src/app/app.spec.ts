@@ -15,10 +15,12 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render title', async () => {
+  it('should render the shared components demo', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, viago-frontend');
+    expect(compiled.querySelector('h1')?.textContent).toContain('Shared Components');
+    expect(compiled.querySelectorAll('app-toast')).toHaveLength(4);
+    expect(compiled.querySelector('app-pagination')).toBeTruthy();
   });
 });

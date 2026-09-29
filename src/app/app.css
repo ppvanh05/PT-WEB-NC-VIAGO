@@ -1,0 +1,114 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-base);
+}
+
+.demo-page {
+  width: min(100% - (var(--page-padding-desktop) * 2), 1120px);
+  margin: 0 auto;
+  padding: var(--space-12) 0 var(--space-16);
+}
+
+.demo-header {
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.demo-header__eyebrow {
+  color: var(--color-accent-600);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-bold);
+}
+
+.demo-header h1 {
+  margin: var(--space-2) 0 var(--space-2);
+  font-size: var(--font-size-h1);
+  line-height: var(--line-height-h1);
+  letter-spacing: 0;
+}
+
+.demo-header p,
+.demo-section__heading p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.demo-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+  gap: var(--space-12);
+  padding-top: var(--space-10);
+}
+
+.demo-section {
+  min-width: 0;
+}
+
+.demo-section__heading {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.demo-section__heading > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-circle);
+  background: var(--color-primary-50);
+  color: var(--color-primary-600);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-bold);
+}
+
+.demo-section h2 {
+  margin: 0;
+  font-size: var(--font-size-title);
+  line-height: var(--line-height-title);
+  letter-spacing: 0;
+}
+
+.toast-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pagination-demo {
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 860px) {
+  .demo-page {
+    width: min(100% - (var(--page-padding-tablet) * 2), 720px);
+  }
+
+  .demo-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .demo-page {
+    width: calc(100% - (var(--page-padding-mobile) * 2));
+    padding-top: var(--space-8);
+  }
+
+  .demo-layout {
+    gap: var(--space-10);
+  }
+
+  .pagination-demo {
+    padding: var(--space-4);
+  }
+}
