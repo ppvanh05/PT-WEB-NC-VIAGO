@@ -1,1 +1,35 @@
-<p>button works!</p>
+<button
+  class="viago-button"
+  [type]="type()"
+
+  [class.viago-button--primary]="variant() === 'primary'"
+  [class.viago-button--secondary]="variant() === 'secondary'"
+  [class.viago-button--outline]="variant() === 'outline'"
+  [class.viago-button--ghost]="variant() === 'ghost'"
+  [class.viago-button--danger]="variant() === 'danger'"
+
+  [class.viago-button--sm]="size() === 'sm'"
+  [class.viago-button--md]="size() === 'md'"
+  [class.viago-button--lg]="size() === 'lg'"
+
+  [class.viago-button--icon-only]="iconOnly()"
+  [class.viago-button--loading]="loading()"
+
+  [disabled]="disabled() || loading()"
+
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-busy]="loading() ? 'true' : null"
+
+  (click)="onClick($event)"
+>
+  @if (loading()) {
+    <span class="viago-button__spinner" aria-hidden="true"></span>
+  }
+
+  <span
+    class="viago-button__content"
+    [class.viago-button__content--hidden]="loading()"
+  >
+    <ng-content />
+  </span>
+</button>

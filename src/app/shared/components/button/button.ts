@@ -1,9 +1,39 @@
-import { Component } from '@angular/core';
+import { Component, input, output } from '@angular/core';
+
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'outline'
+  | 'ghost'
+  | 'danger';
+
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 @Component({
-  imports: [],
   selector: 'app-button',
-  styleUrl: './button.css',
+  imports: [],
   templateUrl: './button.html',
+  styleUrl: './button.css',
 })
-export class Button {}
+export class Button {
+  variant = input<ButtonVariant>('primary');
+  size = input<ButtonSize>('md');
+
+  type = input<'button' | 'submit' | 'reset'>('button');
+
+  disabled = input(false);
+  loading = input(false);
+  iconOnly = input(false);
+
+  ariaLabel = input<string | undefined>(undefined);
+
+  clicked = output<MouseEvent>();
+
+  onClick(event: MouseEvent): void {
+    if (this.disabled() || this.loading()) {
+      return;
+    }
+
+    this.clicked.emit(event);
+  }
+}

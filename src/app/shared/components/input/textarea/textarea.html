@@ -12,20 +12,20 @@
     </label>
   }
 
-  <input
-    class="viago-input"
-    [class.viago-input--error]="error()"
+  <textarea
+    class="viago-textarea"
+    [class.viago-textarea--error]="error()"
     [id]="id()"
     [name]="name()"
-    [type]="type()"
     [placeholder]="placeholder()"
     [value]="value()"
+    [rows]="rows()"
     [disabled]="disabled()"
     [readOnly]="readonly()"
     [required]="required()"
     [attr.aria-invalid]="error() ? 'true' : null"
     (input)="onInput($event)"
-  />
+  ></textarea>
 
   @if (error()) {
     <span class="viago-field__error">
