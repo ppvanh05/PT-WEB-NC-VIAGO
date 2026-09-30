@@ -10,11 +10,8 @@
   width: 100%;
 }
 
-/* Label */
-
 .viago-field__label {
   color: var(--color-text-body);
-
   font-family: var(--font-family-base);
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
@@ -25,17 +22,18 @@
   color: var(--color-danger-500);
 }
 
-/* Input */
-
-.viago-input {
+.viago-textarea {
   width: 100%;
-  height: var(--control-height-md);
-  padding: 0 var(--control-padding-x-md);
+  min-height: 96px;
+
+  padding:
+    var(--space-3)
+    var(--control-padding-x-md);
 
   box-sizing: border-box;
+  resize: vertical;
 
   background-color: var(--input-background);
-
   border: 1px solid var(--input-border);
   border-radius: var(--input-radius);
 
@@ -54,54 +52,40 @@
     background-color 0.2s ease;
 }
 
-/* Placeholder */
-
-.viago-input::placeholder {
+.viago-textarea::placeholder {
   color: var(--color-text-secondary);
 }
 
-/* Hover */
-
-.viago-input:hover:not(:disabled):not(:read-only) {
+.viago-textarea:hover:not(:disabled):not(:read-only) {
   border-color: var(--input-border-hover);
 }
 
-/* Focus / đang chọn */
-
-.viago-input:focus {
+.viago-textarea:focus {
   border-color: var(--input-border-focus);
   box-shadow: var(--focus-ring-primary);
 }
 
-/* Error */
-
-.viago-input--error {
+.viago-textarea--error {
   border-color: var(--input-border-error);
 }
 
-.viago-input--error:focus {
+.viago-textarea--error:focus {
   border-color: var(--input-border-error);
   box-shadow: var(--focus-ring-danger);
 }
 
-/* Disabled */
-
-.viago-input:disabled {
+.viago-textarea:disabled {
   background-color: var(--input-background-disabled);
   border-color: var(--input-border);
   color: var(--color-text-disabled);
   cursor: not-allowed;
 }
 
-/* Readonly */
-
-.viago-input:read-only:not(:disabled) {
+.viago-textarea:read-only:not(:disabled) {
   background-color: var(--color-surface-muted);
   color: var(--color-text-body);
   cursor: default;
 }
-
-/* Helper / Error message */
 
 .viago-field__helper,
 .viago-field__error {

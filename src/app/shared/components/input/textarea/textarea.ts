@@ -1,19 +1,18 @@
 import { Component, input, output } from '@angular/core';
 
-export type InputType = 'text' | 'email' | 'password' | 'number' | 'tel';
-
 @Component({
-  selector: 'app-input',
+  selector: 'app-textarea',
   imports: [],
-  templateUrl: './input.html',
-  styleUrl: './input.css',
+  templateUrl: './textarea.html',
+  styleUrl: './textarea.css',
 })
-export class Input {
+export class Textarea {
   label = input('');
   placeholder = input('');
-  type = input<InputType>('text');
 
   value = input('');
+  rows = input(4);
+
   error = input('');
   helperText = input('');
 
@@ -21,13 +20,13 @@ export class Input {
   readonly = input(false);
   required = input(false);
 
-  name = input('');
   id = input('');
+  name = input('');
 
   valueChange = output<string>();
 
   onInput(event: Event): void {
-    const element = event.target as HTMLInputElement;
+    const element = event.target as HTMLTextAreaElement;
     this.valueChange.emit(element.value);
   }
 }
