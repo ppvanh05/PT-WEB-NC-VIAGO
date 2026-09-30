@@ -1,12 +1,29 @@
 import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterOutlet } from '@angular/router';
+import { CustomerNavbar } from './core/layout/customer-navbar/customer-navbar';
 
 @Component({
-  imports: [RouterOutlet],
   selector: 'app-root',
-  styleUrl: './app.css',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterOutlet,
+    CustomerNavbar
+  ],
   templateUrl: './app.html',
+  styleUrl: './app.css',
 })
 export class App {
-  protected readonly title = signal('viago-frontend');
+  title = signal('VIAGO');
+
+  onAuthModalOpen() {
+    alert('Kích hoạt Modal Đăng nhập / Đăng ký!');
+  }
+
+  onSecurityModalOpen() {
+    alert('Kích hoạt Modal Bảo mật tài khoản!');
+  }
 }
