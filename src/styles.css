@@ -244,3 +244,18 @@
   --z-modal: 1200;
   --z-toast: 1300;
 }
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-background);
+  font-family: var(--font-family-base);
+}
