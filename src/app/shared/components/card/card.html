@@ -1,1 +1,218 @@
-<p>card works!</p>
+<div [ngClass]="cardClasses" (click)="onCardClick($event)" [attr.tabindex]="isInteractive && !disabled ? 0 : null"
+  [attr.role]="isInteractive ? 'button' : null" [attr.aria-disabled]="disabled ? true : null">
+
+  <!-- BACKGROUND IMAGE (FOR BOOKING OVERLAY) -->
+  <div class="viago-card__bg-image" *ngIf="type === 'booking' && bookingOverlay && image" [style.backgroundImage]="'url(' + image + ')'">
+    <div class="viago-card__bg-overlay"></div>
+  </div>
+
+  <!-- TOP IMAGE -->
+  <div class="viago-card__image-top" *ngIf="(type === 'info' || type === 'booking') && image && !bookingOverlay">
+    <img [src]="image" [alt]="title || ''">
+  </div>
+
+  <!-- TYPE: INFO -->
+  <ng-container *ngIf="type === 'info'">
+    <div class="viago-card__content viago-card__info-content" [ngClass]="{'viago-card__info--center': infoAlign === 'center', 'viago-card__info--has-image': !!image}">
+      <div class="viago-card__info-icon" *ngIf="icon">
+        <i [class]="icon"></i>
+      </div>
+      <div class="viago-card__info-text">
+        <div class="viago-card__info-title" *ngIf="title">{{ title }}</div>
+        <div class="viago-card__info-detail" *ngIf="infoDetail">{{ infoDetail }}</div>
+        <div class="viago-card__info-desc" *ngIf="description">{{ description }}</div>
+        <div class="viago-card__info-sub" *ngIf="infoSubDetail">{{ infoSubDetail }}</div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- TYPE: BOOKING -->
+  <ng-container *ngIf="type === 'booking'">
+    <div class="viago-card__content viago-card__booking-content">
+      <div class="viago-card__booking-badge" *ngIf="bookingBadge">
+        {{ bookingBadge }}
+      </div>
+      
+      <div class="viago-card__booking-title" *ngIf="title">{{ title }}</div>
+      
+      <div class="viago-card__booking-tags" *ngIf="bookingTags && bookingTags.length > 0">
+        <span class="viago-card__booking-tag" *ngFor="let tag of bookingTags">{{ tag }}</span>
+      </div>
+
+      <div class="viago-card__booking-meta" *ngIf="bookingDistance || bookingDuration">
+        <div class="viago-card__meta-item" *ngIf="bookingDistance">
+          <i class="bi bi-geo-alt"></i> {{ bookingDistance }}
+        </div>
+        <div class="viago-card__meta-item" *ngIf="bookingDuration">
+          <i class="bi bi-clock"></i> {{ bookingDuration }}
+        </div>
+      </div>
+
+      <div class="viago-card__booking-footer">
+        <div class="viago-card__booking-price-section">
+          <div class="viago-card__price-label" *ngIf="bookingPriceLabel">{{ bookingPriceLabel }}</div>
+          <div class="viago-card__price-value" *ngIf="bookingPrice">{{ bookingPrice }}</div>
+        </div>
+        <button class="viago-card__booking-btn" (click)="onActionClick($event)">{{ bookingButtonText }}</button>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- TYPE: STAT -->
+  <ng-container *ngIf="type === 'stat'">
+    <div class="viago-card__content viago-card__stat-container">
+      <div class="viago-card__stat-top">
+        <div class="viago-card__stat-meta">
+          <span class="viago-card__stat-title" *ngIf="title">{{ title }}</span>
+          <ng-content select="[card-title]"></ng-content>
+        </div>
+        <div class="viago-card__stat-icon-wrapper" [ngClass]="'viago-card__stat-icon--' + iconVariant" *ngIf="icon">
+          <i [class]="icon"></i>
+        </div>
+      </div>
+      <div class="viago-card__stat-body">
+        <div class="viago-card__stat-value" *ngIf="value !== undefined && value !== null">{{ value }}</div>
+      </div>
+      <div class="viago-card__stat-footer" *ngIf="trend || trendLabel || description">
+        <div class="viago-card__stat-trend" [ngClass]="'viago-card__stat-trend--' + computedTrendDirection" *ngIf="trend">
+          <i [class]="computedTrendDirection === 'up' ? 'bi bi-arrow-up-short' : computedTrendDirection === 'down' ? 'bi bi-arrow-down-short' : 'bi bi-dash-short'"></i>
+          <span>{{ trend }}</span>
+        </div>
+        <span class="viago-card__stat-trend-label" *ngIf="trendLabel">{{ trendLabel }}</span>
+        <p class="viago-card__stat-desc" *ngIf="description">{{ description }}</p>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- TYPE: VOUCHER -->
+  <ng-container *ngIf="type === 'voucher'">
+    <div class="viago-card__voucher">
+      <div class="viago-card__voucher-left">
+        <h3 class="viago-card__voucher-title" *ngIf="voucherTitle">{{ voucherTitle }}</h3>
+        <p class="viago-card__voucher-desc" *ngIf="voucherDesc">{{ voucherDesc }}</p>
+        <div class="viago-card__voucher-date" *ngIf="voucherDate">
+          <i class="bi bi-calendar"></i> {{ voucherDate }}
+        </div>
+      </div>
+      
+      <div class="viago-card__voucher-divider">
+        <div class="viago-card__voucher-hole viago-card__voucher-hole--top"></div>
+        <div class="viago-card__voucher-hole viago-card__voucher-hole--bottom"></div>
+      </div>
+
+      <div class="viago-card__voucher-right">
+        <app-badge *ngIf="voucherCode" variant="warning" appearance="dashed" [label]="voucherCode"></app-badge>
+        <button class="viago-btn-copy" (click)="onActionClick($event)">{{ voucherButtonText }}</button>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- TYPE: DEFAULT -->
+  <ng-container *ngIf="type === 'default'">
+    <div class="viago-card__header">
+      <ng-content select="[card-header]"></ng-content>
+    </div>
+    <div class="viago-card__content">
+      <ng-content></ng-content>
+    </div>
+    <div class="viago-card__footer">
+      <ng-content select="[card-footer]"></ng-content>
+    </div>
+  </ng-container>
+</div>
+<!-- DEMO SỬ DỤNG CARD COMPONENT:
+
+<div>
+      <h2 style="margin-bottom: 1.5rem; color: #0f172a; font-size: 1.5rem;">Loại 1: Card Thông Tin (Info Card)</h2>
+      <div style="display: flex; flex-direction: column; gap: 24px; max-width: 400px;">
+        &lt;!-- Example 1 --&gt;
+        <app-card type="info" padding="lg" radius="xl" shadow="sm" [bordered]="true" icon="bi bi-telephone"
+          title="Hotline CSKH" infoDetail="1900 1234" infoSubDetail="Hỗ trợ khiếu nại & góp ý">
+        </app-card>
+        &lt;!-- Example 2 --&gt;
+        <app-card type="info" padding="lg" radius="xl" shadow="sm" [bordered]="true" infoAlign="center"
+          icon="bi bi-shield-check" title="An Toàn Là Trên Hết"
+          description="Quy trình kiểm tra kỹ thuật nghiêm ngặt và đào tạo lái xe chuyên nghiệp hàng tháng.">
+        </app-card>
+        &lt;!-- Example 3 --&gt;
+        <app-card type="info" padding="md" radius="lg" shadow="sm" [bordered]="true"
+          image="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=400&h=200"
+          title="Flash sale thứ Tư: Vé từ 199.000đ"
+          description="Áp dụng cho tất cả các tuyến đường. Hạn chót: 26/06/2026">
+        </app-card>
+      </div>
+    </div>
+
+    &lt;!-- STANDARD BOOKING CARDS --&gt;
+    <div>
+      <h2 style="margin-bottom: 1.5rem; color: #0f172a; font-size: 1.5rem;">Loại 2.1: Card Booking (Tiêu chuẩn)</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px;">
+        &lt;!-- Example 1 --&gt;
+        <app-card type="booking" padding="lg" radius="lg" shadow="md" [bordered]="true"
+          image="https://images.unsplash.com/photo-1596422846543-74c6f271d624?auto=format&fit=crop&q=80&w=600&h=300"
+          title="TP. Hồ Chí Minh ➝ Đà Lạt" bookingDistance="310km" bookingDuration="6 giờ" bookingPriceLabel="GIÁ VÉ TỪ"
+          bookingPrice="280.000đ">
+        </app-card>
+        &lt;!-- Example 2 --&gt;
+        <app-card type="booking" padding="lg" radius="lg" shadow="md" [bordered]="true"
+          image="https://images.unsplash.com/photo-1583417319070-4a69db38a482?auto=format&fit=crop&q=80&w=600&h=300"
+          title="Cần Thơ ➝ Rạch Giá" bookingDistance="115km" bookingDuration="2.5 giờ" bookingPriceLabel="GIÁ VÉ TỪ"
+          bookingPrice="140.000đ">
+        </app-card>
+        &lt;!-- Example 3 --&gt;
+        <app-card type="booking" padding="lg" radius="lg" shadow="md" [bordered]="true"
+          image="https://images.unsplash.com/photo-1595844730298-b960fad97301?auto=format&fit=crop&q=80&w=600&h=300"
+          title="Hà Nội ➝ Sapa" bookingDistance="315km" bookingDuration="5.5 giờ" bookingPriceLabel="GIÁ VÉ TỪ"
+          bookingPrice="350.000đ">
+        </app-card>
+      </div>
+    </div>
+
+    &lt;!-- OVERLAY BOOKING CARDS --&gt;
+    <div>
+      <h2 style="margin-bottom: 1.5rem; color: #0f172a; font-size: 1.5rem;">Loại 2.2: Card Booking (Overlay)</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px;">
+        &lt;!-- Example 1 --&gt;
+        <app-card type="booking" padding="lg" radius="xl" shadow="lg"
+          image="https://images.unsplash.com/photo-1596422846543-74c6f271d624?auto=format&fit=crop&q=80&w=400&h=800"
+          [bookingOverlay]="true" bookingBadge="🔥 ĐẶT NHIỀU NHẤT" title="TP.HCM ↔ Đà Lạt"
+          [bookingTags]="['Cabin', 'Giường nằm', 'Limousine']" bookingDistance="310 km" bookingDuration="7 tiếng"
+          bookingPriceLabel="Giá vé từ" bookingPrice="250.000 đ" style="height: 500px;">
+        </app-card>
+        &lt;!-- Example 2 --&gt;
+        <app-card type="booking" padding="lg" radius="xl" shadow="lg"
+          image="https://images.unsplash.com/photo-1583417319070-4a69db38a482?auto=format&fit=crop&q=80&w=400&h=800"
+          [bookingOverlay]="true" bookingBadge="☀️ PHỔ BIẾN MÙA HÈ" title="TP.HCM ↔ Nha Trang"
+          [bookingTags]="['Limousine', 'Giường nằm']" bookingDistance="435 km" bookingDuration="8.5 tiếng"
+          bookingPriceLabel="Giá vé từ" bookingPrice="300.000 đ" style="height: 500px;">
+        </app-card>
+        &lt;!-- Example 3 --&gt;
+        <app-card type="booking" padding="lg" radius="xl" shadow="lg"
+          image="https://images.unsplash.com/photo-1595844730298-b960fad97301?auto=format&fit=crop&q=80&w=400&h=800"
+          [bookingOverlay]="true" bookingBadge="⭐ YÊU THÍCH" title="Hà Nội ↔ Sapa"
+          [bookingTags]="['Cabin VIP', 'Giường nằm']" bookingDistance="315 km" bookingDuration="5.5 tiếng"
+          bookingPriceLabel="Giá vé từ" bookingPrice="350.000 đ" style="height: 500px;">
+        </app-card>
+      </div>
+    </div>
+
+    &lt;!-- VOUCHER CARDS --&gt;
+    <div>
+      <h2 style="margin-bottom: 1.5rem; color: #0f172a; font-size: 1.5rem;">Loại 3: Card Voucher</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px;">
+        &lt;!-- Example 1 --&gt;
+        <app-card type="voucher" radius="xl" padding="none" [bordered]="true" voucherTitle="GIẢM 50K"
+          voucherDesc="Giảm ngay 50.000đ cho hành trình đầu tiên" voucherDate="HSD: 31/12/2026" voucherCode="WELCOME50">
+        </app-card>
+        &lt;!-- Example 2 --&gt;
+        <app-card type="voucher" radius="xl" padding="none" [bordered]="true" voucherTitle="GIẢM 20%"
+          voucherDesc="Giảm tối đa 100.000đ khi thanh toán qua thẻ VISA" voucherDate="HSD: 15/10/2026" voucherCode="VISA20">
+        </app-card>
+        &lt;!-- Example 3 --&gt;
+        <app-card type="voucher" radius="xl" padding="none" [bordered]="true" voucherTitle="ĐỒNG GIÁ 99K"
+          voucherDesc="Áp dụng cho mọi chuyến đi trong ngày thứ 4" voucherDate="HSD: 30/11/2026" voucherCode="WED99">
+        </app-card>
+      </div>
+    </div>
+
+-->
