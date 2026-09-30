@@ -1,1 +1,299 @@
-<p>customer-navbar works!</p>
+<!-- Customer Header / Navbar Section -->
+<header class="bg-white sticky top-0 z-[var(--z-sticky,1100)] shadow-sm w-full font-[var(--font-family-base,'Inter',sans-serif)]">
+  <!-- Top Utility Bar: Language Selector, Center Brand Logo, User Profile / Auth, Mobile Toggle -->
+  <div class="max-w-full px-4 md:px-10 lg:px-16 py-1.5 flex items-center justify-between border-b border-[var(--color-border,#e2e8f0)] mx-auto">
+    <!-- Left Column: Language Selector -->
+    <div class="w-1/3 flex justify-start items-center">
+      <div class="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity">
+        <img src="/assets/customer/quoc_ky_VN.png" alt="VN Flag" class="w-5 h-3.5 object-cover rounded-xs" />
+        <span class="text-xs md:text-sm font-bold text-[var(--color-text-primary,#0f172a)]">VI</span>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-gray-500">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- Center Column: VIAGO Brand Logo -->
+    <div class="w-1/3 flex justify-center items-center">
+      <a routerLink="/" (click)="onHomeClick($event)" class="flex items-center">
+        <img src="/assets/brand/logo.png" alt="VIAGO Logo" class="h-14 md:h-16 lg:h-18 object-contain" />
+      </a>
+    </div>
+
+    <!-- Right Column: Auth Button / User Profile Menu / Mobile Toggle -->
+    <div class="w-1/3 flex justify-end items-center gap-2 relative">
+      <!-- Unauthenticated (Not Logged In) -->
+      <button 
+        *ngIf="!authService.currentUser()" 
+        (click)="onAuthClick()" 
+        class="hidden sm:flex bg-[var(--color-primary-600,#00236f)] hover:bg-[var(--color-primary-700,#001b54)] active:scale-[0.98] text-white px-5 py-2 rounded-[var(--radius-full,9999px)] text-xs md:text-sm font-semibold items-center gap-2 transition-all shadow-xs cursor-pointer"
+      >
+        <img src="/assets/customer/icon_user.svg" class="w-4 h-4 brightness-0 invert" alt="user icon" />
+        <span>Đăng nhập / Đăng ký</span>
+      </button>
+
+      <!-- Authenticated (Logged In User) -->
+      <div *ngIf="authService.currentUser() as user" class="relative">
+        <button 
+          (click)="toggleDropdown($event)" 
+          class="flex items-center gap-1.5 py-1 px-2.5 rounded-[var(--radius-full,9999px)] hover:bg-slate-50 transition-colors cursor-pointer border-2 border-[var(--color-primary-600,#00236f)] bg-white"
+        >
+          <img [src]="user.avatar || '/assets/customer/user.png'" alt="User Avatar" class="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover" />
+          <span class="hidden md:inline-block text-xs font-semibold text-[var(--color-text-primary,#0f172a)] max-w-[100px] truncate">{{ user.name }}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-[var(--color-primary-600,#00236f)] transition-transform duration-200" [class.rotate-180]="isDropdownOpen">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+
+        <!-- Profile Dropdown Popup Menu -->
+        <div 
+          [class.opacity-100]="isDropdownOpen" 
+          [class.scale-100]="isDropdownOpen" 
+          [class.pointer-events-auto]="isDropdownOpen"
+          [class.pointer-events-none]="!isDropdownOpen"
+          class="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-[var(--radius-xl,16px)] shadow-[var(--shadow-modal,0_24px_48px_rgba(15,23,42,0.18))] py-2 z-50 transition-all duration-200 transform scale-95 opacity-0 origin-top-right flex flex-col"
+        >
+          <a routerLink="/profile" [queryParams]="{tab: 'personal'}" (click)="isDropdownOpen = false" class="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--color-primary-600,#00236f)] transition-all duration-150 rounded-lg mx-1.5 cursor-pointer group/item">
+            <img src="/assets/customer/icon_personal.svg" class="w-4 h-4 opacity-70 group-hover/item:opacity-100 transition-opacity" alt="user icon" />
+            <span>Thông tin cá nhân</span>
+          </a>
+
+          <a routerLink="/profile" [queryParams]="{tab: 'security'}" (click)="isDropdownOpen = false" class="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--color-primary-600,#00236f)] transition-all duration-150 rounded-lg mx-1.5 cursor-pointer group/item">
+            <img src="/assets/customer/icon_bao_mat.svg" class="w-4 h-4 opacity-70 group-hover/item:opacity-100 transition-opacity" alt="security icon" />
+            <span>Bảo mật tài khoản</span>
+          </a>
+
+          <a routerLink="/profile" [queryParams]="{tab: 'tickets'}" (click)="isDropdownOpen = false" class="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--color-primary-600,#00236f)] transition-all duration-150 rounded-lg mx-1.5 cursor-pointer group/item">
+            <img src="/assets/customer/icon_lich_su_ve.svg" class="w-4 h-4 opacity-70 group-hover/item:opacity-100 transition-opacity" alt="ticket history icon" />
+            <span>Lịch sử mua vé</span>
+          </a>
+
+          <a routerLink="/profile" [queryParams]="{tab: 'privileges'}" (click)="isDropdownOpen = false" class="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--color-primary-600,#00236f)] transition-all duration-150 rounded-lg mx-1.5 cursor-pointer group/item">
+            <img src="/assets/customer/icon_dac_quyen.svg" class="w-4 h-4 opacity-70 group-hover/item:opacity-100 transition-opacity" alt="membership privileges icon" />
+            <span>Đặc quyền thành viên</span>
+          </a>
+
+          <div class="h-px bg-slate-100 my-1.5"></div>
+
+          <button (click)="logout()" class="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-[var(--color-accent-600,#ff6a00)] hover:bg-red-50 hover:text-red-700 transition-all duration-150 rounded-lg mx-1.5 cursor-pointer w-[calc(100%-12px)] border-0 bg-transparent text-left">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+            <span>Đăng xuất</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Hamburger Menu Button Toggle -->
+      <button 
+        (click)="toggleMobileMenu($event)" 
+        class="lg:hidden p-2 rounded-lg text-slate-600 hover:text-[var(--color-primary-600,#00236f)] hover:bg-slate-100 transition-colors"
+        aria-label="Toggle Navigation Menu"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Desktop Navigation Bar Links -->
+  <div class="hidden lg:block bg-slate-50/80 border-b border-[var(--color-border,#e2e8f0)] py-3 w-full">
+    <div class="max-w-full px-4 md:px-10 lg:px-16 mx-auto">
+      <nav class="flex flex-wrap items-center justify-center gap-6 lg:gap-8">
+        <a routerLink="/" (click)="onHomeClick($event)" routerLinkActive="text-[var(--color-primary-600,#00236f)] border-b-2 border-[var(--color-primary-600,#00236f)] font-bold" [routerLinkActiveOptions]="{exact: true}" class="text-sm font-semibold text-[var(--color-text-secondary,#64748b)] hover:text-[var(--color-primary-600,#00236f)] transition-colors pb-1">TRANG CHỦ</a>
+        <a routerLink="/lich-trinh" routerLinkActive="text-[var(--color-primary-600,#00236f)] border-b-2 border-[var(--color-primary-600,#00236f)] font-bold" class="text-sm font-semibold text-[var(--color-text-secondary,#64748b)] hover:text-[var(--color-primary-600,#00236f)] transition-colors pb-1">LỊCH TRÌNH</a>
+        <a routerLink="/tra-cuu-ve" routerLinkActive="text-[var(--color-primary-600,#00236f)] border-b-2 border-[var(--color-primary-600,#00236f)] font-bold" class="text-sm font-semibold text-[var(--color-text-secondary,#64748b)] hover:text-[var(--color-primary-600,#00236f)] transition-colors pb-1">TRA CỨU VÉ</a>
+        <a routerLink="/tin-tuc" routerLinkActive="text-[var(--color-primary-600,#00236f)] border-b-2 border-[var(--color-primary-600,#00236f)] font-bold" class="text-sm font-semibold text-[var(--color-text-secondary,#64748b)] hover:text-[var(--color-primary-600,#00236f)] transition-colors pb-1">TIN TỨC</a>
+        <a routerLink="/hoa-don" routerLinkActive="text-[var(--color-primary-600,#00236f)] border-b-2 border-[var(--color-primary-600,#00236f)] font-bold" class="text-sm font-semibold text-[var(--color-text-secondary,#64748b)] hover:text-[var(--color-primary-600,#00236f)] transition-colors pb-1">HÓA ĐƠN</a>
+        <a routerLink="/danh-gia" routerLinkActive="text-[var(--color-primary-600,#00236f)] border-b-2 border-[var(--color-primary-600,#00236f)] font-bold" class="text-sm font-semibold text-[var(--color-text-secondary,#64748b)] hover:text-[var(--color-primary-600,#00236f)] transition-colors pb-1">ĐÁNH GIÁ</a>
+        
+        <!-- Dropdown Dịch vụ -->
+        <div class="relative">
+          <a
+            (click)="toggleServices($event)"
+            class="text-sm font-semibold text-[var(--color-text-secondary,#64748b)] hover:text-[var(--color-primary-600,#00236f)] flex items-center gap-1 transition-colors pb-1 cursor-pointer"
+            [class.text-[var(--color-primary-600,#00236f)]]="isServicesOpen || isServicesRouteActive()"
+            [class.border-b-2]="isServicesRouteActive()"
+            [class.border-[var(--color-primary-600,#00236f)]]="isServicesRouteActive()"
+            [class.font-bold]="isServicesRouteActive()"
+          >
+            <span>DỊCH VỤ</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 transition-transform duration-200" [class.rotate-180]="isServicesOpen">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </a>
+
+          <!-- Submenu Dịch vụ -->
+          <div
+            class="absolute top-full left-0 mt-2.5 w-56 bg-white border border-slate-100 rounded-[var(--radius-lg,12px)] shadow-lg py-1.5 z-50 transition-all duration-200 transform origin-top-left flex flex-col"
+            [class.scale-100]="isServicesOpen"
+            [class.opacity-100]="isServicesOpen"
+            [class.pointer-events-auto]="isServicesOpen"
+            [class.scale-95]="!isServicesOpen"
+            [class.opacity-0]="!isServicesOpen"
+            [class.pointer-events-none]="!isServicesOpen"
+          >
+            <a routerLink="/dich-vu" [queryParams]="{tab: 'thue-xe'}" (click)="isServicesOpen = false" class="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--color-primary-600,#00236f)] transition-all duration-150 rounded-lg mx-1.5 group/item">
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover/item:bg-[var(--color-primary-600,#00236f)] transition-colors"></span>
+              <span>Thuê xe hợp đồng</span>
+            </a>
+            <a routerLink="/dich-vu" [queryParams]="{tab: 'that-lac'}" (click)="isServicesOpen = false" class="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--color-primary-600,#00236f)] transition-all duration-150 rounded-lg mx-1.5 group/item">
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover/item:bg-[var(--color-primary-600,#00236f)] transition-colors"></span>
+              <span>Tìm đồ thất lạc</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Dropdown Giới thiệu -->
+        <div class="relative">
+          <a
+            (click)="toggleAbout($event)"
+            class="text-sm font-semibold text-[var(--color-text-secondary,#64748b)] hover:text-[var(--color-primary-600,#00236f)] flex items-center gap-1 transition-colors pb-1 cursor-pointer"
+            [class.text-[var(--color-primary-600,#00236f)]]="isAboutOpen || isAboutRouteActive()"
+            [class.border-b-2]="isAboutRouteActive()"
+            [class.border-[var(--color-primary-600,#00236f)]]="isAboutRouteActive()"
+            [class.font-bold]="isAboutRouteActive()"
+          >
+            <span>GIỚI THIỆU</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 transition-transform duration-200" [class.rotate-180]="isAboutOpen">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </a>
+
+          <!-- Submenu Giới thiệu -->
+          <div
+            class="absolute top-full left-0 mt-2.5 w-60 bg-white border border-slate-100 rounded-[var(--radius-lg,12px)] shadow-lg py-1.5 z-50 transition-all duration-200 transform origin-top-left flex flex-col"
+            [class.scale-100]="isAboutOpen"
+            [class.opacity-100]="isAboutOpen"
+            [class.pointer-events-auto]="isAboutOpen"
+            [class.scale-95]="!isAboutOpen"
+            [class.opacity-0]="!isAboutOpen"
+            [class.pointer-events-none]="!isAboutOpen"
+          >
+            <a routerLink="/ve-chung-toi" (click)="isAboutOpen = false" class="flex items-center gap-2.5 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--color-primary-600,#00236f)] transition-all rounded-lg mx-1.5">
+              <span>Về chúng tôi</span>
+            </a>
+            <a routerLink="/chinh-sach" (click)="isAboutOpen = false" class="flex items-center gap-2.5 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--color-primary-600,#00236f)] transition-all rounded-lg mx-1.5">
+              <span>Chính sách nhà xe</span>
+            </a>
+            <a routerLink="/gioi-thieu" (click)="isAboutOpen = false" class="flex items-center gap-2.5 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--color-primary-600,#00236f)] transition-all rounded-lg mx-1.5">
+              <span>Hướng dẫn mua vé</span>
+            </a>
+            <a routerLink="/faq" (click)="isAboutOpen = false" class="flex items-center gap-2.5 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--color-primary-600,#00236f)] transition-all rounded-lg mx-1.5">
+              <span>Câu hỏi thường gặp</span>
+            </a>
+            <a routerLink="/dieu-khoan" (click)="isAboutOpen = false" class="flex items-center gap-2.5 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--color-primary-600,#00236f)] transition-all rounded-lg mx-1.5">
+              <span>Điều khoản sử dụng</span>
+            </a>
+            <a routerLink="/tuyen-dung" (click)="isAboutOpen = false" class="flex items-center gap-2.5 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--color-primary-600,#00236f)] transition-all rounded-lg mx-1.5">
+              <span>Tuyển dụng</span>
+            </a>
+            <a routerLink="/lien-he" (click)="isAboutOpen = false" class="flex items-center gap-2.5 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--color-primary-600,#00236f)] transition-all rounded-lg mx-1.5">
+              <span>Liên hệ</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Mobile Off-Canvas Drawer Overlay -->
+  <div 
+    *ngIf="isMobileMenuOpen" 
+    class="fixed inset-0 bg-[var(--color-overlay,rgba(15,23,42,0.48))] z-[var(--z-modal,1200)] lg:hidden backdrop-blur-xs transition-opacity"
+    (click)="closeMobileMenu()"
+  ></div>
+
+  <!-- Mobile Drawer Panel -->
+  <aside 
+    [class.translate-x-0]="isMobileMenuOpen"
+    [class.-translate-x-full]="!isMobileMenuOpen"
+    class="fixed top-0 left-0 bottom-0 w-[280px] max-w-[85vw] bg-white z-[var(--z-modal,1200)] lg:hidden shadow-2xl flex flex-col transition-transform duration-300 ease-in-out"
+  >
+    <!-- Drawer Header -->
+    <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+      <a routerLink="/" (click)="onHomeClick($event)" class="flex items-center">
+        <img src="/assets/brand/logo.png" alt="VIAGO Logo" class="h-10 object-contain" />
+      </a>
+      <button (click)="closeMobileMenu()" class="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- User Auth Status in Mobile Drawer -->
+    <div class="p-4 border-b border-slate-100 bg-blue-50/40">
+      <div *ngIf="!authService.currentUser()">
+        <button (click)="onAuthClick()" class="w-full bg-[var(--color-primary-600,#00236f)] text-white py-2.5 rounded-[var(--radius-md,8px)] text-sm font-semibold flex items-center justify-center gap-2">
+          <img src="/assets/customer/icon_user.svg" class="w-4 h-4 brightness-0 invert" alt="user icon" />
+          <span>Đăng nhập / Đăng ký</span>
+        </button>
+      </div>
+
+      <div *ngIf="authService.currentUser() as user" class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img [src]="user.avatar || '/assets/customer/user.png'" alt="User Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-[var(--color-primary-600,#00236f)]" />
+          <div class="flex flex-col">
+            <span class="text-sm font-bold text-[var(--color-text-primary,#0f172a)]">{{ user.name }}</span>
+            <span class="text-xs text-[var(--color-text-secondary,#64748b)]">{{ user.phone || user.phoneNumber }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Links -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-1">
+      <a routerLink="/" (click)="closeMobileMenu()" class="block px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-lg">TRANG CHỦ</a>
+      <a routerLink="/lich-trinh" (click)="closeMobileMenu()" class="block px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-lg">LỊCH TRÌNH</a>
+      <a routerLink="/tra-cuu-ve" (click)="closeMobileMenu()" class="block px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-lg">TRA CỨU VÉ</a>
+      <a routerLink="/tin-tuc" (click)="closeMobileMenu()" class="block px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-lg">TIN TỨC</a>
+      <a routerLink="/hoa-don" (click)="closeMobileMenu()" class="block px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-lg">HÓA ĐƠN</a>
+      <a routerLink="/danh-gia" (click)="closeMobileMenu()" class="block px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-lg">ĐÁNH GIÁ</a>
+
+      <!-- Mobile Services Accordion -->
+      <div>
+        <button (click)="isMobileServicesOpen = !isMobileServicesOpen" class="w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-lg border-0 bg-transparent text-left">
+          <span>DỊCH VỤ</span>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 transition-transform" [class.rotate-180]="isMobileServicesOpen">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+        <div *ngIf="isMobileServicesOpen" class="pl-4 space-y-1">
+          <a routerLink="/dich-vu" [queryParams]="{tab: 'thue-xe'}" (click)="closeMobileMenu()" class="block px-3 py-2 text-xs font-semibold text-slate-600 hover:text-[var(--color-primary-600,#00236f)]">Thuê xe hợp đồng</a>
+          <a routerLink="/dich-vu" [queryParams]="{tab: 'that-lac'}" (click)="closeMobileMenu()" class="block px-3 py-2 text-xs font-semibold text-slate-600 hover:text-[var(--color-primary-600,#00236f)]">Tìm đồ thất lạc</a>
+        </div>
+      </div>
+
+      <!-- Mobile About Accordion -->
+      <div>
+        <button (click)="isMobileAboutOpen = !isMobileAboutOpen" class="w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-lg border-0 bg-transparent text-left">
+          <span>GIỚI THIỆU</span>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 transition-transform" [class.rotate-180]="isMobileAboutOpen">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+        <div *ngIf="isMobileAboutOpen" class="pl-4 space-y-1">
+          <a routerLink="/ve-chung-toi" (click)="closeMobileMenu()" class="block px-3 py-2 text-xs font-semibold text-slate-600">Về chúng tôi</a>
+          <a routerLink="/chinh-sach" (click)="closeMobileMenu()" class="block px-3 py-2 text-xs font-semibold text-slate-600">Chính sách nhà xe</a>
+          <a routerLink="/gioi-thieu" (click)="closeMobileMenu()" class="block px-3 py-2 text-xs font-semibold text-slate-600">Hướng dẫn mua vé</a>
+          <a routerLink="/faq" (click)="closeMobileMenu()" class="block px-3 py-2 text-xs font-semibold text-slate-600">Câu hỏi thường gặp</a>
+          <a routerLink="/dieu-khoan" (click)="closeMobileMenu()" class="block px-3 py-2 text-xs font-semibold text-slate-600">Điều khoản sử dụng</a>
+          <a routerLink="/tuyen-dung" (click)="closeMobileMenu()" class="block px-3 py-2 text-xs font-semibold text-slate-600">Tuyển dụng</a>
+          <a routerLink="/lien-he" (click)="closeMobileMenu()" class="block px-3 py-2 text-xs font-semibold text-slate-600">Liên hệ</a>
+        </div>
+      </div>
+
+      <!-- Mobile Logged-in Profile Links -->
+      <ng-container *ngIf="authService.currentUser()">
+        <div class="h-px bg-slate-200 my-2"></div>
+        <a routerLink="/profile" [queryParams]="{tab: 'personal'}" (click)="closeMobileMenu()" class="block px-3 py-2 text-xs font-semibold text-slate-700">Thông tin cá nhân</a>
+        <a routerLink="/profile" [queryParams]="{tab: 'security'}" (click)="closeMobileMenu()" class="block px-3 py-2 text-xs font-semibold text-slate-700">Bảo mật tài khoản</a>
+        <a routerLink="/profile" [queryParams]="{tab: 'tickets'}" (click)="closeMobileMenu()" class="block px-3 py-2 text-xs font-semibold text-slate-700">Lịch sử mua vé</a>
+        <a routerLink="/profile" [queryParams]="{tab: 'privileges'}" (click)="closeMobileMenu()" class="block px-3 py-2 text-xs font-semibold text-slate-700">Đặc quyền thành viên</a>
+        <button (click)="logout()" class="w-full text-left px-3 py-2 text-xs font-bold text-[var(--color-accent-600,#ff6a00)] border-0 bg-transparent">Đăng xuất</button>
+      </ng-container>
+    </div>
+  </aside>
+</header>
