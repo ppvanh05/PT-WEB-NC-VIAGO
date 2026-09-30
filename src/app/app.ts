@@ -1,28 +1,29 @@
-import { Component } from '@angular/core';
-import { Pagination } from './shared/components/pagination/pagination';
-import { Toast, ToastVariant } from './shared/components/toast/toast';
-
-interface DemoToast {
-  variant: ToastVariant;
-  message: string;
-}
+import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterOutlet } from '@angular/router';
+import { CustomerNavbar } from './core/layout/customer-navbar/customer-navbar';
 
 @Component({
-  imports: [Pagination, Toast],
   selector: 'app-root',
-  styleUrl: './app.css',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterOutlet,
+    CustomerNavbar
+  ],
   templateUrl: './app.html',
+  styleUrl: './app.css',
 })
 export class App {
-  protected currentPage = 1;
-  protected readonly demoToasts: DemoToast[] = [
-    { variant: 'success', message: 'Thao tác đã được thực hiện thành công.' },
-    { variant: 'error', message: 'Không thể hoàn tất thao tác. Vui lòng thử lại.' },
-    { variant: 'warning', message: 'Vui lòng kiểm tra lại thông tin trước khi tiếp tục.' },
-    { variant: 'info', message: 'Hệ thống vừa cập nhật thông tin mới.' },
-  ];
+  title = signal('VIAGO');
 
-  protected changePage(page: number): void {
-    this.currentPage = page;
+  onAuthModalOpen() {
+    alert('Kích hoạt Modal Đăng nhập / Đăng ký!');
+  }
+
+  onSecurityModalOpen() {
+    alert('Kích hoạt Modal Bảo mật tài khoản!');
   }
 }

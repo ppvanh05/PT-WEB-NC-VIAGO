@@ -1,44 +1,7 @@
-<main class="demo-page">
-  <header class="demo-header">
-    <span class="demo-header__eyebrow">VIAGO UI</span>
-    <h1>Shared Components</h1>
-    <p>Toast và pagination dùng chung theo hệ thống thiết kế mới.</p>
-  </header>
+<!-- Shared Customer Navbar Layout Component -->
+<app-customer-navbar 
+  (openAuthModal)="onAuthModalOpen()" 
+  (openSecurityModal)="onSecurityModalOpen()"
+></app-customer-navbar>
 
-  <div class="demo-layout">
-    <section class="demo-section" aria-labelledby="toast-title">
-      <div class="demo-section__heading">
-        <span>01</span>
-        <div>
-          <h2 id="toast-title">Toast</h2>
-          <p>Bốn trạng thái thông báo cơ bản</p>
-        </div>
-      </div>
-
-      <div class="toast-list">
-        @for (toast of demoToasts; track toast.variant) {
-          <app-toast [variant]="toast.variant" [message]="toast.message" />
-        }
-      </div>
-    </section>
-
-    <section class="demo-section" aria-labelledby="pagination-title">
-      <div class="demo-section__heading">
-        <span>02</span>
-        <div>
-          <h2 id="pagination-title">Pagination</h2>
-          <p>Chuyển trang và hiển thị tổng số bản ghi</p>
-        </div>
-      </div>
-
-      <div class="pagination-demo">
-        <app-pagination
-          [currentPage]="currentPage"
-          [pageSize]="50"
-          [totalItems]="4193"
-          (pageChange)="changePage($event)"
-        />
-      </div>
-    </section>
-  </div>
-</main>
+<router-outlet></router-outlet>
