@@ -1,10 +1,8 @@
 import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { Card } from './shared/components/card/card';
-import { Badge } from './shared/components/badge/badge';
+import { CustomerLayout } from './core/layout/customer-layout/customer-layout';
 
 @Component({
-  imports: [Card, Badge],
+  imports: [CustomerLayout],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',

@@ -1,1 +1,65 @@
-<p>customer-navbar works!</p>
+<header class="viago-customer-header">
+  <!-- Top Row -->
+  <div class="viago-customer-header__top">
+    
+    <!-- Left: Language Selector -->
+    <div class="viago-customer-header__left">
+      <div class="viago-customer-header__lang">
+        <!-- Simple VN Flag SVG -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" class="viago-flag">
+          <rect fill="#da251d" width="3" height="2"/>
+          <polygon fill="#ffcd00" points="1.5,0.4 1.2,1.3 2,0.7 1,0.7 1.8,1.3"/>
+        </svg>
+        <span class="viago-lang-text">VI</span>
+        <i class="bi bi-chevron-down"></i>
+      </div>
+    </div>
+
+    <!-- Center: Logo -->
+    <div class="viago-customer-header__center">
+      <img src="assets/brand/logo.png" alt="VIAGO" class="viago-logo" />
+    </div>
+
+    <!-- Right: Login Button -->
+    <div class="viago-customer-header__right">
+      <div class="viago-customer-header__auth">
+        <button class="viago-btn-login">
+          <i class="bi bi-person-circle"></i>
+          <span>Đăng nhập / Đăng ký</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Row: Navigation -->
+  <div class="viago-customer-header__nav">
+    <nav class="viago-nav-container">
+      <ul class="viago-nav-list">
+        <!-- Render Nav Items Dynamically -->
+        <li *ngFor="let item of navItems" class="viago-nav-item" [class.has-dropdown]="item.hasDropdown">
+          <a 
+            href="#" 
+            (click)="setActiveTab(item.label, $event)"
+            class="viago-nav-link"
+            [class.active]="activeTab === item.label"
+          >
+            {{ item.label }}
+            <i *ngIf="item.hasDropdown" class="bi bi-chevron-down viago-dropdown-icon"></i>
+            
+            <!-- Active Indicator -->
+            <div *ngIf="activeTab === item.label" class="viago-active-indicator"></div>
+          </a>
+
+          <!-- Dropdown Menu -->
+          <div *ngIf="item.hasDropdown && item.dropdownItems" class="viago-dropdown-menu">
+            <ul class="viago-dropdown-list">
+              <li *ngFor="let dropItem of item.dropdownItems" class="viago-dropdown-item">
+                <a href="#" class="viago-dropdown-link">{{ dropItem }}</a>
+              </li>
+            </ul>
+          </div>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>

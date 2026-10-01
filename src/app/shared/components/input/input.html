@@ -1,1 +1,39 @@
-<p>input works!</p>
+<div class="viago-field">
+  @if (label()) {
+    <label
+      class="viago-field__label"
+      [attr.for]="id() || null"
+    >
+      {{ label() }}
+
+      @if (required()) {
+        <span class="viago-field__required">*</span>
+      }
+    </label>
+  }
+
+  <input
+    class="viago-input"
+    [class.viago-input--error]="error()"
+    [id]="id()"
+    [name]="name()"
+    [type]="type()"
+    [placeholder]="placeholder()"
+    [value]="value()"
+    [disabled]="disabled()"
+    [readOnly]="readonly()"
+    [required]="required()"
+    [attr.aria-invalid]="error() ? 'true' : null"
+    (input)="onInput($event)"
+  />
+
+  @if (error()) {
+    <span class="viago-field__error">
+      {{ error() }}
+    </span>
+  } @else if (helperText()) {
+    <span class="viago-field__helper">
+      {{ helperText() }}
+    </span>
+  }
+</div>

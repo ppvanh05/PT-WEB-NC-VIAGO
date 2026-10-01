@@ -244,3 +244,9 @@
   --z-modal: 1200;
   --z-toast: 1300;
 }
+
+body { font-family: var(--font-family-base); margin: 0; padding: 0; background-color: var(--color-background); color: var(--color-text-primary); }
+* { box-sizing: border-box; }
+
+button, input, select, textarea { font-family: inherit; }
+

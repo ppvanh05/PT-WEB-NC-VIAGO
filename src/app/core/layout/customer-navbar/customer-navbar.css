@@ -1,0 +1,231 @@
+.viago-customer-header {
+  background-color: var(--color-surface);
+  width: 100%;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  z-index: 50;
+}
+
+.viago-customer-header__top {
+  width: 100%;
+  padding: var(--space-3) var(--space-8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.viago-customer-header__left {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.viago-customer-header__lang {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background-color 0.2s ease;
+}
+
+.viago-customer-header__lang:hover {
+  background-color: var(--color-neutral-50);
+}
+
+.viago-flag {
+  width: 24px;
+  height: 16px;
+  border-radius: 2px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.viago-lang-text {
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-body);
+}
+
+.viago-customer-header__lang .bi-chevron-down {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+}
+
+.viago-customer-header__center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.viago-logo {
+  height: 48px;
+  object-fit: contain;
+}
+
+.viago-customer-header__right {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.viago-btn-login {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background-color: var(--color-primary-600);
+  color: var(--color-text-inverse);
+  padding: 10px var(--space-5);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-bold);
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.viago-btn-login:hover {
+  background-color: var(--color-primary-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.viago-btn-login:active {
+  transform: scale(0.98);
+}
+
+.viago-btn-login i {
+  font-size: 16px;
+}
+
+/* Bottom Nav Row */
+.viago-customer-header__nav {
+  border-top: 1px solid var(--color-border);
+}
+
+.viago-nav-container {
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+  display: flex;
+  justify-content: center;
+}
+
+.viago-nav-list {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.viago-nav-item {
+  position: relative;
+}
+
+.viago-nav-item.has-dropdown {
+  cursor: pointer;
+}
+
+.viago-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-4) 0;
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  position: relative;
+}
+
+.viago-nav-link:hover {
+  color: var(--color-primary-600);
+}
+
+.viago-nav-link.active {
+  color: var(--color-text-primary);
+}
+
+.viago-dropdown-icon {
+  font-size: 10px;
+}
+
+.viago-active-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: var(--color-primary-600);
+  border-top-left-radius: 2px;
+  border-top-right-radius: 2px;
+}
+
+/* Dropdown Styles */
+.viago-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 220px;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.2s ease;
+  z-index: var(--z-dropdown);
+  padding: var(--space-2) 0;
+}
+
+.viago-nav-item.has-dropdown:hover .viago-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.viago-nav-item.has-dropdown:hover .viago-dropdown-icon {
+  transform: rotate(180deg);
+}
+
+.viago-dropdown-icon {
+  transition: transform 0.2s ease;
+}
+
+.viago-dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.viago-dropdown-item {
+  padding: 0;
+}
+
+.viago-dropdown-link {
+  display: block;
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-text-body);
+  font-size: var(--font-size-body);
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  text-transform: none;
+  font-weight: var(--font-weight-bold);
+}
+
+.viago-dropdown-link:hover {
+  background-color: var(--color-neutral-50);
+  color: var(--color-primary-600);
+}
+

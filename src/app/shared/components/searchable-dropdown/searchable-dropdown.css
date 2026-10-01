@@ -1,0 +1,31 @@
+/* Searchable Dropdown CSS Component Styles */
+
+.searchable-dropdown-container {
+  font-family: var(--font-family-base, 'Inter', sans-serif);
+}
+
+.dropdown-menu {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-300, #cbd5e1) transparent;
+}
+
+.dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+  background-color: var(--color-neutral-300, #cbd5e1);
+  border-radius: var(--radius-full, 9999px);
+}
+
+.dropdown-item {
+  user-select: none;
+}
+
+.is-disabled {
+  opacity: 0.75;
+}
