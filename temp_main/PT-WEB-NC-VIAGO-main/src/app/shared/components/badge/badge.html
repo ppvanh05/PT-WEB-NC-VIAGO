@@ -1,0 +1,61 @@
+<span [ngClass]="badgeClasses">
+  <span *ngIf="dot" class="viago-badge__dot"></span>
+  <i *ngIf="icon" [class]="icon" class="viago-badge__icon"></i>
+  <ng-content select="[badge-icon]"></ng-content>
+
+  <span class="viago-badge__content">
+    <ng-container *ngIf="label">{{ label }}</ng-container>
+    <ng-content></ng-content>
+  </span>
+
+  <button *ngIf="removable" type="button" class="viago-badge__remove-btn" (click)="onRemoveClick($event)"
+    aria-label="Remove badge">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+        stroke-linejoin="round" />
+    </svg>
+  </button>
+</span>
+<!-- DEMO SỬ DỤNG BADGE COMPONENT:
+
+<div>
+      <h2 style="margin-bottom: 1.5rem; color: #0f172a; font-size: 1.5rem;">Loại 4: Các loại Badge Component</h2>
+      
+      <div style="margin-bottom: 1.5rem;">
+        <h3 style="margin-bottom: 0.75rem; font-size: 15px; color: #64748b;">Trạng thái đơn hàng</h3>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <app-badge variant="reviewed" label="ĐÃ ĐÁNH GIÁ"></app-badge>
+          <app-badge variant="canceled" label="ĐÃ HỦY"></app-badge>
+          <app-badge variant="completed" label="ĐÃ HOÀN THÀNH"></app-badge>
+          <app-badge variant="pending" label="CHỜ THANH TOÁN"></app-badge>
+        </div>
+      </div>
+
+      <div>
+        <h3 style="margin-bottom: 0.75rem; font-size: 15px; color: #64748b;">Các trạng thái khác</h3>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <app-badge variant="upcoming" label="Sắp diễn ra"></app-badge>
+          <app-badge variant="paused" label="Tạm dừng"></app-badge>
+          <app-badge variant="expired" label="Hết hạn"></app-badge>
+          <app-badge variant="running" label="Đang chạy"></app-badge>
+          <app-badge variant="event" label="Sự kiện"></app-badge>
+          <app-badge variant="recruitment" label="Tuyển dụng"></app-badge>
+        </div>
+
+        <h3 style="margin-bottom: 0.75rem; font-size: 15px; color: #64748b; margin-top: 1.5rem;">Phân loại tin bài</h3>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <app-badge variant="guide" label="Cẩm nang di chuyển"></app-badge>
+          <app-badge variant="promotion" label="Khuyến mãi"></app-badge>
+          <app-badge variant="news" label="Tin tức nhà xe"></app-badge>
+        </div>
+
+        <h3 style="margin-bottom: 0.75rem; font-size: 15px; color: #64748b; margin-top: 1.5rem;">Voucher Code (Dashed)</h3>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <app-badge variant="warning" appearance="dashed" label="WELCOME50"></app-badge>
+          <app-badge variant="warning" appearance="dashed" label="GIẢM 20K"></app-badge>
+          <app-badge variant="warning" appearance="dashed" label="VISA20"></app-badge>
+        </div>
+      </div>
+    </div>
+
+-->
