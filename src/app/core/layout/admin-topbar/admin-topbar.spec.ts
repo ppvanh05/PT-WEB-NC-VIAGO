@@ -24,17 +24,13 @@ describe('AdminTopbar', () => {
     expect(element.querySelector('.user-menu__identity')?.textContent).toContain('Nguyễn Văn An');
   });
 
-  it('emits the sidebar toggle event', () => {
+  it('does not render a sidebar toggle', () => {
     const fixture = TestBed.createComponent(AdminTopbar);
-    const component = fixture.componentInstance;
-    const emitSpy = vi.spyOn(component.toggleSidebar, 'emit');
     fixture.detectChanges();
 
-    (fixture.nativeElement as HTMLElement)
-      .querySelector<HTMLButtonElement>('.admin-topbar__menu-button')
-      ?.click();
-
-    expect(emitSpy).toHaveBeenCalledOnce();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('.admin-topbar__left')).toBeTruthy();
+    expect(element.querySelector('.admin-topbar__menu-button')).toBeNull();
   });
 
   it('opens notifications and emits mark-all-read', () => {

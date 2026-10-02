@@ -1,17 +1,5 @@
 <header class="admin-topbar">
-  <div class="admin-topbar__left">
-    <button
-      class="icon-button admin-topbar__menu-button"
-      type="button"
-      [attr.aria-label]="sidebarCollapsed ? 'Mở thanh điều hướng' : 'Thu gọn thanh điều hướng'"
-      [attr.aria-expanded]="!sidebarCollapsed"
-      (click)="onToggleSidebar()"
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-    </button>
-  </div>
+  <div class="admin-topbar__left" aria-hidden="true"></div>
 
   <div class="admin-topbar__actions">
     @if (showDate) {
