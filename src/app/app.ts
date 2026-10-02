@@ -1,12 +1,9 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
 import { Card } from './shared/components/card/card';
 import { Badge } from './shared/components/badge/badge';
-
-@Component({
-  imports: [Card, Badge],
 import { CustomerNavbar } from './core/layout/customer-navbar/customer-navbar';
 
 @Component({
@@ -23,6 +20,7 @@ import { CustomerNavbar } from './core/layout/customer-navbar/customer-navbar';
 })
 export class App {
   title = signal('VIAGO');
+  readonly router = inject(Router);
 
   onAuthModalOpen() {
     alert('Kích hoạt Modal Đăng nhập / Đăng ký!');
