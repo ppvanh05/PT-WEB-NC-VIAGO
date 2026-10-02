@@ -1,1 +1,312 @@
-/* Admin Sidebar Component Styles */
+:host {
+  display: block;
+}
+
+/* ── Sidebar container — fixed như reference ── */
+.admin-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width, 256px);
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: var(--color-primary-600);
+  color: var(--color-text-inverse);
+  z-index: var(--z-sticky, 1100);
+  transition: width 0.3s ease;
+}
+
+.admin-sidebar.is-collapsed {
+  width: 64px;
+}
+
+/* ── Sprite ── */
+.icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ── Header ── */
+.sidebar-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--topbar-height, 64px);
+  padding: 0 var(--space-4, 16px);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.brand-logo {
+  width: 88px;
+  height: auto;
+  object-fit: contain;
+  transition: opacity 200ms ease, width 250ms ease;
+}
+
+.is-collapsed .brand-logo {
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Buttons reset ── */
+.menu-button, .profile-card, .nav-item, .sub-item {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.menu-button {
+  position: absolute;
+  right: var(--space-4, 16px);
+  display: grid;
+  flex-shrink: 0;
+  width: var(--control-height-sm, 36px);
+  height: var(--control-height-sm, 36px);
+  padding: var(--space-2, 8px);
+  place-items: center;
+  color: var(--color-primary-700);
+  background: transparent;
+  border-radius: var(--radius-sm, 4px);
+  transition: background-color 150ms ease;
+}
+
+.menu-button:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* ── Icons ── */
+.menu-icon, .nav-icon, .chevron-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.menu-icon { width: 22px; height: 22px; stroke-width: 1.8; }
+
+/* ── Nav wrapper (overflow: hidden) — như .navigation-menu trong reference ── */
+.sidebar-nav-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  align-self: stretch;
+  width: 100%;
+  overflow: hidden;   /* clip con, cho .sidebar-nav scroll bên trong */
+  padding-top: var(--space-3, 12px);
+}
+
+/* ── Nav scroll container — như .list-wrapper trong reference ── */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  align-self: stretch;
+  width: 100%;
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+/* Ẩn scrollbar nhưng vẫn scroll được — như reference */
+.sidebar-nav::-webkit-scrollbar { width: 0; display: none; }
+.sidebar-nav { scrollbar-width: none; }
+
+/* ── Nav item (parent) ── */
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  padding: var(--space-3, 12px) var(--space-6, 24px);
+  gap: var(--space-3, 12px);
+  color: var(--color-text-inverse);
+  background: transparent;
+  text-align: left;
+  border-left: 4px solid transparent;
+  transition: background-color 150ms ease, border-color 150ms ease;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.nav-item:hover,
+.nav-item:focus-visible {
+  background: var(--color-white-alpha-10, rgba(255,255,255,0.10));
+  border-left-color: rgba(255, 129, 38, 0.4);
+}
+
+.nav-item.is-active {
+  background: rgba(255, 255, 255, 0.12);
+  border-left-color: var(--color-accent-500, #ff8126);
+}
+
+.nav-label {
+  overflow: hidden;
+  flex: 1;
+  font-size: var(--font-size-body, 14px);
+  font-weight: var(--font-weight-semibold, 600);
+  line-height: var(--line-height-body, 1.5);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: opacity 200ms ease;
+}
+
+.is-collapsed .nav-label {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.nav-icon {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.8;
+}
+
+.chevron-icon {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  stroke-width: 1.8;
+  transition: transform 0.2s ease, opacity 200ms ease;
+}
+
+.chevron-icon.is-open {
+  transform: rotate(90deg);
+}
+
+.is-collapsed .chevron-icon {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Submenu ── */
+.submenu {
+  display: none;
+  flex-direction: column;
+  align-self: stretch;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.15);
+  flex: 0 0 auto;
+}
+
+.submenu.is-open {
+  display: flex;
+}
+
+.is-collapsed .submenu {
+  display: none !important;
+}
+
+/* ── Sub-item ── */
+.sub-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 24px 10px 48px;
+  color: rgba(255, 255, 255, 0.78);
+  background: transparent;
+  text-align: left;
+  font-size: var(--font-size-body-sm, 13px);
+  font-weight: var(--font-weight-medium, 500);
+  line-height: 18px;
+  border-left: 4px solid transparent;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.sub-item:hover,
+.sub-item:focus-visible {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border-left-color: rgba(255, 129, 38, 0.5);
+}
+
+.sub-item.is-active {
+  color: #fff;
+  font-weight: var(--font-weight-semibold, 600);
+  background: rgba(255, 255, 255, 0.1);
+  border-left-color: var(--color-accent-500, #ff8126);
+}
+
+/* ── Profile card ── */
+.profile-card {
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  gap: var(--space-3, 12px);
+  color: var(--color-text-inverse);
+  background: transparent;
+  border-top: 1px solid var(--color-white-alpha-10, rgba(255,255,255,0.1));
+  text-align: left;
+  flex-shrink: 0;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background-color 150ms ease;
+}
+
+.profile-card:hover,
+.profile-card:focus-visible {
+  background: var(--color-white-alpha-10, rgba(255,255,255,0.10));
+}
+
+.profile-avatar {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: var(--radius-circle, 50%);
+  object-fit: cover;
+}
+
+.profile-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-0-5, 2px);
+  overflow: hidden;
+  transition: opacity 200ms ease;
+}
+
+.is-collapsed .profile-copy {
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+}
+
+.profile-copy strong,
+.profile-copy small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.profile-copy strong {
+  font-size: var(--font-size-body-sm, 13px);
+  font-weight: var(--font-weight-bold, 700);
+  line-height: var(--line-height-body-sm, 1.4);
+}
+
+.profile-copy small {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: var(--font-size-caption, 12px);
+}
+
+/* ── Responsive ── */
+@media (max-width: 767px) {
+  .admin-sidebar {
+    width: min(var(--sidebar-width, 256px), 86vw);
+  }
+  .admin-sidebar.is-collapsed {
+    width: 0;
+    overflow: hidden;
+  }
+}

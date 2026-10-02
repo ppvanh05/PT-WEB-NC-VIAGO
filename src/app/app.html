@@ -1,7 +1,8 @@
-<!-- Shared Customer Navbar Layout Component -->
-<app-customer-navbar 
-  (openAuthModal)="onAuthModalOpen()" 
-  (openSecurityModal)="onSecurityModalOpen()"
-></app-customer-navbar>
+@if (!router.url.startsWith('/admin')) {
+  <app-customer-navbar
+    (openAuthModal)="onAuthModalOpen()"
+    (openSecurityModal)="onSecurityModalOpen()"
+  />
+}
 
 <router-outlet></router-outlet>
