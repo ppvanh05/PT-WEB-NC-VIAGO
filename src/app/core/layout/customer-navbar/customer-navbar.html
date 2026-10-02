@@ -1,65 +1,254 @@
-<header class="viago-customer-header">
-  <!-- Top Row -->
-  <div class="viago-customer-header__top">
-    
-    <!-- Left: Language Selector -->
-    <div class="viago-customer-header__left">
-      <div class="viago-customer-header__lang">
-        <!-- Simple VN Flag SVG -->
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" class="viago-flag">
-          <rect fill="#da251d" width="3" height="2"/>
-          <polygon fill="#ffcd00" points="1.5,0.4 1.2,1.3 2,0.7 1,0.7 1.8,1.3"/>
+<!-- Customer Header / Navbar Section -->
+<header class="customer-header">
+  <!-- Top Utility Bar: Language Selector, Center Brand Logo, User Profile / Auth, Mobile Toggle -->
+  <div class="utility-bar">
+    <!-- Left Column: Language Selector -->
+    <div class="utility-col-left">
+      <div class="lang-selector">
+        <img src="/assets/customer/quoc_ky_VN.png" alt="VN Flag" class="flag-icon" />
+        <span class="lang-text">VI</span>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="lang-arrow">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
         </svg>
         <span class="viago-lang-text">VI</span>
         <i class="bi bi-chevron-down"></i>
       </div>
     </div>
 
-    <!-- Center: Logo -->
-    <div class="viago-customer-header__center">
-      <img src="assets/brand/logo.png" alt="VIAGO" class="viago-logo" />
+    <!-- Center Column: VIAGO Brand Logo -->
+    <div class="utility-col-center">
+      <a routerLink="/" (click)="onHomeClick($event)" class="brand-logo-link">
+        <img src="/assets/brand/logo.png" alt="VIAGO Logo" class="brand-logo-img" />
+      </a>
     </div>
 
-    <!-- Right: Login Button -->
-    <div class="viago-customer-header__right">
-      <div class="viago-customer-header__auth">
-        <button class="viago-btn-login">
-          <i class="bi bi-person-circle"></i>
-          <span>Đăng nhập / Đăng ký</span>
+    <!-- Right Column: Auth Button / User Profile Menu / Mobile Toggle -->
+    <div class="utility-col-right">
+      <!-- Unauthenticated (Not Logged In) -->
+      <button 
+        *ngIf="!authService.currentUser()" 
+        (click)="onAuthClick()" 
+        class="btn-auth"
+      >
+        <img src="/assets/customer/icon_user.svg" class="btn-auth-icon" alt="user icon" />
+        <span>Đăng nhập / Đăng ký</span>
+      </button>
+
+      <!-- Authenticated (Logged In User) -->
+      <div *ngIf="authService.currentUser() as user" class="user-profile-menu">
+        <button 
+          (click)="toggleDropdown($event)" 
+          class="profile-trigger"
+        >
+          <img [src]="user.avatar || '/assets/customer/user.png'" alt="User Avatar" class="profile-avatar" />
+          <span class="user-name-label">{{ user.name }}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="dropdown-arrow" [class.rotated]="isDropdownOpen">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
         </button>
+
+        <!-- Profile Dropdown Popup Menu -->
+        <div 
+          class="profile-dropdown-popup"
+          [class.open]="isDropdownOpen"
+        >
+          <a routerLink="/profile" [queryParams]="{tab: 'personal'}" (click)="isDropdownOpen = false" class="dropdown-item">
+            <img src="/assets/customer/icon_personal.svg" class="dropdown-item-icon" alt="user icon" />
+            <span>Thông tin cá nhân</span>
+          </a>
+
+          <a routerLink="/profile" [queryParams]="{tab: 'security'}" (click)="isDropdownOpen = false" class="dropdown-item">
+            <img src="/assets/customer/icon_bao_mat.svg" class="dropdown-item-icon" alt="security icon" />
+            <span>Bảo mật tài khoản</span>
+          </a>
+
+          <a routerLink="/profile" [queryParams]="{tab: 'tickets'}" (click)="isDropdownOpen = false" class="dropdown-item">
+            <img src="/assets/customer/icon_lich_su_ve.svg" class="dropdown-item-icon" alt="ticket history icon" />
+            <span>Lịch sử mua vé</span>
+          </a>
+
+          <a routerLink="/profile" [queryParams]="{tab: 'privileges'}" (click)="isDropdownOpen = false" class="dropdown-item">
+            <img src="/assets/customer/icon_dac_quyen.svg" class="dropdown-item-icon" alt="membership privileges icon" />
+            <span>Đặc quyền thành viên</span>
+          </a>
+
+          <div class="dropdown-divider"></div>
+
+          <button (click)="logout()" class="dropdown-item btn-logout">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="logout-icon">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+            <span>Đăng xuất</span>
+          </button>
+        </div>
       </div>
+
+      <!-- Mobile Hamburger Menu Toggle Button -->
+      <button 
+        (click)="toggleMobileMenu($event)" 
+        class="mobile-toggle-btn"
+        aria-label="Toggle Navigation Menu"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="hamburger-svg">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+      </button>
     </div>
   </div>
 
-  <!-- Bottom Row: Navigation -->
-  <div class="viago-customer-header__nav">
-    <nav class="viago-nav-container">
-      <ul class="viago-nav-list">
-        <!-- Render Nav Items Dynamically -->
-        <li *ngFor="let item of navItems" class="viago-nav-item" [class.has-dropdown]="item.hasDropdown">
-          <a 
-            href="#" 
-            (click)="setActiveTab(item.label, $event)"
-            class="viago-nav-link"
-            [class.active]="activeTab === item.label"
+  <!-- Desktop Navigation Links Bar -->
+  <div class="main-navbar">
+    <div class="navbar-container">
+      <nav class="nav-links-list">
+        <a routerLink="/" (click)="onHomeClick($event)" routerLinkActive="nav-active" [routerLinkActiveOptions]="{exact: true}" class="nav-link-item">TRANG CHỦ</a>
+        <a routerLink="/lich-trinh" routerLinkActive="nav-active" class="nav-link-item">LỊCH TRÌNH</a>
+        <a routerLink="/tra-cuu-ve" routerLinkActive="nav-active" class="nav-link-item">TRA CỨU VÉ</a>
+        <a routerLink="/tin-tuc" routerLinkActive="nav-active" class="nav-link-item">TIN TỨC</a>
+        <a routerLink="/hoa-don" routerLinkActive="nav-active" class="nav-link-item">HÓA ĐƠN</a>
+        <a routerLink="/danh-gia" routerLinkActive="nav-active" class="nav-link-item">ĐÁNH GIÁ</a>
+
+        <!-- Dropdown: Dịch vụ -->
+        <div class="nav-dropdown-wrapper">
+          <a
+            (click)="toggleServices($event)"
+            class="nav-link-item dropdown-trigger"
+            [class.nav-active]="isServicesOpen || isServicesRouteActive()"
           >
-            {{ item.label }}
-            <i *ngIf="item.hasDropdown" class="bi bi-chevron-down viago-dropdown-icon"></i>
-            
-            <!-- Active Indicator -->
-            <div *ngIf="activeTab === item.label" class="viago-active-indicator"></div>
+            <span>DỊCH VỤ</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="arrow-icon" [class.rotated]="isServicesOpen">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
           </a>
 
-          <!-- Dropdown Menu -->
-          <div *ngIf="item.hasDropdown && item.dropdownItems" class="viago-dropdown-menu">
-            <ul class="viago-dropdown-list">
-              <li *ngFor="let dropItem of item.dropdownItems" class="viago-dropdown-item">
-                <a href="#" class="viago-dropdown-link">{{ dropItem }}</a>
-              </li>
-            </ul>
+          <div class="dropdown-menu-box" [class.open]="isServicesOpen">
+            <a routerLink="/dich-vu" (click)="isServicesOpen = false" class="dropdown-menu-item">
+              <span class="menu-item-title">Cho thuê xe hợp đồng</span>
+              <span class="menu-item-desc">Dịch vụ xe du lịch chất lượng cao</span>
+            </a>
+            <a routerLink="/dich-vu" (click)="isServicesOpen = false" class="dropdown-menu-item">
+              <span class="menu-item-title">Gửi hàng nhanh</span>
+              <span class="menu-item-desc">Vận chuyển hỏa tốc trong ngày</span>
+            </a>
+            <a routerLink="/dich-vu" (click)="isServicesOpen = false" class="dropdown-menu-item">
+              <span class="menu-item-title">Vận tải hành khách</span>
+              <span class="menu-item-desc">Tuyến liên tỉnh giường nằm limousine</span>
+            </a>
           </div>
-        </li>
-      </ul>
-    </nav>
+        </div>
+
+        <!-- Dropdown: Giới thiệu -->
+        <div class="nav-dropdown-wrapper">
+          <a
+            (click)="toggleAbout($event)"
+            class="nav-link-item dropdown-trigger"
+            [class.nav-active]="isAboutOpen || isAboutRouteActive()"
+          >
+            <span>GIỚI THIỆU</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="arrow-icon" [class.rotated]="isAboutOpen">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </a>
+
+          <div class="dropdown-menu-box" [class.open]="isAboutOpen">
+            <a routerLink="/ve-chung-toi" (click)="isAboutOpen = false" class="dropdown-menu-item">
+              <span class="menu-item-title">Về chúng tôi</span>
+              <span class="menu-item-desc">Hành trình phát triển VIAGO</span>
+            </a>
+            <a routerLink="/tuyen-dung" (click)="isAboutOpen = false" class="dropdown-menu-item">
+              <span class="menu-item-title">Tuyển dụng</span>
+              <span class="menu-item-desc">Cơ hội việc làm hấp dẫn</span>
+            </a>
+            <a routerLink="/dieu-khoan" (click)="isAboutOpen = false" class="dropdown-menu-item">
+              <span class="menu-item-title">Điều khoản sử dụng</span>
+              <span class="menu-item-desc">Quy định và điều kiện dịch vụ</span>
+            </a>
+            <a routerLink="/chinh-sach" (click)="isAboutOpen = false" class="dropdown-menu-item">
+              <span class="menu-item-title">Chính sách bảo mật</span>
+              <span class="menu-item-desc">Cam kết bảo vệ dữ liệu</span>
+            </a>
+            <a routerLink="/faq" (click)="isAboutOpen = false" class="dropdown-menu-item">
+              <span class="menu-item-title">Câu hỏi thường gặp</span>
+              <span class="menu-item-desc">Giải đáp thắc mắc dịch vụ</span>
+            </a>
+            <a routerLink="/lien-he" (click)="isAboutOpen = false" class="dropdown-menu-item">
+              <span class="menu-item-title">Liên hệ</span>
+              <span class="menu-item-desc">Kênh hỗ trợ 24/7</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Mobile Drawer Menu Overlay -->
+  <div 
+    class="mobile-drawer-overlay"
+    [class.open]="isMobileMenuOpen"
+    (click)="closeMobileMenu()"
+  ></div>
+
+  <!-- Mobile Drawer Menu Sheet -->
+  <div 
+    class="mobile-drawer"
+    [class.open]="isMobileMenuOpen"
+  >
+    <div class="mobile-drawer-header">
+      <img src="/assets/brand/logo.png" alt="VIAGO Logo" class="mobile-logo" />
+      <button (click)="closeMobileMenu()" class="mobile-close-btn">&times;</button>
+    </div>
+
+    <div class="mobile-drawer-body">
+      <!-- Unauthenticated Mobile Auth Button -->
+      <button 
+        *ngIf="!authService.currentUser()" 
+        (click)="onAuthClick()" 
+        class="btn-auth mobile-auth-btn"
+      >
+        <img src="/assets/customer/icon_user.svg" class="btn-auth-icon" alt="user icon" />
+        <span>Đăng nhập / Đăng ký</span>
+      </button>
+
+      <nav class="mobile-nav-list">
+        <a routerLink="/" (click)="onHomeClick($event)" class="mobile-nav-item">Trang chủ</a>
+        <a routerLink="/lich-trinh" (click)="closeMobileMenu()" class="mobile-nav-item">Lịch trình</a>
+        <a routerLink="/tra-cuu-ve" (click)="closeMobileMenu()" class="mobile-nav-item">Tra cứu vé</a>
+        <a routerLink="/tin-tuc" (click)="closeMobileMenu()" class="mobile-nav-item">Tin tức</a>
+        <a routerLink="/hoa-don" (click)="closeMobileMenu()" class="mobile-nav-item">Hóa đơn</a>
+        <a routerLink="/danh-gia" (click)="closeMobileMenu()" class="mobile-nav-item">Đánh giá</a>
+
+        <!-- Mobile Submenu: Dịch vụ -->
+        <div class="mobile-subgroup">
+          <button (click)="isMobileServicesOpen = !isMobileServicesOpen" class="mobile-nav-item sub-trigger">
+            <span>Dịch vụ</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="sub-arrow" [class.rotated]="isMobileServicesOpen">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </button>
+          <div class="mobile-sub-list" *ngIf="isMobileServicesOpen">
+            <a routerLink="/dich-vu" (click)="closeMobileMenu()" class="mobile-sub-item">Cho thuê xe hợp đồng</a>
+            <a routerLink="/dich-vu" (click)="closeMobileMenu()" class="mobile-sub-item">Gửi hàng nhanh</a>
+            <a routerLink="/dich-vu" (click)="closeMobileMenu()" class="mobile-sub-item">Vận tải hành khách</a>
+          </div>
+        </div>
+
+        <!-- Mobile Submenu: Giới thiệu -->
+        <div class="mobile-subgroup">
+          <button (click)="isMobileAboutOpen = !isMobileAboutOpen" class="mobile-nav-item sub-trigger">
+            <span>Giới thiệu</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="sub-arrow" [class.rotated]="isMobileAboutOpen">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </button>
+          <div class="mobile-sub-list" *ngIf="isMobileAboutOpen">
+            <a routerLink="/ve-chung-toi" (click)="closeMobileMenu()" class="mobile-sub-item">Về chúng tôi</a>
+            <a routerLink="/tuyen-dung" (click)="closeMobileMenu()" class="mobile-sub-item">Tuyển dụng</a>
+            <a routerLink="/dieu-khoan" (click)="closeMobileMenu()" class="mobile-sub-item">Điều khoản sử dụng</a>
+            <a routerLink="/chinh-sach" (click)="closeMobileMenu()" class="mobile-sub-item">Chính sách bảo mật</a>
+            <a routerLink="/faq" (click)="closeMobileMenu()" class="mobile-sub-item">Câu hỏi thường gặp</a>
+            <a routerLink="/lien-he" (click)="closeMobileMenu()" class="mobile-sub-item">Liên hệ</a>
+          </div>
+        </div>
+      </nav>
+    </div>
   </div>
 </header>

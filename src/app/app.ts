@@ -1,5 +1,10 @@
-import { Component, signal } from '@angular/core';
-import { CustomerLayout } from './core/layout/customer-layout/customer-layout';
+import { Component, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterOutlet } from '@angular/router';
+import { Card } from './shared/components/card/card';
+import { Badge } from './shared/components/badge/badge';
+import { CustomerNavbar } from './core/layout/customer-navbar/customer-navbar';
 
 @Component({
   imports: [CustomerLayout],
@@ -9,4 +14,14 @@ import { CustomerLayout } from './core/layout/customer-layout/customer-layout';
 })
 export class App {
   protected readonly title = signal('viago-frontend');
+  title = signal('VIAGO');
+  readonly router = inject(Router);
+
+  onAuthModalOpen() {
+    alert('Kích hoạt Modal Đăng nhập / Đăng ký!');
+  }
+
+  onSecurityModalOpen() {
+    alert('Kích hoạt Modal Bảo mật tài khoản!');
+  }
 }

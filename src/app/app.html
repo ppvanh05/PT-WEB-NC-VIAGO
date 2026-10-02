@@ -1,1 +1,8 @@
-<app-customer-layout></app-customer-layout>
+@if (!router.url.startsWith('/admin')) {
+  <app-customer-navbar
+    (openAuthModal)="onAuthModalOpen()"
+    (openSecurityModal)="onSecurityModalOpen()"
+  />
+}
+
+<router-outlet></router-outlet>
