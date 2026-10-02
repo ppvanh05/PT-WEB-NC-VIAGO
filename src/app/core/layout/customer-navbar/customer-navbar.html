@@ -17,7 +17,7 @@
 
     <!-- Center Column: VIAGO Brand Logo -->
     <div class="utility-col-center">
-      <a routerLink="/" (click)="onHomeClick($event)" class="brand-logo-link">
+      <a routerLink="/customer" (click)="onHomeClick($event)" class="brand-logo-link">
         <img src="/assets/brand/logo.png" alt="VIAGO Logo" class="brand-logo-img" />
       </a>
     </div>
@@ -52,22 +52,22 @@
           class="profile-dropdown-popup"
           [class.open]="isDropdownOpen"
         >
-          <a routerLink="/profile" [queryParams]="{tab: 'personal'}" (click)="isDropdownOpen = false" class="dropdown-item">
+          <a routerLink="/customer/profile" [queryParams]="{tab: 'personal'}" (click)="isDropdownOpen = false" class="dropdown-item">
             <img src="/assets/customer/icon_personal.svg" class="dropdown-item-icon" alt="user icon" />
             <span>Thông tin cá nhân</span>
           </a>
 
-          <a routerLink="/profile" [queryParams]="{tab: 'security'}" (click)="isDropdownOpen = false" class="dropdown-item">
+          <a routerLink="/customer/profile" [queryParams]="{tab: 'security'}" (click)="isDropdownOpen = false" class="dropdown-item">
             <img src="/assets/customer/icon_bao_mat.svg" class="dropdown-item-icon" alt="security icon" />
             <span>Bảo mật tài khoản</span>
           </a>
 
-          <a routerLink="/profile" [queryParams]="{tab: 'tickets'}" (click)="isDropdownOpen = false" class="dropdown-item">
+          <a routerLink="/customer/profile" [queryParams]="{tab: 'tickets'}" (click)="isDropdownOpen = false" class="dropdown-item">
             <img src="/assets/customer/icon_lich_su_ve.svg" class="dropdown-item-icon" alt="ticket history icon" />
             <span>Lịch sử mua vé</span>
           </a>
 
-          <a routerLink="/profile" [queryParams]="{tab: 'privileges'}" (click)="isDropdownOpen = false" class="dropdown-item">
+          <a routerLink="/customer/profile" [queryParams]="{tab: 'privileges'}" (click)="isDropdownOpen = false" class="dropdown-item">
             <img src="/assets/customer/icon_dac_quyen.svg" class="dropdown-item-icon" alt="membership privileges icon" />
             <span>Đặc quyền thành viên</span>
           </a>
@@ -100,12 +100,12 @@
   <div class="main-navbar">
     <div class="navbar-container">
       <nav class="nav-links-list">
-        <a routerLink="/" (click)="onHomeClick($event)" routerLinkActive="nav-active" [routerLinkActiveOptions]="{exact: true}" class="nav-link-item">TRANG CHỦ</a>
-        <a routerLink="/lich-trinh" routerLinkActive="nav-active" class="nav-link-item">LỊCH TRÌNH</a>
-        <a routerLink="/tra-cuu-ve" routerLinkActive="nav-active" class="nav-link-item">TRA CỨU VÉ</a>
-        <a routerLink="/tin-tuc" routerLinkActive="nav-active" class="nav-link-item">TIN TỨC</a>
-        <a routerLink="/hoa-don" routerLinkActive="nav-active" class="nav-link-item">HÓA ĐƠN</a>
-        <a routerLink="/danh-gia" routerLinkActive="nav-active" class="nav-link-item">ĐÁNH GIÁ</a>
+        <a routerLink="/customer" (click)="onHomeClick($event)" routerLinkActive="nav-active" [routerLinkActiveOptions]="{exact: true}" class="nav-link-item">TRANG CHỦ</a>
+        <a routerLink="/customer/lich-trinh" routerLinkActive="nav-active" class="nav-link-item">LỊCH TRÌNH</a>
+        <a routerLink="/customer/tra-cuu-ve" routerLinkActive="nav-active" class="nav-link-item">TRA CỨU VÉ</a>
+        <a routerLink="/customer/tin-tuc" routerLinkActive="nav-active" class="nav-link-item">TIN TỨC</a>
+        <a routerLink="/customer/hoa-don" routerLinkActive="nav-active" class="nav-link-item">HÓA ĐƠN</a>
+        <a routerLink="/customer/danh-gia" routerLinkActive="nav-active" class="nav-link-item">ĐÁNH GIÁ</a>
 
         <!-- Dropdown: Dịch vụ -->
         <div class="nav-dropdown-wrapper">
@@ -121,15 +121,15 @@
           </a>
 
           <div class="dropdown-menu-box" [class.open]="isServicesOpen">
-            <a routerLink="/dich-vu" (click)="isServicesOpen = false" class="dropdown-menu-item">
+            <a routerLink="/customer/dich-vu" (click)="isServicesOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Cho thuê xe hợp đồng</span>
               <span class="menu-item-desc">Dịch vụ xe du lịch chất lượng cao</span>
             </a>
-            <a routerLink="/dich-vu" (click)="isServicesOpen = false" class="dropdown-menu-item">
+            <a routerLink="/customer/dich-vu" (click)="isServicesOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Gửi hàng nhanh</span>
               <span class="menu-item-desc">Vận chuyển hỏa tốc trong ngày</span>
             </a>
-            <a routerLink="/dich-vu" (click)="isServicesOpen = false" class="dropdown-menu-item">
+            <a routerLink="/customer/dich-vu" (click)="isServicesOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Vận tải hành khách</span>
               <span class="menu-item-desc">Tuyến liên tỉnh giường nằm limousine</span>
             </a>
@@ -150,27 +150,27 @@
           </a>
 
           <div class="dropdown-menu-box" [class.open]="isAboutOpen">
-            <a routerLink="/ve-chung-toi" (click)="isAboutOpen = false" class="dropdown-menu-item">
+            <a routerLink="/customer/ve-chung-toi" (click)="isAboutOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Về chúng tôi</span>
               <span class="menu-item-desc">Hành trình phát triển VIAGO</span>
             </a>
-            <a routerLink="/tuyen-dung" (click)="isAboutOpen = false" class="dropdown-menu-item">
+            <a routerLink="/customer/tuyen-dung" (click)="isAboutOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Tuyển dụng</span>
               <span class="menu-item-desc">Cơ hội việc làm hấp dẫn</span>
             </a>
-            <a routerLink="/dieu-khoan" (click)="isAboutOpen = false" class="dropdown-menu-item">
+            <a routerLink="/customer/dieu-khoan" (click)="isAboutOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Điều khoản sử dụng</span>
               <span class="menu-item-desc">Quy định và điều kiện dịch vụ</span>
             </a>
-            <a routerLink="/chinh-sach" (click)="isAboutOpen = false" class="dropdown-menu-item">
+            <a routerLink="/customer/chinh-sach" (click)="isAboutOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Chính sách bảo mật</span>
               <span class="menu-item-desc">Cam kết bảo vệ dữ liệu</span>
             </a>
-            <a routerLink="/faq" (click)="isAboutOpen = false" class="dropdown-menu-item">
+            <a routerLink="/customer/faq" (click)="isAboutOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Câu hỏi thường gặp</span>
               <span class="menu-item-desc">Giải đáp thắc mắc dịch vụ</span>
             </a>
-            <a routerLink="/lien-he" (click)="isAboutOpen = false" class="dropdown-menu-item">
+            <a routerLink="/customer/lien-he" (click)="isAboutOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Liên hệ</span>
               <span class="menu-item-desc">Kênh hỗ trợ 24/7</span>
             </a>
@@ -209,12 +209,12 @@
       </button>
 
       <nav class="mobile-nav-list">
-        <a routerLink="/" (click)="onHomeClick($event)" class="mobile-nav-item">Trang chủ</a>
-        <a routerLink="/lich-trinh" (click)="closeMobileMenu()" class="mobile-nav-item">Lịch trình</a>
-        <a routerLink="/tra-cuu-ve" (click)="closeMobileMenu()" class="mobile-nav-item">Tra cứu vé</a>
-        <a routerLink="/tin-tuc" (click)="closeMobileMenu()" class="mobile-nav-item">Tin tức</a>
-        <a routerLink="/hoa-don" (click)="closeMobileMenu()" class="mobile-nav-item">Hóa đơn</a>
-        <a routerLink="/danh-gia" (click)="closeMobileMenu()" class="mobile-nav-item">Đánh giá</a>
+        <a routerLink="/customer" (click)="onHomeClick($event)" class="mobile-nav-item">Trang chủ</a>
+        <a routerLink="/customer/lich-trinh" (click)="closeMobileMenu()" class="mobile-nav-item">Lịch trình</a>
+        <a routerLink="/customer/tra-cuu-ve" (click)="closeMobileMenu()" class="mobile-nav-item">Tra cứu vé</a>
+        <a routerLink="/customer/tin-tuc" (click)="closeMobileMenu()" class="mobile-nav-item">Tin tức</a>
+        <a routerLink="/customer/hoa-don" (click)="closeMobileMenu()" class="mobile-nav-item">Hóa đơn</a>
+        <a routerLink="/customer/danh-gia" (click)="closeMobileMenu()" class="mobile-nav-item">Đánh giá</a>
 
         <!-- Mobile Submenu: Dịch vụ -->
         <div class="mobile-subgroup">
@@ -225,9 +225,9 @@
             </svg>
           </button>
           <div class="mobile-sub-list" *ngIf="isMobileServicesOpen">
-            <a routerLink="/dich-vu" (click)="closeMobileMenu()" class="mobile-sub-item">Cho thuê xe hợp đồng</a>
-            <a routerLink="/dich-vu" (click)="closeMobileMenu()" class="mobile-sub-item">Gửi hàng nhanh</a>
-            <a routerLink="/dich-vu" (click)="closeMobileMenu()" class="mobile-sub-item">Vận tải hành khách</a>
+            <a routerLink="/customer/dich-vu" (click)="closeMobileMenu()" class="mobile-sub-item">Cho thuê xe hợp đồng</a>
+            <a routerLink="/customer/dich-vu" (click)="closeMobileMenu()" class="mobile-sub-item">Gửi hàng nhanh</a>
+            <a routerLink="/customer/dich-vu" (click)="closeMobileMenu()" class="mobile-sub-item">Vận tải hành khách</a>
           </div>
         </div>
 
@@ -240,12 +240,12 @@
             </svg>
           </button>
           <div class="mobile-sub-list" *ngIf="isMobileAboutOpen">
-            <a routerLink="/ve-chung-toi" (click)="closeMobileMenu()" class="mobile-sub-item">Về chúng tôi</a>
-            <a routerLink="/tuyen-dung" (click)="closeMobileMenu()" class="mobile-sub-item">Tuyển dụng</a>
-            <a routerLink="/dieu-khoan" (click)="closeMobileMenu()" class="mobile-sub-item">Điều khoản sử dụng</a>
-            <a routerLink="/chinh-sach" (click)="closeMobileMenu()" class="mobile-sub-item">Chính sách bảo mật</a>
-            <a routerLink="/faq" (click)="closeMobileMenu()" class="mobile-sub-item">Câu hỏi thường gặp</a>
-            <a routerLink="/lien-he" (click)="closeMobileMenu()" class="mobile-sub-item">Liên hệ</a>
+            <a routerLink="/customer/ve-chung-toi" (click)="closeMobileMenu()" class="mobile-sub-item">Về chúng tôi</a>
+            <a routerLink="/customer/tuyen-dung" (click)="closeMobileMenu()" class="mobile-sub-item">Tuyển dụng</a>
+            <a routerLink="/customer/dieu-khoan" (click)="closeMobileMenu()" class="mobile-sub-item">Điều khoản sử dụng</a>
+            <a routerLink="/customer/chinh-sach" (click)="closeMobileMenu()" class="mobile-sub-item">Chính sách bảo mật</a>
+            <a routerLink="/customer/faq" (click)="closeMobileMenu()" class="mobile-sub-item">Câu hỏi thường gặp</a>
+            <a routerLink="/customer/lien-he" (click)="closeMobileMenu()" class="mobile-sub-item">Liên hệ</a>
           </div>
         </div>
       </nav>
