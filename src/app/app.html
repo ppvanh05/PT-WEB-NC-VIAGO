@@ -6,6 +6,12 @@
         <strong>VIAGO</strong>
       }
     </div>
+@if (!router.url.startsWith('/admin')) {
+  <app-customer-navbar
+    (openAuthModal)="onAuthModalOpen()"
+    (openSecurityModal)="onSecurityModalOpen()"
+  />
+}
 
     <nav class="demo-sidebar__nav">
       <a class="demo-sidebar__link demo-sidebar__link--active" href="#" aria-current="page">

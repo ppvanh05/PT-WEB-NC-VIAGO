@@ -1,0 +1,46 @@
+<nav class="pagination" aria-label="Phân trang">
+  <div class="pagination__controls">
+    <button
+      class="pagination__button pagination__button--arrow"
+      type="button"
+      aria-label="Trang trước"
+      [disabled]="safeCurrentPage === 1"
+      (click)="selectPage(safeCurrentPage - 1)"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+    </button>
+
+    @for (page of pages; track $index) {
+      @if (page === 'ellipsis') {
+        <span class="pagination__ellipsis" aria-hidden="true">&hellip;</span>
+      } @else {
+        <button
+          class="pagination__button"
+          type="button"
+          [class.pagination__button--active]="page === safeCurrentPage"
+          [attr.aria-current]="page === safeCurrentPage ? 'page' : null"
+          [attr.aria-label]="'Trang ' + page"
+          (click)="selectPage(page)"
+        >
+          {{ page }}
+        </button>
+      }
+    }
+
+    <button
+      class="pagination__button pagination__button--arrow"
+      type="button"
+      aria-label="Trang sau"
+      [disabled]="safeCurrentPage === totalPages"
+      (click)="selectPage(safeCurrentPage + 1)"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+    </button>
+  </div>
+
+  @if (showSummary) {
+    <p class="pagination__summary" aria-live="polite">
+      {{ firstItem }}&ndash;{{ lastItem }} trong số {{ totalItems.toLocaleString('vi-VN') }}
+    </p>
+  }
+</nav>

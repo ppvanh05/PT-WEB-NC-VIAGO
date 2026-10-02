@@ -1,0 +1,119 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.viago-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+/* Label */
+
+.viago-field__label {
+  color: var(--color-text-body);
+
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-body);
+}
+
+.viago-field__required {
+  color: var(--color-danger-500);
+}
+
+/* Input */
+
+.viago-input {
+  width: 100%;
+  height: var(--control-height-md);
+  padding: 0 var(--control-padding-x-md);
+
+  box-sizing: border-box;
+
+  background-color: var(--input-background);
+
+  border: 1px solid var(--input-border);
+  border-radius: var(--input-radius);
+
+  color: var(--color-text-primary);
+
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-body);
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+/* Placeholder */
+
+.viago-input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+/* Hover */
+
+.viago-input:hover:not(:disabled):not(:read-only) {
+  border-color: var(--input-border-hover);
+}
+
+/* Focus / đang chọn */
+
+.viago-input:focus {
+  border-color: var(--input-border-focus);
+  box-shadow: var(--focus-ring-primary);
+}
+
+/* Error */
+
+.viago-input--error {
+  border-color: var(--input-border-error);
+}
+
+.viago-input--error:focus {
+  border-color: var(--input-border-error);
+  box-shadow: var(--focus-ring-danger);
+}
+
+/* Disabled */
+
+.viago-input:disabled {
+  background-color: var(--input-background-disabled);
+  border-color: var(--input-border);
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+/* Readonly */
+
+.viago-input:read-only:not(:disabled) {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-body);
+  cursor: default;
+}
+
+/* Helper / Error message */
+
+.viago-field__helper,
+.viago-field__error {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+}
+
+.viago-field__helper {
+  color: var(--color-text-secondary);
+}
+
+.viago-field__error {
+  color: var(--color-danger-500);
+}

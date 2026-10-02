@@ -1,0 +1,311 @@
+/* ==========================================================================
+   ViAGO Shared Badge Component Styles
+   Uses global variables from styles.css
+   ========================================================================== */
+
+:host {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.viago-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-family: var(--font-family-base, 'Inter', sans-serif);
+  font-weight: var(--font-weight-medium, 500);
+  line-height: 1;
+  white-space: nowrap;
+  transition: all 0.15s ease-in-out;
+  gap: var(--space-1-5, 6px);
+}
+
+/* --- Sizes --- */
+.viago-badge--sm {
+  height: 20px;
+  padding: 0 var(--space-2, 8px);
+  font-size: var(--font-size-micro, 11px);
+}
+
+.viago-badge--md {
+  height: 24px;
+  padding: 0 var(--space-2-5, 10px);
+  font-size: var(--font-size-caption, 12px);
+}
+
+.viago-badge--lg {
+  height: 28px;
+  padding: 0 var(--space-3, 12px);
+  font-size: var(--font-size-body-sm, 13px);
+}
+
+/* --- Rounded Shapes --- */
+.viago-badge--rounded-full {
+  border-radius: var(--radius-full, 9999px);
+}
+
+.viago-badge--rounded-md {
+  border-radius: var(--radius-md, 8px);
+}
+
+.viago-badge--rounded-sm {
+  border-radius: var(--radius-sm, 6px);
+}
+
+.viago-badge--rounded-none {
+  border-radius: 0;
+}
+
+/* --- Dot Indicator --- */
+.viago-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+.viago-badge--sm .viago-badge__dot {
+  width: 5px;
+  height: 5px;
+}
+
+/* --- Icons --- */
+.viago-badge__icon {
+  font-size: 1.1em;
+  display: inline-flex;
+  align-items: center;
+}
+
+.viago-badge__content {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* --- Remove Button --- */
+.viago-badge__remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  color: currentColor;
+  opacity: 0.75;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: opacity 0.15s ease;
+}
+
+.viago-badge__remove-btn:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ==========================================================================
+   VARIANTS & APPEARANCES
+   ========================================================================== */
+
+/* 1. Success (Thành công) */
+.viago-badge--success.viago-badge--soft {
+  background-color: var(--color-success-50, #ecfdf5);
+  color: var(--color-success-700, #047857);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.viago-badge--success.viago-badge--solid {
+  background-color: var(--color-success-500, #10b981);
+  color: var(--color-text-inverse, #ffffff);
+  border: 1px solid transparent;
+}
+.viago-badge--success.viago-badge--outline {
+  background-color: transparent;
+  color: var(--color-success-700, #047857);
+  border: 1px solid var(--color-success-500, #10b981);
+}
+.viago-badge--success.viago-badge--dashed {
+  background-color: var(--color-success-50, #ecfdf5);
+  color: var(--color-success-700, #047857);
+  border: 1px dashed currentColor;
+}
+
+/* 2. Warning (Cảnh báo) */
+.viago-badge--warning.viago-badge--soft {
+  background-color: var(--color-warning-50, #fffbeb);
+  color: var(--color-warning-700, #b45309);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.viago-badge--warning.viago-badge--solid {
+  background-color: var(--color-warning-500, #f59e0b);
+  color: var(--color-text-inverse, #ffffff);
+  border: 1px solid transparent;
+}
+.viago-badge--warning.viago-badge--outline {
+  background-color: transparent;
+  color: var(--color-warning-700, #b45309);
+  border: 1px solid var(--color-warning-500, #f59e0b);
+}
+.viago-badge--warning.viago-badge--dashed {
+  background-color: #fff7ed;
+  color: #ff6a00;
+  border: 1px dashed #fdba74;
+}
+
+/* 3. Danger / Error (Nguy hiểm) */
+.viago-badge--danger.viago-badge--soft {
+  background-color: var(--color-danger-50, #fef2f2);
+  color: var(--color-danger-700, #b91c1c);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.viago-badge--danger.viago-badge--solid {
+  background-color: var(--color-danger-500, #ef4444);
+  color: var(--color-text-inverse, #ffffff);
+  border: 1px solid transparent;
+}
+.viago-badge--danger.viago-badge--outline {
+  background-color: transparent;
+  color: var(--color-danger-700, #b91c1c);
+  border: 1px solid var(--color-danger-500, #ef4444);
+}
+.viago-badge--danger.viago-badge--dashed {
+  background-color: var(--color-danger-50, #fef2f2);
+  color: var(--color-danger-700, #b91c1c);
+  border: 1px dashed currentColor;
+}
+
+/* 4. Info (Thông tin) */
+.viago-badge--info.viago-badge--soft {
+  background-color: var(--color-info-50, #eff6ff);
+  color: var(--color-info-700, #1d4ed8);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+.viago-badge--info.viago-badge--solid {
+  background-color: var(--color-info-500, #2563eb);
+  color: var(--color-text-inverse, #ffffff);
+  border: 1px solid transparent;
+}
+.viago-badge--info.viago-badge--outline {
+  background-color: transparent;
+  color: var(--color-info-700, #1d4ed8);
+  border: 1px solid var(--color-info-500, #2563eb);
+}
+.viago-badge--info.viago-badge--dashed {
+  background-color: var(--color-info-50, #eff6ff);
+  color: var(--color-info-700, #1d4ed8);
+  border: 1px dashed currentColor;
+}
+
+/* 5. Neutral (Trung tính) */
+.viago-badge--neutral.viago-badge--soft {
+  background-color: var(--color-neutral-100, #f1f5f9);
+  color: var(--color-neutral-700, #334155);
+  border: 1px solid var(--color-neutral-200, #e2e8f0);
+}
+.viago-badge--neutral.viago-badge--solid {
+  background-color: var(--color-neutral-600, #475569);
+  color: var(--color-text-inverse, #ffffff);
+  border: 1px solid transparent;
+}
+.viago-badge--neutral.viago-badge--outline {
+  background-color: transparent;
+  color: var(--color-neutral-700, #334155);
+  border: 1px solid var(--color-neutral-300, #cbd5e1);
+}
+.viago-badge--neutral.viago-badge--dashed {
+  background-color: var(--color-neutral-100, #f1f5f9);
+  color: var(--color-neutral-700, #334155);
+  border: 1px dashed currentColor;
+}
+
+/* 6. Primary (Chính) */
+.viago-badge--primary.viago-badge--soft {
+  background-color: var(--color-primary-50, #eef2ff);
+  color: var(--color-primary-700, #4338ca);
+  border: 1px solid rgba(67, 56, 202, 0.2);
+}
+.viago-badge--primary.viago-badge--solid {
+  background-color: var(--color-primary-500, #6366f1);
+  color: var(--color-text-inverse, #ffffff);
+  border: 1px solid transparent;
+}
+.viago-badge--primary.viago-badge--outline {
+  background-color: transparent;
+  color: var(--color-primary-700, #4338ca);
+  border: 1px solid var(--color-primary-500, #6366f1);
+}
+.viago-badge--primary.viago-badge--dashed {
+  background-color: var(--color-primary-50, #eef2ff);
+  color: var(--color-primary-700, #4338ca);
+  border: 1px dashed currentColor;
+}
+
+
+/* ==========================================================================
+   CUSTOM STATES (Order, Event, etc.)
+   ========================================================================== */
+
+/* reviewed (Đã đánh giá) */
+.viago-badge--reviewed.viago-badge--soft { background-color: #e0f7fa; color: #008ba3; border: 1px solid transparent; }
+.viago-badge--reviewed.viago-badge--solid { background-color: #008ba3; color: #ffffff; border: 1px solid transparent; }
+.viago-badge--reviewed.viago-badge--outline { background-color: transparent; color: #008ba3; border: 1px solid #008ba3; }
+
+/* canceled (Đã hủy) */
+.viago-badge--canceled.viago-badge--soft { background-color: #fce4ec; color: #e91e63; border: 1px solid transparent; }
+.viago-badge--canceled.viago-badge--solid { background-color: #e91e63; color: #ffffff; border: 1px solid transparent; }
+.viago-badge--canceled.viago-badge--outline { background-color: transparent; color: #e91e63; border: 1px solid #e91e63; }
+
+/* completed (Đã hoàn thành) */
+.viago-badge--completed.viago-badge--soft { background-color: #e0f2f1; color: #00897b; border: 1px solid transparent; }
+.viago-badge--completed.viago-badge--solid { background-color: #00897b; color: #ffffff; border: 1px solid transparent; }
+.viago-badge--completed.viago-badge--outline { background-color: transparent; color: #00897b; border: 1px solid #00897b; }
+
+/* pending (Chờ thanh toán) */
+.viago-badge--pending.viago-badge--soft { background-color: #fff3e0; color: #f57c00; border: 1px solid transparent; }
+.viago-badge--pending.viago-badge--solid { background-color: #f57c00; color: #ffffff; border: 1px solid transparent; }
+.viago-badge--pending.viago-badge--outline { background-color: transparent; color: #f57c00; border: 1px solid #f57c00; }
+
+/* upcoming (Sắp diễn ra) */
+.viago-badge--upcoming.viago-badge--soft { background-color: #fef3c7; color: #b45309; border: 1px solid transparent; }
+.viago-badge--upcoming.viago-badge--solid { background-color: #b45309; color: #ffffff; border: 1px solid transparent; }
+.viago-badge--upcoming.viago-badge--outline { background-color: transparent; color: #b45309; border: 1px solid #b45309; }
+
+/* paused (Tạm dừng) */
+.viago-badge--paused.viago-badge--soft { background-color: #f1f5f9; color: #1e6091; border: 1px solid transparent; }
+.viago-badge--paused.viago-badge--solid { background-color: #1e6091; color: #ffffff; border: 1px solid transparent; }
+.viago-badge--paused.viago-badge--outline { background-color: transparent; color: #1e6091; border: 1px solid #1e6091; }
+
+/* expired (Hết hạn) */
+.viago-badge--expired.viago-badge--soft { background-color: #ffe4e6; color: #9f1239; border: 1px solid transparent; }
+.viago-badge--expired.viago-badge--solid { background-color: #9f1239; color: #ffffff; border: 1px solid transparent; }
+.viago-badge--expired.viago-badge--outline { background-color: transparent; color: #9f1239; border: 1px solid #9f1239; }
+
+/* running (Đang chạy) */
+.viago-badge--running.viago-badge--soft { background-color: #d1fae5; color: #047857; border: 1px solid transparent; }
+.viago-badge--running.viago-badge--solid { background-color: #047857; color: #ffffff; border: 1px solid transparent; }
+.viago-badge--running.viago-badge--outline { background-color: transparent; color: #047857; border: 1px solid #047857; }
+
+/* event (Sự kiện) */
+.viago-badge--event.viago-badge--soft { background-color: #f3e8ff; color: #7c3aed; border: 1px solid transparent; }
+.viago-badge--event.viago-badge--solid { background-color: #7c3aed; color: #ffffff; border: 1px solid transparent; }
+.viago-badge--event.viago-badge--outline { background-color: transparent; color: #7c3aed; border: 1px solid #7c3aed; }
+
+/* recruitment (Tuyển dụng) */
+.viago-badge--recruitment.viago-badge--soft { background-color: #ffedd5; color: #ea580c; border: 1px solid transparent; }
+.viago-badge--recruitment.viago-badge--solid { background-color: #ea580c; color: #ffffff; border: 1px solid transparent; }
+.viago-badge--recruitment.viago-badge--outline { background-color: transparent; color: #ea580c; border: 1px solid #ea580c; }
+
+/* guide (Cẩm nang di chuyển) */
+.viago-badge--guide.viago-badge--soft { background-color: #e0f2fe; color: #0284c7; border: 1px solid transparent; }
+.viago-badge--guide.viago-badge--solid { background-color: #0284c7; color: #ffffff; border: 1px solid transparent; }
+.viago-badge--guide.viago-badge--outline { background-color: transparent; color: #0284c7; border: 1px solid #0284c7; }
+
+/* promotion (Khuyến mãi) */
+.viago-badge--promotion.viago-badge--soft { background-color: #fce7f3; color: #be185d; border: 1px solid transparent; }
+.viago-badge--promotion.viago-badge--solid { background-color: #be185d; color: #ffffff; border: 1px solid transparent; }
+.viago-badge--promotion.viago-badge--outline { background-color: transparent; color: #be185d; border: 1px solid #be185d; }
+
+/* news (Tin tức nhà xe) */
+.viago-badge--news.viago-badge--soft { background-color: #e0e7ff; color: #4338ca; border: 1px solid transparent; }
+.viago-badge--news.viago-badge--solid { background-color: #4338ca; color: #ffffff; border: 1px solid transparent; }
+.viago-badge--news.viago-badge--outline { background-color: transparent; color: #4338ca; border: 1px solid #4338ca; }

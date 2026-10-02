@@ -1,0 +1,32 @@
+<div class="date-picker">
+  <label *ngIf="label" class="date-picker-label">{{ label }}</label>
+  <div class="date-picker-control" [class.date-picker-control--open]="isOpen" [class.date-picker-control--disabled]="disabled">
+    <button type="button" class="date-picker-input" [disabled]="disabled" [attr.aria-label]="label || placeholder" [attr.aria-expanded]="isOpen" aria-haspopup="dialog" (click)="toggle()">
+      <span [class.date-picker-placeholder]="!value">{{ displayValue || placeholder }}</span>
+      <svg class="date-picker-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M7 3.5v3M17 3.5v3M3.5 9h17"></path></svg>
+    </button>
+    <button *ngIf="showClear && value && !disabled" type="button" class="date-picker-clear" aria-label="Xóa ngày" (click)="clear($event)">×</button>
+  </div>
+
+  <div *ngIf="isOpen" class="date-picker-popover" role="dialog" aria-label="Chọn ngày" (click)="$event.stopPropagation()">
+    <div class="date-picker-header">
+      <button type="button" class="date-picker-nav" aria-label="Tháng trước" [disabled]="previousMonthDisabled" (click)="previousMonth()">‹</button>
+      <div class="date-picker-selectors" aria-label="Chọn tháng và năm">
+        <select aria-label="Chọn tháng" [ngModel]="viewDate.getMonth()" (ngModelChange)="changeMonth($event)">
+          <option *ngFor="let month of months" [value]="month.value" [disabled]="isMonthDisabled(month.value)">{{ month.label }}</option>
+        </select>
+        <select aria-label="Chọn năm" [ngModel]="viewDate.getFullYear()" (ngModelChange)="changeYear($event)">
+          <option *ngFor="let year of years" [value]="year">{{ year }}</option>
+        </select>
+      </div>
+      <button type="button" class="date-picker-nav" aria-label="Tháng sau" [disabled]="nextMonthDisabled" (click)="nextMonth()">›</button>
+    </div>
+    <div class="date-picker-weekdays"><span *ngFor="let weekDay of weekDays">{{ weekDay }}</span></div>
+    <div class="date-picker-grid">
+      <button *ngFor="let day of calendarDays" type="button" class="date-picker-day" [attr.data-date-picker-day]="day.date" [attr.tabindex]="day.date === focusedDate ? 0 : -1" [attr.aria-label]="day.date" [attr.aria-selected]="day.selected" [attr.aria-disabled]="day.disabled" [class.is-other-month]="!day.currentMonth" [class.is-today]="day.today" [class.is-selected]="day.selected" [class.is-disabled]="day.disabled" [disabled]="day.disabled" (focus)="focusedDate = day.date" (keydown)="onDayKeyDown($event, day)" (click)="select(day)">
+        <span>{{ day.day }}</span><small *ngIf="day.lunarLabel">{{ day.lunarLabel }}</small>
+      </button>
+    </div>
+    <p *ngIf="showLunar" class="date-picker-hint">Ngày âm hiển thị bên dưới ngày dương</p>
+  </div>
+</div>

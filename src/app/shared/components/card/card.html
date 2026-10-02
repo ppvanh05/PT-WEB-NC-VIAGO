@@ -84,28 +84,6 @@
     </div>
   </ng-container>
 
-  <!-- TYPE: VOUCHER -->
-  <ng-container *ngIf="type === 'voucher'">
-    <div class="viago-card__voucher">
-      <div class="viago-card__voucher-left">
-        <h3 class="viago-card__voucher-title" *ngIf="voucherTitle">{{ voucherTitle }}</h3>
-        <p class="viago-card__voucher-desc" *ngIf="voucherDesc">{{ voucherDesc }}</p>
-        <div class="viago-card__voucher-date" *ngIf="voucherDate">
-          <i class="bi bi-calendar"></i> {{ voucherDate }}
-        </div>
-      </div>
-      
-      <div class="viago-card__voucher-divider">
-        <div class="viago-card__voucher-hole viago-card__voucher-hole--top"></div>
-        <div class="viago-card__voucher-hole viago-card__voucher-hole--bottom"></div>
-      </div>
-
-      <div class="viago-card__voucher-right">
-        <app-badge *ngIf="voucherCode" variant="warning" appearance="dashed" [label]="voucherCode"></app-badge>
-        <button class="viago-btn-copy" (click)="onActionClick($event)">{{ voucherButtonText }}</button>
-      </div>
-    </div>
-  </ng-container>
 
   <!-- TYPE: DEFAULT -->
   <ng-container *ngIf="type === 'default'">
