@@ -1,3 +1,11 @@
+<div class="admin-demo" [class.admin-demo--collapsed]="sidebarCollapsed">
+  <aside class="demo-sidebar" aria-label="Thanh điều hướng minh họa">
+    <div class="demo-sidebar__brand">
+      <span class="demo-sidebar__mark">V</span>
+      @if (!sidebarCollapsed) {
+        <strong>VIAGO</strong>
+      }
+    </div>
 @if (!router.url.startsWith('/admin')) {
   <app-customer-navbar
     (openAuthModal)="onAuthModalOpen()"
@@ -5,4 +13,123 @@
   />
 }
 
-<router-outlet></router-outlet>
+    <nav class="demo-sidebar__nav">
+      <a class="demo-sidebar__link demo-sidebar__link--active" href="#" aria-current="page">
+        <span aria-hidden="true">01</span>
+        @if (!sidebarCollapsed) {
+          <strong>Tổng quan</strong>
+        }
+      </a>
+      <a class="demo-sidebar__link" href="#">
+        <span aria-hidden="true">02</span>
+        @if (!sidebarCollapsed) {
+          <strong>Quản lý vé</strong>
+        }
+      </a>
+      <a class="demo-sidebar__link" href="#">
+        <span aria-hidden="true">03</span>
+        @if (!sidebarCollapsed) {
+          <strong>Điều phối</strong>
+        }
+      </a>
+    </nav>
+  </aside>
+
+  <div class="admin-demo__main">
+    <app-admin-topbar
+      [notificationCount]="notificationCount"
+      [notifications]="notifications"
+      [sidebarCollapsed]="sidebarCollapsed"
+      [user]="adminUser"
+      (toggleSidebar)="toggleSidebar()"
+      (notificationSelect)="selectNotification($event)"
+      (notificationReadChange)="changeNotificationReadState($event)"
+      (markAllNotificationsRead)="markAllNotificationsRead()"
+      (markAllNotificationsUnread)="markAllNotificationsUnread()"
+      (viewAllNotifications)="openAllNotifications()"
+      (userAction)="handleUserAction($event)"
+    />
+
+    <main class="demo-content">
+      @if (showAllNotifications) {
+        <section class="all-notifications" aria-labelledby="all-notifications-title">
+          <header class="all-notifications__header">
+            <div>
+              <button type="button" (click)="closeAllNotifications()">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+                Quay lại
+              </button>
+              <h2 id="all-notifications-title">Tất cả thông báo</h2>
+              <p>{{ notificationCount }} thông báo chưa đọc</p>
+            </div>
+            @if (notificationCount > 0) {
+              <button class="all-notifications__mark-all" type="button" (click)="markAllNotificationsRead()">
+                Đánh dấu tất cả đã đọc
+              </button>
+            } @else {
+              <button class="all-notifications__mark-all" type="button" (click)="markAllNotificationsUnread()">
+                Đánh dấu tất cả chưa đọc
+              </button>
+            }
+          </header>
+
+          <div class="all-notifications__list">
+            @for (notification of notifications; track notification.id) {
+              <article
+                class="all-notifications__item"
+                [class.all-notifications__item--unread]="!notification.read"
+              >
+                <button class="all-notifications__content" type="button" (click)="selectNotification(notification)">
+                  <strong>{{ notification.title }}</strong>
+                  <span>{{ notification.message }}</span>
+                  <time>{{ notification.time }}</time>
+                </button>
+                <button
+                  class="all-notifications__read-toggle"
+                  type="button"
+                  [attr.title]="notification.read ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'"
+                  [attr.aria-label]="notification.read ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'"
+                  (click)="changeNotificationReadState({ notification, read: !notification.read })"
+                >
+                  @if (notification.read) {
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6" /></svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12 4 4 8-8" /></svg>
+                  }
+                </button>
+              </article>
+            } @empty {
+              <div class="all-notifications__empty">Chưa có thông báo mới nhất</div>
+            }
+          </div>
+        </section>
+      } @else {
+        <div class="demo-content__heading">
+          <div>
+            <span>ADMIN LAYOUT</span>
+            <h2>Kiểm tra Admin Topbar</h2>
+          </div>
+          <p>{{ lastAction }}</p>
+        </div>
+
+        <section class="demo-panel">
+          <h3>Thao tác thử</h3>
+          <div class="demo-panel__items">
+            <div>
+              <strong>Nút menu</strong>
+              <span>Thu gọn hoặc mở rộng sidebar.</span>
+            </div>
+            <div>
+              <strong>Chuông thông báo</strong>
+              <span>Mở danh sách, chọn từng mục hoặc xem tất cả thông báo.</span>
+            </div>
+            <div>
+              <strong>Thông tin người dùng</strong>
+              <span>Mở menu hồ sơ, mật khẩu và đăng xuất.</span>
+            </div>
+          </div>
+        </section>
+      }
+    </main>
+  </div>
+</div>
