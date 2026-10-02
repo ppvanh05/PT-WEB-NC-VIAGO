@@ -1,100 +1,48 @@
-import { Component, HostListener, Output, EventEmitter } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive, Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-customer-navbar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule],
   templateUrl: './customer-navbar.html',
-  styleUrl: './customer-navbar.css'
+  styleUrl: './customer-navbar.css',
 })
 export class CustomerNavbar {
-  @Output() openAuthModal = new EventEmitter<void>();
-  @Output() openSecurityModal = new EventEmitter<void>();
+  activeTab: string = 'TRANG CHỦ';
 
-  isServicesOpen = false;
-  isAboutOpen = false;
-  isDropdownOpen = false;
-  isMobileMenuOpen = false;
-  isMobileServicesOpen = false;
-  isMobileAboutOpen = false;
+  navItems = [
+    { label: 'TRANG CHỦ', hasDropdown: false },
+    { label: 'LỊCH TRÌNH', hasDropdown: false },
+    { label: 'TRA CỨU VÉ', hasDropdown: false },
+    { label: 'TIN TỨC', hasDropdown: false },
+    { label: 'HÓA ĐƠN', hasDropdown: false },
+    { label: 'ĐÁNH GIÁ', hasDropdown: false },
+    { 
+      label: 'DỊCH VỤ', 
+      hasDropdown: true,
+      dropdownItems: [
+        'Thuê xe hợp đồng',
+        'Tìm đồ thất lạc'
+      ]
+    },
+    { 
+      label: 'GIỚI THIỆU', 
+      hasDropdown: true,
+      dropdownItems: [
+        'Về chúng tôi',
+        'Chính sách nhà xe',
+        'Hướng dẫn mua vé',
+        'Câu hỏi thường gặp',
+        'Điều khoản sử dụng',
+        'Tuyển dụng',
+        'Liên hệ'
+      ]
+    }
+  ];
 
-  constructor(
-    public authService: AuthService,
-    public router: Router
-  ) {}
-
-  isAboutRouteActive(): boolean {
-    const activeRoutes = ['/ve-chung-toi', '/gioi-thieu', '/chinh-sach', '/dieu-khoan', '/faq', '/lien-he', '/tuyen-dung'];
-    return activeRoutes.some(route => this.router.url.includes(route));
-  }
-
-  isServicesRouteActive(): boolean {
-    return this.router.url.includes('/dich-vu');
-  }
-
-  toggleServices(event: Event) {
-    event.stopPropagation();
-    this.isServicesOpen = !this.isServicesOpen;
-    this.isAboutOpen = false;
-    this.isDropdownOpen = false;
-  }
-
-  toggleAbout(event: Event) {
-    event.stopPropagation();
-    this.isAboutOpen = !this.isAboutOpen;
-    this.isServicesOpen = false;
-    this.isDropdownOpen = false;
-  }
-
-  toggleDropdown(event: Event): void {
-    event.stopPropagation();
-    this.isDropdownOpen = !this.isDropdownOpen;
-    this.isServicesOpen = false;
-    this.isAboutOpen = false;
-  }
-
-  toggleMobileMenu(event?: Event): void {
-    if (event) event.stopPropagation();
-    this.isMobileMenuOpen = !this.isMobileMenuOpen;
-  }
-
-  closeMobileMenu(): void {
-    this.isMobileMenuOpen = false;
-  }
-
-  onAuthClick(): void {
-    this.openAuthModal.emit();
-    this.closeMobileMenu();
-  }
-
-  onSecurityClick(): void {
-    this.openSecurityModal.emit();
-    this.isDropdownOpen = false;
-    this.closeMobileMenu();
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.isDropdownOpen = false;
-    this.closeMobileMenu();
-    this.router.navigate(['/']);
-  }
-
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
-    this.isServicesOpen = false;
-    this.isAboutOpen = false;
-    this.isDropdownOpen = false;
-  }
-
-  onHomeClick(event: Event) {
+  setActiveTab(tabName: string, event: Event): void {
     event.preventDefault();
-    this.closeMobileMenu();
-    this.router.navigate(['/'], { queryParams: { reset: Date.now() } });
+    this.activeTab = tabName;
   }
 }
-
-export { CustomerNavbar as CustomerNavbarComponent };

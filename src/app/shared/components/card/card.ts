@@ -2,7 +2,7 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from 
 import { CommonModule } from '@angular/common';
 import { Badge } from '../badge/badge';
 
-export type CardType = 'default' | 'info' | 'booking' | 'stat' | 'voucher';
+export type CardType = 'default' | 'info' | 'booking' | 'stat';
 export type CardPadding = 'none' | 'sm' | 'md' | 'lg' | 'xl';
 export type CardRadius = 'none' | 'sm' | 'md' | 'lg' | 'xl';
 export type CardShadow = 'none' | 'sm' | 'md' | 'lg';
@@ -62,13 +62,6 @@ export class Card {
   @Input() bookingPrice?: string;
   @Input() bookingButtonText: string = 'Đặt vé ngay';
   @Input() bookingTags: string[] = [];
-
-  // --- Voucher Type Inputs ---
-  @Input() voucherTitle?: string;
-  @Input() voucherDesc?: string;
-  @Input() voucherDate?: string;
-  @Input() voucherCode?: string;
-  @Input() voucherButtonText: string = 'SAO CHÉP';
 
   // --- Stat Type Inputs (Backward Compatibility) ---
   @Input() value?: string | number;

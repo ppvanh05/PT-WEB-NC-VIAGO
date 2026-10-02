@@ -7,18 +7,13 @@ import { Badge } from './shared/components/badge/badge';
 import { CustomerNavbar } from './core/layout/customer-navbar/customer-navbar';
 
 @Component({
+  imports: [CustomerLayout],
   selector: 'app-root',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    RouterOutlet,
-    CustomerNavbar
-  ],
-  templateUrl: './app.html',
   styleUrl: './app.css',
+  templateUrl: './app.html',
 })
 export class App {
+  protected readonly title = signal('viago-frontend');
   title = signal('VIAGO');
   readonly router = inject(Router);
 
