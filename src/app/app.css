@@ -1,9 +1,22 @@
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
   min-height: 100dvh;
   background: var(--color-background);
   color: var(--color-text-primary);
   font-family: var(--font-family-base);
+}
+
+/* Fill short pages while allowing long content to push the footer down. */
+.customer-content {
+  flex: 1 0 auto;
+  min-width: 0;
+}
+
+app-customer-navbar,
+app-customer-footer {
+  flex: 0 0 auto;
 }
 
 .demo-page {

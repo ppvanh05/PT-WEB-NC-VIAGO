@@ -1,0 +1,168 @@
+/* Shared page styling follows src/styles.css; load after each page's layout CSS. */
+:host {
+  display: block;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-body);
+  color: var(--color-text-body);
+  background: var(--color-background);
+}
+
+:host :is(.faq-page, .terms-page, .policies-page, .contact-page, .about-us-page, .recruitment-page, .schedule-page) {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  color: var(--color-text-body);
+  background-color: var(--color-background);
+}
+
+:host .container {
+  width: 100%;
+  max-width: var(--container-max-width);
+  margin-inline: auto;
+  padding-inline: var(--page-padding-desktop);
+}
+
+:host :is(h1, h2, h3, h4) {
+  font-family: var(--font-family-marketing);
+  font-weight: var(--font-weight-bold);
+}
+:host :is(h1, .hero-title, .display-lg, .display-md) {
+  font-size: var(--font-size-display);
+  line-height: var(--line-height-display);
+}
+:host :is(h2, .headline-lg, .section-title, .futa-block-title) {
+  font-size: var(--font-size-h1);
+  line-height: var(--line-height-h1);
+}
+:host :is(h3, .headline-md, .nav-title) {
+  font-size: var(--font-size-h2);
+  line-height: var(--line-height-h2);
+}
+:host :is(h4, .title-lg, .job-title) {
+  font-size: var(--font-size-h3);
+  line-height: var(--line-height-h3);
+}
+:host :is(.title-md, .title-sm) {
+  font-size: var(--font-size-title);
+  line-height: var(--line-height-title);
+  font-weight: var(--font-weight-semibold);
+}
+:host :is(.body-lg, .hero-subtitle, .section-subtitle) {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-body-lg);
+}
+:host :is(.body-md, .article-body, .nav-item) {
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+:host :is(.body-sm, .label-sm) {
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body-sm);
+}
+:host :is(.caption, .article-meta-row, .hero-meta) {
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+}
+
+:host :is(.faq-hero, .terms-hero, .policies-hero, .contact-hero, .recruitment-hero) {
+  background-color: var(--color-primary-600);
+  color: var(--color-text-inverse);
+  padding-block: var(--section-spacing-md);
+}
+:host :is(.about-us-section, .contact-info-section, .contact-form-section, .job-list-section) {
+  padding-block: var(--section-spacing-md);
+}
+
+:host :is(.btn, .filter-btn, .job-detail-btn, .submit-btn, .cancel-btn, .search-button) {
+  min-height: var(--control-height-md);
+  padding: var(--space-2) var(--control-padding-x-md);
+  border-radius: var(--button-radius);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  font-weight: var(--button-font-weight);
+}
+:host :is(.btn-primary, .btn-navy, .filter-btn) {
+  background: var(--color-primary-600);
+  color: var(--color-text-inverse);
+}
+:host :is(.btn-secondary, .submit-btn, .job-detail-btn) {
+  background: var(--color-accent-600);
+  color: var(--color-text-inverse);
+}
+:host :is(.btn-primary, .btn-navy, .filter-btn):hover { background: var(--color-primary-700); }
+:host :is(.btn-secondary, .submit-btn, .job-detail-btn):hover { background: var(--color-accent-500); }
+:host button:disabled { opacity: .5; cursor: not-allowed; }
+
+:host :is(input:not([type='checkbox']):not([type='radio']):not([type='file']), select, textarea) {
+  min-height: var(--control-height-md);
+  padding: var(--space-2) var(--control-padding-x-md);
+  border: 1px solid var(--input-border);
+  border-radius: var(--input-radius);
+  background: var(--input-background);
+  color: var(--color-text-body);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+:host :is(input, select, textarea):focus-visible {
+  outline: none;
+  border-color: var(--input-border-focus);
+  box-shadow: var(--focus-ring-primary);
+}
+:host :is(input, select, textarea):disabled { background: var(--input-background-disabled); }
+:host :is(.contact-card, .policy-card, .job-card, .about-us-card, .search-container, .support-card) {
+  border-radius: var(--card-radius);
+  padding: var(--card-padding-md);
+  box-shadow: var(--card-shadow);
+}
+:host :is(.schedule-modal-content, .status-modal, .share-modal-card) {
+  border-radius: var(--modal-radius);
+  background: var(--modal-background);
+  box-shadow: var(--modal-shadow);
+}
+:host :is(.schedule-modal-overlay, .modal-overlay, .share-modal-overlay) {
+  background: var(--modal-overlay);
+  z-index: var(--z-modal);
+}
+
+/* Keep the entire contents sidebar inside the visible viewport. */
+@media (min-width: 1025px) {
+  :host :is(.terms-nav, .policies-nav, .faq-sidebar) {
+    position: sticky;
+    top: calc(var(--topbar-height) + var(--space-20));
+    align-self: start;
+    min-height: 0;
+    max-height: calc(100vh - var(--topbar-height) - var(--space-20) - var(--space-6));
+    max-height: calc(100dvh - var(--topbar-height) - var(--space-20) - var(--space-6));
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+  }
+}
+
+@media (max-width: 1024px) {
+  :host :is(.terms-nav, .policies-nav, .faq-sidebar) {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+  :host .container { padding-inline: var(--page-padding-tablet); }
+}
+@media (max-width: 640px) {
+  :host .container { padding-inline: var(--page-padding-mobile); }
+  :host :is(h1, .hero-title, .display-lg, .display-md) {
+    font-size: var(--font-size-h1);
+    line-height: var(--line-height-h1);
+  }
+  :host :is(h2, .headline-lg, .section-title, .futa-block-title) {
+    font-size: var(--font-size-h2);
+    line-height: var(--line-height-h2);
+  }
+  :host :is(.faq-hero, .terms-hero, .policies-hero, .contact-hero, .recruitment-hero, .about-us-section, .contact-info-section, .contact-form-section, .job-list-section) {
+    padding-block: var(--section-spacing-sm);
+  }
+}

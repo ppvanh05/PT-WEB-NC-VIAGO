@@ -1,1 +1,61 @@
-<p>customer-footer works!</p>
+﻿<footer class="customer-footer">
+  <div class="footer-container footer-grid">
+    <section class="footer-brand" aria-labelledby="footer-company">
+      <a routerLink="/" class="footer-logo" aria-label="VIAGO — Trang chủ">
+        <img
+          src="/assets/customer/logo_trang.png"
+          alt="VIAGO"
+          width="180"
+          height="96"
+          loading="lazy"
+        />
+      </a>
+      <h2 id="footer-company">CÔNG TY TNHH VIAGO</h2>
+      <address>
+        <p>869 Đỗ Mười, khu phố 13, Linh Xuân, TP. HCM</p>
+        <a href="tel:0982541160">0982 541 160</a>
+        <a href="tel:0932334448">0932 334 448</a>
+        <a href="mailto:congtyviago@gmail.com">congtyviago&#64;gmail.com</a>
+      </address>
+    </section>
+    <nav aria-labelledby="footer-support">
+      <h2 id="footer-support" class="footer-heading">Hỗ trợ</h2>
+      <ul class="footer-links">
+        <li><a routerLink="/faq" routerLinkActive="footer-link-active" ariaCurrentWhenActive="page">Câu hỏi thường gặp</a></li>
+        <li><a routerLink="/dieu-khoan" routerLinkActive="footer-link-active" ariaCurrentWhenActive="page">Điều khoản sử dụng</a></li>
+        <li><a routerLink="/chinh-sach" routerLinkActive="footer-link-active" ariaCurrentWhenActive="page">Chính sách bảo mật</a></li>
+        <li><a routerLink="/lien-he" routerLinkActive="footer-link-active" ariaCurrentWhenActive="page">Liên hệ</a></li>
+      </ul>
+    </nav>
+    <nav aria-labelledby="footer-about">
+      <h2 id="footer-about" class="footer-heading">Giới thiệu</h2>
+      <ul class="footer-links">
+        <li><a routerLink="/ve-chung-toi" routerLinkActive="footer-link-active" ariaCurrentWhenActive="page">Về chúng tôi</a></li>
+        <li><a routerLink="/tuyen-dung" routerLinkActive="footer-link-active" ariaCurrentWhenActive="page">Tuyển dụng</a></li>
+        <li><a routerLink="/tin-tuc" routerLinkActive="footer-link-active" ariaCurrentWhenActive="page">Tin tức nổi bật</a></li>
+        <li><a routerLink="/lich-trinh" routerLinkActive="footer-link-active" ariaCurrentWhenActive="page">Lịch trình</a></li>
+      </ul>
+    </nav>
+    <section aria-labelledby="footer-hotline">
+      <h2 id="footer-hotline" class="footer-heading">Hotline liên hệ</h2>
+      <a class="footer-hotline" href="tel:19001234">1900 1234</a>
+      <p class="footer-contact-label">Kết nối với chúng tôi</p>
+      <a href="mailto:congtyviago@gmail.com"
+        >Gửi email cho VIAGO <span aria-hidden="true">↗</span></a
+      >
+      <img
+        class="footer-certification"
+        src="/assets/customer/bo_cong_thuong.png"
+        alt="Đã đăng ký Bộ Công Thương"
+        width="180"
+        height="80"
+        loading="lazy"
+      />
+    </section>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-container">
+      <p>&copy; {{ year }} CÔNG TY TNHH VIAGO. Hotline: <a href="tel:19001234">1900 1234</a></p>
+    </div>
+  </div>
+</footer>

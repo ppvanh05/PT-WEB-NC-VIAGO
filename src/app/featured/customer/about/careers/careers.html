@@ -1,1 +1,458 @@
-<p>careers works!</p>
+<div class="recruitment-page">
+
+  <!-- 1. TRANG DANH SÁCH TUYỂN DỤNG -->
+  <div *ngIf="currentView === 'list'" class="recruitment-list-view">
+    <section class="recruitment-hero">
+      <div class="hero-container">
+        <h1 class="hero-title">Cơ hội nghề nghiệp tại VIAGO</h1>
+        <p class="hero-subtitle">Gia nhập đội ngũ của chúng tôi để cùng xây dựng dịch vụ vận chuyển hiện đại, an toàn và thân thiện.</p>
+        
+        <div class="recruitment-filter">
+          <div class="filter-item">
+            <span class="page-icon">⌕</span>
+            <input type="text" [(ngModel)]="filters.keyword" (input)="filterJobs()" placeholder="Vị trí công việc (ví dụ: Tài xế, CSKH...)">
+          </div>
+          <div class="filter-item">
+            <span class="page-icon">⌖</span>
+            <select [(ngModel)]="filters.location" (change)="filterJobs()">
+              <option value="">Tất cả địa điểm</option>
+              <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+              <option value="Hà Nội">Hà Nội</option>
+              <option value="Đà Nẵng">Đà Nẵng</option>
+            </select>
+          </div>
+          <button class="filter-btn" (click)="filterJobs()">Tìm kiếm</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats-section">
+      <div class="container">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3 class="stat-number">100+</h3>
+            <p class="stat-label">Vị trí đang tuyển</p>
+          </div>
+          <div class="stat-card">
+            <h3 class="stat-number">15+</h3>
+            <p class="stat-label">Tỉnh thành</p>
+          </div>
+          <div class="stat-card">
+            <h3 class="stat-number">2k+</h3>
+            <p class="stat-label">Nhân viên đồng hành</p>
+          </div>
+          <div class="stat-card">
+            <h3 class="stat-number">5+</h3>
+            <p class="stat-label">Năm phát triển</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="job-list-section container">
+      <div class="section-header">
+        <h2 class="section-title">Vị trí ứng tuyển</h2>
+        <div class="filter-tabs">
+          <button [class.active]="filters.department === ''" (click)="filters.department = ''; filterJobs()">Tất cả</button>
+          <button [class.active]="filters.department === 'Vận tải'" (click)="filters.department = 'Vận tải'; filterJobs()">Vận tải</button>
+          <button [class.active]="filters.department === 'Văn phòng'" (click)="filters.department = 'Văn phòng'; filterJobs()">Văn phòng</button>
+        </div>
+      </div>
+
+      <div class="job-grid" *ngIf="filteredJobs.length > 0">
+        <div class="job-card" *ngFor="let job of filteredJobs">
+          <div class="job-card-top">
+            <div class="job-title-row">
+              <h3 class="job-title">{{ job.title }}</h3>
+              <span class="job-badge">{{ job.workType }}</span>
+            </div>
+            <div class="job-meta">
+              <div class="meta-item">
+                <span class="page-icon">₫</span>
+                <span>{{ job.salary }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="page-icon">⌖</span>
+                <span>{{ job.location }}</span>
+              </div>
+            </div>
+            <p class="job-excerpt">{{ job.description }}</p>
+          </div>
+          <div class="job-card-bottom">
+            <span class="job-deadline">Hạn nộp: {{ job.deadline }}</span>
+            <button class="job-detail-btn" (click)="openJobDetail(job)">
+              Xem chi tiết <span class="page-icon">→</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="filteredJobs.length === 0">
+        <span class="page-icon">⌕</span>
+        <p>Không tìm thấy vị trí phù hợp</p>
+      </div>
+    </section>
+
+    <section class="benefits-section">
+      <div class="container">
+        <h2 class="section-title text-center">Lợi ích khi làm việc tại VIAGO</h2>
+        <div class="benefits-grid">
+          <div class="benefit-card">
+            <span class="page-icon">☆</span>
+            <h4>Môi trường chuyên nghiệp</h4>
+            <p>Làm việc với đội ngũ giàu kinh nghiệm, quy trình rõ ràng.</p>
+          </div>
+          <div class="benefit-card">
+            <span class="page-icon">↗</span>
+            <h4>Cơ hội phát triển</h4>
+            <p>Lộ trình thăng tiến hấp dẫn, đào tạo kỹ năng liên tục.</p>
+          </div>
+          <div class="benefit-card">
+            <span class="page-icon">✚</span>
+            <h4>Phúc lợi rõ ràng</h4>
+            <p>Bảo hiểm đầy đủ, thưởng lễ tết và du lịch hàng năm.</p>
+          </div>
+          <div class="benefit-card">
+            <span class="page-icon">♧</span>
+            <h4>Đồng đội thân thiện</h4>
+            <p>Văn hóa gắn kết, hỗ trợ nhau cùng hoàn thành mục tiêu.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="process-section container">
+      <h2 class="section-title text-center">Quy trình tuyển dụng</h2>
+      <div class="process-steps">
+        <div class="step-item">
+          <div class="step-icon"><span class="page-icon">☷</span></div>
+          <h4>Gửi hồ sơ</h4>
+          <p>Gửi CV qua website</p>
+        </div>
+        <div class="step-arrow"><span class="page-icon">›</span></div>
+        <div class="step-item">
+          <div class="step-icon"><span class="page-icon">≡</span></div>
+          <h4>Sàng lọc</h4>
+          <p>Liên hệ phỏng vấn sơ loại</p>
+        </div>
+        <div class="step-arrow"><span class="page-icon">›</span></div>
+        <div class="step-item">
+          <div class="step-icon"><span class="page-icon">♧</span></div>
+          <h4>Phỏng vấn</h4>
+          <p>Gặp gỡ quản lý bộ phận</p>
+        </div>
+        <div class="step-arrow"><span class="page-icon">›</span></div>
+        <div class="step-item active">
+          <div class="step-icon"><span class="page-icon">✓</span></div>
+          <h4>Nhận việc</h4>
+          <p>Bắt đầu hành trình mới</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 2. TRANG CHI TIẾT TUYỂN DỤNG -->
+  <div *ngIf="currentView === 'detail' && selectedJob" class="job-detail-view">
+    <header class="detail-header">
+      <div class="container">
+        <nav class="breadcrumb">
+          <a (click)="backToList()">Tuyển dụng</a>
+          <span class="page-icon">›</span>
+          <span>Chi tiết công việc</span>
+        </nav>
+        <h1 class="detail-title">{{ selectedJob.title }}</h1>
+        <div class="detail-tags">
+          <span class="tag-worktype">{{ selectedJob.workType }}</span>
+          <span class="tag-location"><span class="page-icon">⌖</span> {{ selectedJob.location }}</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="container detail-container">
+      <div class="detail-main">
+        <section class="detail-section">
+          <div class="section-header-flex">
+            <span class="page-icon">☷</span>
+            <h3>Mô tả công việc</h3>
+          </div>
+          <div class="section-body">
+            <p>{{ selectedJob.description }}</p>
+          </div>
+        </section>
+
+        <section class="detail-section">
+          <div class="section-header-flex">
+            <span class="page-icon">✓</span>
+            <h3>Yêu cầu ứng viên</h3>
+          </div>
+          <div class="section-body">
+            <ul>
+              <li *ngFor="let req of selectedJob.requirements">{{ req }}</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="detail-section">
+          <div class="section-header-flex">
+            <span class="page-icon">☆</span>
+            <h3>Quyền lợi</h3>
+          </div>
+          <div class="section-body">
+            <ul>
+              <li *ngFor="let benefit of selectedJob.benefits">{{ benefit }}</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="detail-section">
+          <div class="section-header-flex">
+            <span class="page-icon">▣</span>
+            <h3>Thời gian & Môi trường</h3>
+          </div>
+          <div class="section-body">
+            <div class="info-box">
+              <strong>Thời gian:</strong>
+              <p>{{ selectedJob.workHours }}</p>
+            </div>
+            <div class="info-box">
+              <strong>Môi trường:</strong>
+              <p>{{ selectedJob.workEnvironment }}</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="detail-section">
+          <div class="section-header-flex">
+            <span class="page-icon">✓</span>
+            <h3>Cách thức ứng tuyển</h3>
+          </div>
+          <div class="section-body">
+            <p>{{ selectedJob.howToApply }}</p>
+          </div>
+        </section>
+      </div>
+
+      <aside class="detail-sidebar">
+        <div class="sticky-sidebar">
+          <div class="summary-card">
+            <h3>Thông tin chung</h3>
+            <div class="summary-list">
+              <div class="summary-item">
+                <span class="page-icon">₫</span>
+                <div>
+                  <label>Mức lương</label>
+                  <span>{{ selectedJob.salary }}</span>
+                </div>
+              </div>
+              <div class="summary-item">
+                <span class="page-icon">•</span>
+                <div>
+                  <label>Địa điểm</label>
+                  <span>{{ selectedJob.location }}</span>
+                </div>
+              </div>
+              <div class="summary-item">
+                <span class="page-icon">•</span>
+                <div>
+                  <label>Hình thức</label>
+                  <span>{{ selectedJob.workType }}</span>
+                </div>
+              </div>
+              <div class="summary-item">
+                <span class="page-icon">•</span>
+                <div>
+                  <label>Hạn nộp</label>
+                  <span>{{ selectedJob.deadline }}</span>
+                </div>
+              </div>
+            </div>
+            <button class="apply-now-btn" (click)="openApplicationForm(selectedJob)">Ứng tuyển ngay</button>
+          </div>
+
+          <div class="contact-card">
+            <h4 class="card-label">Thông tin liên hệ</h4>
+            <p>Bộ phận Nhân sự VIAGO</p>
+            <p>Email: hr@viago.vn</p>
+            <p>Hotline: 1900 1234</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="detail-footer container">
+      <button class="back-btn" (click)="backToList()">
+        <span class="page-icon">←</span> Quay lại danh sách
+      </button>
+    </div>
+  </div>
+
+  <!-- 3. TRANG FORM ỨNG TUYỂN -->
+  <div *ngIf="currentView === 'apply'" class="application-view">
+    <div class="container">
+      <nav class="breadcrumb">
+        <a (click)="backToList()">Tuyển dụng</a>
+        <span class="page-icon">›</span>
+        <span>Ứng tuyển</span>
+      </nav>
+
+      <div class="application-layout">
+        <div class="application-main">
+          <header class="application-header">
+            <h1 class="application-title">Ứng tuyển vị trí {{ applicationForm.position }}</h1>
+            <p>Vui lòng điền đầy đủ thông tin bên dưới để ứng tuyển.</p>
+          </header>
+
+          <form class="application-form" (ngSubmit)="submitApplication()">
+            <div class="form-section">
+              <div class="form-section-title">
+                <span class="page-icon">•</span>
+                <h3>Thông tin cá nhân</h3>
+              </div>
+              <div class="form-grid">
+                <div class="form-field">
+                  <label>Họ và tên <span class="required">*</span></label>
+                  <input type="text" [(ngModel)]="applicationForm.fullName" name="fullName" placeholder="Nguyễn Văn A">
+                  <span class="error-msg" *ngIf="formErrors['fullName']">{{ formErrors['fullName'] }}</span>
+                </div>
+                <div class="form-field">
+                  <label>Ngày sinh</label>
+                  <input type="date" [(ngModel)]="applicationForm.dateOfBirth" name="dateOfBirth">
+                </div>
+                <div class="form-field">
+                  <label>Số điện thoại <span class="required">*</span></label>
+                  <input type="tel" [(ngModel)]="applicationForm.phoneNumber" name="phoneNumber" placeholder="09xx xxx xxx">
+                  <span class="error-msg" *ngIf="formErrors['phoneNumber']">{{ formErrors['phoneNumber'] }}</span>
+                </div>
+                <div class="form-field">
+                  <label>Email <span class="required">*</span></label>
+                  <input type="email" [(ngModel)]="applicationForm.email" name="email" placeholder="example@email.com">
+                  <span class="error-msg" *ngIf="formErrors['email']">{{ formErrors['email'] }}</span>
+                </div>
+                <div class="form-field full-width">
+                  <label>Địa chỉ</label>
+                  <input type="text" [(ngModel)]="applicationForm.address" name="address" placeholder="Nhập địa chỉ của bạn">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">
+                <span class="page-icon">•</span>
+                <h3>Thông tin chuyên môn</h3>
+              </div>
+              <div class="form-grid">
+                <div class="form-field">
+                  <label>Trình độ học vấn</label>
+                  <select [(ngModel)]="applicationForm.education" name="education">
+                    <option value="">Chọn trình độ</option>
+                    <option value="Đại học">Đại học</option>
+                    <option value="Cao đẳng">Cao đẳng</option>
+                    <option value="Trung cấp">Trung cấp</option>
+                    <option value="THPT">THPT</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label>Kinh nghiệm làm việc</label>
+                  <select [(ngModel)]="applicationForm.experience" name="experience">
+                    <option value="">Chọn kinh nghiệm</option>
+                    <option value="Chưa có">Chưa có kinh nghiệm</option>
+                    <option value="Dưới 1 năm">Dưới 1 năm</option>
+                    <option value="1-3 năm">1 - 3 năm</option>
+                    <option value="Trên 3 năm">Trên 3 năm</option>
+                  </select>
+                </div>
+                <div class="form-field full-width">
+                  <label>Vị trí ứng tuyển <span class="required">*</span></label>
+                  <select [(ngModel)]="applicationForm.position" name="position">
+                    <option value="">Chọn vị trí</option>
+                    <option *ngFor="let job of jobs" [value]="job.title">{{ job.title }}</option>
+                  </select>
+                  <span class="error-msg" *ngIf="formErrors['position']">{{ formErrors['position'] }}</span>
+                </div>
+                <div class="form-field full-width">
+                  <label>Link portfolio/LinkedIn (nếu có)</label>
+                  <input type="text" [(ngModel)]="applicationForm.portfolioLink" name="portfolioLink" placeholder="https://...">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">
+                <span class="page-icon">☷</span>
+                <h3>Hồ sơ đính kèm</h3>
+              </div>
+              <div class="upload-field">
+                <label>CV (Định dạng PDF, DOC, DOCX) <span class="required">*</span></label>
+                <div class="upload-box" [class.has-file]="selectedCvFile" [class.has-error]="cvError">
+                  <input type="file" (change)="onCvSelected($event)" accept=".pdf,.doc,.docx">
+                  <span class="page-icon">↑</span>
+                  <p *ngIf="!selectedCvFile">Kéo thả file hoặc nhấn để chọn</p>
+                  <p *ngIf="selectedCvFile" class="file-name">{{ selectedCvFile.name }}</p>
+                </div>
+                <span class="error-msg" *ngIf="cvError">{{ cvError }}</span>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">
+                <span class="page-icon">•</span>
+                <h3>Giới thiệu bản thân</h3>
+              </div>
+              <div class="form-field full-width">
+                <label>Lý do ứng tuyển & Giới thiệu ngắn gọn</label>
+                <textarea [(ngModel)]="applicationForm.introduction" name="introduction" rows="5" placeholder="Hãy cho chúng tôi biết về bạn..."></textarea>
+              </div>
+            </div>
+
+            <div class="form-footer">
+              <label class="terms-checkbox">
+                <input type="checkbox" [(ngModel)]="applicationForm.agreeTerms" name="agreeTerms">
+                <span>Tôi xác nhận các thông tin trên là chính xác.</span>
+              </label>
+              <span class="error-msg block" *ngIf="formErrors['agreeTerms']">{{ formErrors['agreeTerms'] }}</span>
+              
+              <div class="form-actions">
+                <button type="button" class="cancel-btn" (click)="backToList()">Hủy bỏ</button>
+                <button type="submit" class="submit-btn">Gửi hồ sơ ứng tuyển</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <aside class="application-sidebar">
+          <div class="process-card">
+            <h3>Quy trình</h3>
+            <ul class="process-list">
+              <li class="active"><span>1</span> Gửi hồ sơ</li>
+              <li><span>2</span> Phỏng vấn</li>
+              <li><span>3</span> Thử việc</li>
+              <li><span>4</span> Nhận việc</li>
+            </ul>
+          </div>
+          <div class="why-card">
+            <h3>Tại sao chọn VIAGO?</h3>
+            <ul>
+              <li><span class="page-icon">✓</span> Môi trường năng động</li>
+              <li><span class="page-icon">✓</span> Phúc lợi hấp dẫn</li>
+              <li><span class="page-icon">✓</span> Lộ trình rõ ràng</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS MODAL -->
+  <div class="modal-overlay" *ngIf="showStatusModal">
+    <div class="status-modal">
+      <div class="status-icon success">
+        <span class="page-icon">✓</span>
+      </div>
+      <h2>Hồ sơ đã sẵn sàng!</h2>
+      <p>Để hoàn tất ứng tuyển, hãy gửi hồ sơ và đính kèm CV đến email hr&#64;viago.vn.</p>
+      <a class="btn-primary" href="mailto:hr@viago.vn">Gửi hồ sơ qua email</a>
+      <button (click)="closeSuccessModal()">Về trang tuyển dụng</button>
+    </div>
+  </div>
+
+</div>
