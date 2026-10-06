@@ -1,20 +1,237 @@
-/* Voucher Card Component Styles */
+/* Voucher Card CSS Component Styles */
+
+:host {
+  display: block;
+  width: 100%;
+}
 
 .voucher-card-container {
+  position: relative;
+  display: flex;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
+  transition: all 0.2s ease;
+  min-height: 110px;
+  width: 100%;
   font-family: var(--font-family-base, 'Inter', sans-serif);
 }
 
+.voucher-card-container.is-clickable {
+  cursor: pointer;
+}
+
+.voucher-card-container.is-clickable:hover {
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.08));
+}
+
+/* Container State Variants */
+.voucher-card-container.is-default {
+  border-color: rgba(255, 129, 38, 0.4);
+  background-color: #FFF9F5;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.05));
+}
+
+.voucher-card-container.is-default:hover {
+  border-color: rgba(255, 106, 0, 0.6);
+}
+
+.voucher-card-container.is-selected {
+  border-color: var(--color-accent-600, #ff6a00);
+  background-color: var(--color-accent-50, #fff3eb);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.05));
+  outline: 1px solid var(--color-accent-600, #ff6a00);
+}
+
+.voucher-card-container.is-disabled {
+  border-color: var(--color-border, #e2e8f0);
+  background-color: var(--color-surface-muted, #f1f5f9);
+  opacity: 0.7;
+  filter: grayscale(25%);
+}
+
+/* Tear-Off Ticket Notches */
 .notch {
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  position: absolute;
+  right: 35%;
+  width: 18px;
+  height: 18px;
+  background-color: var(--color-surface, #ffffff);
+  border-radius: 50%;
+  z-index: 10;
 }
 
-.is-disabled {
-  user-select: none;
+.notch-top {
+  top: -9px;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
 }
 
-.line-clamp-2 {
+.notch-bottom {
+  bottom: -9px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+}
+
+/* Left Section: Details */
+.voucher-details {
+  width: 65%;
+  padding: 14px 20px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px dashed rgba(255, 129, 38, 0.4);
+}
+
+.voucher-title {
+  font-size: 15px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.25;
+  color: var(--color-accent-600, #ff6a00);
+}
+
+.voucher-title.disabled-text {
+  color: var(--color-text-secondary, #64748b);
+}
+
+.voucher-desc {
+  font-size: 11px;
+  color: var(--color-text-secondary, #64748b);
+  font-weight: 500;
+  margin-top: 6px;
+  line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.voucher-expiry-group {
+  font-size: 10px;
+  color: var(--color-text-disabled, #94a3b8);
+  font-weight: 600;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.expiry-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.count-badge {
+  color: var(--color-neutral-600, #475569);
+  font-weight: 700;
+  font-size: 10px;
+  margin-left: 4px;
+  background-color: rgba(255, 160, 92, 0.2);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm, 6px);
+}
+
+/* Right Section: Code & Action */
+.voucher-action-section {
+  width: 35%;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #FFFDFB;
+  position: relative;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.code-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px dashed rgba(255, 106, 0, 0.4);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  user-select: none;
+  text-align: center;
+  background-color: rgba(255, 160, 92, 0.2);
+  color: var(--color-accent-600, #ff6a00);
+}
+
+.code-badge.disabled-badge {
+  background-color: var(--color-neutral-100, #f1f5f9);
+  border-color: var(--color-neutral-300, #cbd5e1);
+  color: var(--color-neutral-400, #94a3b8);
+}
+
+/* Radio Selector in Checkout */
+.radio-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.radio-circle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--color-neutral-300, #cbd5e1);
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.radio-circle.selected-radio {
+  border-color: var(--color-accent-600, #ff6a00);
+  background-color: var(--color-accent-600, #ff6a00);
+}
+
+.radio-circle.disabled-radio {
+  border-color: var(--color-neutral-300, #cbd5e1);
+  background-color: var(--color-neutral-100, #f1f5f9);
+}
+
+.radio-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #ffffff;
+}
+
+/* Non-Checkout Action Button */
+.btn-voucher-action {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 10px;
+  font-weight: 800;
+  border: none;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  background-color: var(--color-accent-600, #ff6a00);
+  color: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.btn-voucher-action:hover:not(:disabled) {
+  background-color: var(--color-accent-700, #d95800);
+}
+
+.btn-voucher-action.disabled-action,
+.btn-voucher-action:disabled {
+  background-color: var(--color-neutral-200, #e2e8f0);
+  color: var(--color-neutral-400, #94a3b8);
+  cursor: not-allowed;
+  user-select: none;
+  box-shadow: none;
 }

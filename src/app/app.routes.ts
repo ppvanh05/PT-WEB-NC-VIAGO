@@ -41,6 +41,7 @@ export const routes: Routes = [
       { path: 'hoa-don', component: Invoice },
       { path: 'danh-gia', component: Reviews },
       { path: 'dich-vu', component: Services },
+      { path: 'do-that-lac', component: Services },
       { path: 'profile', component: Profile },
       { path: 've-chung-toi', component: AboutUs },
       { path: 'gioi-thieu', component: AboutUs },

@@ -26,13 +26,28 @@ export class CustomerNavbar {
     public router: Router
   ) {}
 
+  isHomeRouteActive(): boolean {
+    const url = this.router.url.split('?')[0];
+    return url === '/customer' || url === '/customer/' || url === '/';
+  }
+
   isAboutRouteActive(): boolean {
-    const activeRoutes = ['/customer/ve-chung-toi', '/customer/gioi-thieu', '/customer/chinh-sach', '/customer/dieu-khoan', '/customer/faq', '/customer/lien-he', '/customer/tuyen-dung'];
+    const activeRoutes = [
+      '/customer/ve-chung-toi',
+      '/customer/gioi-thieu',
+      '/customer/chinh-sach',
+      '/customer/huong-dan-mua-ve',
+      '/customer/faq',
+      '/customer/dieu-khoan',
+      '/customer/tuyen-dung',
+      '/customer/lien-he'
+    ];
     return activeRoutes.some(route => this.router.url.includes(route));
   }
 
   isServicesRouteActive(): boolean {
-    return this.router.url.includes('/customer/dich-vu');
+    const activeRoutes = ['/customer/dich-vu', '/customer/do-that-lac'];
+    return activeRoutes.some(route => this.router.url.includes(route));
   }
 
   toggleServices(event: Event) {
@@ -90,10 +105,8 @@ export class CustomerNavbar {
     this.isDropdownOpen = false;
   }
 
-  onHomeClick(event: Event) {
-    event.preventDefault();
+  onHomeClick(event?: Event) {
     this.closeMobileMenu();
-    this.router.navigate(['/customer'], { queryParams: { reset: Date.now() } });
   }
 }
 
