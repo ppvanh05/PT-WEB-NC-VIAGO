@@ -58,28 +58,28 @@
     </div>
 
     <div class="filters-grid report-filter-grid">
-      <app-input class="search-field" label="Tìm kiếm" id="report-search"
+      <app-input class="search-field" label="Tìm kiếm" [id]="'report-search'"
         placeholder="Mã đơn, mã vé, tên khách, SĐT..." [value]="tuKhoa()"
         (valueChange)="tuKhoa.set($event); trangHienTai.set(1)" />
-      <app-select label="Tuyến xe" id="report-filter-0" [options]="tuyenOptions()"
+      <app-select label="Tuyến xe" [id]="'report-filter-0'" [options]="tuyenOptions()"
         [value]="locTuyen()" (valueChange)="locTuyen.set($any($event)); trangHienTai.set(1)" />
-      <app-select label="Lý do hủy" id="report-filter-1" [options]="lyDoOptions"
+      <app-select label="Lý do hủy" [id]="'report-filter-1'" [options]="lyDoOptions"
         [value]="locLyDo()" (valueChange)="locLyDo.set($any($event)); trangHienTai.set(1)" />
-      <app-select label="Nguồn đặt" id="report-filter-2" [options]="nguonDatOptions"
+      <app-select label="Nguồn đặt" [id]="'report-filter-2'" [options]="nguonDatOptions"
         [value]="locNguonDat()" (valueChange)="locNguonDat.set($any($event)); trangHienTai.set(1)" />
-      <app-select label="Loại xe" id="report-filter-3" [options]="loaiXeOptions"
+      <app-select label="Loại xe" [id]="'report-filter-3'" [options]="loaiXeOptions"
         [value]="locLoaiXe()" (valueChange)="locLoaiXe.set($any($event)); trangHienTai.set(1)" />
-      <app-select label="Loại ghế" id="report-filter-4" [options]="loaiGheOptions"
+      <app-select label="Loại ghế" [id]="'report-filter-4'" [options]="loaiGheOptions"
         [value]="locLoaiGhe()" (valueChange)="locLoaiGhe.set($any($event)); trangHienTai.set(1)" />
-      <app-select label="Nhân viên" id="report-filter-5" [options]="nhanVienOptions()"
+      <app-select label="Nhân viên" [id]="'report-filter-5'" [options]="nhanVienOptions()"
         [value]="locNhanVien()" (valueChange)="locNhanVien.set($any($event)); trangHienTai.set(1)" />
       <app-date-picker label="Từ ngày" [showLunar]="false" [maxDate]="locDenNgay()"
         [ngModel]="locTuNgay()" (ngModelChange)="locTuNgay.set($event); trangHienTai.set(1)" />
       <app-date-picker label="Đến ngày" [showLunar]="false" [minDate]="locTuNgay()"
         [ngModel]="locDenNgay()" (ngModelChange)="locDenNgay.set($event); trangHienTai.set(1)" />
-      <app-select label="Hoàn tiền" id="report-filter-6" [options]="hoanTienOptions"
+      <app-select label="Hoàn tiền" [id]="'report-filter-6'" [options]="hoanTienOptions"
         [value]="locTrangThai()" (valueChange)="locTrangThai.set($any($event)); trangHienTai.set(1)" />
-      <app-select label="Trạng thái đơn" id="report-filter-7" [options]="trangThaiDonOptions"
+      <app-select label="Trạng thái đơn" [id]="'report-filter-7'" [options]="trangThaiDonOptions"
         [value]="locTrangThaiDonHang()" (valueChange)="locTrangThaiDonHang.set($any($event)); trangHienTai.set(1)" />
       <div class="filter-action-field">
         <app-button variant="outline" (clicked)="XoaBoLoc()">Xóa bộ lọc</app-button>
@@ -335,8 +335,9 @@
             } @else {
               <div class="stacked-percent-bar source-stack" tabindex="0">
                 @for (item of nguonDatChart(); track item.key) {
-                  <span class="source-segment {{ item.key }}" [style.width.%]="item.pct">
-                    <b>{{ item.pct }}%</b>
+                  <span class="source-segment {{ item.key }}" [style.width.%]="item.pct"
+                    [attr.title]="item.label + ': ' + item.count + ' lượt · ' + item.pct + '%'">
+                    @if (item.pct >= 12) { <b>{{ item.pct }}%</b> }
                   </span>
                 }
               </div>
@@ -362,8 +363,9 @@
             } @else {
               <div class="stacked-percent-bar fee-stack" tabindex="0">
                 @for (item of mucPhiHuyChart(); track item.key) {
-                  <span class="fee-segment {{ item.tone }}" [style.width.%]="item.pct">
-                    <b>{{ item.pct }}%</b>
+                  <span class="fee-segment {{ item.tone }}" [style.width.%]="item.pct"
+                    [attr.title]="item.label + ': ' + item.count + ' lượt · ' + item.pct + '%'">
+                    @if (item.pct >= 12) { <b>{{ item.pct }}%</b> }
                   </span>
                 }
               </div>
@@ -525,8 +527,6 @@
           Hiển thị {{ chiSoDauTrang() }}-{{ chiSoCuoiTrang() }} / {{ danhSachLoc().length }} lượt hủy
         </span>
         <div class="pagination-controls">
-          <app-select class="page-size-field" label="Số dòng" id="report-page-size"
-            [options]="soDongOptions" [value]="'' + soDongMoiTrang()" (valueChange)="CapNhatSoDongMoiTrang($event)" />
           <app-pagination [currentPage]="trangHopLe()" [totalItems]="danhSachLoc().length"
             [pageSize]="soDongMoiTrang()" [showSummary]="false" (pageChange)="ChuyenTrang($event)" />
         </div>

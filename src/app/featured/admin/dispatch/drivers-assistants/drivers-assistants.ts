@@ -1,7 +1,11 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Pagination } from '../../../../shared/components/pagination/pagination';
+import { Toast } from '../../../../shared/components/toast/toast';
+import { Badge } from '../../../../shared/components/badge/badge';
+import { ModalComponent } from '../../../../shared/components/modal/modal';
+import { BookingDialog } from '../../booking/booking-dialog';
 import { Button } from '../../../../shared/components/button/button';
 
 export interface Personnel {
@@ -13,7 +17,7 @@ export interface Personnel {
   identityNumber?: string;
   licenseClass: string;
   licenseExpiry: string;
-  status: 'Đang làm việc' | 'Nghỉ phép' | 'Đã khóa';
+  status: 'Đang hoạt động' | 'Đã khóa';
   avatar?: string | null;
   licenseImage?: string | null;
   licenseFrontImage?: string | null;
@@ -31,7 +35,7 @@ const IDENTITY_BACK_IMAGE_URL = '/assets/customer/cccdmatsau.jpg';
 @Component({
   selector: 'app-drivers-assistants',
   standalone: true,
-  imports: [CommonModule, FormsModule, Pagination, Button],
+  imports: [Toast, Badge, ModalComponent, BookingDialog, CommonModule, FormsModule, Pagination, Button],
   templateUrl: './drivers-assistants.html',
   styleUrls: ['./drivers-assistants.css']
 })
@@ -43,6 +47,8 @@ export class DriversAssistants implements OnInit {
   statusFilter: string = 'Tất cả';
 
   isModalOpen = false;
+  isSaving = false;
+  lockTarget: Personnel | null = null;
   isEditMode = false;
   currentPersonnel: any = {};
   isUploadingAvatar = false;
@@ -53,18 +59,18 @@ export class DriversAssistants implements OnInit {
 
   roleOptions = ['Tất cả', 'Tài xế', 'Phụ xe'];
   licenseOptions = ['Tất cả', 'B2', 'C', 'D', 'E'];
-  statusOptions = ['Tất cả', 'Đang làm việc', 'Nghỉ phép', 'Sắp hết hạn', 'Đã khóa'];
+  statusOptions = ['Tất cả', 'Đang hoạt động', 'Đã khóa'];
 
   allPersonnel: Personnel[] = [
-    { id: 1, name: 'Nguyễn Văn Minh', role: 'Tài xế', dob: '15/03/1985', phone: '0901234567', licenseClass: 'E', licenseExpiry: '20/08/2028', status: 'Đang làm việc' },
-    { id: 2, name: 'Trần Quốc Huy', role: 'Tài xế', dob: '22/07/1988', phone: '0912345678', licenseClass: 'E', licenseExpiry: '14/11/2027', status: 'Đang làm việc' },
-    { id: 3, name: 'Lê Hoàng Nam', role: 'Tài xế', dob: '10/12/1983', phone: '0933456789', licenseClass: 'E', licenseExpiry: '05/04/2029', status: 'Nghỉ phép' },
-    { id: 4, name: 'Phạm Đức Thành', role: 'Tài xế', dob: '28/01/1990', phone: '0944567890', licenseClass: 'D', licenseExpiry: '18/09/2028', status: 'Đang làm việc' },
-    { id: 5, name: 'Võ Thanh Tùng', role: 'Tài xế', dob: '07/05/1987', phone: '0965678901', licenseClass: 'D', licenseExpiry: '30/06/2027', status: 'Đang làm việc' },
-    { id: 6, name: 'Nguyễn Văn Phúc', role: 'Phụ xe', dob: '12/09/1995', phone: '0976789012', licenseClass: 'B2', licenseExpiry: '15/05/2028', status: 'Đang làm việc' },
-    { id: 7, name: 'Trần Minh Khang', role: 'Phụ xe', dob: '25/11/1998', phone: '0987890123', licenseClass: 'B2', licenseExpiry: '22/10/2027', status: 'Đang làm việc' },
-    { id: 8, name: 'Lê Quốc Bảo', role: 'Phụ xe', dob: '18/02/1996', phone: '0398901234', licenseClass: 'C', licenseExpiry: '09/03/2029', status: 'Nghỉ phép' },
-    { id: 9, name: 'Phan Gia Hưng', role: 'Phụ xe', dob: '04/06/1999', phone: '0389012345', licenseClass: 'B2', licenseExpiry: '28/12/2028', status: 'Đang làm việc' },
+    { id: 1, name: 'Nguyễn Văn Minh', role: 'Tài xế', dob: '15/03/1985', phone: '0901234567', licenseClass: 'E', licenseExpiry: '20/08/2028', status: 'Đang hoạt động' },
+    { id: 2, name: 'Trần Quốc Huy', role: 'Tài xế', dob: '22/07/1988', phone: '0912345678', licenseClass: 'E', licenseExpiry: '14/11/2027', status: 'Đang hoạt động' },
+    { id: 3, name: 'Lê Hoàng Nam', role: 'Tài xế', dob: '10/12/1983', phone: '0933456789', licenseClass: 'E', licenseExpiry: '05/04/2029', status: 'Đang hoạt động' },
+    { id: 4, name: 'Phạm Đức Thành', role: 'Tài xế', dob: '28/01/1990', phone: '0944567890', licenseClass: 'D', licenseExpiry: '18/09/2028', status: 'Đang hoạt động' },
+    { id: 5, name: 'Võ Thanh Tùng', role: 'Tài xế', dob: '07/05/1987', phone: '0965678901', licenseClass: 'D', licenseExpiry: '30/06/2027', status: 'Đang hoạt động' },
+    { id: 6, name: 'Nguyễn Văn Phúc', role: 'Phụ xe', dob: '12/09/1995', phone: '0976789012', licenseClass: 'B2', licenseExpiry: '15/05/2028', status: 'Đang hoạt động' },
+    { id: 7, name: 'Trần Minh Khang', role: 'Phụ xe', dob: '25/11/1998', phone: '0987890123', licenseClass: 'B2', licenseExpiry: '22/10/2027', status: 'Đang hoạt động' },
+    { id: 8, name: 'Lê Quốc Bảo', role: 'Phụ xe', dob: '18/02/1996', phone: '0398901234', licenseClass: 'C', licenseExpiry: '09/03/2029', status: 'Đang hoạt động' },
+    { id: 9, name: 'Phan Gia Hưng', role: 'Phụ xe', dob: '04/06/1999', phone: '0389012345', licenseClass: 'B2', licenseExpiry: '28/12/2028', status: 'Đang hoạt động' },
     { id: 10, name: 'Đặng Nhật Quang', role: 'Phụ xe', dob: '30/08/1997', phone: '0370123456', licenseClass: 'C', licenseExpiry: '17/07/2027', status: 'Đã khóa' },
   ];
 
@@ -128,7 +134,7 @@ export class DriversAssistants implements OnInit {
       const matchesRole = this.roleFilter === 'Tất cả' || p.role === this.roleFilter;
       const matchesLicense = this.licenseFilter === 'Tất cả' || p.licenseClass === this.licenseFilter;
       const matchesStatus = this.statusFilter === 'Tất cả' ||
-        (this.statusFilter === 'Sắp hết hạn' ? this.isLicenseExpiringSoon(p) : p.status === this.statusFilter);
+        p.status === this.statusFilter;
 
       return matchesTab && matchesSearch && matchesRole && matchesLicense && matchesStatus;
     });
@@ -164,7 +170,7 @@ export class DriversAssistants implements OnInit {
     this.isEditMode = false;
     this.errors = {};
     this.currentPersonnel = {
-      status: 'Đang làm việc',
+      status: 'Đang hoạt động',
       role: this.activeTab === 'Phụ xe' ? 'Phụ xe' : 'Tài xế',
       licenseClass: '',
       identityNumber: '',
@@ -189,14 +195,19 @@ export class DriversAssistants implements OnInit {
     this.isModalOpen = true;
   }
 
+  onPhoneInput() { this.currentPersonnel.phone = String(this.currentPersonnel.phone || '').replace(/\D/g, '').slice(0, 10); }
+
   closeModal() {
+    if (this.isSaving) return;
     this.isModalOpen = false;
   }
 
-  savePersonnel() {
+  async savePersonnel() {
+    if (this.isSaving) return;
     this.errors = {
-      name: !this.currentPersonnel.name,
-      phone: !this.currentPersonnel.phone,
+      name: !String(this.currentPersonnel.name || '').trim(),
+      dob: !this.currentPersonnel.dob,
+      phone: !/^\d{10}$/.test(this.currentPersonnel.phone || ''),
       identityNumber: !this.currentPersonnel.identityNumber,
       role: !this.currentPersonnel.role,
       licenseClass: !this.currentPersonnel.licenseClass,
@@ -204,10 +215,13 @@ export class DriversAssistants implements OnInit {
     };
 
     if (Object.values(this.errors).some(Boolean)) {
-      this.addToast('Vui lòng nhập đầy đủ thông tin bắt buộc.', 'error');
+
       return;
     }
 
+    this.isSaving = true;
+    await new Promise(resolve => setTimeout(resolve, 350));
+    this.currentPersonnel.name = String(this.currentPersonnel.name).trim().replace(/\s+/g, ' ');
     if (this.isEditMode) {
       const index = this.allPersonnel.findIndex(p => p.id === this.currentPersonnel.id);
       if (index !== -1) this.allPersonnel[index] = this.currentPersonnel;
@@ -218,6 +232,7 @@ export class DriversAssistants implements OnInit {
       this.addToast('Đã thêm nhân sự mới thành công.', 'success');
     }
     this.filterPersonnel();
+    this.isSaving = false;
     this.closeModal();
   }
 
@@ -252,7 +267,7 @@ export class DriversAssistants implements OnInit {
   }
 
   getDisplayStatus(p: Personnel): string {
-    return this.isLicenseExpiringSoon(p) ? 'Sắp hết hạn' : p.status;
+    return p.status;
   }
 
   private parseDate(value: string): Date | null {
@@ -283,19 +298,24 @@ export class DriversAssistants implements OnInit {
     return `${year}-${month}-${day}`;
   }
 
-  toggleLock(p: Personnel) {
-    const action = p.status === 'Đã khóa' ? 'mở khóa' : 'khóa';
-    if (confirm(`Bạn có chắc chắn muốn ${action} nhân sự ${p.name}?`)) {
-      p.status = p.status === 'Đã khóa' ? 'Đang làm việc' : 'Đã khóa';
-      this.filterPersonnel();
-      this.addToast(p.status === 'Đã khóa' ? 'Đã khóa nhân sự.' : 'Đã mở khóa nhân sự.', 'success');
-    }
+  toggleLock(p: Personnel) { if (!this.isSaving) this.lockTarget = p; }
+
+  confirmLock() {
+    const target = this.lockTarget; if (!target) return;
+    const status: Personnel['status'] = target.status === 'Đã khóa' ? 'Đang hoạt động' : 'Đã khóa';
+    this.allPersonnel = this.allPersonnel.map(p => p.id === target.id ? { ...p, status } : p);
+    if (this.currentPersonnel.id === target.id) this.currentPersonnel.status = status;
+    this.lockTarget = null; this.filterPersonnel();
+    this.addToast(status === 'Đã khóa' ? 'Đã khóa nhân sự.' : 'Đã mở khóa nhân sự.', 'success');
   }
+
+  @HostListener('document:keydown.escape')
+  onEscape() { if (this.lockTarget) this.lockTarget = null; else if (this.isModalOpen) this.closeModal(); }
 
   addToast(message: string, type: 'success' | 'error') {
     const id = this.toastCounter++;
     this.toasts.push({ id, message, type });
-    setTimeout(() => this.removeToast(id), 3000);
+
   }
 
   removeToast(id: number) {

@@ -1,9 +1,8 @@
 <div class="ticket-list-page danh-gia-phan-hoi-container">
   @if (ThongBaoToast(); as t) {
-    <div class="toast-message {{ t.LoaiToast === 'thanh-cong' ? 'success' : t.LoaiToast === 'loi' ? 'danger' : 'warning' }}">
-      <span class="toast-mark"></span>
-      <span>{{ t.NoiDungDanhGia }}</span>
-    </div>
+    <div class="review-toast-container">@for (notification of [t]; track notification) {
+      <app-toast [variant]="notification.LoaiToast === 'thanh-cong' ? 'success' : notification.LoaiToast === 'loi' ? 'error' : 'warning'" [message]="notification.NoiDungDanhGia" [duration]="3000" (closed)="ThongBaoToast.set(null)" />
+    }</div>
   }
 
   <section class="lookup-panel review-header-panel">
@@ -19,7 +18,7 @@
       <div class="summary-strip">
         <div class="summary-item">
           <span>{{ ThongKe().TongSo }}</span>
-          <small>Tất cả review</small>
+          <small>Tổng đánh giá</small>
         </div>
         <div class="summary-item danger">
           <span>{{ ThongKeHangDoi().DanhGiaThap }}</span>
@@ -29,7 +28,7 @@
           <span class="summary-trip" [title]="ThongKe().chuyenXeTeNhat">
             {{ ThongKe().chuyenXeTeNhat }}
           </span>
-          <small>Chuyến tệ nhất</small>
+          <small>Chuyến cần cải thiện</small>
         </div>
       </div>
 
@@ -66,6 +65,11 @@
       </div>
     </div>
 
+    <div class="review-queue-filters" aria-label="Lọc nhanh đánh giá">
+      <app-button size="sm" [variant]="LocCheDoXuLy() === 'tat-ca' ? 'primary' : 'outline'" [attr.aria-pressed]="LocCheDoXuLy() === 'tat-ca'" (clicked)="LocCheDoXuLy.set('tat-ca'); trangHienTai.set(1)">Tất cả</app-button>
+      <app-button size="sm" [variant]="LocCheDoXuLy() === 'can-tra-loi' ? 'primary' : 'outline'" [attr.aria-pressed]="LocCheDoXuLy() === 'can-tra-loi'" (clicked)="LocCheDoXuLy.set('can-tra-loi'); LocTrangThaiXuLy.set('tat-ca'); trangHienTai.set(1)">Cần phản hồi ({{ ThongKeHangDoi().CanTraLoi }})</app-button>
+      <app-button size="sm" [variant]="LocCheDoXuLy() === 'danh-gia-thap' ? 'primary' : 'outline'" [attr.aria-pressed]="LocCheDoXuLy() === 'danh-gia-thap'" (clicked)="LocCheDoXuLy.set('danh-gia-thap'); LocTrangThaiXuLy.set('tat-ca'); trangHienTai.set(1)">Đánh giá thấp ({{ ThongKeHangDoi().DanhGiaThap }})</app-button>
+    </div>
     <div class="filters-grid">
       <div class="field">
         <label for="review-search">Tìm kiếm</label>
@@ -73,7 +77,7 @@
           type="text"
           placeholder="Tên khách, SĐT, mã chuyến, tuyến, nội dung..."
           [ngModel]="TuKhoaTimKiem()"
-          (ngModelChange)="TuKhoaTimKiem.set($event)"
+          (ngModelChange)="TuKhoaTimKiem.set($event); trangHienTai.set(1)"
         />
       </div>
 
@@ -98,13 +102,12 @@
       </div>
 
       <div class="field">
-        <label for="review-date">Ngày đánh giá</label>
-        <input id="review-date" type="date" [ngModel]="LocNgayTao()" (ngModelChange)="LocNgayTao.set($event)" />
+        <app-date-picker label="Ngày đánh giá" [showLunar]="false" [ngModel]="LocNgayTao()" (ngModelChange)="LocNgayTao.set($event); trangHienTai.set(1)" />
       </div>
 
       <div class="field">
         <label for="review-status">Trạng thái</label>
-        <select id="review-status" [ngModel]="LocTrangThaiXuLy()" (ngModelChange)="LocTrangThaiXuLy.set($event)">
+        <select id="review-status" [ngModel]="LocTrangThaiXuLy()" (ngModelChange)="LocTrangThaiXuLy.set($event); trangHienTai.set(1)">
           <option value="tat-ca">Tất cả</option>
           <option value="chua-xu-ly">Chưa xử lý</option>
           <option value="da-xu-ly">Đã xử lý</option>
@@ -147,7 +150,7 @@
 
       <div class="field filter-action-field">
         <label>&nbsp;</label>
-        <button type="button" class="secondary-button clear-filter-btn" (click)="XoaBoLoc()">Xóa bộ lọc</button>
+        <app-button variant="outline" (clicked)="XoaBoLoc()">Xóa bộ lọc</app-button>
       </div>
     </div>
   </section>
@@ -181,12 +184,12 @@
                 <td class="name">
                   <strong>{{ dg.HoTenKhachHang }}</strong>
                   <span style="font-size: var(--font-size-caption); color: var(--color-neutral-600); font-weight: var(--font-weight-medium); margin-top: 2px">{{ dg.SoDienThoai }}</span>
-                  <small style="font-size: var(--font-size-micro); color: var(--color-text-secondary); margin-top: 2px">{{ dg.MaDanhGia }}</small>
+                  <small style="font-size: var(--font-size-caption); color: var(--color-text-secondary); margin-top: 2px">{{ dg.MaDanhGia }}</small>
                 </td>
                 <td class="trip-cell">
                   <strong class="code">{{ dg.MaLichTrinh }}</strong>
                   <span style="font-size: var(--font-size-caption); color: var(--color-neutral-600); font-weight: var(--font-weight-medium); margin-top: 2px">{{ dg.TenTuyenXe }}</span>
-                  <small style="font-size: var(--font-size-micro); color: var(--color-text-secondary); margin-top: 2px">{{ dg.GioKhoiHanh }} · {{ dg.BienSoXe }}</small>
+                  <small style="font-size: var(--font-size-caption); color: var(--color-text-secondary); margin-top: 2px">{{ dg.GioKhoiHanh }} · {{ dg.BienSoXe }}</small>
                 </td>
                 <td>
                   <div class="rating-line" style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
@@ -209,7 +212,7 @@
                   <app-badge [variant]="LaDaXuLy(dg) ? 'success' : 'warning'" [label]="getTrangThaiText(dg.TrangThaiXuLy)" />
                 </td>
                 <td class="actions-col" (click)="$event.stopPropagation()">
-                  <button type="button" class="action-btn-icon edit" (click)="ChonVaXuLy(dg)" title="Xử lý và phản hồi">
+                  <button type="button" class="action-btn-icon edit" (click)="ChonVaXuLy(dg)" title="Xử lý và phản hồi" [attr.aria-label]="'Xử lý đánh giá của ' + dg.HoTenKhachHang">
                     <span class="material-symbols-outlined">edit_note</span>
                   </button>
                 </td>
@@ -233,7 +236,7 @@
 
   @if (HienModalPhanHoi() && DanhGiaDuocChon(); as dg) {
     <div class="modal-overlay" (click)="DongModalPhanHoi()">
-      <div class="detail-modal review-response-modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title" (click)="$event.stopPropagation()">
+      <div bookingDialog tabindex="-1" class="detail-modal review-response-modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title" (click)="$event.stopPropagation()">
         <header class="modal-header">
           <div>
             <h2 id="review-modal-title">Xử lý & phản hồi · {{ dg.MaDanhGia }}</h2>
@@ -264,7 +267,7 @@
             <p style="margin: 8px 0 0 0; font-size: var(--font-size-body); font-style: italic; color: var(--color-neutral-600); border-top: 1px dashed var(--color-border-strong); padding-top: 8px; line-height: var(--line-height-body)">“{{ dg.NoiDungDanhGia }}”</p>
             
             <div style="background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); padding: 12px; margin-top: 10px">
-              <h4 style="margin: 0 0 8px 0; font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); color: var(--color-primary-500); text-transform: uppercase">Chi tiết điểm tiêu chí</h4>
+              <h4 style="margin: 0 0 8px 0; font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); color: var(--color-primary-500); text-transform: none">Chi tiết điểm tiêu chí</h4>
               <div class="criteria-detail-grid">
                 @for (item of TieuChiCuaDanhGia(dg); track item.label) {
                   <div class="criteria-detail-card" [class.low]="item.score <= 3">
@@ -292,9 +295,9 @@
               </div>
               
               <div class="field" style="margin-top: 4px; display: flex; flex-direction: column; gap: 4px">
-                <label style="font-size: var(--font-size-caption); font-weight: var(--font-weight-semibold); color: var(--color-neutral-600)">Ghi chú nội bộ</label>
+                <label for="review-internal-note">Ghi chú nội bộ <small>Chỉ nhân viên nhìn thấy</small></label>
                 <textarea
-                  #internalNoteModal
+                  #internalNoteModal id="review-internal-note"
                   rows="2"
                   placeholder="Ghi nhanh kết quả gọi khách hoặc lưu ý cho ca sau..."
                   [value]="dg.GhiChuNoiBo || ''"
@@ -307,14 +310,14 @@
 
           @if (dg.PhanHoi) {
             <div style="background: var(--color-success-50); border: 1px solid var(--color-success-500); border-radius: var(--radius-md); padding: 14px">
-              <h3 style="margin: 0 0 6px 0; color: var(--color-success-700); font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); text-transform: uppercase">Phản hồi đã gửi</h3>
+              <h3 style="margin: 0 0 6px 0; color: var(--color-success-700); font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); text-transform: none">Phản hồi đã gửi</h3>
               <p style="font-size: var(--font-size-body); color: var(--color-text-primary); line-height: var(--line-height-body); margin: 0">{{ dg.PhanHoi }}</p>
             </div>
           }
 
           <div class="response-input-area" style="display: flex; flex-direction: column; gap: 10px">
             <div class="block-title-row" style="display: flex; justify-content: space-between; align-items: center">
-              <h3 style="margin: 0; font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); color: var(--color-primary-500); text-transform: uppercase">Nội dung phản hồi chính thức</h3>
+              <h3 style="margin: 0; font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); color: var(--color-primary-500); text-transform: none">Phản hồi gửi khách</h3>
               <span [class.limit-warning]="NoiDungPhanHoi().length > 500" style="font-size: var(--font-size-caption); color: var(--color-text-secondary)">{{ NoiDungPhanHoi().length }} / 500 ký tự</span>
             </div>
 
@@ -334,22 +337,23 @@
               }
             </div>
 
-            <textarea
+            <textarea id="review-response" aria-label="Nội dung phản hồi gửi khách" aria-describedby="review-response-error" [attr.aria-invalid]="!!ThongBaoLoi()" [disabled]="DangGuiPhanHoi()"
               rows="6"
               placeholder="Nhập nội dung phản hồi chính thức cho khách..."
               [ngModel]="NoiDungPhanHoi()"
-              (ngModelChange)="NoiDungPhanHoi.set($event)"
+              (ngModelChange)="NoiDungPhanHoi.set($event); ThongBaoLoi.set($event.length > 500 ? 'Nội dung phản hồi không được vượt quá 500 ký tự.' : '')"
               style="width: 100%; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 10px; font-family: inherit; font-size: var(--font-size-body); outline: none; min-height: 100px; resize: vertical; line-height: var(--line-height-body)"
             ></textarea>
+            @if (ThongBaoLoi()) { <p id="review-response-error" class="review-field-error" role="alert">{{ ThongBaoLoi() }}</p> }
           </div>
         </div>
 
         <footer class="modal-footer">
-          <app-button variant="outline" (clicked)="DongModalPhanHoi()">Đóng</app-button>
+          <app-button variant="outline" [disabled]="DangGuiPhanHoi()" (clicked)="DongModalPhanHoi()">Đóng</app-button>
           @if (dg.PhanHoi) {
-            <app-button variant="danger" (clicked)="XoaPhanHoiTrucTiep(dg)">Xóa phản hồi</app-button>
+            <app-button variant="outline" [disabled]="DangGuiPhanHoi()" (clicked)="XoaPhanHoiTrucTiep(dg)">Xóa phản hồi</app-button>
           }
-          <app-button [disabled]="!NoiDungPhanHoi().trim() || NoiDungPhanHoi().length > 500" (clicked)="LuuPhanHoiTrucTiep(dg)">Gửi phản hồi</app-button>
+          <app-button [loading]="DangGuiPhanHoi()" [disabled]="!NoiDungPhanHoi().trim() || NoiDungPhanHoi().length > 500" (clicked)="GuiPhanHoi(dg)">Gửi phản hồi</app-button>
         </footer>
       </div>
     </div>
@@ -364,7 +368,7 @@
   confirmText="Xác nhận" cancelText="Quay lại" (confirmed)="XacNhanDaoTrangThai()" (closed)="DongModalXacNhanAn()">
   @if (DanhGiaMuonAn(); as target) {
     <p><strong>{{ target.TrangThai === 'hien-thi' ? 'Ẩn đánh giá này?' : 'Hiển thị lại đánh giá này?' }}</strong></p>
-    <p>Đánh giá bị ẩn sẽ không hiện trên website khách hàng nhưng vẫn được giữ trong trang quản trị để đối soát.</p>
+    <p>Chỉ ẩn nội dung vi phạm quy định. Đánh giá tiêu cực vẫn cần được tiếp nhận và phản hồi. Nội dung bị ẩn được giữ trong quản trị để đối soát.</p>
     <p>{{ target.HoTenKhachHang }} · {{ target.MaDanhGia }}</p>
     <p>{{ target.NoiDungDanhGia }}</p>
   }

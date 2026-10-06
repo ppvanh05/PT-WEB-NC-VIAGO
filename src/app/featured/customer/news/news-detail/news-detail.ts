@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Toast, ToastVariant } from '../../../../shared/components/toast/toast';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -7,11 +8,12 @@ import { ARTICLES, Article } from '../news-data';
 @Component({
   selector: 'app-news-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [Toast, CommonModule, RouterLink, FormsModule],
   templateUrl: './news-detail.html',
   styleUrls: ['../../customer-pages.css', './news-detail.css', '../../customer-page-theme.css'],
 })
 export class NewsDetail implements OnInit {
+  toast = signal<{ message: string; variant: ToastVariant } | null>(null);
   article!: Article;
   relatedArticles: Article[] = [];
   bottomArticles: Article[] = [];
@@ -25,6 +27,7 @@ export class NewsDetail implements OnInit {
     { author: 'Minh Quân', date: '28/06/2026', content: 'Bài viết rất hữu ích, giúp tôi biết thêm nhiều thông tin di chuyển bằng xe limousine.' },
     { author: 'Thu Trang', date: '27/06/2026', content: 'Dịch vụ của VIAGO đúng là chất lượng cao, rất mong chờ có thêm nhiều chuyến đi mới!' }
   ];
+  commentError = '';
   newCommentName = '';
   newCommentText = '';
 
@@ -71,19 +74,20 @@ export class NewsDetail implements OnInit {
   }
 
   copyLink() {
-    navigator.clipboard.writeText(this.shareUrl).then(() => {
-      window.alert('Đã sao chép liên kết vào bộ nhớ tạm!');
+    Promise.resolve().then(() => navigator.clipboard.writeText(this.shareUrl)).then(() => {
+      this.toast.set({ message: 'Đã sao chép liên kết.', variant: 'success' });
       this.showShareModal = false;
     }).catch(() => {
-      window.alert('Không thể sao chép liên kết.');
+      this.toast.set({ message: 'Không thể sao chép liên kết. Vui lòng thử lại.', variant: 'error' });
     });
   }
 
   submitComment() {
     if (!this.newCommentName.trim() || !this.newCommentText.trim()) {
-      window.alert('Vui lòng điền đầy đủ tên và nội dung bình luận!');
+      this.commentError = 'Vui lòng nhập tên và nội dung bình luận.';
       return;
     }
+    this.commentError = '';
     const today = new Date();
     const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
     
@@ -95,5 +99,6 @@ export class NewsDetail implements OnInit {
     
     this.newCommentName = '';
     this.newCommentText = '';
+    this.toast.set({ message: 'Đã gửi bình luận.', variant: 'success' });
   }
 }

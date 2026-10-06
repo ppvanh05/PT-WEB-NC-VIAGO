@@ -1,3 +1,8 @@
+@if (toast(); as t) {
+  <div class="news-toast-container">@for (notification of [t]; track notification) {
+    <app-toast [variant]="notification.variant" [message]="notification.message" [duration]="3200" (closed)="toast.set(null)" />
+  }</div>
+}
 <div class="container mx-auto px-4 md:px-10 lg:px-16 mt-6" *ngIf="article">
   <nav class="breadcrumbs">
     <a routerLink="/tin-tuc">Tin tức</a>
@@ -63,6 +68,7 @@
       <div class="space-y-3 mt-4">
         <input type="text" [(ngModel)]="newCommentName" placeholder="Tên của bạn..." class="w-full p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-gray-800 outline-none focus:border-[#123063] focus:bg-white transition" />
         <textarea rows="3" [(ngModel)]="newCommentText" placeholder="Chia sẻ cảm nhận hoặc câu hỏi của bạn..." class="w-full p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-gray-800 outline-none focus:border-[#123063] focus:bg-white transition resize-none"></textarea>
+        @if (commentError) { <p class="comment-error" role="alert">{{ commentError }}</p> }
         <button type="button" (click)="submitComment()" class="px-5 py-2.5 bg-[#123063] text-white text-xs font-bold rounded-xl hover:bg-[#1d4586] transition cursor-pointer">Gửi bình luận</button>
       </div>
     </section>

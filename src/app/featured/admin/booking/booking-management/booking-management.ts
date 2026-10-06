@@ -1,7 +1,9 @@
+import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker';
 import { SidebarStateService } from '../../../../core/services/sidebar-state.service';
-import { BookingDialog } from '../booking-dialog';
+import { BookingDialog, printBookingReceipts } from '../booking-dialog';
 import { HostListener } from '@angular/core';
 import { BookingState, normalizeTicket, paymentLabel, ticketLabel, paymentVariant, normalizedName, validName, validPhone, validEmail, countdown, couponResult, localQr } from '../booking-rules';
+import { Toast } from '../../../../shared/components/toast/toast';
 import { Button } from '../../../../shared/components/button/button';
 import { Badge } from '../../../../shared/components/badge/badge';
 import { ModalComponent } from '../../../../shared/components/modal/modal';
@@ -86,12 +88,68 @@ interface DonHangTraCuu {
 @Component({
   selector: 'app-booking-management',
   standalone: true,
-  imports: [BookingDialog, Button, Badge, ModalComponent, Pagination, CommonModule, FormsModule],
+  imports: [DatePickerComponent, Toast, BookingDialog, Button, Badge, ModalComponent, Pagination, CommonModule, FormsModule],
   templateUrl: './booking-management.html',
   styleUrl: './booking-management.css'
 })
 export class BookingManagement implements OnInit, AfterViewInit {
-  PaymentLabel = paymentLabel; PaymentVariant = paymentVariant; TicketLabel = ticketLabel; Countdown = countdown;
+  PaymentLabel = (ve: VeXe) => (ve.balanceDue || 0) > 0 || normalizeTicket(ve).paymentStatus === 'pending' ? 'Chờ thanh toán' : paymentLabel(ve);
+  PaymentVariant = (ve: VeXe) => (ve.balanceDue || 0) > 0 ? 'warning' as const : paymentVariant(ve); Countdown = countdown;
+  TicketLifecycleLabel(ve: VeXe): string {
+    const state = normalizeTicket(ve).orderStatus;
+    if (state === 'expired') return 'Hết hạn';
+    if (state === 'cancelled' || ve.TrangThaiVe === 'da-huy') return 'Đã hủy';
+    if (state === 'used' || ve.TrangThaiVe === 'da-hoan-thanh') return 'Đã hoàn thành';
+    return state === 'held' ? 'Đang giữ chỗ' : 'Chờ khởi hành';
+  }
+  TicketLabel = (ve: VeXe) => normalizeTicket(ve).orderStatus === 'used' ? 'Đã hoàn thành' : ve.TrangThaiVe === 'da-huy' ? 'Đã hủy' : ve.TrangThaiDonHang === 'da-thanh-toan' ? 'Đã thanh toán' : 'Chờ thanh toán';
+  readonly currentUser = { id: 'NVBV001', name: 'Nguyễn An Ninh' };
+  locNguonDat = signal('tat-ca');
+  editPassengers = signal<Record<string, string>>({});
+  printing = signal(false);
+  resendState = signal<'idle' | 'loading' | 'success' | 'error'>('idle');
+  EditCount(ve: VeXe) { return Math.max(0, ve.SoLanDaSua || 0, ...this.TatCaVeCungDon(ve).map(v => v.SoLanDaSua || 0)); }
+  CancelReason(ve: VeXe): string {
+    const state = normalizeTicket(ve).orderStatus;
+    if (state === 'cancelled') return 'Vé đã hủy.';
+    if (state === 'expired') return 'Giữ chỗ đã hết hạn.';
+    if (state === 'used') return 'Vé đã hoàn thành, không thể hủy.';
+    if (ve.tripStatus === 'departed' || this.SoGioTruocKhoiHanh(ve) <= 0) return 'Đã qua giờ khởi hành, không thể hủy vé.';
+    return this.CoTheHuy(ve) ? '' : 'Vé không còn đủ điều kiện hủy.';
+  }
+  private BookingTime(value: string): number {
+    const local = value.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (local) {
+      const time = value.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+      return new Date(Number(local[3]), Number(local[2]) - 1, Number(local[1]), Number(time?.[1] || 0), Number(time?.[2] || 0), Number(time?.[3] || 0)).getTime();
+    }
+    const parsed = Date.parse(value); return Number.isFinite(parsed) ? parsed : 0;
+  }
+  private NewestFirst(a: VeXe, b: VeXe): number {
+    return this.BookingTime(b.ThoiGianDat) - this.BookingTime(a.ThoiGianDat)
+      || (b.MaDonHang || '').localeCompare(a.MaDonHang || '', 'vi', { numeric: true })
+      || b.MaVe.localeCompare(a.MaVe, 'vi', { numeric: true });
+  }
+  PassengerName(ve: VeXe) { return ve.passengerName || ve.HoTenNguoiDi; }
+  ChangePassenger(code: string, value: string) { this.editPassengers.update(names => ({ ...names, [code]: value })); }
+  OrderLabel(ve: VeXe) {
+    const all = this.TatCaVeCungDon(ve); const active = all.filter(v => v.TrangThaiVe !== 'da-huy');
+    return !active.length ? 'Đã hủy' : active.length < all.length ? 'Hủy một phần' : active.every(v => v.TrangThaiVe === 'da-hoan-thanh' || v.orderStatus === 'used') ? 'Đã hoàn thành' : active.some(v => v.TrangThaiDonHang !== 'da-thanh-toan' || (v.balanceDue || 0) > 0) ? 'Chờ thanh toán' : 'Đã thanh toán';
+  }
+  OrderVariant(ve: VeXe): 'success' | 'warning' | 'danger' | 'info' | 'neutral' { const label = this.OrderLabel(ve); return label === 'Đã hủy' ? 'danger' : label === 'Hủy một phần' ? 'warning' : label === 'Chờ thanh toán' ? 'info' : 'success'; }
+  PaymentDue(ve: VeXe) { return this.NhomVeCungDon(ve).reduce((sum,v) => sum + (v.TrangThaiDonHang === 'da-thanh-toan' ? v.balanceDue || 0 : v.GiaVe), 0); }
+  OrderSeats(ve: VeXe) { return this.NhomVeCungDon(ve).map(v => v.SoGhe).join(', '); }
+  RefundLabel(ve: VeXe) { const status = ve.refundStatus || (ve.paymentStatus === 'refunded' ? 'completed' : ve.paymentStatus === 'refund-failed' ? 'failed' : 'processing'); return ({ processing: 'Đang xử lý', completed: 'Đã hoàn', failed: 'Thất bại' })[status]; }
+  MemberPoints(ve: VeXe) { return this.danhSachVe().filter(v => v.SdtNguoiDi === ve.SdtNguoiDi).reduce((sum,v) => sum + (v.membershipPoints ?? (v.TrangThaiDonHang === 'da-thanh-toan' && v.TrangThaiVe !== 'da-huy' ? Math.floor(v.GiaVe / 10000) : 0)), 0); }
+  TransferSeats(ve: VeXe) {
+    const available = this.LayGheTrongCuaChuyen(ve.MaLichTrinh);
+    return this.seatLayouts[this.LoaiXeIdTheoVe(ve)].map(code => {
+      const occupant = this.danhSachVe().find(v => v.MaLichTrinh === ve.MaLichTrinh && v.SoGhe === code && v.TrangThaiVe !== 'da-huy');
+      const label = !this.CoTheSua(ve) ? 'Không thể chọn' : code === this.selectedNewSeat() ? 'Đang chọn' : code === ve.SoGhe ? 'Ghế hiện tại' : !occupant ? 'Trống' : normalizeTicket(occupant).orderStatus === 'held' ? 'Đang giữ' : 'Đã bán';
+      return { code, label, disabled: !this.DuocDoiGheTrucTiep(ve) || code === ve.SoGhe || !available.includes(code) };
+    });
+  }
+
   editCouponFeedback = computed(() => {
     const ve = this.veDuocChon(); if (!ve || !this.CoTheSuaMaGiamGia(ve)) return '';
     const route = this.tuyenList.find(t => t.name === ve.TenTuyenXe)?.id ?? '';
@@ -116,15 +174,22 @@ export class BookingManagement implements OnInit, AfterViewInit {
   CloseTransfer() { if (this.processing()) return; this.closeTarget = 'transfer'; if (this.selectedNewSeat()) this.closeConfirm.set(true); else this.showTransferModal.set(false); }
   CloseEdit() { this.closeTarget = 'edit'; if (this.processing()) return; if (this.coThayDoiSua()) this.closeConfirm.set(true); else this.showEditModal.set(false); }
   Escape() { if (this.closeConfirm() || this.processing()) return; if (this.showPaymentConfirmModal()) this.showPaymentConfirmModal.set(false); else if (this.showCancelConfirmModal()) this.showCancelConfirmModal.set(false); else if (this.showCancelModal()) this.CloseCancel(); else if (this.showTransferModal()) this.CloseTransfer(); else if (this.showEditModal()) this.CloseEdit(); else this.DongTatCaModal(); }
-  EditReason(ve: VeXe) { return this.SoGioTruocKhoiHanh(ve) < 2 ? 'Chỉ được sửa trước giờ đi ít nhất 2 giờ.' : (ve.SoLanDaSua ?? 0) >= 2 ? 'Đơn đã đạt giới hạn 2 lần chỉnh sửa.' : this.CoTheSua(ve) ? '' : 'Vé không còn hiệu lực.'; }
+  EditReason(ve: VeXe) { return ve.tripStatus && ve.tripStatus !== 'open' ? 'Chuyến đã khóa, hủy hoặc khởi hành.' : this.SoGioTruocKhoiHanh(ve) < 2 ? 'Chỉ được sửa trước giờ đi ít nhất 2 giờ.' : this.EditCount(ve) >= 2 ? 'Đơn đã đạt giới hạn 2 lần chỉnh sửa.' : this.CoTheSua(ve) ? '' : 'Vé không còn hiệu lực.'; }
   ValidName = validName; ValidPhone = validPhone; ValidEmail = validEmail; NormalizedName = normalizedName;
   SanitizePhone(value: string) { this.editSdt.set(value.replace(/\D/g, '').slice(0, 10)); }
-  EditValid() { const ve = this.veDuocChon(); return !!ve && this.CoTheSua(ve) && (!this.CoTheSuaMaGiamGia(ve) || !this.editMaGiamGia().trim() || couponResult(this.editMaGiamGia(), this.tuyenList.find(t => t.name === ve.TenTuyenXe)?.id ?? '', this.NhomVeCungDon(ve).reduce((sum, t) => sum + t.GiaVe + (t.GiamGia || 0), 0)).valid) && validName(this.editTen()) && validPhone(this.editSdt()) && validEmail(this.editEmail()) && this.LayDiemDonTheoTuyen(ve.TenTuyenXe).includes(this.editDiemDon()) && this.LayDiemTraTheoTuyen(ve.TenTuyenXe).includes(this.editDiemTra()); }
+  EditValid() { const ve = this.veDuocChon(); return !this.processing() && !!ve && this.NhomVeCungDon(ve).every(v => this.CoTheSua(v) && validName(this.editPassengers()[v.MaVe] ?? '')) && this.CoTheSua(ve) && (!this.CoTheSuaMaGiamGia(ve) || !this.editMaGiamGia().trim() || couponResult(this.editMaGiamGia(), this.tuyenList.find(t => t.name === ve.TenTuyenXe)?.id ?? '', this.NhomVeCungDon(ve).reduce((sum, t) => sum + t.GiaVe + (t.GiamGia || 0), 0)).valid) && validName(this.editTen()) && validPhone(this.editSdt()) && validEmail(this.editEmail()) && this.LayDiemDonTheoTuyen(ve.TenTuyenXe).includes(this.editDiemDon()) && this.LayDiemTraTheoTuyen(ve.TenTuyenXe).includes(this.editDiemTra()); }
   async FinishRefund(success: boolean) {
-    const selected = this.veDuocChon(); if (!selected || this.processing() || !['refund-processing','refund-failed'].includes(selected.paymentStatus ?? '')) return;
+    const selected = this.veDuocChon(); if (!selected || this.processing() || (!['refund-processing','refund-failed'].includes(selected.paymentStatus || '') && !['processing','failed'].includes(selected.refundStatus || ''))) return;
     this.processing.set(true); await new Promise(r => setTimeout(r, 500));
-    const next = this.danhSachVe().map(v => v.MaVe === selected.MaVe ? { ...v, paymentStatus: success ? 'refunded' as const : 'refund-failed' as const, TrangThaiGiaoDich: success ? 'da-hoan' as const : 'chua-hoan' as const } : v);
-    this.danhSachVe.set(next); this.LuuDuLieu(next); this.veDuocChon.set(next.find(v => v.MaVe === selected.MaVe)!); this.processing.set(false); this.HienToast(success ? 'Hoàn tiền thành công (mô phỏng).' : 'Hoàn tiền thất bại (mô phỏng).', success ? 'success' : 'danger');
+    const next = this.danhSachVe().map(v => v.MaVe === selected.MaVe ? { ...v,
+      paymentStatus: v.TrangThaiVe === 'da-huy' ? success ? 'refunded' as const : 'refund-failed' as const : v.paymentStatus,
+      refundStatus: success ? 'completed' as const : 'failed' as const,
+      refundedAt: success ? new Date().toISOString() : undefined,
+      refundedAmount: (v.refundedAmount || 0) + (success ? v.refundAmount || 0 : 0),
+      membershipPoints: v.TrangThaiVe === 'da-huy' ? 0 : Math.floor(v.GiaVe / 10000),
+      TrangThaiGiaoDich: success ? 'da-hoan' as const : 'chua-hoan' as const } : v);
+    this.danhSachVe.set(next); this.LuuDuLieu(next); this.veDuocChon.set(next.find(v => v.MaVe === selected.MaVe)!); this.processing.set(false);
+    this.HienToast(success ? 'Đã hoàn tiền.' : 'Hoàn tiền thất bại. Vui lòng thử lại.', success ? 'success' : 'danger');
   }
   async MockOnlinePayment(success: boolean) {
     const selected = this.veDuocChon(); if (!selected || selected.bookingSource !== 'online' || normalizeTicket(selected).orderStatus !== 'held' || this.processing()) return;
@@ -239,7 +304,7 @@ export class BookingManagement implements OnInit, AfterViewInit {
     const cleanInput = sdt.replace(/\D/g, '');
     return this.danhSachVe()
       .filter(v => v.SdtNguoiDi.replace(/\D/g, '') === cleanInput)
-      .sort((a, b) => b.ThoiGianDat.localeCompare(a.ThoiGianDat));
+      .sort((a, b) => this.NewestFirst(a, b));
   });
 
   CapNhatMaGiamGia(value: string) {
@@ -264,7 +329,7 @@ export class BookingManagement implements OnInit, AfterViewInit {
   applyCancelToGroup = signal(false);
   applyUpdateToGroup = signal(true);
   applyPaymentToGroup = signal(true);
-  cancelStaff = signal('Nguyen An Ninh');
+  cancelStaff = signal(this.currentUser.name);
 
   selectedCancelReason = signal('Khách yêu cầu');
 
@@ -391,7 +456,7 @@ export class BookingManagement implements OnInit, AfterViewInit {
         const matchTuyen = tuyen ? this.KhopLocTuyenMotChieu(v.TenTuyenXe, tuyen) : true;
         const matchNgay = ngay ? v.NgayKhoiHanh === ngay : true;
         const matchTrangThai = this.KhopTrangThaiLoc(v, trangThai);
-        const matchTrangThaiDonHang = this.KhopTrangThaiDonHangLoc(v, trangThaiDonHang);
+        const matchTrangThaiDonHang = this.KhopTrangThaiDonHangLoc(v, trangThaiDonHang) && (this.locNguonDat() === 'tat-ca' || (v.bookingSource || v.NguonDat) === this.locNguonDat());
 
         return matchSearch &&
           matchTuyen &&
@@ -399,7 +464,7 @@ export class BookingManagement implements OnInit, AfterViewInit {
           matchTrangThai &&
           matchTrangThaiDonHang;
       })
-      .sort((a, b) => b.ThoiGianDat.localeCompare(a.ThoiGianDat));
+      .sort((a, b) => this.NewestFirst(a, b));
   });
 
   veTrongDonDangXem = computed(() => {
@@ -451,18 +516,16 @@ export class BookingManagement implements OnInit, AfterViewInit {
 
   thongKe = computed(() => {
     const list = this.danhSachLoc();
-    const daBan = list.filter(v => v.TrangThaiDonHang === 'da-thanh-toan' && v.TrangThaiVe !== 'da-huy');
-    const giuCho = list.filter(v => v.TrangThaiDonHang === 'cho-thanh-toan' && v.TrangThaiVe !== 'da-huy');
-    const daHuy = list.filter(v => v.TrangThaiVe === 'da-huy');
-    const doanhThu = daBan.reduce((sum, v) => sum + v.GiaVe, 0);
-
-    return {
-      tong: list.length,
-      daBan: daBan.length,
-      giuCho: giuCho.length,
-      daHuy: daHuy.length,
-      doanhThu
-    };
+    const paid = (v: VeXe) => v.paidAmount ?? (v.TrangThaiDonHang === 'da-thanh-toan' ? v.GiaVe : 0);
+    const refunded = (v: VeXe) => v.refundStatus === 'completed' || v.paymentStatus === 'refunded';
+    const refund = (v: VeXe) => v.refundAmount ?? 0;
+    const completed = (v: VeXe) => v.refundedAmount ?? (refunded(v) ? refund(v) : 0);
+    return { tong: list.length, daBan: list.filter(v => v.TrangThaiDonHang === 'da-thanh-toan' && v.TrangThaiVe !== 'da-huy').length,
+      giuCho: list.filter(v => v.TrangThaiVe !== 'da-huy' && (v.TrangThaiDonHang !== 'da-thanh-toan' || (v.balanceDue || 0) > 0)).length,
+      daHuy: list.filter(v => v.TrangThaiVe === 'da-huy').length,
+      doanhThu: list.reduce((sum,v) => sum + paid(v) - completed(v), 0),
+      choHoan: list.filter(v => !refunded(v)).reduce((sum,v) => sum + refund(v), 0),
+      daHoan: list.reduce((sum,v) => sum + completed(v), 0) };
   });
 
   tongTrang = computed(() => {
@@ -493,6 +556,7 @@ coThayDoiSua = computed(() => {
     const canEditDiscount = this.CoTheSuaMaGiamGia(selected);
 
     return (
+      this.NhomVeCungDon(selected).some(v => normalizedName(this.editPassengers()[v.MaVe] || '') !== this.PassengerName(v)) ||
       this.editTen().trim() !== selected.HoTenNguoiDi ||
       this.editSdt().trim() !== selected.SdtNguoiDi ||
       this.editEmail().trim() !== (selected.EmailNguoiDi || '') ||
@@ -501,7 +565,7 @@ coThayDoiSua = computed(() => {
       this.editThanhToan() !== selected.TrangThaiDonHang ||
       this.editHinhThuc() !== selected.PhuongThucThanhToan ||
       (canEditDiscount && this.editMaGiamGia().trim() !== (selected.MaGiamGia || '')) ||
-      this.editGhiChu().trim() !== (selected.GhiChu || '') ||
+      this.editGhiChu().trim() !== this.LayGhiChuSach(selected.GhiChu) ||
       this.editNguonDat() !== (selected.NguonDat || 'tai-quay')
     );
   });
@@ -533,7 +597,7 @@ coThayDoiSua = computed(() => {
           this.veDuocChon.set(ve);
           this.showDetailModal.set(false);
           this.showEditModal.set(false);
-          if (editVal || actionVal === 'edit') {
+          if ((editVal || actionVal === 'edit') && this.CoTheSua(ve)) {
             this.NapFormSua(ve);
             this.showEditModal.set(true);
           } else {
@@ -553,6 +617,7 @@ coThayDoiSua = computed(() => {
   }
 
   ChonVe(ve: VeXe) {
+    this.resendState.set('idle');
     this.veDuocChon.set(ve);
     this.NapFormSua(ve);
     this.showDetailModal.set(true);
@@ -711,7 +776,7 @@ coThayDoiSua = computed(() => {
     }
 
     const cleanPhone = this.editSdt().trim();
-    const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
+    const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(cleanPhone)) {
       this.HienToast('Số điện thoại không đúng định dạng Việt Nam (phải gồm 10 số bắt đầu bằng 03, 05, 07, 08, 09).', 'danger');
       return;
@@ -729,7 +794,7 @@ coThayDoiSua = computed(() => {
       }
     };
 
-    compare('HoTenNguoiDi', 'HỌ TÊN NGƯỜI ĐI', selected.HoTenNguoiDi || '', this.editTen());
+    compare('HoTenNguoiDi', 'Người đặt', selected.HoTenNguoiDi || '', this.editTen());
     compare('SdtNguoiDi', 'SỐ ĐIỆN THOẠI', selected.SdtNguoiDi || '', this.editSdt());
     compare('EmailNguoiDi', 'EMAIL', selected.EmailNguoiDi || '', this.editEmail());
     compare('MaDiemDon', 'ĐIỂM ĐÓN', selected.MaDiemDon || '', this.editDiemDon());
@@ -742,15 +807,18 @@ coThayDoiSua = computed(() => {
     compare('NguonDat', 'NGUỒN ĐẶT', this.LabelNguonDat(selected.NguonDat), this.LabelNguonDat(this.editNguonDat()));
     compare('GhiChu', 'GHI CHÚ', selected.GhiChu || '', this.editGhiChu());
 
+    for (const v of this.NhomVeCungDon(selected)) compare('passenger-' + v.MaVe, 'Hành khách ghế ' + v.SoGhe, this.PassengerName(v), normalizedName(this.editPassengers()[v.MaVe] || this.PassengerName(v)));
     this.danhSachThayDoi.set(list);
     this.showConfirmChangesModal.set(true);
   }
 
-  XacNhanLuuThayDoi() {
+  async XacNhanLuuThayDoi() {
     const selected = this.veDuocChon();
     if (!selected || !this.EditValid()) return;
 
+    this.processing.set(true); await new Promise(r => setTimeout(r, 400)); this.refreshExpiry();
     const groupTickets = this.NhomVeCungDon(selected);
+    if (!groupTickets.every(v => this.CoTheSua(v))) { this.processing.set(false); this.HienToast('Đơn không còn đủ điều kiện chỉnh sửa.', 'danger'); return; }
     const groupIds = groupTickets.map(g => g.MaVe);
 
     const subtotal = groupTickets.reduce((sum, v) => sum + v.GiaVe + (v.GiamGia || 0), 0);
@@ -779,14 +847,15 @@ coThayDoiSua = computed(() => {
         MaDiemDon: this.editDiemDon().trim(),
         MaDiemTra: this.editDiemTra().trim(),
         TrangThaiDonHang: v.TrangThaiDonHang,
-        PhuongThucThanhToan: this.editHinhThuc(),
+        PhuongThucThanhToan: v.TrangThaiDonHang === 'da-thanh-toan' ? v.PhuongThucThanhToan : this.editHinhThuc(),
+        passengerName: normalizedName(this.editPassengers()[v.MaVe] || this.PassengerName(v)),
         MaGiamGia: cleanNewCode || undefined,
         GiamGia: finalDiscount,
         GiaVe: finalPrice,
         TongGiaVe: this.CoTheSuaMaGiamGia(selected) ? subtotal - result.amount : v.TongGiaVe,
         GhiChu: this.editGhiChu().trim(),
         NguonDat: v.NguonDat,
-        SoLanDaSua: (v.SoLanDaSua ?? 0) + 1
+        SoLanDaSua: this.EditCount(selected) + 1
       };
 
       if (v.MaVe === selected.MaVe) {
@@ -799,6 +868,7 @@ coThayDoiSua = computed(() => {
     this.LuuDuLieu(updated);
     this.showConfirmChangesModal.set(false);
     this.showEditModal.set(false);
+    this.processing.set(false);
     this.HienToast(`Đã cập nhật thông tin đơn hàng ${selected.MaDonHang || selected.MaVe} cho ${groupIds.length} vé.`, 'success');
   }
 
@@ -837,9 +907,10 @@ coThayDoiSua = computed(() => {
     if (!selected || !this.CoTheHuy(selected)) return;
     if (this.selectedCancelReason() === 'Khác' && !this.cancellationOther().trim()) return;
     this.processing.set(true); await new Promise(r => setTimeout(r, 350));
-    if (normalizeTicket(selected).orderStatus === 'expired') { this.processing.set(false); return; }
+    if (!this.CoTheHuy(selected) || (this.applyCancelToGroup() && !this.NhomVeCungDon(selected).every(v => this.CoTheHuy(v)))) { this.processing.set(false); return; }
 
     if (!this.selectedCancelReason().trim()) {
+      this.processing.set(false);
       this.HienToast('Vui lòng chọn lý do hủy vé.', 'danger');
       return;
     }
@@ -869,7 +940,13 @@ coThayDoiSua = computed(() => {
         orderStatus: 'cancelled' as const,
         paymentStatus: v.TrangThaiDonHang === 'da-thanh-toan' ? (refund.soTien > 0 ? 'refund-processing' as const : 'paid' as const) : v.paymentStatus, 
         GhiChu: note,
-        NguoiHuy: this.cancelStaff(),
+        NguoiHuy: this.currentUser.name,
+        paidAmount: v.paidAmount ?? (v.TrangThaiDonHang === 'da-thanh-toan' ? v.GiaVe : 0),
+        refundAmount: refund.soTien, refundFee: refund.phiHuy,
+        refundReason: this.selectedCancelReason() === 'Khác' ? this.cancellationOther().trim() : this.selectedCancelReason(),
+        refundStatus: refund.soTien > 0 ? 'processing' as const : undefined,
+        membershipPoints: 0, pointsReversed: v.membershipPoints ?? Math.floor(v.GiaVe / 10000),
+        balanceDue: 0,
         ThoiGianHuy: bayGio.toISOString(),
         TrangThaiGiaoDich: v.TrangThaiDonHang === 'da-thanh-toan' ? 'chua-hoan' as const : undefined
       };
@@ -909,12 +986,26 @@ coThayDoiSua = computed(() => {
     this.showPrintModal.set(true);
   }
 
-  InVeXe() { if (this.veDangIn().length) window.print(); }
+  InVeXe() {
+    if (!this.veDangIn().length || this.printing()) return;
+    this.printing.set(true); const ids = this.veDangIn().map(v => v.MaVe);
+    const opened = printBookingReceipts(() => {
+      const entry = { at: new Date().toISOString(), staff: this.currentUser.name };
+      const next = this.danhSachVe().map(v => ids.includes(v.MaVe) ? { ...v, printHistory: [...(v.printHistory || []), entry] } : v);
+      this.danhSachVe.set(next); this.LuuDuLieu(next); this.veDangIn.set(next.filter(v => ids.includes(v.MaVe)));
+      const selected = this.veDuocChon(); if (selected) this.veDuocChon.set(next.find(v => v.MaVe === selected.MaVe)!);
+      this.printing.set(false); this.HienToast('Đã hoàn tất luồng in.', 'success');
+    });
+    if (!opened) { this.printing.set(false); this.HienToast('Không có nội dung vé để in.', 'danger'); }
+  }
 
-  GuiLaiThongBao() {
-    const selected = this.veDuocChon();
-    if (!selected) return;
-    this.HienToast(`Đã gửi lại xác nhận cho ${selected.HoTenNguoiDi}.`, 'success');
+  async GuiLaiThongBao() {
+    const selected = this.veDuocChon(); if (!selected || this.resendState() === 'loading') return;
+    this.resendState.set('loading'); await new Promise(r => setTimeout(r, 500));
+    const success = validPhone(selected.SdtNguoiDi) && validEmail(selected.EmailNguoiDi || '');
+    this.resendState.set(success ? 'success' : 'error');
+    if (success) { const next = this.danhSachVe().map(v => v.MaDonHang === selected.MaDonHang ? { ...v, notificationAt: new Date().toISOString() } : v); this.danhSachVe.set(next); this.LuuDuLieu(next); }
+    this.HienToast(success ? 'Đã gửi lại thông báo.' : 'Không thể gửi. Kiểm tra số điện thoại và email của người đặt.', success ? 'success' : 'danger');
   }
 
   XoaBoLoc() {
@@ -927,7 +1018,7 @@ coThayDoiSua = computed(() => {
     this.locTuyen.set('');
     this.showTuyenSuggestions.set(false);
     this.locNgay.set('');
-    this.locTrangThaiVe.set('tat-ca');
+    this.locTrangThaiVe.set('tat-ca'); this.locNguonDat.set('tat-ca');
     this.locTrangThaiDonHang.set('tat-ca');
     this.trangHienTai.set(1);
   }
@@ -981,18 +1072,18 @@ coThayDoiSua = computed(() => {
   }
 
   CapNhatHinhThuc(value: string) {
-    this.editHinhThuc.set(value as PhuongThucThanhToan);
+    if (this.veDuocChon()?.TrangThaiDonHang !== 'da-thanh-toan' && ['tien-mat','chuyen-khoan','the'].includes(value)) this.editHinhThuc.set(value as PhuongThucThanhToan);
   }
 
   CapNhatCancelReason(value: string) {
     this.selectedCancelReason.set(value);
   }
 
-  CoTheSua(ve: VeXe) { const t = normalizeTicket(ve); return ['held','confirmed'].includes(t.orderStatus!) && this.SoGioTruocKhoiHanh(ve) >= 2 && (ve.SoLanDaSua ?? 0) < 2; }
+  CoTheSua(ve: VeXe) { const t = normalizeTicket(ve); return (!ve.tripStatus || ve.tripStatus === 'open') && ['held','confirmed'].includes(t.orderStatus!) && this.SoGioTruocKhoiHanh(ve) >= 2 && this.EditCount(ve) < 2; }
 
   CoTheSuaMaGiamGia(ve: VeXe | null | undefined) { return !!ve && this.CoTheSua(ve) && ve.TrangThaiDonHang !== 'da-thanh-toan'; }
 
-  CoTheHuy(ve: VeXe) { return ['held','confirmed'].includes(normalizeTicket(ve).orderStatus!) && this.SoGioTruocKhoiHanh(ve) > 0; }
+  CoTheHuy(ve: VeXe) { return ve.tripStatus !== 'departed' && ['held','confirmed'].includes(normalizeTicket(ve).orderStatus!) && this.SoGioTruocKhoiHanh(ve) > 0; }
 
   LayDiemDonTheoTuyen(tuyenName: string): string[] { return this.veDuocChon()?.ChieuTuyen === 've' ? this.diemTheoTuyen[tuyenName]?.tra ?? [] : this.diemTheoTuyen[tuyenName]?.don ?? []; }
 
@@ -1017,17 +1108,18 @@ coThayDoiSua = computed(() => {
       return { tiLe: 0, soTien: 0, phiHuy: 0, moTa: 'Vé giữ chỗ, không phát sinh hoàn tiền' };
     }
 
+    const paid = Math.min(ve.GiaVe, (ve.paidAmount ?? ve.GiaVe) - (ve.refundedAmount || 0));
     const gioConLai = this.SoGioTruocKhoiHanh(ve);
     if (gioConLai >= 24) {
-      return { tiLe: 100, soTien: ve.GiaVe, phiHuy: 0, moTa: 'Trước giờ đi từ 24 giờ' };
+      return { tiLe: 100, soTien: paid, phiHuy: 0, moTa: 'Trước giờ đi từ 24 giờ' };
     }
 
     if (gioConLai >= 12) {
-      const soTien = Math.round(ve.GiaVe * 0.5);
-      return { tiLe: 50, soTien, phiHuy: ve.GiaVe - soTien, moTa: 'Trước giờ đi từ 12 đến 24 giờ' };
+      const soTien = Math.round(paid * 0.5);
+      return { tiLe: 50, soTien, phiHuy: paid - soTien, moTa: 'Trước giờ đi từ 12 đến 24 giờ' };
     }
 
-    return { tiLe: 0, soTien: 0, phiHuy: ve.GiaVe, moTa: 'Trước giờ đi dưới 12 giờ' };
+    return { tiLe: 0, soTien: 0, phiHuy: paid, moTa: 'Trước giờ đi dưới 12 giờ' };
   }
 
   SoGioTruocKhoiHanh(ve: VeXe) {
@@ -1037,12 +1129,12 @@ coThayDoiSua = computed(() => {
   }
 
   NhomVeCungDon(ticket: VeXe) {
-    if (!ticket.MaDonHang) return [ticket];
+    if (!ticket.MaDonHang) return ticket.TrangThaiVe === 'da-huy' ? [] : [ticket];
     const group = this.danhSachVe().filter(v =>
       v.MaDonHang === ticket.MaDonHang &&
       v.TrangThaiVe !== 'da-huy'
     );
-    return group.length > 0 ? group : [ticket];
+    return group;
   }
 
   TatCaVeCungDon(ticket: VeXe) {
@@ -1130,7 +1222,7 @@ coThayDoiSua = computed(() => {
 
   LabelNguonDat(value?: NguonDat) {
     if (value === 'hotline') return 'Hotline';
-    if (value === 'online') return 'Online';
+    if (value === 'online') return 'Website';
     return 'Tại quầy';
   }
 
@@ -1203,9 +1295,7 @@ coThayDoiSua = computed(() => {
     return doiGhe || doiLoaiCabin;
   }
 
-  DuocDoiGheTrucTiep(ve: VeXe) {
-    return ve.TrangThaiDonHang !== 'da-thanh-toan' || this.ChenhLechDoiGhe(ve) === 0;
-  }
+  DuocDoiGheTrucTiep(ve: VeXe) { return this.CoTheSua(ve) && !(ve.balanceDue || 0) && !['processing','failed'].includes(ve.refundStatus || ''); }
 
   private LoaiGheDoiGhe(ve: VeXe): LoaiGheId {
     if (this.LaVeCabin(ve)) {
@@ -1321,12 +1411,19 @@ coThayDoiSua = computed(() => {
     const loaiXeId = xe?.loaiXe ?? 'limousine';
     const loaiGheId = this.LoaiGheIdTuLabel(raw?.LoaiGhe) ?? this.LoaiGheTheoSoGhe(soGhe, loaiXeId);
     const loaiGhe = String(raw?.LoaiGhe ?? this.LabelLoaiGhe(loaiGheId));
+    const legacyRefund = String(raw?.GhiChu || '').match(/Hoàn:\s*([\d.,]+)\s*đ/);
+    const refundAmount = raw?.refundAmount ?? (legacyRefund ? Number(legacyRefund[1].replace(/[.,]/g, '')) : undefined);
     const soLuongVeDaDat = Number(raw?.SoLuongVeDaDat ?? 1);
     const giaCoSo = this.LayGiaCoSoTheoTuyen(tenTuyenXe);
     const giaVe = raw?.LoaiGhe ? Number(raw?.GiaVe ?? 0) : this.GiaVeTheoLoaiGhe(loaiGheId, giaCoSo);
 
     return normalizeTicket({
       ...raw,
+      refundAmount,
+      refundStatus: raw?.refundStatus ?? (refundAmount > 0 ? raw?.TrangThaiGiaoDich === 'da-hoan' ? 'completed' : 'processing' : undefined),
+      refundedAmount: raw?.refundedAmount ?? (raw?.TrangThaiGiaoDich === 'da-hoan' ? refundAmount || 0 : 0),
+      refundFee: raw?.refundFee ?? (refundAmount !== undefined ? Math.max(0, giaVe - refundAmount) : undefined),
+      refundReason: raw?.refundReason ?? (legacyRefund ? String(raw?.GhiChu || '').match(/Lý do:\s*(.*?)\s*-\s*Hoàn:/)?.[1] : undefined),
       MaVe: maVe,
       MaDonHang: maDonHang,
       MaKhachHang: raw?.MaKhachHang ?? this.TaoMaKhachHang(sdt),
@@ -1376,7 +1473,7 @@ coThayDoiSua = computed(() => {
     this.showTransferModal.set(true);
   }
 
-  XacNhanChuyenGhe() {
+  async XacNhanChuyenGhe() {
     const ve = this.veDuocChon();
     if (!ve || !this.CoTheSua(ve)) return;
     if (!ve) return;
@@ -1388,8 +1485,10 @@ coThayDoiSua = computed(() => {
       this.HienToast('Vé đã thanh toán có chênh lệch tiền: hãy hủy vé cũ rồi tạo/giữ vé mới.', 'danger');
       return;
     }
+    if (this.processing()) return; this.processing.set(true); await new Promise(r => setTimeout(r, 400)); this.refreshExpiry();
+    if (!this.CoTheSua(ve)) { this.processing.set(false); this.HienToast('Vé không còn đủ điều kiện đổi ghế.', 'danger'); return; }
     const newSeat = this.selectedNewSeat() || ve.SoGhe;
-    this.DoiGheXe(ve, newSeat);
+    this.DoiGheXe(ve, newSeat); this.processing.set(false);
   }
 
   LayGheTrongCuaChuyen(MaLichTrinh: string): string[] {
@@ -1403,7 +1502,10 @@ coThayDoiSua = computed(() => {
   }
 
   DoiGheXe(ticket: VeXe, newSeat: string) {
-    if (!this.CoTheSua(ticket) || (newSeat !== ticket.SoGhe && !this.LayGheTrongCuaChuyen(ticket.MaLichTrinh).includes(newSeat))) return;
+    ticket = this.danhSachVe().find(v => v.MaVe === ticket.MaVe) ?? ticket;
+    if (!this.DuocDoiGheTrucTiep(ticket)) { this.HienToast('Vé không còn đủ điều kiện đổi ghế.', 'danger'); return; }
+    if (newSeat !== ticket.SoGhe && !this.LayGheTrongCuaChuyen(ticket.MaLichTrinh).includes(newSeat)) { this.HienToast('Ghế này vừa được giữ. Vui lòng chọn ghế khác.', 'danger'); return; }
+    const nextEditCount = this.EditCount(ticket) + 1;
     const loaiGheCu = this.LoaiGheIdTuLabel(ticket.LoaiGhe) ?? this.LoaiGheTheoSoGhe(ticket.SoGhe, this.LoaiXeIdTheoVe(ticket));
     const loaiGheMoi = this.LoaiGheDoiGhe(ticket);
     const labelLoaiGheCu = this.LabelLoaiGhe(loaiGheCu);
@@ -1431,18 +1533,27 @@ coThayDoiSua = computed(() => {
         return {
           ...v,
           SoGhe: newSeat,
-          SoLanDaSua: (v.SoLanDaSua ?? 0) + 1,
+          SoLanDaSua: nextEditCount,
           LoaiGhe: labelLoaiGheMoi,
           GiaVe: giaVeMoi,
-          TongGiaVe: giaVeMoi,
+          TongGiaVe: this.TongGiaTriDonHang(ticket) + chenhLech,
+          paidAmount: v.paidAmount ?? (v.TrangThaiDonHang === 'da-thanh-toan' ? v.GiaVe : 0),
+          balanceDue: v.TrangThaiDonHang === 'da-thanh-toan' ? Math.max(0, giaVeMoi - ((v.paidAmount ?? v.GiaVe) - (v.refundedAmount || 0))) : 0,
+          refundAmount: v.TrangThaiDonHang === 'da-thanh-toan' && chenhLech < 0 ? Math.abs(chenhLech) : v.refundAmount,
+          refundStatus: v.TrangThaiDonHang === 'da-thanh-toan' && chenhLech < 0 ? 'processing' as const : v.refundStatus,
+          refundReason: chenhLech < 0 ? 'Chênh lệch đổi ghế' : v.refundReason,
+          refundFee: chenhLech < 0 ? 0 : v.refundFee,
+          previousQr: v.MaQRVe,
           MaGheChuyen: this.TaoMaGheChuyen(v.MaLichTrinh, newSeat),
-          MaQRVe: this.TaoMaQrVe(v.MaDonHang || v.MaVe, newSeat),
+          MaQRVe: this.TaoMaQrVe(v.MaDonHang || v.MaVe, newSeat) + '-' + Date.now(),
           GhiChu: note
         };
       }
       return v;
     });
 
+    const total = updated.filter(v => v.MaDonHang === ticket.MaDonHang).reduce((sum,v) => sum + v.GiaVe, 0);
+    for (const v of updated) if (v.MaDonHang === ticket.MaDonHang) { v.TongGiaVe = total; if (v.MaVe !== ticket.MaVe) v.SoLanDaSua = nextEditCount; }
     this.danhSachVe.set(updated);
     this.LuuDuLieu(updated);
     this.showTransferModal.set(false);
@@ -1455,17 +1566,20 @@ coThayDoiSua = computed(() => {
   }
 
   async XacNhanThanhToanTuChiTiet() {
- const ve = this.veDuocChon(); if (!ve || this.processing() || normalizeTicket(ve).orderStatus !== 'held') return;
- this.processing.set(true); await new Promise(r => setTimeout(r, 400)); this.refreshExpiry();
- if (normalizeTicket(ve).orderStatus === 'held') {
-   const next = this.danhSachVe().map(v => v.MaDonHang === ve.MaDonHang && normalizeTicket(v).orderStatus === 'held' ? { ...v, paymentStatus:'paid' as const, orderStatus:'confirmed' as const, TrangThaiDonHang:'da-thanh-toan' as const, ThoiGianXuatVe:new Date().toISOString() } : v);
-   this.danhSachVe.set(next); this.LuuDuLieu(next); this.veDuocChon.set(next.find(v => v.MaVe === ve.MaVe)!); this.HienToast('Đã xác nhận thanh toán cho toàn đơn.', 'success');
- } this.processing.set(false); this.showPaymentConfirmModal.set(false);
-}
-
-  GuiSmsEmail(ve: VeXe) {
-    this.HienToast(`Đã gửi lại vé điện tử cho khách hàng ${ve.HoTenNguoiDi} thành công.`, 'success');
+    const ve = this.veDuocChon(); if (!ve || this.processing() || this.PaymentDue(ve) <= 0) return;
+    this.processing.set(true); await new Promise(r => setTimeout(r, 400)); this.refreshExpiry();
+    const group = this.NhomVeCungDon(ve); const ids = group.filter(v => normalizeTicket(v).orderStatus === 'held' || (v.balanceDue || 0) > 0).map(v => v.MaVe);
+    if (ids.length) {
+      const now = new Date().toISOString(); const transaction = 'GD-' + Date.now();
+      const next = this.danhSachVe().map(v => ids.includes(v.MaVe) ? { ...v, paymentStatus: 'paid' as const, orderStatus: 'confirmed' as const,
+        TrangThaiDonHang: 'da-thanh-toan' as const, ThoiGianXuatVe: v.ThoiGianXuatVe || now, paidAmount: (v.paidAmount ?? (v.TrangThaiDonHang === 'da-thanh-toan' ? v.GiaVe : 0)) + (v.TrangThaiDonHang === 'da-thanh-toan' ? v.balanceDue || 0 : v.GiaVe),
+        balanceDue: 0, paymentAt: now, paymentStaff: this.currentUser.name, transactionCode: transaction, membershipPoints: Math.floor(v.GiaVe / 10000) } : v);
+      this.danhSachVe.set(next); this.LuuDuLieu(next); this.veDuocChon.set(next.find(v => v.MaVe === ve.MaVe)!); this.HienToast('Đã thu đủ tiền toàn bộ đơn.', 'success');
+    } else this.HienToast('Không còn vé hợp lệ để thanh toán.', 'danger');
+    this.processing.set(false); this.showPaymentConfirmModal.set(false);
   }
+
+  GuiSmsEmail(ve: VeXe) { this.veDuocChon.set(ve); void this.GuiLaiThongBao(); }
 
   LayGhiChuSach(ghiChu?: string): string {
     if (!ghiChu) return '';
@@ -1479,13 +1593,14 @@ coThayDoiSua = computed(() => {
   }
 
   MoXacNhanThanhToan() {
-    this.showPaymentConfirmModal.set(true);
+    const selected = this.veDuocChon(); if (selected && this.PaymentDue(selected) > 0 && !this.processing()) this.showPaymentConfirmModal.set(true);
   }
 
   // printing and resending trigger directly without verify popup
 
 
   private NapFormSua(ve: VeXe) {
+    this.editPassengers.set(Object.fromEntries(this.NhomVeCungDon(ve).map(v => [v.MaVe, this.PassengerName(v)])));
     this.editTen.set(ve.HoTenNguoiDi);
     this.editSdt.set(ve.SdtNguoiDi);
     this.editEmail.set(ve.EmailNguoiDi || '');
@@ -1534,26 +1649,9 @@ coThayDoiSua = computed(() => {
     return `QR-${maDonHang}-${soGhe}`.replace(/\s+/g, '');
   }
 
-  private KhopTrangThaiLoc(ve: VeXe, trangThai: string) {
-    if (trangThai === 'tat-ca') return true;
-    if (trangThai === 'giu-cho') {
-      return ve.TrangThaiDonHang === 'cho-thanh-toan' && ve.TrangThaiVe !== 'da-huy';
-    }
-    if (trangThai === 'cho-khoi-hanh') {
-      return ve.TrangThaiDonHang === 'da-thanh-toan' && ve.TrangThaiVe === 'cho-khoi-hanh';
-    }
-    return ve.TrangThaiVe === trangThai;
-  }
+  private KhopTrangThaiLoc(ve: VeXe, status: string) { const labels: Record<string,string> = { 'cho-thanh-toan': 'Chờ thanh toán', 'da-thanh-toan': 'Đã thanh toán', 'da-hoan-thanh': 'Đã hoàn thành', 'da-huy': 'Đã hủy', 'huy-mot-phan': 'Hủy một phần' }; return status === 'tat-ca' || this.OrderLabel(ve) === labels[status]; }
 
-  private KhopTrangThaiDonHangLoc(ve: VeXe, filter: string) {
-    if (filter === 'tat-ca') return true;
-    const t = normalizeTicket(ve);
-    if (filter === 'pending-online') return t.orderStatus === 'held' && t.paymentStatus === 'pending' && t.bookingSource === 'online';
-    if (filter === 'pending-hotline') return t.orderStatus === 'held' && t.paymentStatus === 'pending' && t.bookingSource === 'hotline';
-    if (filter === 'pending-counter') return t.orderStatus === 'held' && t.paymentStatus === 'pending' && t.bookingSource === 'tai-quay';
-    if (filter === 'da-thanh-toan') return t.paymentStatus === 'paid';
-    return t.paymentStatus === filter;
-  }
+  private KhopTrangThaiDonHangLoc(ve: VeXe, filter: string) { return filter === 'tat-ca' || normalizeTicket(ve).paymentStatus === (filter === 'da-thanh-toan' ? 'paid' : filter); }
 
   private DonHangDaHuyToanBo(ve: VeXe) {
     const tickets = this.TatCaVeCungDon(ve);
@@ -1569,18 +1667,7 @@ coThayDoiSua = computed(() => {
 
   HienThiTuyen(tuyen: string, direction: 'di' | 've' = 'di') { const parts = this.TachDiemTuyen(tuyen); return (direction === 've' ? parts.reverse() : parts).join(' → '); }
 
-  private KhopLocTuyenMotChieu(tuyen: string, query: string) {
-    const normalizedQuery = this.NormalizeSearchText(query);
-    if (!normalizedQuery) return true;
-
-    const routeText = this.TuyenSearchText(this.HienThiTuyen(tuyen));
-    if (!this.MatchSearchText(routeText, query)) return false;
-
-    const diem = this.TachDiemTuyen(tuyen);
-    const diemDau = diem[0] || tuyen;
-    const firstTerm = normalizedQuery.split(' ')[0];
-    return this.NormalizeSearchText(this.TuyenDiemSearchText(diemDau)).includes(firstTerm);
-  }
+  private KhopLocTuyenMotChieu(tuyen: string, query: string) { return this.MatchSearchText(this.TuyenSearchText(tuyen), query); }
 
   private TachDiemTuyen(tuyen: string) {
     return (tuyen || '')
@@ -1629,7 +1716,6 @@ coThayDoiSua = computed(() => {
 
   private HienToast(msg: string, type: 'success' | 'danger') {
     this.toast.set({ msg, type });
-    setTimeout(() => this.toast.set(null), 3200);
   }
 
   private TaoDuLieuMau(): VeXe[] {

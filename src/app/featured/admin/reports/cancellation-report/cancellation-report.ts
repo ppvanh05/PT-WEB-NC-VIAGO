@@ -790,7 +790,6 @@ export class CancellationReport implements OnInit {
     { value: 'da-thanh-toan', label: 'Đã thanh toán' },
     { value: 'da-huy', label: 'Đã hủy' }
   ];
-  readonly soDongOptions = [8, 12, 20].map(value => ({ value: String(value), label: String(value) }));
 
   constructor(private readonly sidebarState: SidebarStateService) {}
 
@@ -801,11 +800,6 @@ export class CancellationReport implements OnInit {
 
   ChuyenTrang(page: number) {
     this.trangHienTai.set(Math.min(Math.max(page, 1), this.tongTrang()));
-  }
-
-  CapNhatSoDongMoiTrang(value: string) {
-    this.soDongMoiTrang.set(Number(value));
-    this.trangHienTai.set(1);
   }
 
   ChuyenCheDoXem(mode: CheDoXemBaoCao) {

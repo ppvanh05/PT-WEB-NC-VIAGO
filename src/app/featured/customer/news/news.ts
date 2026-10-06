@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Toast, ToastVariant } from '../../../shared/components/toast/toast';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -10,11 +11,12 @@ type SortOrder = 'newest' | 'oldest';
 @Component({
   selector: 'app-news',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [Toast, CommonModule, FormsModule, RouterLink],
   templateUrl: './news.html',
   styleUrls: ['../customer-pages.css', './news.css', '../customer-page-theme.css'],
 })
 export class News implements OnInit {
+  toast = signal<{ message: string; variant: ToastVariant } | null>(null);
   activeCategory: ArticleCategory | 'all' = 'all';
   searchTerm = '';
   timeFilter: TimeFilter = 'all';
@@ -142,11 +144,11 @@ export class News implements OnInit {
   }
 
   copyLink() {
-    navigator.clipboard.writeText(this.shareUrl).then(() => {
-      window.alert('Đã sao chép liên kết vào bộ nhớ tạm!');
+    Promise.resolve().then(() => navigator.clipboard.writeText(this.shareUrl)).then(() => {
+      this.toast.set({ message: 'Đã sao chép liên kết.', variant: 'success' });
       this.showShareModal = false;
     }).catch(() => {
-      window.alert('Không thể sao chép liên kết.');
+      this.toast.set({ message: 'Không thể sao chép liên kết. Vui lòng thử lại.', variant: 'error' });
     });
   }
 

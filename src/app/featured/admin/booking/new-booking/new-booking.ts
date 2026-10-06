@@ -1,6 +1,8 @@
 import { SidebarStateService } from '../../../../core/services/sidebar-state.service';
-import { BookingDialog } from '../booking-dialog';
+import { BookingDialog, printBookingReceipts } from '../booking-dialog';
 import { BookingState, HOLD_MS, normalizeTicket, paymentLabel, ticketLabel, paymentVariant, normalizedName, validName, validPhone, validEmail, countdown, couponResult, localQr, mockSchedule } from '../booking-rules';
+import { Toast } from '../../../../shared/components/toast/toast';
+import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker';
 import { Button } from '../../../../shared/components/button/button';
 import { Badge } from '../../../../shared/components/badge/badge';
 import { ModalComponent } from '../../../../shared/components/modal/modal';
@@ -116,13 +118,20 @@ interface TenTuyenXe {
 @Component({
   selector: 'app-new-booking',
   standalone: true,
-  imports: [BookingDialog, Button, Badge, ModalComponent, CommonModule, FormsModule],
+  imports: [Toast, DatePickerComponent, BookingDialog, Button, Badge, ModalComponent, CommonModule, FormsModule],
   templateUrl: './new-booking.html',
   styleUrl: './new-booking.css'
 })
 export class NewBooking implements OnInit {
   PaymentLabel = paymentLabel;
   PaymentVariant = paymentVariant;
+  TicketLifecycleLabel(ve: VeXe): string {
+    const state = normalizeTicket(ve).orderStatus;
+    if (state === 'expired') return 'Hết hạn';
+    if (state === 'cancelled' || ve.TrangThaiVe === 'da-huy') return 'Đã hủy';
+    if (state === 'used' || ve.TrangThaiVe === 'da-hoan-thanh') return 'Đã hoàn thành';
+    return state === 'held' ? 'Đang giữ chỗ' : 'Chờ khởi hành';
+  }
   TicketLabel = ticketLabel;
   LocalQr = localQr;
   Countdown = countdown;
@@ -630,7 +639,7 @@ export class NewBooking implements OnInit {
     && ['hotline','tai-quay'].includes(this.formNguonDat()) && this.gheDangChon().length > 0 && this.gheDangChon().length <= 5
     && this.TrangThaiChuyen(this.gioChayDuocChon()) === 'Còn chỗ' && !this.dateError()
     && (!this.formMaGiamGia().trim() || (this.couponApplied() === this.formMaGiamGia().trim().toUpperCase() && couponResult(this.couponApplied(), this.tuyenDuocChon(), this.tamTinh()).valid)));
-  FormPaymentLabel() { return this.formTrangThaiThanhToan() === 'da-thanh-toan' ? 'Đã thanh toán' : this.formNguonDat() === 'hotline' ? 'Chờ thanh toán Hotline' : 'Chưa thu tiền · Tại quầy'; }
+  FormPaymentLabel() { return this.formTrangThaiThanhToan() === 'da-thanh-toan' ? 'Đã thanh toán' : 'Chờ thanh toán'; }
   ApplyCustomer() {
     const c = this.customerSuggestion(); if (!c) return;
     this.formTen.set(c.HoTenNguoiDi); this.formEmail.set(c.EmailNguoiDi || '');
@@ -646,7 +655,7 @@ export class NewBooking implements OnInit {
     this.couponFeedback.set(result.valid ? 'Áp dụng mã giảm giá thành công.' : result.error);
     this.couponLoading.set(false);
   }
-  Review() { if (!this.formValid() || this.processing()) return; this.formTen.set(normalizedName(this.formTen())); this.formEmail.set(this.formEmail().trim()); this.reviewMode.set(true); this.reviewConfirmed.set(false); }
+  Review() { if (!this.formValid() || this.processing()) return; this.formTen.set(normalizedName(this.formTen())); this.formEmail.set(this.formEmail().trim()); this.formTrangThaiThanhToan.set('cho-thanh-toan'); this.reviewMode.set(true); this.reviewConfirmed.set(false); }
   TrangThaiChuyen(gio: string): import('../booking-rules').TripStatus {
     this.clockNow();
     if (!gio || new Date(this.NgayKhoiHanh() + 'T' + gio + ':00').getTime() <= this.clockNow()) return 'Đã khởi hành';
@@ -696,6 +705,7 @@ export class NewBooking implements OnInit {
   showBookingModal = signal(false);
   showCancelSeatConfirm = signal(false);
   showPrintModal = signal(false);
+  printing = signal(false);
 
   seatToTransfer = signal<VeXe | null>(null);
   showTransferModal = signal(false);
@@ -1058,7 +1068,7 @@ export class NewBooking implements OnInit {
       return;
     }
 
-    if (!this.veDangSua()) this.draftFormOpened = true;
+    if (!this.veDangSua()) { this.draftFormOpened = true; }
     this.showBookingModal.set(true);
   }
 
@@ -1090,7 +1100,9 @@ export class NewBooking implements OnInit {
       maDonHang = `DH10${dhSuffix}${dhRandom}`;
     } while (this.danhSachVe().some(v => v.MaDonHang === maDonHang));
 
-    const now = new Date().toISOString();
+    const createdAt = Date.now();
+    const now = new Date(createdAt).toISOString();
+    const holdExpiresAt = status === 'cho-thanh-toan' ? createdAt + HOLD_MS : undefined;
     const chuyen = this.thongTinChuyen();
     const xe = this.xeDangChon();
     const loaiXe = this.loaiXeDangChon();
@@ -1113,6 +1125,12 @@ export class NewBooking implements OnInit {
         MaKhachHang: this.TaoMaKhachHang(this.formSdt().trim()),
         MaNVBanVe: 'NVBV001',
         HoTenNguoiDi: normalizedName(this.formTen()),
+        passengerName: normalizedName(this.formTen()),
+        paidAmount: status === 'da-thanh-toan' ? Math.max(0, basePrice - seatDiscount) : 0,
+        paymentAt: status === 'da-thanh-toan' ? now : undefined,
+        paymentStaff: status === 'da-thanh-toan' ? 'Nguyễn An Ninh' : undefined,
+        transactionCode: status === 'da-thanh-toan' ? 'GD-' + maDonHang : undefined,
+        membershipPoints: status === 'da-thanh-toan' ? Math.floor(Math.max(0, basePrice - seatDiscount) / 10000) : 0,
         SdtNguoiDi: this.formSdt().trim(),
         EmailNguoiDi: this.formEmail().trim(),
         ThoiGianDat: now,
@@ -1123,7 +1141,7 @@ export class NewBooking implements OnInit {
         bookingSource: this.formNguonDat(),
         paymentStatus: status === 'da-thanh-toan' ? 'paid' : 'pending',
         orderStatus: status === 'da-thanh-toan' ? 'confirmed' : 'held',
-        holdExpiresAt: status === 'cho-thanh-toan' ? Date.now() + HOLD_MS : undefined,
+        holdExpiresAt,
         ChieuTuyen: this.direction(),
         MaQRVe: this.TaoMaQrVe(maDonHang, soGhe),
         MaLichTrinh: maChuyen,
@@ -1168,12 +1186,20 @@ export class NewBooking implements OnInit {
   async XacNhanThanhToan() {
     if (this.processing()) return;
     const ticket = this.veDangSua();
-    if (!ticket) { if (this.formNguonDat() === 'tai-quay') this.formTrangThaiThanhToan.set('da-thanh-toan'); this.showPaymentConfirmModal.set(false); return; }
-    if (normalizeTicket(ticket).orderStatus !== 'held') return;
+    if (!ticket) {
+      if (this.formNguonDat() !== 'tai-quay' || this.formTrangThaiThanhToan() === 'da-thanh-toan') { this.showPaymentConfirmModal.set(false); return; }
+      this.processing.set(true);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      this.formTrangThaiThanhToan.set('da-thanh-toan');
+      this.processing.set(false); this.showPaymentConfirmModal.set(false);
+      this.HienToast('Đã xác nhận thu tiền cho toàn bộ đơn.', 'success');
+      return;
+    }
+    if (normalizeTicket(ticket).orderStatus !== 'held') { this.showPaymentConfirmModal.set(false); return; }
     this.processing.set(true); await new Promise(r => setTimeout(r, 400)); this.refreshExpiry();
     if (normalizeTicket(ticket).orderStatus === 'held') {
-      const next = this.danhSachVe().map(v => v.MaDonHang === ticket.MaDonHang && normalizeTicket(v).orderStatus === 'held' ? { ...v, paymentStatus: 'paid' as const, orderStatus: 'confirmed' as const, TrangThaiDonHang: 'da-thanh-toan' as const, ThoiGianXuatVe: new Date().toISOString() } : v);
-      this.danhSachVe.set(next); this.LuuDuLieu(next); this.veDangSua.set(next.find(v => v.MaVe === ticket.MaVe)!); this.HienToast('Đã xác nhận thanh toán cho toàn đơn.', 'success');
+      const next = this.danhSachVe().map(v => v.MaDonHang === ticket.MaDonHang && normalizeTicket(v).orderStatus === 'held' ? { ...v, paymentStatus: 'paid' as const, orderStatus: 'confirmed' as const, TrangThaiDonHang: 'da-thanh-toan' as const, ThoiGianXuatVe: new Date().toISOString(), paidAmount: v.GiaVe, paymentAt: new Date().toISOString(), paymentStaff: 'Nguyễn An Ninh', transactionCode: 'GD-' + ticket.MaDonHang, membershipPoints: Math.floor(v.GiaVe / 10000) } : v);
+      this.danhSachVe.set(next); this.LuuDuLieu(next); const refreshed = next.find(v => v.MaVe === ticket.MaVe)!; this.veDangSua.set(refreshed); this.NapFormTuVe(refreshed); this.veDangIn.set(this.NhomVeCungDon(refreshed)); this.HienToast('Đã xác nhận thanh toán cho toàn đơn.', 'success');
     }
     this.processing.set(false); this.showPaymentConfirmModal.set(false);
   }
@@ -1206,7 +1232,16 @@ export class NewBooking implements OnInit {
     this.showPrintModal.set(false);
   }
 
-  InVeTrucTiep() { if (this.veDangIn().length) window.print(); }
+  InVeTrucTiep() {
+    if (!this.veDangIn().length || this.printing()) return;
+    this.printing.set(true); const ids = this.veDangIn().map(v => v.MaVe);
+    const opened = printBookingReceipts(() => {
+      const entry = { at: new Date().toISOString(), staff: 'Nguyễn An Ninh' };
+      const next = this.danhSachVe().map(v => ids.includes(v.MaVe) ? { ...v, printHistory: [...(v.printHistory || []), entry] } : v);
+      this.danhSachVe.set(next); this.LuuDuLieu(next); this.veDangIn.set(next.filter(v => ids.includes(v.MaVe))); this.printing.set(false);
+    });
+    if (!opened) this.printing.set(false);
+  }
 
   MoXacNhanHuyVeChon() {
     if (!this.veDangSua()) return;
@@ -1420,7 +1455,7 @@ export class NewBooking implements OnInit {
 
   CapNhatTrangThaiThanhToan(value: string) { if (value === 'cho-thanh-toan') this.formTrangThaiThanhToan.set('cho-thanh-toan'); }
 
-  CapNhatNguonDat(value: string) { if (this.veDangSua() || !['hotline','tai-quay'].includes(value)) return; this.formNguonDat.set(value as NguonDat); this.formTrangThaiThanhToan.set('cho-thanh-toan'); if (value === 'hotline') this.formHinhThuc.set('chuyen-khoan'); }
+  CapNhatNguonDat(value: string) { if (this.veDangSua() || value === this.formNguonDat() || !['hotline','tai-quay'].includes(value)) return; this.formNguonDat.set(value as NguonDat); this.formTrangThaiThanhToan.set('cho-thanh-toan'); if (value === 'hotline') this.formHinhThuc.set('chuyen-khoan'); }
 
   CapNhatMaGiamGia(value: string) { this.formMaGiamGia.set(value.toUpperCase()); this.couponApplied.set(''); this.couponFeedback.set(''); }
 
@@ -1475,7 +1510,7 @@ export class NewBooking implements OnInit {
 
   LabelNguonDat(value?: NguonDat) {
     if (value === 'hotline') return 'Hotline';
-    if (value === 'online') return 'Online';
+    if (value === 'online') return 'Website';
     return 'Tại quầy';
   }
 
@@ -1905,7 +1940,6 @@ export class NewBooking implements OnInit {
 
   HienToast(msg: string, type: 'success' | 'danger') {
     this.toast.set({ msg, type });
-    setTimeout(() => this.toast.set(null), 3200);
   }
 
   private TaoDuLieuMau(): VeXe[] {

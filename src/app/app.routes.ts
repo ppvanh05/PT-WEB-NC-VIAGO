@@ -2,7 +2,6 @@ import { Routes } from '@angular/router';
 import { Home as AdminHome } from './featured/admin/home/home';
 import { Home as CustomerHome } from './featured/customer/home/home';
 import { Schedule } from './featured/customer/schedule/schedule';
-import { TicketLookup } from './featured/customer/ticket-lookup/ticket-lookup';
 import { News } from './featured/customer/news/news';
 import { NewsDetail } from './featured/customer/news/news-detail/news-detail';
 import { Invoice } from './featured/customer/invoice/invoice';
@@ -45,7 +44,7 @@ export const routes: Routes = [
     children: [
       { path: '', component: CustomerHome },
       { path: 'lich-trinh', component: Schedule },
-      { path: 'tra-cuu-ve', component: TicketLookup },
+      { path: 'tra-cuu-ve', loadComponent: () => import('./featured/customer/ticket-lookup/ticket-lookup').then(m => m.TicketLookup) },
       { path: 'tin-tuc', component: News },
       { path: 'tin-tuc/:id', component: NewsDetail },
       { path: 'hoa-don', component: Invoice },

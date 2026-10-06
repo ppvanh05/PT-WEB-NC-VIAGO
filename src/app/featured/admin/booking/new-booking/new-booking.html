@@ -1,9 +1,8 @@
 <div class="booking-counter">
   @if (toast(); as t) {
-    <div class="toast-message {{ t.type }}">
-      <span class="toast-mark"></span>
-      <span>{{ t.msg }}</span>
-    </div>
+    <div class="booking-toast-container">@for (notification of [t]; track notification) {
+      <app-toast [variant]="notification.type === 'danger' ? 'error' : 'success'" [message]="notification.msg" [duration]="3200" (closed)="toast.set(null)" />
+    }</div>
   }
 
   <section class="counter-topbar">
@@ -70,9 +69,10 @@
         </select>
       </div>
 
-      <div class="field compact">
-        <label>Ngày khởi hành</label>
-        <input aria-label="Ngày khởi hành" type="date" aria-label="Ngày khởi hành" [min]="today()" [attr.aria-invalid]="!!dateError()" [ngModel]="NgayKhoiHanh()" (ngModelChange)="ChuyenNgay($event)" />
+      <div class="field compact departure-date-field">
+        <app-date-picker label="Ngày khởi hành" [showLunar]="true" [showClear]="false"
+          [minDate]="today()" [ngModel]="NgayKhoiHanh()"
+          (ngModelChange)="ChuyenNgay($event)" />
       </div>
     </div>
 
@@ -364,19 +364,19 @@
             <span>Đang chọn</span>
             <strong>{{ gheDangChon().join(', ') }}</strong>
           </div>
-          <button type="button" class="primary-button full-width" (click)="MoBookingModal()">
+          <app-button variant="primary" type="button" (clicked)="MoBookingModal()" class="shared-full-width">
             Nhập thông tin đặt vé
-          </button>
-          <button type="button" class="secondary-button full-width" (click)="BoChonTatCa()">Bỏ chọn ghế</button>
+          </app-button>
+          <app-button variant="outline" type="button" (clicked)="BoChonTatCa()" class="shared-full-width">Bỏ chọn ghế</app-button>
         } @else if (veDangSua(); as ve) {
           <div class="selected-summary">
             <span>Đang xem vé</span>
             <strong>{{ ve.MaVe }} - {{ ve.SoGhe }}</strong>
           </div>
-          <button type="button" class="primary-button full-width" (click)="MoBookingModal()">
+          <app-button variant="primary" type="button" (clicked)="MoBookingModal()" class="shared-full-width">
             Xem thông tin vé
-          </button>
-          <button type="button" class="secondary-button full-width" (click)="BoChonTatCa()">Bỏ chọn vé</button>
+          </app-button>
+          <app-button variant="outline" type="button" (clicked)="BoChonTatCa()" class="shared-full-width">Bỏ chọn vé</app-button>
         } @else {
           <p>Chọn ghế trống để gom vào một đơn mới. Ghế đã có khách chỉ xem nhanh tại màn này; xử lý hotline ở Danh sách vé.</p>
         }
@@ -396,7 +396,7 @@
                 <span class="eyebrow">Chi tiết vé</span>
                 <h2>{{ ve.MaVe }} - Ghế {{ ve.SoGhe }}</h2>
               </div>
-              <app-badge [variant]="PaymentVariant(ve)" [label]="PaymentLabel(ve)" /><app-badge variant="neutral" [label]="TicketLabel(ve)" />
+              <app-badge [variant]="PaymentVariant(ve)" [label]="PaymentLabel(ve)" /><app-badge variant="neutral" [label]="LabelNguonDat(ve.NguonDat)" />
             } @else {
               <div>
                 <span class="eyebrow">Tạo vé mới</span>
@@ -407,7 +407,6 @@
           </div>
           <button type="button" aria-label="Đóng" class="close-button" (click)="DongBookingModal()">x</button>
         </header>
-
         @if (veDangSua(); as held) {
           @if (held.orderStatus === 'held') { <div class="booking-hold" role="status">Còn {{ Countdown(held.holdExpiresAt, clockNow()) }} để thanh toán toàn đơn</div> }
           @if (held.orderStatus === 'expired') { <p class="booking-error" role="alert">Thời gian giữ chỗ đã hết. Ghế đã được trả về trạng thái còn trống.</p> }
@@ -430,14 +429,23 @@
                   <dt>Nguồn đặt</dt><dd>{{ LabelNguonDat(formNguonDat()) }}</dd><dt>Ghi chú</dt><dd>{{ formGhiChu() || 'Không có' }}</dd></dl>
               </section>
               <section class="review-section review-payment"><h4>Thanh toán</h4>
-                <dl><dt>Hình thức</dt><dd>{{ LabelHinhThuc(formHinhThuc()) }}</dd><dt>Trạng thái</dt><dd><app-badge [variant]="formTrangThaiThanhToan() === 'da-thanh-toan' ? 'success' : 'warning'" [label]="FormPaymentLabel()" /></dd>
+                <dl><dt>Hình thức</dt><dd>{{ LabelHinhThuc(formHinhThuc()) }}</dd><dt>Trạng thái</dt><dd><app-badge [variant]="formTrangThaiThanhToan() === 'da-thanh-toan' ? 'success' : 'warning'" [label]="FormPaymentLabel()" /><app-badge variant="neutral" [label]="LabelNguonDat(formNguonDat())" /></dd>
                   <dt>Mã giảm giá</dt><dd>{{ couponApplied() || 'Không dùng' }}</dd></dl>
                 <div class="review-total"><span>Tổng tiền · {{ gheDangChon().length }} vé</span><strong>{{ tongTien() | number }}đ</strong></div>
+                @if (formNguonDat() === 'tai-quay') {
+                  <div class="review-collection">
+                    <label class="booking-check"><input type="checkbox" [ngModel]="formTrangThaiThanhToan() === 'da-thanh-toan'" (ngModelChange)="formTrangThaiThanhToan.set($event ? 'da-thanh-toan' : 'cho-thanh-toan')" [disabled]="processing()" />
+                      <span>Tôi xác nhận đã thu đủ <strong>{{ tongTien() | number }}đ</strong> của khách.</span>
+                    </label>
+                    <p class="booking-helper">{{ formTrangThaiThanhToan() === 'da-thanh-toan' ? 'Đơn sẽ được ghi nhận đã thanh toán khi xác nhận đặt vé.' : 'Chưa thu tiền: đơn sẽ chờ thanh toán và giữ chỗ 10 phút.' }}</p>
+                  </div>
+                }
+
               </section>
             </div>
             <div class="review-consent">
               <label class="booking-check"><input type="checkbox" [ngModel]="reviewConfirmed()" (ngModelChange)="reviewConfirmed.set($event)" />Tôi xác nhận thông tin trên là chính xác và đã thông báo điều kiện đặt vé cho khách.</label>
-              <p class="booking-helper">Vé giữ chỗ qua Hotline có thời hạn 10 phút để xác nhận thanh toán. Chưa thu tiền chỉ phát hành phiếu giữ chỗ.</p>
+              <p class="booking-helper">Vé giữ chỗ qua Hotline có thời hạn 10 phút để xác nhận thanh toán. Trạng thái thanh toán được hiển thị riêng trên vé.</p>
             </div>
           </div>
         } @else {
@@ -462,14 +470,10 @@
                   <label>Họ tên người đặt</label>
                   <input aria-label="Họ tên người đặt *" type="text" [value]="ve.HoTenNguoiDi" readonly />
                 </div>
-                
+
                 <div class="field">
-                  <label for="booking-email">Email (không bắt buộc)</label>
+                  <label for="booking-email">Email</label>
                   <input aria-label="Email (không bắt buộc)" type="email" [value]="ve.EmailNguoiDi || ''" readonly />
-                </div>
-                <div class="field">
-                  <label>Nguồn đặt</label>
-                  <input aria-label="Nguồn đặt" type="text" [value]="LabelNguonDat(ve.NguonDat)" readonly />
                 </div>
                 <div class="field">
                   <label>Điểm đón</label>
@@ -483,10 +487,6 @@
                   <label>Hình thức thanh toán</label>
                   <input aria-label="Hình thức thanh toán" type="text" [value]="LabelHinhThuc(ve.PhuongThucThanhToan)" readonly />
                 </div>
-                <div class="field">
-                  <label>Trạng thái thanh toán</label>
-                  <input aria-label="Trạng thái thanh toán" type="text" [value]="PaymentLabel(ve)" readonly />
-                </div>
                 <div class="field full">
                   <label>Ghi chú nội bộ</label>
                   <textarea aria-label="Ghi chú nội bộ" rows="3" [value]="LayGhiChuSach(ve.GhiChu)" readonly></textarea>
@@ -496,17 +496,15 @@
               <div class="order-ticket-mini-list">
                 @for (item of TatCaVeCungDon(ve); track item.MaVe) {
                   <div class="order-ticket-mini" [class.canceled]="item.TrangThaiVe === 'da-huy'">
-                    <span><strong>{{ item.SoGhe }}</strong> - {{ item.MaVe }}</span>
-                    <img class="booking-qr" [src]="GetQrCodeUrl(item)" [alt]="'QR ' + item.MaVe" /><span>{{ item.MaQRVe }}</span>
-                    <app-badge [variant]="PaymentVariant(item)" [label]="PaymentLabel(item)" />
-                    <span>{{ LabelTrangThaiVeHienThi(item) }}</span><app-button variant="ghost" size="sm" [disabled]="item.TrangThaiVe === 'da-huy'" (clicked)="PrintTicket(item)">{{ item.TrangThaiDonHang === 'da-thanh-toan' ? 'In vé ghế ' : 'In phiếu ghế ' }}{{ item.SoGhe }}</app-button>
+                    <div class="mini-ticket-heading"><div><strong>Ghế {{ item.SoGhe }}</strong><small>{{ item.MaVe }}</small></div><app-badge [variant]="item.TrangThaiVe === 'da-huy' ? 'danger' : 'neutral'" [label]="TicketLifecycleLabel(item)" /></div>
+                    <details class="mini-ticket-qr"><summary>QR vé</summary><img class="booking-qr" [src]="GetQrCodeUrl(item)" [alt]="'QR vé ' + item.MaVe" /></details>
                   </div>
                 }
               </div>
             } @else {
               <div class="form-grid">
                 <div class="field" style="position: relative">
-                  <label for="booking-phone">Số điện thoại *</label>
+                  <label for="booking-phone">Số điện thoại <span class="required-mark" aria-hidden="true">*</span></label>
                   <input aria-label="Số điện thoại *" id="booking-phone" inputmode="numeric" maxlength="10" required aria-describedby="booking-phone-error" [attr.aria-invalid]="!!phoneError()"
                     type="tel"
                     placeholder="Nhập SĐT khách"
@@ -517,7 +515,7 @@
                 </div>
 
                 <div class="field">
-                  <label for="booking-name">Họ tên người đặt *</label>
+                  <label for="booking-name">Họ tên người đặt <span class="required-mark" aria-hidden="true">*</span></label>
                   <input aria-label="Họ tên người đặt"
                     type="text"
                     id="booking-name" required maxlength="100" aria-describedby="booking-name-error" [attr.aria-invalid]="!!nameError()" placeholder="Nhập họ tên người đặt"
@@ -536,10 +534,10 @@
                   /> @if (emailError()) { <small id="booking-email-error" class="booking-error" role="alert">{{ emailError() }}</small> }
                 </div>
 
-                
+
                 <div class="field">
-                  <label>Nguồn đặt</label>
-                  <select aria-label="Nguồn đặt" [ngModel]="formNguonDat()" (ngModelChange)="CapNhatNguonDat($event)">
+                  <label for="booking-source">Nguồn đặt <span class="required-mark" aria-hidden="true">*</span></label>
+                  <select id="booking-source" required aria-label="Nguồn đặt" [ngModel]="formNguonDat()" (ngModelChange)="CapNhatNguonDat($event)">
                     <option value="tai-quay">Tại quầy</option>
                     <option value="hotline">Hotline</option>
                   </select>
@@ -554,8 +552,8 @@
                   </div>
                 }
                 <div class="field">
-                  <label>Điểm đón</label>
-                  <select aria-label="Điểm đón" [ngModel]="formDiemDon()" (ngModelChange)="formDiemDon.set($event)">
+                  <label for="booking-pickup">Điểm đón <span class="required-mark" aria-hidden="true">*</span></label>
+                  <select id="booking-pickup" required aria-label="Điểm đón" [ngModel]="formDiemDon()" (ngModelChange)="formDiemDon.set($event)">
                     @for (diem of pickupPoints(); track diem) {
                       <option [value]="diem">{{ diem }}</option>
                     }
@@ -563,8 +561,8 @@
                 </div>
 
                 <div class="field">
-                  <label>Điểm trả</label>
-                  <select aria-label="Điểm trả" [ngModel]="formDiemTra()" (ngModelChange)="formDiemTra.set($event)">
+                  <label for="booking-dropoff">Điểm trả <span class="required-mark" aria-hidden="true">*</span></label>
+                  <select id="booking-dropoff" required aria-label="Điểm trả" [ngModel]="formDiemTra()" (ngModelChange)="formDiemTra.set($event)">
                     @for (diem of dropoffPoints(); track diem) {
                       <option [value]="diem">{{ diem }}</option>
                     }
@@ -572,22 +570,12 @@
                 </div>
 
                 <div class="field">
-                  <label>Hình thức thanh toán</label>
-                  <select aria-label="Hình thức thanh toán" [ngModel]="formHinhThuc()" (ngModelChange)="CapNhatHinhThuc($event)">
+                  <label for="booking-method">Hình thức thanh toán <span class="required-mark" aria-hidden="true">*</span></label>
+                  <select id="booking-method" required aria-label="Hình thức thanh toán" [ngModel]="formHinhThuc()" (ngModelChange)="CapNhatHinhThuc($event)">
                     <option value="tien-mat">Tiền mặt</option>
                     <option value="chuyen-khoan">Chuyển khoản</option>
                     <option value="the">Thẻ</option>
                   </select>
-                </div>
-
-                <div class="field full booking-payment-field">
-                  <div class="booking-payment-content"><label>Trạng thái thanh toán</label>
-                    <app-badge [variant]="formTrangThaiThanhToan() === 'da-thanh-toan' ? 'success' : 'warning'" [label]="FormPaymentLabel()" />
-                    <small>{{ formNguonDat() === 'hotline' ? 'Đơn Hotline được giữ chỗ, xác nhận thanh toán sau khi tạo đơn.' : formTrangThaiThanhToan() === 'da-thanh-toan' ? 'Đã xác nhận thu tiền cho toàn bộ ghế trong đơn.' : 'Chỉ xác nhận khi đã nhận đủ tiền của khách.' }}</small>
-                  </div>
-                  @if (formNguonDat() === 'tai-quay' && formTrangThaiThanhToan() !== 'da-thanh-toan') {
-                    <app-button variant="outline" size="sm" (clicked)="MoXacNhanThanhToan()">Xác nhận đã thu tiền</app-button>
-                  }
                 </div>
 
                 <div class="field full promo-field">
@@ -671,18 +659,6 @@
                 <strong class="price-orange">{{ tongTien() | number }}đ</strong>
               </div>
             </div>
-
-            @if (formHinhThuc() === 'chuyen-khoan') {
-              <div class="transfer-box" style="margin-top: 12px">
-                
-                <div class="transfer-info">
-                  <strong>Thông tin chuyển khoản (mô phỏng)</strong>
-                  <span>VIAGO - 1900 1234</span>
-                  <span>Số tiền: {{ tongTien() | number }}đ</span>
-                  <span>Nội dung: {{ noiDungChuyenKhoan() }}</span>
-                </div>
-              </div>
-            }
           </aside>
         </div>
 
@@ -692,16 +668,16 @@
             @if (ve.TrangThaiVe === 'da-huy') {
               <span style="color: var(--color-danger-700); font-weight: var(--font-weight-semibold); font-size: var(--font-size-body); margin-right: auto; padding-left: 10px">VÉ NÀY ĐÃ HỦY</span>
             }
-            <button type="button" class="secondary-button" (click)="DongBookingModal()">Đóng</button>
+            <app-button variant="outline" type="button" (clicked)="DongBookingModal()">Đóng</app-button>
             <app-button variant="outline" (clicked)="ChinhSuaVeTrongDanhSach(ve)">Quản lý đơn</app-button>
             @if (ve.TrangThaiVe !== 'da-huy') {
-              <app-button (clicked)="MoInVe()">{{ ve.TrangThaiDonHang === 'da-thanh-toan' ? 'In vé' : 'In phiếu giữ chỗ' }}</app-button>
-              @if (ve.TrangThaiDonHang !== 'da-thanh-toan' && ve.NguonDat !== 'online') { <app-button variant="outline" (clicked)="MoXacNhanThanhToan()">Xác nhận đã thanh toán</app-button> }
+              <app-button (clicked)="MoInVe()">In vé</app-button>
+              @if (ve.orderStatus === 'held' && ve.paymentStatus === 'pending' && ve.NguonDat !== 'online') { <app-button variant="outline" (clicked)="MoXacNhanThanhToan()">Xác nhận đã thanh toán</app-button> }
             }
           } @else {
-            <button type="button" class="secondary-button" (click)="DongBookingModal()">Đóng</button>
+            <app-button variant="outline" type="button" (clicked)="DongBookingModal()">Đóng</app-button>
             @if (reviewMode()) {
-              <app-button variant="outline" [disabled]="processing()" (clicked)="reviewMode.set(false); reviewConfirmed.set(false)">Quay lại</app-button>
+              <app-button variant="outline" [disabled]="processing()" (clicked)="reviewMode.set(false); reviewConfirmed.set(false); formTrangThaiThanhToan.set('cho-thanh-toan')">Quay lại</app-button>
               <app-button [disabled]="!formValid() || !reviewConfirmed()" [loading]="processing()" (clicked)="LuuDatVe()">{{ processing() ? 'Đang tạo vé...' : 'Xác nhận đặt vé' }}</app-button>
             } @else {
               <app-button [disabled]="!formValid()" (clicked)="Review()">Kiểm tra thông tin</app-button>
@@ -717,7 +693,7 @@
       <div bookingDialog role="dialog" aria-modal="true" tabindex="-1" aria-label="Thông tin vé" class="print-modal" (click)="$event.stopPropagation()">
         @if (veDangIn()[0]; as ve) {
           <header class="modal-header">
-            <h2>{{ ve.TrangThaiDonHang === 'da-thanh-toan' ? 'IN VÉ ĐIỆN TỬ' : 'IN PHIẾU GIỮ CHỖ' }}</h2>
+            <h2>In vé</h2>
             <button type="button" aria-label="Đóng" class="close-button" (click)="DongInVe()">x</button>
           </header>
 
@@ -730,8 +706,9 @@
 
                 <div class="receipt-dashed-line"></div>
 
-                <h4>{{ item.TrangThaiDonHang === 'da-thanh-toan' ? 'VÉ XE KHÁCH' : 'PHIẾU GIỮ CHỖ · CHƯA THANH TOÁN' }}</h4>
+                <h4>VÉ XE KHÁCH</h4>
                 <div class="receipt-sub">Liên: Giao cho hành khách</div>
+                <p class="receipt-payment-status">Thanh toán: {{ PaymentLabel(item) }}</p>
 
                 <div class="receipt-dashed-line"></div>
 
@@ -759,7 +736,7 @@
                 <div class="receipt-dashed-line"></div>
 
                 <div class="receipt-footer-notes">
-                  
+
                   <p class="hotline-note">Tổng đài bán vé: <strong>1900 1234</strong></p>
                 </div>
               </div>
@@ -767,10 +744,10 @@
           </div>
 
           <footer class="modal-footer">
-            <button type="button" class="secondary-button rounded-btn" (click)="DongInVe()">Đóng</button>
-            <button type="button" class="primary-button print-direct-btn" (click)="InVeTrucTiep()">
+            <app-button variant="outline" type="button" (clicked)="DongInVe()">Đóng</app-button>
+            <app-button variant="primary" type="button" [disabled]="printing()" (clicked)="InVeTrucTiep()" [loading]="printing()">
               <span class="material-symbols-outlined">print</span> In trực tiếp
-            </button>
+            </app-button>
           </footer>
         }
       </div>
@@ -835,8 +812,8 @@
         </div>
 
         <footer class="modal-footer">
-          <button type="button" class="secondary-button" (click)="showCancelSeatConfirm.set(false)">Đóng</button>
-          <button type="button" class="danger-button solid" [disabled]="processing() || (selectedCancelReason() === 'Khác' && !cancellationOther().trim())" (click)="XacNhanHuyVeChon()">Xác nhận hủy</button>
+          <app-button variant="outline" type="button" (clicked)="showCancelSeatConfirm.set(false)">Đóng</app-button>
+          <app-button variant="danger" type="button" [disabled]="processing() || (selectedCancelReason() === 'Khác' && !cancellationOther().trim())" (clicked)="XacNhanHuyVeChon()" [loading]="processing()">Xác nhận hủy</app-button>
         </footer>
       </div>
     </div>
@@ -875,8 +852,8 @@
           </div>
         </div>
         <footer class="modal-footer">
-          <button type="button" class="secondary-button" (click)="showTransferModal.set(false)">Hủy</button>
-          <button type="button" class="primary-button" [disabled]="!selectedNewSeat()" (click)="XacNhanChuyenGhe()">Xác nhận đổi</button>
+          <app-button variant="outline" type="button" (clicked)="showTransferModal.set(false)">Hủy</app-button>
+          <app-button variant="primary" type="button" [disabled]="!selectedNewSeat()" (clicked)="XacNhanChuyenGhe()" [loading]="processing()">Xác nhận đổi</app-button>
         </footer>
       </div>
     </div>
@@ -922,7 +899,7 @@
         }
 
         <footer class="modal-footer">
-          <button type="button" class="secondary-button rounded-btn" (click)="showConfirmChangesModal.set(false)">Quay lại sửa</button>
+          <app-button variant="outline" type="button" (clicked)="showConfirmChangesModal.set(false)">Quay lại sửa</app-button>
           <button type="button" class="confirm-save-btn" (click)="XacNhanLuuThayDoi()">Xác nhận</button>
         </footer>
       </div>

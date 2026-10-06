@@ -8,6 +8,24 @@ export interface BookingState {
   orderStatus?: 'held' | 'confirmed' | 'used' | 'cancelled' | 'expired';
   holdExpiresAt?: number;
   ChieuTuyen?: 'di' | 've';
+  tripStatus?: 'open' | 'locked' | 'cancelled' | 'departed';
+  passengerName?: string;
+  paymentAt?: string;
+  paymentStaff?: string;
+  transactionCode?: string;
+  paidAmount?: number;
+  balanceDue?: number;
+  refundAmount?: number;
+  refundFee?: number;
+  refundReason?: string;
+  refundStatus?: 'processing' | 'completed' | 'failed';
+  refundedAt?: string;
+  refundedAmount?: number;
+  membershipPoints?: number;
+  pointsReversed?: number;
+  previousQr?: string;
+  printHistory?: { at: string; staff: string }[];
+  notificationAt?: string;
 }
 interface LegacyTicket extends BookingState {
   NguonDat?: BookingSource;
@@ -45,13 +63,11 @@ export function paymentLabel(ticket: LegacyTicket): string {
     paid: 'Đã thanh toán', failed: 'Thanh toán thất bại', expired: 'Hết hạn',
     'refund-processing': 'Hoàn tiền đang xử lý', refunded: 'Đã hoàn tiền', 'refund-failed': 'Hoàn tiền thất bại'
   };
-  return labels[t.paymentStatus!] ?? (t.orderStatus === 'cancelled' ? 'Chưa thu tiền'
-    : t.bookingSource === 'online' ? 'Chờ thanh toán Online'
-    : t.bookingSource === 'hotline' ? 'Chờ thanh toán Hotline' : 'Chưa thu tiền · Tại quầy');
+  return labels[t.paymentStatus!] ?? 'Chờ thanh toán';
 }
 export function ticketLabel(ticket: LegacyTicket): string {
   const t = normalizeTicket(ticket);
-  return ({ held: 'Đang giữ chỗ', confirmed: 'Chờ khởi hành', used: 'Đã sử dụng', cancelled: 'Đã hủy', expired: 'Hết hạn' })[t.orderStatus!];
+  return ({ held: 'Chờ thanh toán', confirmed: 'Đã thanh toán', used: 'Đã hoàn thành', cancelled: 'Đã hủy', expired: 'Hết hạn' })[t.orderStatus!];
 }
 export function paymentVariant(ticket: LegacyTicket): 'success' | 'warning' | 'danger' | 'info' | 'neutral' {
   const t = normalizeTicket(ticket);

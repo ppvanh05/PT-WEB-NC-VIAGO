@@ -1,3 +1,8 @@
+@if (toast(); as t) {
+  <div class="news-toast-container">@for (notification of [t]; track notification) {
+    <app-toast [variant]="notification.variant" [message]="notification.message" [duration]="3200" (closed)="toast.set(null)" />
+  }</div>
+}
 
 <section class="news-filter-bar">
   <div class="container mx-auto px-4 md:px-10 lg:px-16">

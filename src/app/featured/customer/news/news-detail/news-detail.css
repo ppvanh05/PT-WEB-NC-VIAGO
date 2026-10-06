@@ -399,3 +399,6 @@
 .share-modal-card {
   box-shadow: var(--shadow-md);
 }
+
+.news-toast-container { position: fixed; top: 24px; right: 24px; width: min(420px, calc(100vw - 32px)); z-index: var(--z-toast, 1400); }
+.comment-error { color: var(--color-danger-700); font: var(--font-size-body-sm)/var(--line-height-body-sm) var(--font-family-base); margin: 0; }

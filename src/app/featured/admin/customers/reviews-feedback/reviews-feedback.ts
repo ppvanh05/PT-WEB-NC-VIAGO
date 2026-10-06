@@ -1,7 +1,10 @@
+import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker';
 import { SidebarStateService } from '../../../../core/services/sidebar-state.service';
 import { Component, OnInit, signal, computed, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Toast } from '../../../../shared/components/toast/toast';
+import { BookingDialog } from '../../booking/booking-dialog';
 import { Button } from '../../../../shared/components/button/button';
 import { Badge } from '../../../../shared/components/badge/badge';
 import { Pagination } from '../../../../shared/components/pagination/pagination';
@@ -56,7 +59,7 @@ type LocTrangThaiDonGian = 'tat-ca' | 'chua-xu-ly' | 'da-xu-ly';
 @Component({
   selector: 'app-reviews-feedback',
   standalone: true,
-  imports: [CommonModule, FormsModule, Button, Badge, Pagination, ModalComponent],
+  imports: [DatePickerComponent, Toast, BookingDialog, CommonModule, FormsModule, Button, Badge, Pagination, ModalComponent],
   templateUrl: './reviews-feedback.html',
   styleUrls: ['./reviews-feedback.css']
 })
@@ -86,6 +89,7 @@ export class ReviewsFeedback implements OnInit {
   NoiDungPhanHoi = signal('');
   HienModalPhanHoi = signal(false);
   ThongBaoLoi = signal('');
+  DangGuiPhanHoi = signal(false);
   PhanHoiMuonXoa = signal<DanhGia | null>(null);
 
   // Custom Modal Xác nhận Ẩn
@@ -643,6 +647,7 @@ export class ReviewsFeedback implements OnInit {
   }
 
   DongModalPhanHoi() {
+    if (this.DangGuiPhanHoi()) return;
     this.HienModalPhanHoi.set(false);
   }
 
@@ -707,6 +712,7 @@ export class ReviewsFeedback implements OnInit {
   }
 
   ApDungPhanHoiNhanh(text: string) {
+    this.ThongBaoLoi.set('');
     this.NoiDungPhanHoi.set(text);
   }
 
@@ -726,6 +732,7 @@ export class ReviewsFeedback implements OnInit {
       noiDung = `Chào anh/chị ${dg.HoTenKhachHang}, VIAGO cảm ơn anh/chị đã dành thời gian đánh giá chuyến đi. Phản hồi của anh/chị là động lực để chúng tôi tiếp tục duy trì và cải thiện chất lượng dịch vụ.`;
     }
 
+    this.ThongBaoLoi.set('');
     this.NoiDungPhanHoi.set(noiDung.slice(0, 500));
   }
 
@@ -733,7 +740,7 @@ export class ReviewsFeedback implements OnInit {
   LuuPhanHoiTrucTiep(dg: DanhGia): boolean {
     const NoiDungDanhGia = this.NoiDungPhanHoi().trim();
     if (NoiDungDanhGia.length > 500) {
-      this.HienToast('Nội dung phản hồi không được vượt quá 500 ký tự.', 'loi');
+      this.ThongBaoLoi.set('Nội dung phản hồi không được vượt quá 500 ký tự.');
       return false;
     }
 
@@ -765,6 +772,17 @@ export class ReviewsFeedback implements OnInit {
     this.HienToast(NoiDungDanhGia ? 'Đã gửi phản hồi thành công!' : 'Đã xóa phản hồi!', 'thanh-cong');
     this.HienModalPhanHoi.set(false);
     return true;
+  }
+
+  async GuiPhanHoi(dg: DanhGia) {
+    if (this.DangGuiPhanHoi()) return;
+    const content = this.NoiDungPhanHoi().trim();
+    if (!content || content.length > 500) { this.ThongBaoLoi.set('Vui lòng nhập phản hồi từ 1–500 ký tự.'); return; }
+    this.ThongBaoLoi.set(''); this.DangGuiPhanHoi.set(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 350));
+      this.LuuPhanHoiTrucTiep(dg);
+    } finally { this.DangGuiPhanHoi.set(false); }
   }
 
   LuuPhanHoiVaChonTiep(dg: DanhGia) {
@@ -923,7 +941,7 @@ export class ReviewsFeedback implements OnInit {
 
   private HienToast(NoiDungDanhGia: string, LoaiToast: 'thanh-cong' | 'loi' | 'canh-bao') {
     this.ThongBaoToast.set({ NoiDungDanhGia, LoaiToast });
-    setTimeout(() => this.ThongBaoToast.set(null), 3000);
+
   }
 }
 

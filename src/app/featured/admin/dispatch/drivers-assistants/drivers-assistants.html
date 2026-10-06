@@ -7,9 +7,9 @@
     </div>
     
     <!-- Action Banner & Create Button Box -->
-    <div class="header-action-banner" (click)="openAddModal()" title="Nhấp để thêm tài xế & phụ xe">
+    <div class="header-action-banner" role="button" tabindex="0" (keydown.enter)="openAddModal()" (keydown.space)="$event.preventDefault(); openAddModal()" (click)="openAddModal()" title="Nhấp để thêm tài xế & phụ xe">
       <div class="action-icon-circle">
-        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="12" y1="8" x2="12" y2="16"></line>
           <line x1="8" y1="12" x2="16" y2="12"></line>
@@ -27,7 +27,7 @@
     <!-- Tabs matching Lịch trình style -->
     <div class="dashboard-control-panel">
       <div class="pill-tabs">
-        <button class="pill-tab-item" [class.active]="activeTab === 'Tất cả'" (click)="setTab('Tất cả')">
+        <button type="button" class="pill-tab-item" [class.active]="activeTab === 'Tất cả'" (click)="setTab('Tất cả')">
           Tất cả ({{ getTotalCount() }})
         </button>
         <button class="pill-tab-item" [class.active]="activeTab === 'Tài xế'" (click)="setTab('Tài xế')">
@@ -45,47 +45,45 @@
     <!-- Filter Bar & View Options -->
     <div class="search-filters-row">
       <!-- Search Input -->
-      <div class="filter-input-wrapper col-search">
-        <label class="input-mini-label">Tìm kiếm nhân sự</label>
+      <div class="filter-input-wrapper filter-search">
+        <label for="personnel-filter-search" class="input-mini-label">Tìm kiếm nhân sự</label>
         <div class="search-input-container">
-          <input type="text" [(ngModel)]="searchQuery" placeholder="Tìm theo tên hoặc số điện thoại..." (input)="filterPersonnel()">
+          <input id="personnel-filter-search" type="text" [(ngModel)]="searchQuery" placeholder="Tìm theo tên hoặc số điện thoại..." (input)="filterPersonnel()">
         </div>
       </div>
 
       <!-- Role Dropdown -->
-      <div class="filter-input-wrapper col-role">
-        <label class="input-mini-label">Vai trò</label>
+      <div class="filter-input-wrapper filter-role">
+        <label for="personnel-filter-role" class="input-mini-label">Vai trò</label>
         <div class="custom-select-container">
-          <select [(ngModel)]="roleFilter" (change)="filterPersonnel()">
+          <select id="personnel-filter-role" [(ngModel)]="roleFilter" (change)="filterPersonnel()">
             <option *ngFor="let role of roleOptions" [value]="role">{{ role }}</option>
           </select>
         </div>
       </div>
 
       <!-- License Dropdown -->
-      <div class="filter-input-wrapper col-license">
-        <label class="input-mini-label">Hạng bằng</label>
+      <div class="filter-input-wrapper filter-license">
+        <label for="personnel-filter-license" class="input-mini-label">Hạng bằng</label>
         <div class="custom-select-container">
-          <select [(ngModel)]="licenseFilter" (change)="filterPersonnel()">
+          <select id="personnel-filter-license" [(ngModel)]="licenseFilter" (change)="filterPersonnel()">
             <option *ngFor="let lic of licenseOptions" [value]="lic">{{ lic }}</option>
           </select>
         </div>
       </div>
 
       <!-- Status Dropdown -->
-      <div class="filter-input-wrapper col-status">
-        <label class="input-mini-label">Trạng thái</label>
+      <div class="filter-input-wrapper filter-status">
+        <label for="personnel-filter-status" class="input-mini-label">Trạng thái</label>
         <div class="custom-select-container">
-          <select [(ngModel)]="statusFilter" (change)="filterPersonnel()">
+          <select id="personnel-filter-status" [(ngModel)]="statusFilter" (change)="filterPersonnel()">
             <option *ngFor="let status of statusOptions" [value]="status">{{ status }}</option>
           </select>
         </div>
       </div>
 
       <div class="filter-actions-col">
-        <button class="btn-clear-filters" (click)="clearFilters()" title="Xóa bộ lọc">
-          Xóa lọc
-        </button>
+        <app-button variant="outline" (clicked)="clearFilters()">Xóa bộ lọc</app-button>
       </div>
     </div>
 
@@ -123,22 +121,18 @@
             <td class="col-name">
               <div class="name-with-status">
                 <span class="status-indicator" 
-                  [class.active]="p.status === 'Đang làm việc'"
-                  [class.maintenance]="p.status === 'Nghỉ phép'"
-                  [class.expiring]="getDisplayStatus(p) === 'Sắp hết hạn'"
+                  [class.active]="p.status === 'Đang hoạt động'"
                   [class.locked]="p.status === 'Đã khóa'"></span>
-                <span class="text-semibold">{{ p.name }}</span>
+                <div><span class="text-semibold">{{ p.name }}</span><small class="personnel-status" [class.status-locked]="p.status === 'Đã khóa'">{{ getDisplayStatus(p) }}</small></div>
               </div>
             </td>
             <td class="col-role">
-              <span class="role-badge" [class.role-driver]="p.role === 'Tài xế'" [class.role-assistant]="p.role === 'Phụ xe'">
-                {{ p.role }}
-              </span>
+              <app-badge [variant]="p.role === 'Tài xế' ? 'info' : 'neutral'" [label]="p.role" />
             </td>
             <td class="col-dob text-center">{{ p.dob }}</td>
             <td class="col-phone text-center">{{ p.phone }}</td>
             <td class="col-license text-center">
-              <span class="license-badge">{{ p.licenseClass }}</span>
+              <app-badge variant="neutral" [label]="p.licenseClass" />
             </td>
             <td class="col-expiry text-center">{{ p.licenseExpiry }}</td>
             <td class="col-actions text-center">
@@ -172,7 +166,7 @@
 
   <!-- Modal -->
   <div class="modal-overlay" *ngIf="isModalOpen">
-    <div class="modal-container custom-scrollbar" role="dialog" aria-modal="true" aria-labelledby="personnel-modal-title">
+    <div bookingDialog tabindex="-1" class="modal-container custom-scrollbar" role="dialog" aria-modal="true" aria-labelledby="personnel-modal-title">
       <div class="modal-header">
         <h2 class="modal-title" id="personnel-modal-title">{{ isEditMode ? 'Cập nhật tài xế & phụ xe' : 'Thêm tài xế & phụ xe' }}</h2>
         <button type="button" class="btn-close" aria-label="Đóng thông tin nhân sự" (click)="closeModal()">
@@ -186,57 +180,60 @@
       <div class="modal-body">
         <div class="form-row">
           <div class="form-item col-4" [class.has-error]="errors.role">
-            <label>Vai trò <span class="required">*</span></label>
-            <select [(ngModel)]="currentPersonnel.role">
+            <label for="personnel-role">Vai trò <span class="required" aria-hidden="true">*</span></label>
+            <select id="personnel-role" required [attr.aria-invalid]="!!errors.role" [(ngModel)]="currentPersonnel.role">
               <option value="Tài xế">Tài xế</option>
               <option value="Phụ xe">Phụ xe</option>
             </select>
           </div>
           <div class="form-item col-4" [class.has-error]="errors.name">
-            <label>Họ và tên <span class="required">*</span></label>
-            <input type="text" [(ngModel)]="currentPersonnel.name" placeholder="Nhập Họ và tên">
+            <label for="personnel-name">Họ và tên <span class="required" aria-hidden="true">*</span></label>
+            <input id="personnel-name" required [attr.aria-invalid]="!!errors.name" type="text" [(ngModel)]="currentPersonnel.name" placeholder="Nhập Họ và tên">
             <span class="error-msg" *ngIf="errors.name">Vui lòng nhập tên</span>
           </div>
-          <div class="form-item col-4">
-            <label>Ngày sinh <span class="required">*</span></label>
-            <input type="date" [(ngModel)]="currentPersonnel.dob">
+          <div class="form-item col-4" [class.has-error]="errors.dob">
+            <label for="personnel-dob">Ngày sinh <span class="required" aria-hidden="true">*</span></label>
+            <input id="personnel-dob" required [attr.aria-invalid]="!!errors.dob" type="date" [(ngModel)]="currentPersonnel.dob">
+            <span class="error-msg" *ngIf="errors.dob">Vui lòng chọn ngày sinh.</span>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-item col-6" [class.has-error]="errors.phone">
-            <label>Số điện thoại <span class="required">*</span></label>
-            <input type="text" [(ngModel)]="currentPersonnel.phone" placeholder="Nhập Số điện thoại">
-            <span class="error-msg" *ngIf="errors.phone">Vui lòng nhập SĐT</span>
+            <label for="personnel-phone">Số điện thoại <span class="required" aria-hidden="true">*</span></label>
+            <input id="personnel-phone" inputmode="numeric" maxlength="10" (input)="onPhoneInput()" required [attr.aria-invalid]="!!errors.phone" type="text" [(ngModel)]="currentPersonnel.phone" placeholder="Nhập Số điện thoại">
+            <span class="error-msg" *ngIf="errors.phone">Số điện thoại phải gồm 10 chữ số.</span>
           </div>
           <div class="form-item col-6" [class.has-error]="errors.identityNumber">
-            <label>Số CCCD/CMND <span class="required">*</span></label>
-            <input type="text" [(ngModel)]="currentPersonnel.identityNumber" placeholder="Nhập số CCCD/CMND">
+            <label for="personnel-identityNumber">Số CCCD/CMND <span class="required" aria-hidden="true">*</span></label>
+            <input id="personnel-identityNumber" required [attr.aria-invalid]="!!errors.identityNumber" type="text" [(ngModel)]="currentPersonnel.identityNumber" placeholder="Nhập số CCCD/CMND">
             <span class="error-msg" *ngIf="errors.identityNumber">Vui lòng nhập CCCD/CMND</span>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-item col-6" [class.has-error]="errors.licenseClass">
-            <label>Hạng bằng lái <span class="required">*</span></label>
-            <input type="text" [(ngModel)]="currentPersonnel.licenseClass" placeholder="VD: A1, B2, C...">
+            <label for="personnel-licenseClass">Hạng bằng lái <span class="required" aria-hidden="true">*</span></label>
+            <input id="personnel-licenseClass" required [attr.aria-invalid]="!!errors.licenseClass" type="text" [(ngModel)]="currentPersonnel.licenseClass" placeholder="VD: A1, B2, C...">
+            <span class="error-msg" *ngIf="errors.licenseClass">Vui lòng nhập hạng bằng lái.</span>
           </div>
           <div class="form-item col-6" [class.has-error]="errors.licenseExpiry">
-            <label>Hạn bằng lái <span class="required">*</span></label>
-            <input type="date" [(ngModel)]="currentPersonnel.licenseExpiry">
+            <label for="personnel-licenseExpiry">Hạn bằng lái <span class="required" aria-hidden="true">*</span></label>
+            <input id="personnel-licenseExpiry" required [attr.aria-invalid]="!!errors.licenseExpiry" type="date" [(ngModel)]="currentPersonnel.licenseExpiry">
+            <span class="error-msg" *ngIf="errors.licenseExpiry">Vui lòng chọn hạn bằng lái.</span>
           </div>
         </div>
 
         <div class="upload-grid">
           <div class="upload-field upload-field-large">
             <label>Ảnh chân dung <span class="required">*</span></label>
-            <div class="document-upload-box portrait-upload" (click)="avatarInput.click()">
-              <img *ngIf="currentPersonnel.avatar" [src]="currentPersonnel.avatar" class="document-preview">
+            <div class="document-upload-box portrait-upload" role="button" tabindex="0" aria-label="Tải ảnh chân dung" (keydown.enter)="avatarInput.click()" (keydown.space)="$event.preventDefault(); avatarInput.click()" (click)="avatarInput.click()">
+              <img *ngIf="currentPersonnel.avatar" [src]="currentPersonnel.avatar" class="document-preview" alt="Ảnh hồ sơ nhân sự">
               <div *ngIf="!currentPersonnel.avatar" class="upload-placeholder">
                 <span class="upload-plus">+</span>
                 <span>Tải ảnh lên</span>
               </div>
-              <button *ngIf="currentPersonnel.avatar" class="btn-remove-license" (click)="$event.stopPropagation(); removeImage('avatar')">
+              <button *ngIf="currentPersonnel.avatar" type="button" class="btn-remove-license" aria-label="Xóa ảnh hồ sơ" (keydown)="$event.stopPropagation()" (click)="$event.stopPropagation(); removeImage('avatar')">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -248,8 +245,8 @@
 
           <div class="upload-field">
             <label>Bằng lái xe mặt trước <span class="required">*</span></label>
-            <div class="document-upload-box" (click)="licenseFrontInput.click()">
-              <img *ngIf="currentPersonnel.licenseFrontImage" [src]="currentPersonnel.licenseFrontImage" class="document-preview">
+            <div class="document-upload-box" role="button" tabindex="0" aria-label="Tải bằng lái mặt trước" (keydown.enter)="licenseFrontInput.click()" (keydown.space)="$event.preventDefault(); licenseFrontInput.click()" (click)="licenseFrontInput.click()">
+              <img *ngIf="currentPersonnel.licenseFrontImage" [src]="currentPersonnel.licenseFrontImage" class="document-preview" alt="Ảnh hồ sơ nhân sự">
               <div *ngIf="!currentPersonnel.licenseFrontImage" class="upload-placeholder">
                 <span class="upload-plus">+</span>
                 <span>Tải ảnh lên</span>
@@ -266,8 +263,8 @@
 
           <div class="upload-field">
             <label>Bằng lái xe mặt sau <span class="required">*</span></label>
-            <div class="document-upload-box" (click)="licenseBackInput.click()">
-              <img *ngIf="currentPersonnel.licenseBackImage" [src]="currentPersonnel.licenseBackImage" class="document-preview">
+            <div class="document-upload-box" role="button" tabindex="0" aria-label="Tải bằng lái mặt sau" (keydown.enter)="licenseBackInput.click()" (keydown.space)="$event.preventDefault(); licenseBackInput.click()" (click)="licenseBackInput.click()">
+              <img *ngIf="currentPersonnel.licenseBackImage" [src]="currentPersonnel.licenseBackImage" class="document-preview" alt="Ảnh hồ sơ nhân sự">
               <div *ngIf="!currentPersonnel.licenseBackImage" class="upload-placeholder">
                 <span class="upload-plus">+</span>
                 <span>Tải ảnh lên</span>
@@ -284,8 +281,8 @@
 
           <div class="upload-field">
             <label>CCCD mặt trước <span class="required">*</span></label>
-            <div class="document-upload-box" (click)="identityFrontInput.click()">
-              <img *ngIf="currentPersonnel.identityFrontImage" [src]="currentPersonnel.identityFrontImage" class="document-preview">
+            <div class="document-upload-box" role="button" tabindex="0" aria-label="Tải CCCD mặt trước" (keydown.enter)="identityFrontInput.click()" (keydown.space)="$event.preventDefault(); identityFrontInput.click()" (click)="identityFrontInput.click()">
+              <img *ngIf="currentPersonnel.identityFrontImage" [src]="currentPersonnel.identityFrontImage" class="document-preview" alt="Ảnh hồ sơ nhân sự">
               <div *ngIf="!currentPersonnel.identityFrontImage" class="upload-placeholder">
                 <span class="upload-plus">+</span>
                 <span>Tải ảnh lên</span>
@@ -302,8 +299,8 @@
 
           <div class="upload-field">
             <label>CCCD mặt sau <span class="required">*</span></label>
-            <div class="document-upload-box" (click)="identityBackInput.click()">
-              <img *ngIf="currentPersonnel.identityBackImage" [src]="currentPersonnel.identityBackImage" class="document-preview">
+            <div class="document-upload-box" role="button" tabindex="0" aria-label="Tải CCCD mặt sau" (keydown.enter)="identityBackInput.click()" (keydown.space)="$event.preventDefault(); identityBackInput.click()" (click)="identityBackInput.click()">
+              <img *ngIf="currentPersonnel.identityBackImage" [src]="currentPersonnel.identityBackImage" class="document-preview" alt="Ảnh hồ sơ nhân sự">
               <div *ngIf="!currentPersonnel.identityBackImage" class="upload-placeholder">
                 <span class="upload-plus">+</span>
                 <span>Tải ảnh lên</span>
@@ -322,7 +319,7 @@
 
       <div class="modal-footer">
         <div class="footer-left">
-          <button *ngIf="isEditMode" class="btn-status-toggle" (click)="toggleLock(currentPersonnel)">
+          <button *ngIf="isEditMode" type="button" class="btn-status-toggle" [class.unlock]="currentPersonnel.status === 'Đã khóa'" [disabled]="isSaving" (click)="toggleLock(currentPersonnel)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
@@ -331,20 +328,17 @@
           </button>
         </div>
         <div class="footer-right">
-          <app-button variant="outline" (clicked)="closeModal()">Hủy bỏ</app-button>
-          <app-button (clicked)="savePersonnel()">{{ isEditMode ? 'Lưu thay đổi' : 'Lưu' }}</app-button>
+          <app-button variant="outline" [disabled]="isSaving" (clicked)="closeModal()">Hủy bỏ</app-button>
+          <app-button [loading]="isSaving" (clicked)="savePersonnel()">{{ isEditMode ? 'Lưu thay đổi' : 'Lưu' }}</app-button>
         </div>
       </div>
     </div>
   </div>
 
   <div class="toast-container">
-    <div class="toast-card" *ngFor="let toast of toasts" [class.toast-success]="toast.type === 'success'" [class.toast-error]="toast.type === 'error'">
-      <div class="toast-content-wrapper">
-        <span class="toast-icon material-symbols-outlined">{{ toast.type === 'success' ? 'check_circle' : 'error' }}</span>
-        <span class="toast-text">{{ toast.message }}</span>
-      </div>
-      <button class="toast-close-btn" (click)="removeToast(toast.id)">×</button>
-    </div>
+    <app-toast *ngFor="let toast of toasts" [variant]="toast.type" [message]="toast.message" [duration]="3000" (closed)="removeToast(toast.id)" />
   </div>
 </div>
+<app-modal [open]="!!lockTarget" size="small" [confirmMode]="true" [danger]="lockTarget?.status !== 'Đã khóa'" title="Xác nhận trạng thái nhân sự" confirmText="Xác nhận" cancelText="Quay lại" (confirmed)="confirmLock()" (closed)="lockTarget = null">
+  <p>Bạn có muốn {{ lockTarget?.status === 'Đã khóa' ? 'mở khóa' : 'khóa' }} nhân sự <strong>{{ lockTarget?.name }}</strong>?</p>
+</app-modal>
