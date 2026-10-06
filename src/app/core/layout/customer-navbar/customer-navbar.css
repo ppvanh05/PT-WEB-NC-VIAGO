@@ -294,11 +294,10 @@
   color: var(--color-primary-600, #00236f);
 }
 
-/* Active rule: change color + font-weight 700 + bottom border line */
+/* Active rule: change color + bottom border line (keep font-weight constant to avoid text width shift) */
 .nav-link-item.nav-active {
   color: var(--color-primary-600, #00236f);
   border-bottom: 2px solid var(--color-primary-600, #00236f);
-  font-weight: 700;
 }
 
 .arrow-icon {
