@@ -1,1 +1,1007 @@
-<p>booking-management works!</p>
+<div class="ticket-list-page">
+  @if (toast(); as t) {
+  <div class="toast-message {{ t.type }}">
+    <span class="toast-mark"></span>
+    <span>{{ t.msg }}</span>
+  </div>
+  }
+
+  <section class="lookup-panel">
+    <div class="lookup-heading">
+      <div>
+        <span class="eyebrow">Quản lý vé đã đặt</span>
+        <h1>Danh sách vé đã đặt</h1>
+      </div>
+    </div>
+
+    <div class="summary-strip">
+      <div class="summary-item">
+        <span>{{ thongKe().tong }}</span>
+        <small>Kết quả</small>
+      </div>
+      <div class="summary-item paid">
+        <span>{{ thongKe().daBan }}</span>
+        <small>Đã bán</small>
+      </div>
+      <div class="summary-item held">
+        <span>{{ thongKe().giuCho }}</span>
+        <small>Giữ chỗ</small>
+      </div>
+      <div class="summary-item cancelled">
+        <span>{{ thongKe().daHuy }}</span>
+        <small>Đã hủy</small>
+      </div>
+      <div class="summary-item revenue">
+        <span>{{ thongKe().doanhThu | number }} đ</span>
+        <small>Doanh thu lọc</small>
+      </div>
+    </div>
+
+    <div class="filters-grid booking-filter-grid">
+      <div class="field wide">
+        <label>Tìm kiếm</label>
+        <input aria-label="Tìm kiếm" #searchInput autofocus type="text" placeholder="SĐT, mã đơn, tên khách, ngày đi, tuyến, ghế"
+          [ngModel]="tuKhoa()" (ngModelChange)="CapNhatTuKhoa($event)" (keyup.enter)="TimKiemTongHop()" />
+      </div>
+
+      <div class="field route-filter-field">
+        <label>Tuyến xe</label>
+        <div class="route-filter-wrapper">
+          <input type="text" placeholder="VD: Cần Thơ - Rạch Giá" [ngModel]="locTuyen()"
+            (ngModelChange)="CapNhatLocTuyen($event)" (focus)="MoGoiYTuyen()" (blur)="DongGoiYTuyenTre()"
+            (keydown.escape)="showTuyenSuggestions.set(false)" />
+          @if (locTuyen()) {
+          <button type="button" class="route-clear-button" aria-label="Xóa tuyến xe"
+            (mousedown)="$event.preventDefault()" (click)="XoaLocTuyen()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+          }
+          <button type="button" class="route-dropdown-toggle" aria-label="Mở danh sách tuyến"
+            (mousedown)="$event.preventDefault()" (click)="ToggleGoiYTuyen()">
+            <span class="material-symbols-outlined">expand_more</span>
+          </button>
+          @if (showTuyenSuggestions()) {
+          <div class="route-suggestions">
+            @if (goiYTuyenLoc().length > 0) {
+            @for (tuyen of goiYTuyenLoc(); track tuyen) {
+            <button type="button" class="route-suggestion" [class.active]="tuyen === locTuyen()"
+              (mousedown)="ChonLocTuyen(tuyen); $event.preventDefault()">
+              {{ HienThiTuyen(tuyen) }}
+            </button>
+            }
+            } @else {
+            <div class="route-suggestion-empty">Không có tuyến phù hợp</div>
+            }
+          </div>
+          }
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Ngày đi</label>
+        <input aria-label="Ngày đi" type="date" [ngModel]="locNgay()" (ngModelChange)="CapNhatLocNgay($event)" />
+      </div>
+
+      <div class="field">
+        <label>Trạng thái vé</label>
+        <select aria-label="Trạng thái vé" [ngModel]="locTrangThaiVe()" (ngModelChange)="locTrangThaiVe.set($event)">
+          <option value="tat-ca">Tất cả</option>
+          <option value="giu-cho">Giữ chỗ</option>
+          <option value="cho-khoi-hanh">Chờ khởi hành</option>
+          <option value="da-hoan-thanh">Đã hoàn thành</option>
+          <option value="da-huy">Đã hủy</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Trạng thái thanh toán</label>
+        <select aria-label="Trạng thái thanh toán" [ngModel]="locTrangThaiDonHang()"
+          (ngModelChange)="locTrangThaiDonHang.set($event); trangHienTai.set(1)">
+          <option value="tat-ca">Tất cả đơn</option>
+          <option value="pending-online">Chờ thanh toán Online</option><option value="pending-hotline">Chờ thanh toán Hotline</option><option value="pending-counter">Chưa thu tiền · Tại quầy</option><option value="failed">Thanh toán thất bại</option><option value="expired">Hết hạn</option><option value="refund-processing">Hoàn tiền đang xử lý</option><option value="refunded">Đã hoàn tiền</option><option value="refund-failed">Hoàn tiền thất bại</option>
+          <option value="da-thanh-toan">Đã thanh toán</option>
+          
+        </select>
+      </div>
+
+      <div class="field filter-actions">
+        <button type="button" class="secondary-button clear-filter-btn" (click)="XoaBoLoc()">Xóa bộ lọc</button>
+      </div>
+
+      @if (loiTraCuuDonHang()) {
+      <div class="lookup-error filter-message">{{ loiTraCuuDonHang() }}</div>
+      }
+    </div>
+
+    @if (donHangTimThay().length > 1 && !maDonHangDangXem()) {
+    <section class="order-matches-panel">
+      <header>
+        <span class="eyebrow">Kết quả theo số điện thoại</span>
+        <strong>{{ donHangTimThay().length }} đơn hàng phù hợp</strong>
+      </header>
+      <div class="order-match-list">
+        @for (order of donHangTimThay(); track order.MaDonHang) {
+        <button type="button" class="order-match-card" (click)="ChonDonHangTraCuu(order.MaDonHang)">
+          <span>
+            <strong>{{ order.MaDonHang }}</strong>
+            <small>{{ order.DaiDien.HoTenNguoiDi }} - {{ order.DaiDien.SdtNguoiDi }}</small>
+          </span>
+          <span>
+            <strong>{{ order.SoVeHieuLuc }}/{{ order.SoVe }} vé</strong>
+            <small>Ghế {{ order.Ghe }} - {{ order.TongHieuLuc | number }} đ</small>
+          </span>
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+        }
+      </div>
+    </section>
+    }
+
+    @if (donHangDangXem(); as donHang) {
+    <section class="order-result-panel">
+      <header class="order-result-header">
+        <div>
+          <span class="eyebrow">Đơn hàng</span>
+          <h2>{{ donHang.MaDonHang }}</h2>
+          <p>{{ donHang.HoTenNguoiDi }} - {{ donHang.SdtNguoiDi }}</p>
+        </div>
+        <div class="order-result-actions">
+          <button type="button" class="secondary-button" (click)="MoInDonHang(donHang)">
+            <span class="material-symbols-outlined">print</span>
+            {{ donHang.TrangThaiDonHang === 'da-thanh-toan' ? 'In vé hiệu lực' : 'In phiếu giữ chỗ' }}
+          </button>
+          <button type="button" class="primary-button" [disabled]="!CoTheSua(donHang)" [title]="EditReason(donHang)" (click)="MoSuaDonHangTuVe(donHang)">
+            <span class="material-symbols-outlined">edit_note</span>
+            Sửa thông tin đơn
+          </button>
+        </div>
+      </header>
+
+      <div class="order-summary-grid">
+        <div>
+          <span>Tuyến xe</span>
+          <strong>{{ HienThiTuyen(donHang.TenTuyenXe) }}</strong>
+        </div>
+        <div>
+          <span>Xe</span>
+          <strong>{{ donHang.LoaiXe || 'Xe khách' }} · {{ LayBienSoTheoVe(donHang) }}</strong>
+        </div>
+        <div>
+          <span>Loại ghế</span>
+          <strong>{{ MoTaGheNgan(donHang) }}</strong>
+        </div>
+        <div>
+          <span>Khởi hành</span>
+          <strong>{{ donHang.GioKhoiHanh }} {{ DinhDangNgay(donHang.NgayKhoiHanh) }}</strong>
+        </div>
+        <div>
+          <span>Số vé</span>
+          <strong>{{ veTrongDonDangXem().length }} vé / {{ SoVeHieuLucTrongDon(donHang) }} hiệu lực</strong>
+        </div>
+        <div>
+          <span>Giá trị hiệu lực</span>
+          <strong>{{ tongGiaTriDonHieuLuc() | number }} đ</strong>
+        </div>
+      </div>
+
+      <div class="order-ticket-list">
+        @for (item of veTrongDonDangXem(); track item.MaVe) {
+        <article class="order-ticket-card" [class.cancelled]="item.TrangThaiVe === 'da-huy'">
+          <div class="order-ticket-main">
+            <div class="ticket-seat">
+              <strong>{{ item.SoGhe }}</strong>
+              <span>{{ item.MaVe }}</span>
+            </div>
+            <div>
+              <span class="ticket-route">{{ item.MaDiemDon }} - {{ item.MaDiemTra }}</span>
+              <span class="ticket-meta">{{ item.LoaiXe || 'Xe khách' }} · {{ MoTaGheNgan(item) }} · {{
+                PaymentLabel(item) }} - {{ item.GiaVe | number }} đ</span>
+              <span class="ticket-meta">{{ item.TenXe || TenXeTheoVe(item) }} · {{ LayBienSoTheoVe(item) }}</span>
+            </div>
+            <app-badge variant="neutral" [label]="TicketLabel(item)" />
+          </div>
+          <div class="ticket-qr-box">
+            <img [src]="MaQr(item)" [alt]="'Mã QR ' + item.MaVe" />
+            <small>{{ item.MaQRVe }}</small>
+          </div>
+          <div class="ticket-row-actions">
+            <button type="button" class="icon-action" title="Sửa thông tin đơn" (click)="MoSuaDonHangTuVe(item)">
+              <span class="material-symbols-outlined">edit</span>
+            </button>
+            <button type="button" class="icon-action" [title]="item.TrangThaiDonHang === 'da-thanh-toan' ? 'In vé này' : 'In phiếu giữ chỗ'" [disabled]="item.TrangThaiVe === 'da-huy'"
+              (click)="MoInVeRieng(item)">
+              <span class="material-symbols-outlined">print</span>
+            </button>
+            <button type="button" class="icon-action danger" [title]="item.TrangThaiDonHang === 'da-thanh-toan' ? 'Hủy vé / Hoàn tiền' : 'Hủy giữ chỗ'" [disabled]="!CoTheHuy(item)"
+              (click)="MoHuyTungVe(item)">
+              <span class="material-symbols-outlined">cancel</span>
+            </button>
+          </div>
+        </article>
+        }
+      </div>
+    </section>
+    }
+  </section>
+
+  <section class="table-panel">
+    <div class="table-header">
+      <strong>Danh sách vé</strong>
+      <span>{{ danhSachLoc().length }} bản ghi</span>
+    </div>
+
+    <div class="table-scroll">
+      @if (danhSachLoc().length === 0) {
+      <div class="empty-table">
+        <h3>Không có kết quả</h3>
+        <p>Thử đổi từ khóa hoặc trạng thái lọc.</p>
+      </div>
+      } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Mã đơn / vé</th>
+            <th>Khách hàng</th>
+            <th>SĐT</th>
+            <th>Tuyến</th>
+            <th>Ngày giờ</th>
+            <th>Ghế</th>
+            <th>Xe</th>
+            <th>Tiền vé</th>
+            <th>Thanh toán</th>
+            <th>Trạng thái</th>
+            <th class="actions-col">Chức năng</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (ve of danhSachPhanTrang(); track ve.MaVe) {
+          <tr [class.cancelled]="ve.TrangThaiVe === 'da-huy'">
+            <td class="code">
+              <strong>{{ ve.MaDonHang || '-' }}</strong>
+              <small>{{ ve.MaVe }}</small>
+            </td>
+            <td class="name">{{ ve.HoTenNguoiDi }}</td>
+            <td>{{ ve.SdtNguoiDi }}</td>
+            <td>{{ HienThiTuyen(ve.TenTuyenXe, ve.ChieuTuyen) }}</td>
+            <td>{{ DinhDangNgay(ve.NgayKhoiHanh) }} {{ ve.GioKhoiHanh }}</td>
+            <td class="seat">
+              <strong>{{ ve.SoGhe }}</strong>
+              <small>{{ MoTaGheNgan(ve) }}</small>
+            </td>
+            <td class="vehicle-cell">
+              <strong>{{ ve.LoaiXe || 'Xe khách' }}</strong>
+              <small>{{ LayBienSoTheoVe(ve) }}</small>
+            </td>
+            <td>{{ ve.GiaVe | number }} đ</td>
+            <td class="ticket-status-cell">
+              <app-badge [variant]="PaymentVariant(ve)" [label]="PaymentLabel(ve)" />
+            </td>
+            <td class="ticket-status-cell">
+              <app-badge variant="neutral" [label]="TicketLabel(ve)" />
+            </td>
+            <td class="actions-col">
+              <button type="button" class="action-btn-icon edit" (click)="ChonVe(ve)" title="Xem chi tiết và chỉnh sửa">
+                <span class="material-symbols-outlined">edit_note</span>
+              </button>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+      }
+    </div>
+
+    <div class="pagination-bar">
+      <span>
+        Hiển thị {{ chiSoDauTrang() }}-{{ chiSoCuoiTrang() }} / {{ danhSachLoc().length }} vé
+      </span>
+      <div class="pagination-controls">
+        <label>
+          Số dòng
+          <select [ngModel]="soDongMoiTrang()" (ngModelChange)="CapNhatSoDongMoiTrang($event)">
+            <option [value]="8">8</option>
+            <option [value]="12">12</option>
+            <option [value]="20">20</option>
+          </select>
+        </label>
+        <app-pagination
+          [currentPage]="trangHopLe()"
+          [totalItems]="danhSachLoc().length"
+          [pageSize]="soDongMoiTrang()"
+          [showSummary]="false"
+          (pageChange)="ChuyenTrang($event)"
+        />
+      </div>
+    </div>
+  </section>
+
+  @if (showDetailModal() && veDuocChon(); as ve) {
+  <div class="modal-overlay" (click)="DongTatCaModal()">
+    <div bookingDialog role="dialog" aria-modal="true" tabindex="-1" aria-label="Thông tin vé" class="detail-modal" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div>
+          <h2>Chi tiết đơn {{ ve.MaDonHang || ve.MaVe }}</h2>
+        </div>
+        <button type="button" aria-label="Đóng" class="close-button" (click)="DongTatCaModal()">x</button>
+      </header>
+
+      <div class="detail-modal-body">
+        <section class="detail-info">
+          <div class="detail-section">
+            <h3>Thông tin khách hàng</h3>
+            <div class="detail-line">
+              <span>Họ tên</span>
+              <strong>{{ ve.HoTenNguoiDi }}</strong>
+            </div>
+            <div class="detail-line">
+              <span>SĐT</span>
+              <strong>{{ ve.SdtNguoiDi }}</strong>
+            </div>
+            <div class="detail-line">
+              <span>Nguồn đặt</span>
+              <strong>{{ LabelNguonDat(ve.NguonDat) }}</strong>
+            </div>
+            <div class="detail-line">
+              <span>Điểm đón</span>
+              <strong>{{ ve.MaDiemDon }}</strong>
+            </div>
+            <div class="detail-line">
+              <span>Điểm trả</span>
+              <strong>{{ ve.MaDiemTra }}</strong>
+            </div>
+            @if (ve.GhiChu) {
+            <div class="detail-line"
+              style="flex-direction: column; align-items: flex-start; gap: 4px; border-top: 1px dashed var(--color-border-strong); padding-top: 8px; margin-top: 8px">
+              <span style="color: var(--color-text-secondary); font-weight: var(--font-weight-semibold)">Ghi chú:</span>
+              <span style="color: var(--color-neutral-600); font-style: italic">{{ LayGhiChuSach(ve.GhiChu) }}</span>
+            </div>
+            }
+          </div>
+
+          <div class="detail-section">
+            <h3>Thông tin vé</h3><img class="booking-detail-qr" [src]="MaQr(ve)" [alt]="'QR ' + ve.MaVe" /><app-badge variant="neutral" [label]="TicketLabel(ve)" />
+            <div class="detail-line">
+              <span>Mã đơn hàng</span>
+              <strong>{{ ve.MaDonHang || ve.MaVe }}</strong>
+            </div>
+            <div class="detail-line">
+              <span>Mã vé</span>
+              <strong>{{ ve.MaVe }}</strong>
+            </div>
+            <div class="detail-line">
+              <span>Ngày đi</span>
+              <strong>{{ DinhDangNgay(ve.NgayKhoiHanh) }}</strong>
+            </div>
+            <div class="detail-line">
+              <span>Giờ xuất bến</span>
+              <strong style="text-align: right; display: flex; flex-direction: column; align-items: flex-end">
+                <span>{{ ve.GioKhoiHanh }}</span>
+                <small style="color: var(--color-success-700); font-weight: var(--font-weight-semibold); font-size: var(--font-size-micro); margin-top: 2px">{{
+                  DinhDangNgay(ve.NgayKhoiHanh) }}</small>
+              </strong>
+            </div>
+            <div class="detail-line">
+              <span>Cần có mặt</span>
+              <strong style="text-align: right; display: flex; flex-direction: column; align-items: flex-end">
+                <span>{{ LayGioCoMat(ve.GioKhoiHanh) }}</span>
+                <small style="color: var(--color-success-700); font-weight: var(--font-weight-semibold); font-size: var(--font-size-micro); margin-top: 2px">{{
+                  DinhDangNgay(ve.NgayKhoiHanh) }}</small>
+              </strong>
+            </div>
+            <div class="detail-line">
+              <span>Tuyến</span>
+              <strong>{{ HienThiTuyen(ve.TenTuyenXe, ve.ChieuTuyen) }}</strong>
+            </div>
+            <div class="detail-line">
+              <span>Loại xe</span>
+              <strong>{{ ve.LoaiXe || 'Xe khách' }}</strong>
+            </div>
+            <div class="detail-line">
+              <span>Loại ghế</span>
+              <strong>{{ MoTaGheNgan(ve) }}</strong>
+            </div>
+            <div class="detail-line">
+              <span>Xe bán vé</span>
+              <strong>{{ TenXeTheoVe(ve) }}</strong>
+            </div>
+            <div class="detail-line">
+              <span>Biển số</span>
+              <strong>{{ LayBienSoTheoVe(ve) || '-' }}</strong>
+            </div>
+            <div class="detail-line">
+              <span>Tổng tiền</span>
+              <strong class="price-orange">{{ ve.GiaVe | number }}đ</strong>
+            </div>
+            <div class="detail-line">
+              <span>Số ghế</span>
+              <strong>{{ ve.SoGhe }}</strong>
+            </div>
+          </div>
+        </section>
+
+        <aside class="detail-actions" style="display: flex; flex-direction: column; gap: 10px">
+          <h3>Thanh toán</h3>
+          <app-badge [variant]="PaymentVariant(ve)" [label]="PaymentLabel(ve)" />
+          @if (ve.orderStatus === 'held') { <p class="booking-helper">Còn {{ Countdown(ve.holdExpiresAt, clockNow()) }} · Cần thu {{ TongGiaTriVeHieuLuc(ve) | number }}đ</p> }
+          @if (ve.paymentStatus === 'refund-processing' || ve.paymentStatus === 'refund-failed') {
+            <app-button variant="outline" [loading]="processing()" (clicked)="FinishRefund(true)">Mô phỏng hoàn tiền thành công</app-button>
+            <app-button variant="ghost" [disabled]="processing()" (clicked)="FinishRefund(false)">Mô phỏng hoàn tiền thất bại</app-button>
+          }
+          <h3>Thao tác</h3>
+          @if (EditReason(ve)) { <p class="booking-helper">{{ EditReason(ve) }}</p> }
+          @if (ve.TrangThaiVe !== 'da-huy') {
+          <button type="button" class="action-button edit" [disabled]="!CoTheSua(ve)" [title]="EditReason(ve)" (click)="MoEditModal()">
+            Sửa thông tin đơn
+          </button>
+          <button type="button" class="action-button print" (click)="MoInDonHang(ve)">
+            {{ ve.TrangThaiDonHang === 'da-thanh-toan' ? 'In vé hiệu lực trong đơn' : 'In phiếu giữ chỗ' }}
+          </button>
+          <button type="button" class="action-button resend" (click)="GuiLaiThongBao()">
+            Gửi lại SMS/Email
+          </button>
+          @if (ve.TrangThaiDonHang === 'cho-thanh-toan') {
+          <p class="booking-helper">Xác nhận thu tiền cho toàn bộ vé hiệu lực trong đơn.</p>
+          @if (ve.NguonDat === 'online') {
+            <app-button variant="outline" [loading]="processing()" (clicked)="MockOnlinePayment(true)">Tiếp tục thanh toán (mô phỏng)</app-button>
+            <app-button variant="ghost" [disabled]="processing()" (clicked)="MockOnlinePayment(false)">Mô phỏng thanh toán thất bại</app-button>
+          } @else { <app-button variant="outline" [loading]="processing()" (clicked)="MoXacNhanThanhToan()">Xác nhận đã thanh toán</app-button> }
+          }
+          <button type="button" class="action-button transfer" (click)="MoChuyenGhe(ve)">
+            Đổi ghế
+          </button>
+          @if (CoTheHuy(ve)) {
+          <button type="button" class="action-button cancel" (click)="MoCancelModal()">
+            {{ ve.TrangThaiDonHang === 'da-thanh-toan' ? 'Hủy vé / Hoàn tiền' : 'Hủy giữ chỗ' }}
+          </button>
+          }
+          }
+
+        </aside>
+      </div>
+    </div>
+  </div>
+  }
+
+  @if (showEditModal() && veDuocChon(); as ve) {
+  <div class="modal-overlay top-layer" (click)="CloseEdit()">
+    <div bookingDialog role="dialog" aria-modal="true" tabindex="-1" aria-label="Thông tin vé" class="edit-modal" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div>
+          <span class="eyebrow">Chỉnh sửa thông tin đơn hàng</span>
+          <h2>{{ ve.MaDonHang || ve.MaVe }}</h2>
+        </div>
+        <button type="button" aria-label="Đóng" class="close-button" (click)="CloseEdit()">x</button>
+      </header>
+
+      <div class="edit-modal-body">
+        <section class="passenger-form-panel">
+          <h3>Thông tin khách và thanh toán</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label>Họ tên</label>
+              <input aria-label="Họ tên" type="text" [ngModel]="editTen()" required maxlength="100" (ngModelChange)="editTen.set($event)" (blur)="editTen.set(NormalizedName(editTen()))" [attr.aria-invalid]="!ValidName(editTen())" /> @if (!ValidName(editTen())) { <small class="booking-error">Họ tên phải từ 2–100 ký tự.</small> }
+            </div>
+            <div class="field">
+              <label>Số điện thoại</label>
+              <input aria-label="Số điện thoại" type="tel" [ngModel]="editSdt()" maxlength="10" inputmode="numeric" required (ngModelChange)="SanitizePhone($event)" [attr.aria-invalid]="!ValidPhone(editSdt())" /> @if (!ValidPhone(editSdt())) { <small class="booking-error">Số điện thoại phải gồm 10 chữ số.</small> }
+            </div>
+            <div class="field">
+              <label>Email (không bắt buộc)</label>
+              <input aria-label="Email (không bắt buộc)" type="email" [ngModel]="editEmail()" (ngModelChange)="editEmail.set($event)" [attr.aria-invalid]="!ValidEmail(editEmail())" /> @if (!ValidEmail(editEmail())) { <small class="booking-error">Email không đúng định dạng.</small> }
+            </div>
+            <div class="field">
+              <label>Nguồn đặt</label>
+              <input aria-label="Nguồn đặt" type="text" [value]="LabelNguonDat(ve.NguonDat)" readonly />
+            </div>
+            <div class="field">
+              <label>Điểm đón</label>
+              <select aria-label="Điểm đón" [ngModel]="editDiemDon()" (ngModelChange)="editDiemDon.set($event)">
+                @for (diem of LayDiemDonTheoTuyen(ve.TenTuyenXe); track diem) {
+                <option [value]="diem">{{ diem }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label>Điểm trả</label>
+              <select aria-label="Điểm trả" [ngModel]="editDiemTra()" (ngModelChange)="editDiemTra.set($event)">
+                @for (diem of LayDiemTraTheoTuyen(ve.TenTuyenXe); track diem) {
+                <option [value]="diem">{{ diem }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label>Thanh toán</label>
+              <app-badge [variant]="PaymentVariant(ve)" [label]="PaymentLabel(ve)" />
+            </div>
+            <div class="field">
+              <label>Hình thức</label>
+              <select aria-label="Hình thức" [ngModel]="editHinhThuc()" (ngModelChange)="CapNhatHinhThuc($event)">
+                <option value="tien-mat">Tiền mặt</option>
+                <option value="chuyen-khoan">Chuyển khoản</option>
+                <option value="the">Thẻ</option>
+              </select>
+            </div>
+
+            <div class="field promo-field">
+              <label>Mã giảm giá</label><small role="status" class="booking-helper">{{ editCouponFeedback() }}</small>
+              <div class="promo-input-wrapper">
+                <input type="text" placeholder="Nhập mã, ví dụ VIAGO50" [ngModel]="editMaGiamGia()"
+                  (ngModelChange)="CapNhatMaGiamGia($event)"
+                  (focus)="CoTheSuaMaGiamGia(ve) && showPromoSuggestions.set(true)" (blur)="onPromoBlur()"
+                  [disabled]="!CoTheSuaMaGiamGia(ve)" class="promo-input" />
+                @if (showPromoSuggestions() && CoTheSuaMaGiamGia(ve)) {
+                <div class="promo-suggestions">
+                  @for (ma of maGiamGiaList; track ma.code) {
+                  @if (ma.code) {
+                  <button type="button" class="promo-suggestion-item" (mousedown)="SelectPromoCode(ma.code)">
+                    <span class="promo-code-name">{{ ma.code }}</span>
+                    <span class="promo-code-desc">{{ ma.label }}</span>
+                  </button>
+                  }
+                  }
+                </div>
+                }
+              </div>
+              @if (!CoTheSuaMaGiamGia(ve)) {
+              <small class="field-hint" style="color: var(--color-warning-700); font-weight: var(--font-weight-semibold)">Vé đã thanh toán nên không thể chỉnh
+                sửa mã giảm giá.</small>
+              }
+            </div>
+            <div class="field full">
+              <label>Ghi chú</label>
+              <textarea aria-label="Ghi chú" rows="3" [ngModel]="editGhiChu()" (ngModelChange)="editGhiChu.set($event)"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <aside class="modal-summary-panel">
+          <!-- Card 1: Thông tin chuyến đi -->
+          <div class="summary-card travel-info-card">
+            <h3>Thông tin chuyến đi</h3>
+            <div class="summary-line">
+              <span>Tuyến xe</span>
+              <strong>{{ HienThiTuyen(ve.TenTuyenXe, ve.ChieuTuyen) }}</strong>
+            </div>
+            <div class="summary-line">
+              <span>Loại xe</span>
+              <strong>{{ ve.LoaiXe || 'Xe khách' }}</strong>
+            </div>
+            <div class="summary-line">
+              <span>Loại ghế</span>
+              <strong>{{ MoTaGheNgan(ve) }}</strong>
+            </div>
+            <div class="summary-line">
+              <span>Xe</span>
+              <strong>{{ TenXeTheoVe(ve) }} · {{ LayBienSoTheoVe(ve) }}</strong>
+            </div>
+            <div class="summary-line">
+              <span>Giờ xuất bến</span>
+              <strong class="highlight-teal">{{ ve.GioKhoiHanh }} {{ DinhDangNgay(ve.NgayKhoiHanh) }}</strong>
+            </div>
+            <div class="summary-line">
+              <span>Cần có mặt</span>
+              <strong class="highlight-teal">{{ LayGioCoMat(ve.GioKhoiHanh) }} {{ DinhDangNgay(ve.NgayKhoiHanh)
+                }}</strong>
+            </div>
+            <div class="summary-line">
+              <span>Số lượng</span>
+              <strong>{{ TatCaVeCungDon(ve).length }} vé ({{ SoVeHieuLucTrongDon(ve) }} hiệu lực)</strong>
+            </div>
+            <div class="summary-line">
+              <span>Số ghế</span>
+              <strong class="highlight-teal">{{ DanhSachGheTrongDon(ve) }}</strong>
+            </div>
+            <div class="summary-line total-price-line">
+              <span>Giá trị hiệu lực</span>
+              <strong class="price-orange">{{ TongGiaTriVeHieuLuc(ve) | number }}đ</strong>
+            </div>
+          </div>
+
+          <!-- Card 2: Chi tiết giá -->
+          <div class="summary-card price-details-card">
+            <h3>Chi tiết giá</h3>
+            <div class="summary-line">
+              <span>Giá lượt đi</span>
+              <strong>{{ editTamTinh() | number }}đ</strong>
+            </div>
+            @if (editSoTienGiam() > 0) {
+            <div class="summary-line">
+              <span>Giảm giá</span>
+              <strong style="color: var(--color-danger-700)">-{{ editSoTienGiam() | number }}đ</strong>
+            </div>
+            }
+            <div class="summary-line">
+              <span>Phí thanh toán</span>
+              <strong>0đ</strong>
+            </div>
+            <div class="summary-line final-total-line">
+              <span>Tổng tiền</span>
+              <strong class="price-orange">{{ editTongTien() | number }}đ</strong>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="secondary-button" (click)="CloseEdit()">Hủy</button>
+        <button type="button" class="primary-button" [disabled]="!coThayDoiSua() || !EditValid()" (click)="LuuSuaThongTin()">
+          Lưu thay đổi
+        </button>
+      </footer>
+    </div>
+  </div>
+  }
+
+  @if (showCancelModal() && veDuocChon(); as ve) {
+  <div class="modal-overlay top-layer" (click)="CloseCancel()">
+    <div bookingDialog role="dialog" aria-modal="true" tabindex="-1" aria-label="Thông tin vé" class="cancel-modal" (click)="$event.stopPropagation()">
+      <header class="modal-header cancel-header">
+        <div>
+          <span class="eyebrow">{{ ve.TrangThaiDonHang === 'da-thanh-toan' ? 'Hủy vé / Hoàn tiền' : 'Hủy giữ chỗ' }}</span>
+          <h2>{{ ve.MaVe }}</h2>
+        </div>
+        <button type="button" aria-label="Đóng" class="close-button" (click)="CloseCancel()">x</button>
+      </header>
+
+      <div class="cancel-modal-body">
+        <div class="warning-box">
+          Bạn sắp hủy vé của khách <strong>{{ ve.HoTenNguoiDi }}</strong>. {{ ve.TrangThaiDonHang === 'da-thanh-toan' ? 'Vui lòng đọc kỹ chính sách hoàn tiền.' : 'Chưa thu tiền, không phát sinh hoàn tiền.' }}
+        </div>
+
+        @if (ve.TrangThaiDonHang === 'da-thanh-toan') { <section class="policy-box">
+          <h3>Chính sách hủy vé và hoàn tiền</h3>
+          <ul>
+            @for (policy of cancelPolicies; track policy.title) {
+            <li><strong>{{ policy.title }}</strong>: {{ policy.description }}</li>
+            }
+          </ul>
+        </section> }
+
+        <div class="field">
+          <label>Nhân viên thực hiện hủy</label>
+          <div
+            style="width: 100%; min-height: 38px; border: 1px solid var(--color-border); background: var(--color-background); border-radius: var(--radius-sm); padding: 8px 12px; font-family: inherit; font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); color: var(--color-text-body); display: flex; align-items: center; gap: 6px">
+            <span class="material-symbols-outlined" style="font-size: var(--font-size-title); color: var(--color-text-secondary)">account_circle</span>
+            {{ cancelStaff() }} (Tài khoản quầy vé)
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Lý do hủy vé</label>
+          <select aria-label="Lý do hủy vé" [ngModel]="selectedCancelReason()" (ngModelChange)="CapNhatCancelReason($event)">
+            @for (reason of cancelReasons; track reason) {
+            <option [value]="reason">{{ reason }}</option>
+            }
+          </select> @if (selectedCancelReason() === 'Khác') { <label>Lý do chi tiết *</label><textarea aria-label="Lý do chi tiết *" placeholder="Nhập lý do chi tiết..." [ngModel]="cancellationOther()" (ngModelChange)="cancellationOther.set($event)"></textarea> }
+        </div>
+
+        @if (LaySoLuongGheLienQuan(ve) > 1) {
+        <div class="booking-confirm-actions">
+    <app-button variant="outline" (clicked)="applyCancelToGroup.set(false)">Chỉ hủy ghế {{ ve.SoGhe }}</app-button>
+    <app-button variant="danger" (clicked)="applyCancelToGroup.set(true)">Hủy toàn bộ đơn</app-button>
+  </div><p class="booking-helper">Phạm vi: {{ applyCancelToGroup() ? 'Toàn bộ vé hiệu lực trong đơn' : 'Chỉ ghế ' + ve.SoGhe }}</p>
+        }
+
+        @if (ve.TrangThaiDonHang === 'da-thanh-toan') { <section class="refund-summary">
+          <div>
+            <span>Tổng tiền vé ban đầu:</span>
+            <strong>{{ (applyCancelToGroup() ? TinhTongGiaGocNhom(ve) : ve.GiaVe) | number }} đ</strong>
+          </div>
+          <div>
+            <span>Phí hủy vé:</span>
+            <strong class="danger">- {{ (applyCancelToGroup() ? TinhTongPhiHuyNhom(ve) : TinhHoanTien(ve).phiHuy) |
+              number }} đ</strong>
+          </div>
+          <div>
+            <span>Số tiền dự kiến hoàn:</span>
+            <strong class="success">{{ (applyCancelToGroup() ? TinhTongHoanTienNhom(ve) : TinhHoanTien(ve).soTien) |
+              number }} đ</strong>
+          </div>
+          <div>
+            <span>Phương thức nhận tiền:</span>
+            <strong>{{ LabelHinhThuc(ve.PhuongThucThanhToan) }}</strong>
+          </div>
+        </section> }
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="secondary-button" (click)="CloseCancel()">Đóng</button>
+        <button type="button" class="danger-button solid" (click)="MoCancelConfirmModal()">Xác nhận hủy</button>
+      </footer>
+    </div>
+  </div>
+  }
+
+  @if (showCancelConfirmModal() && veDuocChon(); as ve) {
+  <div class="modal-overlay confirm-layer" (click)="showCancelConfirmModal.set(false)">
+    <div bookingDialog role="dialog" aria-modal="true" tabindex="-1" aria-label="Xác nhận thao tác" class="confirm-modal" (click)="$event.stopPropagation()">
+      <header class="modal-header cancel-header">
+        <h2>Xác nhận hủy vé</h2>
+        <button type="button" aria-label="Đóng" class="close-button" (click)="showCancelConfirmModal.set(false)">x</button>
+      </header>
+      <div class="confirm-body">
+        <strong>{{ TieuDeXacNhanHuy() }}</strong>
+        <p>Hành động này không thể hoàn tác. {{ MoTaXacNhanHuy(ve) }}</p>
+      </div>
+      <footer class="modal-footer">
+        <button type="button" class="secondary-button" (click)="showCancelConfirmModal.set(false)">Quay lại</button>
+        <button type="button" class="danger-button solid" [disabled]="processing() || (selectedCancelReason() === 'Khác' && !cancellationOther().trim())" (click)="XacNhanHuyVeXe()">Xác nhận hủy</button>
+      </footer>
+    </div>
+  </div>
+  }
+
+  @if (showPrintModal() && veDangIn().length > 0) {
+  <div class="modal-overlay print-layer" (click)="showPrintModal.set(false)" style="z-index: 200">
+    <div bookingDialog role="dialog" aria-modal="true" tabindex="-1" aria-label="Thông tin vé" class="print-modal" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <h2>{{ veDangIn()[0].TrangThaiDonHang === 'da-thanh-toan' ? 'IN VÉ ĐIỆN TỬ' : 'IN PHIẾU GIỮ CHỖ' }}</h2>
+        <button type="button" aria-label="Đóng" class="close-button" (click)="showPrintModal.set(false)">x</button>
+      </header>
+
+      <div class="modal-body"
+        style="grid-template-columns: 1fr; overflow-y: auto; padding: 20px; max-height: 70vh; background: var(--color-surface-muted)">
+        @for (item of veDangIn(); track item.MaVe) {
+        <div class="ticket-receipt"
+          style="margin: 0 auto 16px; width: min(420px, calc(100% - 32px)); background: var(--color-surface); padding: 16px 20px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); font-family: var(--font-family-base); text-align: center; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08)">
+          <h3 style="font-size: var(--font-size-title); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: 2px">CÔNG TY TNHH VIAGO</h3>
+          <div class="receipt-address" style="font-size: var(--font-size-micro); color: var(--color-neutral-600); margin-bottom: 2px">669 Đỗ Mười, khu phố
+            13, Linh Xuân, TPHCM</div>
+          <div class="receipt-mst" style="font-size: var(--font-size-micro); color: var(--color-neutral-600); font-weight: var(--font-weight-semibold); margin-bottom: 8px">MST:
+            0317654321</div>
+
+          <div class="receipt-dashed-line" style="border-top: 1px dashed var(--color-border-strong); margin: 6px 0"></div>
+
+          <h4 style="font-size: var(--font-size-title); font-weight: var(--font-weight-semibold); margin: 4px 0 2px 0; color: var(--color-text-primary); border: 0; padding: 0">{{ item.TrangThaiDonHang === 'da-thanh-toan' ? 'VÉ XE KHÁCH' : 'PHIẾU GIỮ CHỖ · CHƯA THANH TOÁN' }}</h4>
+          <div class="receipt-sub" style="font-size: var(--font-size-caption); color: var(--color-text-secondary); font-style: italic; margin-bottom: 8px">
+            Liên: Giao cho hành khách</div>
+
+          <div class="receipt-dashed-line" style="border-top: 1px dashed var(--color-border-strong); margin: 6px 0"></div>
+
+          <div class="receipt-two-columns"
+            style="display: grid; grid-template-columns: 1fr 120px; gap: 16px; text-align: left; align-items: center">
+            <div class="receipt-details">
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Mã đơn hàng:</span> <strong
+                  style="color: var(--color-text-primary)">{{ item.MaDonHang || item.MaVe }}</strong></p>
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Mã vé:</span> <strong style="color: var(--color-text-primary)">{{
+                  item.MaVe }}</strong></p>
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Mã QR:</span> <strong style="color: var(--color-text-primary)">{{
+                  item.MaQRVe }}</strong></p>
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Họ tên khách:</span> <strong
+                  style="color: var(--color-text-primary)">{{ item.HoTenNguoiDi }}</strong></p>
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Tuyến xe:</span> <strong
+                  style="color: var(--color-text-primary)">{{ HienThiTuyen(item.TenTuyenXe, item.ChieuTuyen) }}</strong></p>
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Khởi hành:</span> <strong
+                  style="color: var(--color-text-primary)">{{ item.GioKhoiHanh }} {{ DinhDangNgay(item.NgayKhoiHanh) }}</strong></p>
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Số ghế:</span> <strong
+                  style="color: var(--color-text-primary)">{{ item.SoGhe }}</strong></p>
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Loại xe:</span> <strong
+                  style="color: var(--color-text-primary)">{{ item.LoaiXe || 'Xe khách' }}</strong></p>
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Loại ghế:</span> <strong
+                  style="color: var(--color-text-primary)">{{ MoTaGheNgan(item) }}</strong></p>
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Xe:</span> <strong style="color: var(--color-text-primary)">{{
+                  TenXeTheoVe(item) }}</strong></p>
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Biển số:</span> <strong
+                  style="color: var(--color-text-primary)">{{ LayBienSoTheoVe(item) }}</strong></p>
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Điểm đón:</span> <strong
+                  style="color: var(--color-text-primary)">{{ item.MaDiemDon }}</strong></p>
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Điểm trả:</span> <strong
+                  style="color: var(--color-text-primary)">{{ item.MaDiemTra }}</strong></p>
+              <p style="display: flex; margin: 0 0 3px 0; font-size: var(--font-size-body-sm); color: var(--color-neutral-600); line-height: var(--line-height-body-sm)"><span
+                  style="width: 100px; flex-shrink: 0; color: var(--color-text-secondary)">Giá vé:</span> <strong
+                  style="color: var(--color-text-primary)">{{ item.GiaVe | number }} đ</strong></p>
+            </div>
+            <div class="receipt-qrcode-col" style="display: flex; justify-content: center; align-items: center">
+              <img [src]="MaQr(item)" [alt]="'Mã QR ' + item.MaVe" class="ticket-qr-img"
+                style="width: 100px; height: 100px; border: 1px solid var(--color-border-strong); padding: 4px; border-radius: var(--radius-sm); background: var(--color-surface); display: block" />
+            </div>
+          </div>
+
+          <div class="receipt-dashed-line" style="border-top: 1px dashed var(--color-border-strong); margin: 6px 0"></div>
+
+          <div class="receipt-footer-notes"
+            style="font-size: var(--font-size-micro); color: var(--color-text-secondary); line-height: var(--line-height-micro); text-align: center">
+            
+            <p class="hotline-note" style="margin: 0; font-size: var(--font-size-body-sm); color: var(--color-text-primary)">Tổng đài bán vé: <strong
+                style="font-weight: var(--font-weight-semibold); color: var(--color-primary-500)">1900 1234</strong></p>
+          </div>
+        </div>
+        }
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="secondary-button rounded-btn" style="border-radius: var(--radius-full)"
+          (click)="showPrintModal.set(false)">Đóng</button>
+        <button type="button" class="primary-button print-direct-btn"
+          style="background: var(--color-primary-500); border-color: var(--color-primary-500); border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 6px; color: white"
+          (click)="InVeXe()">
+          In trực tiếp
+        </button>
+      </footer>
+    </div>
+  </div>
+  }
+
+  @if (showConfirmChangesModal()) {
+  <div class="modal-overlay confirm-changes-layer" (click)="showConfirmChangesModal.set(false)" style="z-index: 250">
+    <div bookingDialog role="dialog" aria-modal="true" tabindex="-1" aria-label="Xác nhận thao tác" class="confirm-changes-modal" (click)="$event.stopPropagation()"
+      style="width: min(480px, 95%); background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: 0 20px 40px rgba(15, 23, 42, 0.22); display: flex; flex-direction: column; overflow: hidden">
+      <header class="modal-header">
+        <h2>XÁC NHẬN THAY ĐỔI</h2>
+        <button type="button" aria-label="Đóng" class="close-button" (click)="showConfirmChangesModal.set(false)">x</button>
+      </header>
+      <div class="confirm-changes-body" style="padding: 20px">
+        <p class="subtitle" style="font-size: var(--font-size-body-sm); color: var(--color-text-secondary); margin-bottom: 16px">Vui lòng kiểm tra lại các mục
+          bên dưới trước khi xác nhận lưu.</p>
+        <div class="changes-list"
+          style="display: flex; flex-direction: column; gap: 12px; max-height: 280px; overflow-y: auto">
+          @for (change of danhSachThayDoi(); track change.truong) {
+          <div class="change-card"
+            style="background: var(--color-background); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 4px">
+            <span class="change-title"
+              style="font-size: var(--font-size-micro); font-weight: var(--font-weight-semibold); color: var(--color-primary-500); text-transform: uppercase">{{ change.nhan
+              }}</span>
+            <div class="change-comparison"
+              style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; font-size: var(--font-size-body-sm)">
+              <span class="old-value" style="color: var(--color-text-secondary)">Cũ: <strong class="old-strike"
+                  style="text-decoration: line-through; font-weight: var(--font-weight-semibold); color: var(--color-text-disabled)">{{ change.cu
+                  }}</strong></span>
+              <span class="new-value" style="color: var(--color-success-700); font-weight: var(--font-weight-semibold)">Mới: <strong>{{ change.moi
+                  }}</strong></span>
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+
+      @if (veDuocChon(); as ve) {
+      <div
+        style="margin: 0 20px 16px; padding: 12px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: var(--radius-md); font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); color: #0369a1">
+        Thay đổi sẽ áp dụng cho toàn bộ đơn hàng {{ ve.MaDonHang || ve.MaVe }} ({{ TatCaVeCungDon(ve).length }} vé).
+      </div>
+      }
+
+      <footer class="modal-footer">
+        <button type="button" class="secondary-button rounded-btn" (click)="showConfirmChangesModal.set(false)">Quay lại
+          sửa</button>
+        <button type="button" class="confirm-save-btn"
+          style="background: var(--color-accent-600); color: var(--color-surface); border: 0; border-radius: 7px; padding: 8px 16px; font-family: inherit; font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); cursor: pointer; min-height: 36px"
+          (click)="XacNhanLuuThayDoi()">Xác nhận</button>
+      </footer>
+    </div>
+  </div>
+  }
+  @if (showTransferModal() && veDuocChon(); as ve) {
+  <div class="modal-overlay confirm-layer" (click)="CloseTransfer()"
+    style="z-index: 130; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.45); display: flex; align-items: center; justify-content: center">
+    <div bookingDialog role="dialog" aria-modal="true" tabindex="-1" aria-label="Xác nhận thao tác" class="confirm-modal" (click)="$event.stopPropagation()"
+      style="width: min(540px, 92%); background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden; display: flex; flex-direction: column">
+      <header class="modal-header"
+        style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border); padding: 16px 20px; background: var(--color-background)">
+        <h2 style="font-size: var(--font-size-title); font-weight: var(--font-weight-semibold); margin: 0; color: var(--color-text-primary)">Đổi ghế</h2>
+        <button type="button" aria-label="Đóng" class="close-button" (click)="CloseTransfer()"
+          style="border: 0; background: transparent; font-size: var(--font-size-h3); cursor: pointer; color: var(--color-text-secondary)">x</button>
+      </header>
+      <div class="confirm-body" style="text-align: left; padding: 20px">
+        <p style="margin-bottom: 12px; font-size: var(--font-size-body); color: var(--color-text-body)">
+          Bạn đang thực hiện đổi ghế cho hành khách <strong>{{ ve.HoTenNguoiDi }}</strong> (Vé: {{ ve.MaVe }}).
+        </p>
+        <div
+          style="display: flex; align-items: flex-end; gap: 12px; margin-bottom: 16px; padding: 12px; background: var(--color-info-50); border: 1px solid var(--color-primary-100); border-radius: var(--radius-md)">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: var(--font-size-caption); color: var(--color-neutral-600); display: block; font-weight: var(--font-weight-semibold)">Ghế hiện tại</span>
+            <div
+              style="height: 38px; display: flex; align-items: center; background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); padding: 0 12px; font-weight: var(--font-weight-semibold); color: var(--color-primary-500); font-size: var(--font-size-body); white-space: nowrap">
+              {{ ve.SoGhe }} ({{ MoTaGheNgan(ve) }})
+            </div>
+          </div>
+          <div
+            style="height: 38px; display: flex; align-items: center; justify-content: center; color: var(--color-text-disabled); font-size: var(--font-size-h3); font-weight: var(--font-weight-semibold)">
+            ➔</div>
+          <div class="field" style="flex: 1; display: flex; flex-direction: column; gap: 6px">
+            <label style="font-size: var(--font-size-caption); color: var(--color-neutral-600); display: block; font-weight: var(--font-weight-semibold)">Chọn ghế trống
+              đích</label>
+            <select aria-label="Chọn ghế trống
+              đích" [ngModel]="selectedNewSeat()" (ngModelChange)="selectedNewSeat.set($event)"
+              style="width: 100%; min-height: 38px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); padding: 6px 10px; font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); outline: none; background: var(--color-surface); color: var(--color-text-primary)">
+              <option value="">Giữ ghế hiện tại</option>
+              @for (seat of LayGheTrongCuaChuyen(ve.MaLichTrinh); track seat) {
+              <option [value]="seat">
+                Ghế {{ seat }} ({{ MoTaGheTheoSoGhe(seat, ve) }})
+              </option>
+              }
+            </select>
+          </div>
+        </div>
+        @if (LaVeCabin(ve)) {
+        <div
+          style="display: grid; gap: 8px; margin-bottom: 12px; padding: 12px; background: var(--color-accent-50); border: 1px solid var(--color-accent-100); border-radius: var(--radius-md)">
+          <label style="font-size: var(--font-size-caption); color: var(--color-accent-700); display: block; font-weight: var(--font-weight-semibold)">Loại cabin sau đổi</label>
+          <select aria-label="Loại cabin sau đổi" [ngModel]="selectedNewCabinType()" (ngModelChange)="ChonLoaiCabinDoiGhe($event)"
+            style="width: 100%; min-height: 38px; border: 1px solid #fdba74; border-radius: var(--radius-sm); padding: 6px 10px; font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); outline: none; background: var(--color-surface); color: var(--color-text-primary)">
+            <option value="don">Cabin đơn - {{ GiaCabinDon(ve) | number:'1.0-0' }}đ</option>
+            <option value="doi">Cabin đôi - {{ GiaCabinDoi(ve) | number:'1.0-0' }}đ</option>
+          </select>
+          <span style="font-size: var(--font-size-caption); color: var(--color-accent-700); font-weight: var(--font-weight-semibold)">Có thể giữ nguyên phòng và chỉ đổi Cabin
+            đơn/đôi.</span>
+        </div>
+        }
+        <div
+          style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--color-background); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); color: var(--color-text-body)">
+          <span>Giá sau đổi</span>
+          <strong style="color: var(--color-text-primary)">{{ GiaVeSauDoiGhe(ve) | number:'1.0-0' }}đ · {{ LabelChenhLechDoiGhe(ve)
+            }}</strong>
+        </div>
+        @if (CoThayDoiDoiGhe(ve) && !DuocDoiGheTrucTiep(ve)) {
+        <div
+          style="display: grid; gap: 10px; margin-top: 12px; padding: 12px; background: var(--color-danger-50); border: 1px solid var(--color-danger-500); border-radius: var(--radius-md); color: var(--color-danger-700); font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); line-height: var(--line-height-body-sm)">
+          <span>Vé đã thanh toán và giá mới có chênh lệch. Không đổi trực tiếp; hãy hủy vé cũ theo chính sách hoàn tiền
+            rồi tạo/giữ vé mới cho khách.</span>
+          <button type="button" (click)="showTransferModal.set(false); MoHuyTungVe(ve)"
+            style="justify-self: start; border: 1px solid var(--color-danger-500); background: var(--color-surface); color: var(--color-danger-700); border-radius: 7px; padding: 7px 12px; font-weight: var(--font-weight-semibold); cursor: pointer">Mở
+            hủy vé cũ</button>
+        </div>
+        }
+      </div>
+      <footer class="modal-footer"
+        style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; background: var(--color-background); border-top: 1px solid var(--color-border)">
+        <button type="button" class="secondary-button" (click)="CloseTransfer()"
+          style="border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text-body); border-radius: var(--radius-md); padding: 8px 16px; font-weight: var(--font-weight-semibold); cursor: pointer; min-height: 36px">Hủy</button>
+        <button type="button" class="primary-button" [disabled]="!CoThayDoiDoiGhe(ve) || !DuocDoiGheTrucTiep(ve)"
+          (click)="XacNhanChuyenGhe()"
+          style="background: var(--color-primary-500); color: var(--color-surface); border: 0; border-radius: var(--radius-md); padding: 8px 16px; font-weight: var(--font-weight-semibold); cursor: pointer; min-height: 36px">Xác
+          nhận đổi</button>
+      </footer>
+    </div>
+  </div>
+  }
+
+  @if (showPaymentConfirmModal() && veDuocChon(); as ve) {
+  <div class="modal-overlay verify-layer" (click)="showPaymentConfirmModal.set(false)" style="z-index: 300">
+    <div bookingDialog role="dialog" aria-modal="true" tabindex="-1" aria-label="Xác nhận thao tác" class="confirm-modal" (click)="$event.stopPropagation()" style="width: min(440px, 95%); padding: 20px">
+      <header class="modal-header">
+        <h2 style="color: var(--color-primary-500); display: flex; align-items: center; gap: 6px">
+          <span class="material-symbols-outlined">payments</span>
+          Xác nhận thanh toán
+        </h2>
+        <button type="button" aria-label="Đóng" class="close-button" (click)="showPaymentConfirmModal.set(false)">x</button>
+      </header>
+      <div class="confirm-body" style="text-align: left; padding: 16px 0">
+        <p style="font-size: var(--font-size-body); color: var(--color-text-primary); margin-bottom: 12px; font-weight: var(--font-weight-semibold)">
+          Bạn xác nhận đã thu đủ tiền cho toàn bộ vé hiệu lực trong đơn?
+        </p>
+        <div
+          style="font-size: var(--font-size-body-sm); color: var(--color-neutral-600); display: grid; gap: 6px; background: var(--color-background); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--color-border); margin-bottom: 12px">
+          <div>Mã vé: <strong>{{ ve.MaVe }}</strong> (Ghế {{ ve.SoGhe }})</div>
+          <div>Hành khách: <strong>{{ ve.HoTenNguoiDi }}</strong></div>
+          <div>Số tiền thanh toán: <strong style="color: var(--color-accent-600)">{{ TongGiaTriVeHieuLuc(ve) | number }}đ</strong></div>
+          <div>Hình thức: <strong>{{ LabelHinhThuc(ve.PhuongThucThanhToan) }}</strong></div>
+        </div>
+      </div>
+      <footer class="modal-footer"
+        style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--color-border); padding-top: 14px">
+        <button type="button" class="secondary-button" (click)="showPaymentConfirmModal.set(false)">Quay lại</button>
+        <button type="button" class="primary-button" [disabled]="processing()" (click)="XacNhanThanhToanTuChiTiet()"
+          style="background: var(--color-primary-500); border-color: var(--color-primary-500); color: white">
+          {{ processing() ? 'Đang xử lý...' : 'Xác nhận đã thu tiền' }}
+        </button>
+      </footer>
+    </div>
+  </div>
+  }
+
+</div>
+<app-modal [open]="closeConfirm()" title="Thông tin chưa lưu" size="small" [confirmMode]="true" [danger]="true" confirmText="Hủy thay đổi" cancelText="Tiếp tục chỉnh sửa" [closeOnBackdrop]="false" (confirmed)="DiscardChanges()" (closed)="closeConfirm.set(false)"><p>Bạn đang có dữ liệu chưa lưu. Bạn có muốn hủy thay đổi?</p></app-modal>

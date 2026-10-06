@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+@import "./app/shared/styles/admin-ui.css";
 
 :root {
   /* =========================
@@ -251,6 +252,23 @@ body { font-family: var(--font-family-base); margin: 0; padding: 0; background-c
 * { box-sizing: border-box; }
 
 button, input, select, textarea { font-family: inherit; }
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
 html,
 body {
   height: 100%;
@@ -258,3 +276,19 @@ body {
   margin: 0;
 }
 
+/* Print the cancellation report without the admin navigation. */
+@media print {
+  body.print-hoan-huy app-admin-sidebar,
+  body.print-hoan-huy app-admin-topbar { display: none !important; }
+  body.print-hoan-huy,
+  body.print-hoan-huy .admin-layout,
+  body.print-hoan-huy .admin-content {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+}

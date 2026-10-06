@@ -1,5 +1,7 @@
 import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router } from '@angular/router';
 import { SidebarStateService } from '../../services/sidebar-state.service';
 
 interface SubItem {
@@ -23,9 +25,10 @@ interface SidebarItem {
 })
 export class AdminSidebar {
   private sidebarState = inject(SidebarStateService);
+  private router = inject(Router);
 
   readonly isCollapsed = this.sidebarState.isCollapsed;
-  readonly activeRoute = signal('/admin');
+  readonly activeRoute = signal(this.router.url.split(/[?#]/)[0]);
   readonly expandedItem = signal<string | null>(null);
 
   readonly menuItems: SidebarItem[] = [
@@ -83,6 +86,17 @@ export class AdminSidebar {
     { label: 'Quản lý nhật ký', icon: 'log', route: '/admin/logs' },
   ];
 
+  constructor() {
+    this.router.events.pipe(takeUntilDestroyed()).subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        const route = event.urlAfterRedirects.split(/[?#]/)[0];
+        this.activeRoute.set(route === '/admin/home' ? '/admin' : route);
+        const parent = this.menuItems.find(item => item.children?.some(child => child.route === route));
+        if (parent) this.expandedItem.set(parent.label);
+      }
+    });
+  }
+
   toggleCollapse(): void {
     this.sidebarState.toggle();
   }
@@ -104,13 +118,13 @@ export class AdminSidebar {
     if (item.expandable) {
       this.toggleExpand(item.label);
     } else {
-      this.activeRoute.set(item.route || '');
+      this.selectSubItem(item.route);
     }
   }
 
   selectSubItem(route: string | undefined): void {
     if (route) {
-      this.activeRoute.set(route);
+      void this.router.navigateByUrl(route);
     }
   }
 }

@@ -1,6 +1,4 @@
 import { Routes } from '@angular/router';
-import { AdminLayout } from './core/layout/admin-layout/admin-layout';
-import { CustomerLayout } from './core/layout/customer-layout/customer-layout';
 import { Home as AdminHome } from './featured/admin/home/home';
 import { Home as CustomerHome } from './featured/customer/home/home';
 import { Schedule } from './featured/customer/schedule/schedule';
@@ -19,19 +17,31 @@ import { Guide } from './featured/customer/about/guide/guide';
 import { Policies } from './featured/customer/about/policies/policies';
 import { Terms } from './featured/customer/about/terms/terms';
 
+const loadNewBooking = () => import('./featured/admin/booking/new-booking/new-booking').then(m => m.NewBooking);
+const loadBookingManagement = () => import('./featured/admin/booking/booking-management/booking-management').then(m => m.BookingManagement);
+
 export const routes: Routes = [
   {
     path: 'admin',
-    component: AdminLayout,
+    loadComponent: () => import('./core/layout/admin-layout/admin-layout').then(m => m.AdminLayout),
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: AdminHome },
+      { path: 'tickets/new', loadComponent: loadNewBooking },
+      { path: 'tickets/list', loadComponent: loadBookingManagement },
+      { path: 'booking/new', loadComponent: loadNewBooking },
+      { path: 'booking/management', loadComponent: loadBookingManagement },
+      { path: 'datve/moi', loadComponent: loadNewBooking },
+      { path: 'datve/danhsach', loadComponent: loadBookingManagement },
+      { path: 'dispatch/drivers', loadComponent: () => import('./featured/admin/dispatch/drivers-assistants/drivers-assistants').then(m => m.DriversAssistants) },
+      { path: 'customers/reviews', loadComponent: () => import('./featured/admin/customers/reviews-feedback/reviews-feedback').then(m => m.ReviewsFeedback) },
+      { path: 'reports/cancellations', loadComponent: () => import('./featured/admin/reports/cancellation-report/cancellation-report').then(m => m.CancellationReport) },
       { path: '**', redirectTo: 'home' },
     ],
   },
   {
     path: 'customer',
-    component: CustomerLayout,
+    loadComponent: () => import('./core/layout/customer-layout/customer-layout').then(m => m.CustomerLayout),
     children: [
       { path: '', component: CustomerHome },
       { path: 'lich-trinh', component: Schedule },

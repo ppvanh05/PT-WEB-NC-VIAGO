@@ -1,1 +1,536 @@
-<p>cancellation-report works!</p>
+<div class="ticket-list-page">
+  @if (toast(); as t) {
+    <app-toast class="report-toast" [variant]="t.type === 'success' ? 'success' : 'error'"
+      [message]="t.msg" (closed)="toast.set(null)" />
+  }
+
+  <section class="lookup-panel">
+    <div class="lookup-heading">
+      <div>
+        <span class="eyebrow">Báo cáo quản trị</span>
+        <h1>Báo cáo hoàn hủy</h1>
+      </div>
+      <div class="header-actions" role="group" aria-label="Chế độ xem báo cáo">
+        <button
+          type="button"
+          class="view-toggle-btn"
+          [attr.aria-pressed]="cheDoXem() === 'bieu-do'" [class.active]="cheDoXem() === 'bieu-do'"
+          (click)="ChuyenCheDoXem('bieu-do')"
+        >
+          Xem biểu đồ
+        </button>
+        <button
+          type="button"
+          class="view-toggle-btn"
+          [attr.aria-pressed]="cheDoXem() === 'danh-sach'" [class.active]="cheDoXem() === 'danh-sach'"
+          (click)="ChuyenCheDoXem('danh-sach')"
+        >
+          Xem danh sách
+        </button>
+      </div>
+    </div>
+
+    <div class="summary-strip management-summary">
+      <div class="summary-item cancelled">
+        <span>{{ thongKe().tongLuotHuy }}</span>
+        <small>Lượt hủy</small>
+      </div>
+      <div class="summary-item revenue">
+        <span>{{ thongKe().doanhThuVeHuy | number }} đ</span>
+        <small>Doanh thu vé bị hủy</small>
+      </div>
+      <div class="summary-item paid">
+        <span>{{ thongKe().tongTienHoan | number }} đ</span>
+        <small>Tiền hoàn</small>
+      </div>
+      <div class="summary-item held">
+        <span>{{ thongKe().tongPhiHuy | number }} đ</span>
+        <small>Phí giữ lại</small>
+      </div>
+      <div class="summary-item rate">
+        <span>{{ thongKe().tiLeHuy }}%</span>
+        <small>Tỷ lệ hủy / vé đặt</small>
+      </div>
+      <div class="summary-item pending">
+        <span>{{ thongKe().choHoan }}</span>
+        <small>Vé cần xử lý hoàn</small>
+      </div>
+    </div>
+
+    <div class="filters-grid report-filter-grid">
+      <app-input class="search-field" label="Tìm kiếm" id="report-search"
+        placeholder="Mã đơn, mã vé, tên khách, SĐT..." [value]="tuKhoa()"
+        (valueChange)="tuKhoa.set($event); trangHienTai.set(1)" />
+      <app-select label="Tuyến xe" id="report-filter-0" [options]="tuyenOptions()"
+        [value]="locTuyen()" (valueChange)="locTuyen.set($any($event)); trangHienTai.set(1)" />
+      <app-select label="Lý do hủy" id="report-filter-1" [options]="lyDoOptions"
+        [value]="locLyDo()" (valueChange)="locLyDo.set($any($event)); trangHienTai.set(1)" />
+      <app-select label="Nguồn đặt" id="report-filter-2" [options]="nguonDatOptions"
+        [value]="locNguonDat()" (valueChange)="locNguonDat.set($any($event)); trangHienTai.set(1)" />
+      <app-select label="Loại xe" id="report-filter-3" [options]="loaiXeOptions"
+        [value]="locLoaiXe()" (valueChange)="locLoaiXe.set($any($event)); trangHienTai.set(1)" />
+      <app-select label="Loại ghế" id="report-filter-4" [options]="loaiGheOptions"
+        [value]="locLoaiGhe()" (valueChange)="locLoaiGhe.set($any($event)); trangHienTai.set(1)" />
+      <app-select label="Nhân viên" id="report-filter-5" [options]="nhanVienOptions()"
+        [value]="locNhanVien()" (valueChange)="locNhanVien.set($any($event)); trangHienTai.set(1)" />
+      <app-date-picker label="Từ ngày" [showLunar]="false" [maxDate]="locDenNgay()"
+        [ngModel]="locTuNgay()" (ngModelChange)="locTuNgay.set($event); trangHienTai.set(1)" />
+      <app-date-picker label="Đến ngày" [showLunar]="false" [minDate]="locTuNgay()"
+        [ngModel]="locDenNgay()" (ngModelChange)="locDenNgay.set($event); trangHienTai.set(1)" />
+      <app-select label="Hoàn tiền" id="report-filter-6" [options]="hoanTienOptions"
+        [value]="locTrangThai()" (valueChange)="locTrangThai.set($any($event)); trangHienTai.set(1)" />
+      <app-select label="Trạng thái đơn" id="report-filter-7" [options]="trangThaiDonOptions"
+        [value]="locTrangThaiDonHang()" (valueChange)="locTrangThaiDonHang.set($any($event)); trangHienTai.set(1)" />
+      <div class="filter-action-field">
+        <app-button variant="outline" (clicked)="XoaBoLoc()">Xóa bộ lọc</app-button>
+      </div>
+    </div>
+  </section>
+
+  @if (cheDoXem() === 'bieu-do') {
+    <section class="report-panel chart-report">
+      <div class="report-toolbar">
+        <div>
+          <strong>Báo cáo dạng biểu đồ</strong>
+          <span>{{ danhSachLoc().length }} bản ghi theo bộ lọc hiện tại</span>
+        </div>
+        <div class="report-actions">
+          <app-button variant="outline" (clicked)="PrintReport()">In báo cáo</app-button>
+          <app-button variant="primary" (clicked)="ExportChartPdf()">Xuất PDF</app-button>
+        </div>
+      </div>
+
+      <div class="insight-grid">
+        <article class="insight-card revenue-story">
+          <div class="card-heading">
+            <span>Tác động doanh thu</span>
+            <strong>{{ DinhDangTienRutGon(tacDongDoanhThu().doanhThuHuy) }}</strong>
+          </div>
+          <div class="revenue-stack" tabindex="0">
+            @for (item of doanhThuStackSegments(); track item.key) {
+              <span
+                class="revenue-segment {{ item.tone }}"
+                tabindex="0"
+                [style.width.%]="item.pct"
+                [attr.data-tip]="item.label + ': ' + (item.value | number) + ' đ · ' + item.pct + '%'"
+              >
+                @if (item.pct >= 8) { <b>{{ item.pct }}%</b> }
+              </span>
+            }
+          </div>
+          <div class="revenue-stack-legend revenue-stack-list">
+            @for (item of doanhThuStackSegments(); track item.key) {
+              <div class="stack-legend-row {{ item.tone }}" tabindex="0" [attr.data-tip]="item.label + ': ' + (item.value | number) + ' đ · ' + item.pct + '%'">
+                <span><i></i>{{ item.label }}</span>
+                <strong>{{ item.pct }}%</strong>
+                <small>{{ item.value | number }} đ</small>
+              </div>
+            }
+          </div>
+          <div class="revenue-note-strip">
+            <span>Giữ lại <strong>{{ tacDongDoanhThu().tyLeGiuLai }}%</strong> giá trị vé hủy</span>
+            <span>Đã hoàn tất <strong>{{ tacDongDoanhThu().tyLeDaHoan }}%</strong> lượt cần hoàn</span>
+          </div>
+        </article>
+
+        <article class="insight-card alert-story">
+          <div class="card-heading">
+            <span>Cảnh báo quản trị</span>
+            <strong>{{ canhBaoQuanTri().length }}</strong>
+          </div>
+          <div class="alert-list">
+            @for (alert of canhBaoQuanTri(); track alert.title) {
+              <div class="alert-item {{ alert.tone }}">
+                <strong>{{ alert.value }}</strong>
+                <div>
+                  <span>{{ alert.title }}</span>
+                  <small>{{ alert.detail }}</small>
+                </div>
+              </div>
+            }
+          </div>
+        </article>
+
+        <article class="insight-card recent-story">
+          <div class="card-heading">
+            <span>Hủy gần nhất</span>
+            <strong>{{ topHuyGanNhat().length }}</strong>
+          </div>
+          <div class="recent-list">
+            @for (item of topHuyGanNhat(); track item.MaVe) {
+              <div class="recent-item">
+                <div>
+                  <strong>{{ item.MaDonHang }}</strong>
+                  <span>{{ item.HoTenNguoiDi }} · {{ item.MaVe }}</span>
+                </div>
+                <small>{{ DinhDangNgayGio(item) }}</small>
+              </div>
+            }
+          </div>
+        </article>
+      </div>
+
+      <div class="charts-panel management-charts">
+        <div class="chart-card route-risk-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Tỷ lệ hủy theo tuyến</h3>
+            <span>Top 6 tuyến cần chú ý</span>
+          </div>
+          @if (tuyenRiskChart().length === 0) {
+            <div class="empty-chart">Không có dữ liệu phân tích tuyến</div>
+          } @else {
+            <div class="route-risk-chart">
+              @for (item of tuyenRiskChart(); track item.route) {
+                <div class="route-risk-row {{ item.tone }}" tabindex="0" [attr.data-tip]="item.route + ': ' + item.canceled + '/' + item.sold + ' vé · ' + item.rate + '%'">
+                  <div class="route-risk-main">
+                    <strong>{{ item.route }}</strong>
+                    <span>{{ item.canceled }}/{{ item.sold }} vé đặt</span>
+                  </div>
+                  <div class="route-risk-meter">
+                    <span [style.width.%]="item.ratePct"></span>
+                  </div>
+                  <div class="route-risk-rate">
+                    <strong>{{ item.rate }}%</strong>
+                    <small>Hoàn trả: {{ item.refund | number }} đ</small>
+                    <small>Phí giữ lại: {{ item.fee | number }} đ</small>
+                  </div>
+                </div>
+              }
+              @if (tuyenRiskHiddenCount() > 0) {
+                <div class="route-risk-note">
+                  Đang hiển thị top {{ tuyenRiskChart().length }} tuyến ưu tiên, còn {{ tuyenRiskHiddenCount() }} tuyến khác trong danh sách chi tiết.
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="chart-card timing-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Thời điểm hủy trước giờ chạy</h3>
+            <span>Đánh giá khả năng bán lại ghế</span>
+          </div>
+          <div class="timing-chart timing-columns">
+            @for (item of thoiDiemHuyChart(); track item.key) {
+              <div class="timing-column {{ item.tone }}" tabindex="0" [attr.data-tip]="item.label + ': ' + item.count + ' lượt · ' + item.pct + '%'">
+                <div class="timing-column-plot">
+                  <span [style.height.%]="item.barPct"></span>
+                </div>
+                <strong>{{ item.count }}</strong>
+                <span>{{ item.label }}</span>
+                <small>{{ item.pct }}% · {{ item.help }}</small>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="chart-card reason-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Lý do hủy</h3>
+            <span>Nguyên nhân chính</span>
+          </div>
+          <div class="chart-content compact-bars">
+            @if (lyDoDistribution().length === 0) {
+              <div class="empty-chart">Không có dữ liệu lý do</div>
+            } @else {
+              @for (item of lyDoDistribution(); track item.reason) {
+                <div class="chart-row interactive-row" tabindex="0" [attr.data-tip]="item.reason + ': ' + item.count + ' lượt · ' + item.pct + '%'">
+                  <div class="chart-label-row">
+                    <span class="chart-row-label">{{ item.reason }}</span>
+                    <strong class="chart-row-val">{{ item.count }} lượt · {{ item.pct }}%</strong>
+                  </div>
+                  <div class="chart-bar-track">
+                    <div class="chart-bar-fill reason-bar" [style.width.%]="item.pct"></div>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </div>
+
+        <div class="chart-card vehicle-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Hủy theo loại xe</h3>
+            <span>Limousine, Giường nằm, Cabin</span>
+          </div>
+          <div class="chart-content compact-bars">
+            @if (loaiXeChart().length === 0) {
+              <div class="empty-chart">Không có dữ liệu loại xe</div>
+            } @else {
+              @for (item of loaiXeChart(); track item.key) {
+                <div class="chart-row interactive-row" tabindex="0" [attr.data-tip]="item.label + ': ' + item.count + ' lượt · hoàn ' + (item.refund | number) + ' đ'">
+                  <div class="chart-label-row">
+                    <span class="chart-row-label">{{ item.label }}</span>
+                    <strong class="chart-row-val">{{ item.count }} lượt · {{ item.pct }}%</strong>
+                  </div>
+                  <div class="chart-bar-track">
+                    <div class="chart-bar-fill vehicle-bar" [style.width.%]="item.pct"></div>
+                  </div>
+                  <small>Hoàn {{ item.refund | number }} đ · Phí giữ lại {{ item.fee | number }} đ</small>
+                </div>
+              }
+            }
+          </div>
+        </div>
+
+        <div class="chart-card refund-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Trạng thái hoàn tiền</h3>
+            <span>Khối lượng kế toán cần xử lý</span>
+          </div>
+          @if (trangThaiHoanTienChart().length === 0) {
+            <div class="empty-chart">Không có dữ liệu trạng thái hoàn tiền</div>
+          } @else {
+            <div class="refund-status-layout">
+              <div class="donut-chart interactive-donut">
+                <svg class="donut-svg" viewBox="0 0 120 120" role="img" aria-label="Biểu đồ trạng thái hoàn tiền">
+                  <circle class="donut-track" cx="60" cy="60" r="44"></circle>
+                  @for (item of trangThaiHoanTienSegments(); track item.key) {
+                    <circle
+                      class="donut-segment {{ item.tone }}"
+                      cx="60"
+                      cy="60"
+                      r="44"
+                      pathLength="100"
+                      tabindex="0"
+                      [attr.stroke-dasharray]="item.pct + ' ' + (100 - item.pct)"
+                      [attr.stroke-dashoffset]="-item.offset"
+                      [attr.aria-label]="item.label + ': ' + item.count + ' lượt, ' + item.pct + '%'"
+                    ></circle>
+                  }
+                </svg>
+                <div class="donut-core">
+                  <strong>{{ thongKe().tiLeDaHoan }}%</strong>
+                  <span>đã hoàn</span>
+                </div>
+                @for (item of trangThaiHoanTienSegments(); track item.key) {
+                  <div class="donut-tooltip {{ item.tone }}">
+                    <strong>{{ item.label }}</strong>
+                    <span>{{ item.count }} lượt · {{ item.pct }}%</span>
+                    <small>{{ item.amount | number }} đ</small>
+                  </div>
+                }
+              </div>
+              <div class="status-list">
+                @for (item of trangThaiHoanTienChart(); track item.key) {
+                  <div class="status-row {{ item.tone }}" tabindex="0" [attr.data-tip]="item.label + ': ' + item.count + ' lượt · ' + (item.amount | number) + ' đ'">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.count }} lượt</strong>
+                    <small>{{ item.pct }}% · {{ item.amount | number }} đ</small>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="chart-card source-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Nguồn đặt phát sinh hủy</h3>
+            <span>Quầy, hotline, online</span>
+          </div>
+          <div class="source-stack-panel">
+            @if (nguonDatChart().length === 0) {
+              <div class="empty-chart">Không có dữ liệu nguồn đặt</div>
+            } @else {
+              <div class="stacked-percent-bar source-stack" tabindex="0">
+                @for (item of nguonDatChart(); track item.key) {
+                  <span class="source-segment {{ item.key }}" [style.width.%]="item.pct">
+                    <b>{{ item.pct }}%</b>
+                  </span>
+                }
+              </div>
+              @for (item of nguonDatChart(); track item.key) {
+                <div class="stack-legend-row {{ item.key }}" tabindex="0" [attr.data-tip]="item.label + ': ' + item.count + ' lượt · ' + item.pct + '%'">
+                  <span><i></i>{{ item.label }}</span>
+                  <strong>{{ item.count }} lượt · {{ item.pct }}%</strong>
+                  <small>{{ item.refund | number }} đ hoàn</small>
+                </div>
+              }
+            }
+          </div>
+        </div>
+
+        <div class="chart-card fee-policy-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Cơ cấu mức phí hủy</h3>
+            <span>Hiệu quả chính sách phí</span>
+          </div>
+          <div class="fee-stack-panel">
+            @if (mucPhiHuyChart().length === 0) {
+              <div class="empty-chart">Không có dữ liệu mức phí hủy</div>
+            } @else {
+              <div class="stacked-percent-bar fee-stack" tabindex="0">
+                @for (item of mucPhiHuyChart(); track item.key) {
+                  <span class="fee-segment {{ item.tone }}" [style.width.%]="item.pct">
+                    <b>{{ item.pct }}%</b>
+                  </span>
+                }
+              </div>
+              @for (item of mucPhiHuyChart(); track item.key) {
+                <div class="stack-legend-row {{ item.tone }}" tabindex="0" [attr.data-tip]="item.label + ': ' + item.count + ' lượt · phí ' + (item.fee | number) + ' đ'">
+                  <span><i></i>{{ item.label }}</span>
+                  <strong>{{ item.count }} lượt · {{ item.pct }}%</strong>
+                  <small>{{ item.fee | number }} đ phí</small>
+                </div>
+              }
+            }
+          </div>
+        </div>
+
+        <div class="chart-card trend-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Xu hướng hủy theo ngày</h3>
+            <span>Nhìn nhanh ngày tăng bất thường</span>
+          </div>
+          @if (xuHuongHuyTheoNgay().length === 0) {
+            <div class="empty-chart">Không có dữ liệu xu hướng hủy</div>
+          } @else {
+            <div class="line-chart-shell">
+              <div class="line-chart-summary">
+                <span>Trục Y: số lượng vé hủy</span>
+                <strong>Cao nhất {{ xuHuongLineChart().maxCount }} lượt/ngày</strong>
+              </div>
+              <div class="line-chart-canvas">
+                <svg class="line-chart-svg" viewBox="0 0 640 220" role="img" aria-label="Biểu đồ đường xu hướng hủy vé theo ngày">
+                  <defs>
+                    <linearGradient id="cancelTrendArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#3053B3" stop-opacity="0.16"></stop>
+                      <stop offset="100%" stop-color="#3053B3" stop-opacity="0.02"></stop>
+                    </linearGradient>
+                  </defs>
+                  @for (tick of xuHuongLineChart().yTicks; track tick.value) {
+                    <line class="line-grid" x1="48" [attr.y1]="tick.y" x2="624" [attr.y2]="tick.y"></line>
+                    <text class="line-y-label" x="40" [attr.y]="tick.y + 4">{{ tick.label }}</text>
+                  }
+                  <line class="line-axis" x1="48" y1="178" x2="624" y2="178"></line>
+                  <line class="line-axis" x1="48" y1="18" x2="48" y2="178"></line>
+                  <polygon class="line-area" [attr.points]="xuHuongLineChart().areaPoints"></polygon>
+                  <polyline class="line-path" [attr.points]="xuHuongLineChart().linePoints"></polyline>
+                  @for (point of xuHuongLineChart().points; track point.date) {
+                    <g class="line-point-group" tabindex="0">
+                      <line class="line-hover-guide" [attr.x1]="point.x" y1="18" [attr.x2]="point.x" y2="178"></line>
+                      <circle class="line-point-hit" [attr.cx]="point.x" [attr.cy]="point.y" r="12"></circle>
+                      <circle class="line-point" [attr.cx]="point.x" [attr.cy]="point.y" r="4">
+                        <title>{{ point.label }}: {{ point.valueLabel }}</title>
+                      </circle>
+                      <text class="line-value-label" [attr.x]="point.labelX" [attr.y]="point.labelY" [attr.text-anchor]="point.labelAnchor">{{ point.count }}</text>
+                      <g class="line-tooltip" [attr.transform]="'translate(' + point.tooltipX + ',' + point.tooltipY + ')'">
+                        <rect x="-78" y="-30" width="156" height="48" rx="7"></rect>
+                        <text x="0" y="-12">{{ point.label }}</text>
+                        <text x="0" y="6">{{ point.valueLabel }}</text>
+                      </g>
+                      @if (point.showLabel) {
+                        <text class="line-x-label" [attr.x]="point.x" y="205">{{ point.shortLabel }}</text>
+                      }
+                    </g>
+                  }
+                </svg>
+              </div>
+              <div class="line-chart-legend">
+                <span><i></i>Lượt hủy</span>
+                <small>Hover vào điểm để xem tiền hoàn.</small>
+              </div>
+              @for (item of xuHuongHuyTheoNgay(); track item.date) {
+                <div class="trend-day" tabindex="0">
+                  <div class="trend-column">
+                    <span [style.height.%]="item.countPct"></span>
+                  </div>
+                  <strong>{{ item.count }}</strong>
+                  <small>{{ item.label }}</small>
+                  <div class="trend-popover">
+                    <span>Hoàn {{ item.refund | number }} đ</span>
+                    <span>Phí {{ item.fee | number }} đ</span>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  } @else {
+    <section class="table-panel">
+      <div class="table-header">
+        <div class="table-title">
+          <strong>Nhật ký hủy vé & hoàn tiền chi tiết</strong>
+          <span>{{ danhSachLoc().length }} bản ghi</span>
+        </div>
+        <app-button variant="primary" (clicked)="ExportToExcel()">Xuất Excel</app-button>
+      </div>
+
+      <div class="table-scroll">
+        @if (danhSachLoc().length === 0) {
+          <div class="empty-table">
+            <h3>Không có dữ liệu hoàn hủy phù hợp</h3>
+            <p>Thử thay đổi bộ lọc để hiển thị danh sách nhật ký.</p>
+          </div>
+        } @else {
+          <table>
+            <thead>
+              <tr>
+                <th>Đơn / vé</th>
+                <th>Khách hàng</th>
+                <th>Tuyến xe & chuyến</th>
+                <th>Ghế</th>
+                <th>Ngày hủy & lý do</th>
+                <th>Nguồn</th>
+                <th>Giá vé</th>
+                <th>Phí hủy</th>
+                <th>Hoàn trả</th>
+                <th>Trạng thái hoàn</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (v of danhSachPhanTrang(); track v.MaVe) {
+                <tr>
+                  <td class="code">
+                    <strong>{{ v.MaDonHang }}</strong>
+                    <span>{{ v.MaVe }}</span>
+                  </td>
+                  <td class="name">
+                    <strong>{{ v.HoTenNguoiDi }}</strong>
+                    <span class="phone-text">{{ v.SdtNguoiDi }}</span>
+                  </td>
+                  <td class="trip-cell">
+                    <span>{{ v.TenTuyenXe }}</span>
+                    <small class="trip-meta">{{ v.GioKhoiHanh }} · Khởi hành: {{ DinhDangNgay(v.NgayKhoiHanh) }}</small>
+                  </td>
+                  <td class="trip-cell vehicle-cell">
+                    <span>Ghế {{ v.SoGhe || '-' }}</span>
+                  </td>
+                  <td class="trip-cell">
+                    <strong>{{ DinhDangNgayGio(v) }}</strong>
+                    <small class="cancel-reason">{{ v.LyDoHuy }}</small>
+                  </td>
+                  <td>
+                    <app-badge variant="neutral" [label]="LabelNguonDat(v.NguonDat)" />
+                  </td>
+                  <td>{{ v.TienVeGoc | number }} đ</td>
+                  <td class="fee-cell">{{ v.LePhiHuy | number }} đ</td>
+                  <td class="refund-cell">{{ v.TienHoanLai | number }} đ</td>
+                  <td>
+                    <app-badge [variant]="v.TrangThaiGiaoDich === 'da-hoan' ? 'success' : v.TrangThaiGiaoDich === 'dang-xu-ly' ? 'info' : 'warning'"
+                      [label]="LabelTrangThaiHoanTien(v.TrangThaiGiaoDich)" />
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+
+      <div class="pagination-bar">
+        <span>
+          Hiển thị {{ chiSoDauTrang() }}-{{ chiSoCuoiTrang() }} / {{ danhSachLoc().length }} lượt hủy
+        </span>
+        <div class="pagination-controls">
+          <app-select class="page-size-field" label="Số dòng" id="report-page-size"
+            [options]="soDongOptions" [value]="'' + soDongMoiTrang()" (valueChange)="CapNhatSoDongMoiTrang($event)" />
+          <app-pagination [currentPage]="trangHopLe()" [totalItems]="danhSachLoc().length"
+            [pageSize]="soDongMoiTrang()" [showSummary]="false" (pageChange)="ChuyenTrang($event)" />
+        </div>
+      </div>
+    </section>
+  }
+</div>
