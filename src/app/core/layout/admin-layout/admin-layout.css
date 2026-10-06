@@ -1,0 +1,26 @@
+.admin-layout {
+  display: flex;
+  height: 100vh;
+  align-items: flex-start;
+  padding-left: var(--sidebar-width, 256px);
+  position: relative;
+  background: var(--color-background);
+  transition: padding-left 0.3s ease;
+}
+
+/* Khi sidebar collapsed (64px) */
+.admin-layout.sidebar-collapsed {
+  padding-left: 64px;
+}
+
+.admin-content {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+  flex: 1;
+  align-self: stretch;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--color-background);
+}

@@ -27,12 +27,12 @@ export class CustomerNavbar {
   ) {}
 
   isAboutRouteActive(): boolean {
-    const activeRoutes = ['/ve-chung-toi', '/gioi-thieu', '/chinh-sach', '/dieu-khoan', '/faq', '/lien-he', '/tuyen-dung'];
+    const activeRoutes = ['/customer/ve-chung-toi', '/customer/gioi-thieu', '/customer/chinh-sach', '/customer/dieu-khoan', '/customer/faq', '/customer/lien-he', '/customer/tuyen-dung'];
     return activeRoutes.some(route => this.router.url.includes(route));
   }
 
   isServicesRouteActive(): boolean {
-    return this.router.url.includes('/dich-vu');
+    return this.router.url.includes('/customer/dich-vu');
   }
 
   toggleServices(event: Event) {
@@ -80,7 +80,7 @@ export class CustomerNavbar {
     this.authService.logout();
     this.isDropdownOpen = false;
     this.closeMobileMenu();
-    this.router.navigate(['/']);
+    this.router.navigate(['/customer']);
   }
 
   @HostListener('document:click', ['$event'])
@@ -93,7 +93,7 @@ export class CustomerNavbar {
   onHomeClick(event: Event) {
     event.preventDefault();
     this.closeMobileMenu();
-    this.router.navigate(['/'], { queryParams: { reset: Date.now() } });
+    this.router.navigate(['/customer'], { queryParams: { reset: Date.now() } });
   }
 }
 

@@ -1,1 +1,152 @@
-<p>admin-topbar works!</p>
+<header class="admin-topbar">
+  <div class="admin-topbar__left" aria-hidden="true"></div>
+
+  <div class="admin-topbar__actions">
+    @if (showDate) {
+      <time class="admin-topbar__date">{{ today }}</time>
+    }
+
+    <div class="notification-menu">
+      <button
+        class="icon-button notification-button"
+        type="button"
+        aria-label="Xem thông báo"
+        aria-haspopup="dialog"
+        [attr.aria-expanded]="notificationMenuOpen"
+        (click)="toggleNotificationMenu($event)"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M14 21h-4" />
+        </svg>
+        @if (notificationCount > 0) {
+          <span class="notification-button__badge" aria-hidden="true">
+            {{ notificationCount > 99 ? '99+' : notificationCount }}
+          </span>
+          <span class="sr-only">{{ notificationCount }} thông báo chưa đọc</span>
+        }
+      </button>
+
+      @if (notificationMenuOpen) {
+        <section class="notification-menu__dropdown" aria-label="Thông báo">
+          <header class="notification-menu__header">
+            <div>
+              <strong>Thông báo</strong>
+              @if (notificationCount > 0) {
+                <span>{{ notificationCount }} chưa đọc</span>
+              }
+            </div>
+            @if (notificationCount > 0) {
+              <button type="button" (click)="markAllRead($event)">Đánh dấu đã đọc</button>
+            } @else if (notifications.length > 0) {
+              <button type="button" (click)="markAllUnread($event)">Đánh dấu chưa đọc</button>
+            }
+          </header>
+
+          <div class="notification-menu__list">
+            @for (notification of previewNotifications; track notification.id) {
+              <div
+                class="notification-item"
+                [class.notification-item--unread]="!notification.read"
+              >
+                <button
+                  class="notification-item__content"
+                  type="button"
+                  (click)="selectNotification(notification, $event)"
+                >
+                  <strong>{{ notification.title }}</strong>
+                  <span>{{ notification.message }}</span>
+                  <time>{{ notification.time }}</time>
+                </button>
+
+                <button
+                  class="notification-item__read-toggle"
+                  type="button"
+                  [attr.aria-label]="notification.read ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'"
+                  [attr.title]="notification.read ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'"
+                  (click)="toggleNotificationRead(notification, $event)"
+                >
+                  @if (notification.read) {
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 6h16v12H4zM4 7l8 6 8-6" />
+                    </svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m6 12 4 4 8-8" />
+                    </svg>
+                  }
+                </button>
+              </div>
+            } @empty {
+              <div class="notification-menu__empty">
+                <strong>Chưa có thông báo mới nhất</strong>
+              </div>
+            }
+          </div>
+
+          <footer class="notification-menu__footer">
+            <button type="button" (click)="viewAll($event)">Xem tất cả các thông báo</button>
+          </footer>
+        </section>
+      }
+    </div>
+
+    <span class="admin-topbar__divider admin-topbar__divider--actions" aria-hidden="true"></span>
+
+    <div class="user-menu">
+      <button
+        class="user-menu__trigger"
+        type="button"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="userMenuOpen"
+        (click)="toggleUserMenu($event)"
+      >
+        <span class="user-menu__avatar" aria-hidden="true">
+          <span>{{ userInitials }}</span>
+          @if (user.avatarUrl) {
+            <img [src]="user.avatarUrl" alt="" (error)="onAvatarError($event)" />
+          }
+        </span>
+
+        <span class="user-menu__identity">
+          <strong>{{ user.name }}</strong>
+          @if (user.role) {
+            <small>{{ user.role }}</small>
+          }
+        </span>
+
+        <svg class="user-menu__chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+
+      @if (userMenuOpen) {
+        <div class="user-menu__dropdown" role="menu">
+          <button type="button" role="menuitem" (click)="selectUserAction('profile')">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 21a8 8 0 0 0-16 0M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+            </svg>
+            Hồ sơ cá nhân
+          </button>
+          <button type="button" role="menuitem" (click)="selectUserAction('change-password')">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z" />
+            </svg>
+            Đổi mật khẩu
+          </button>
+          <span class="user-menu__separator" role="separator"></span>
+          <button
+            class="user-menu__logout"
+            type="button"
+            role="menuitem"
+            (click)="selectUserAction('logout')"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 17l5-5-5-5M15 12H3M15 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
+            </svg>
+            Đăng xuất
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</header>

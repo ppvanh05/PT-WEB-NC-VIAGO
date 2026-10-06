@@ -1,1 +1,18 @@
-<p>customer-layout works!</p>
+<div class="viago-customer-layout">
+  
+  <!-- Customer Navbar -->
+  <app-customer-navbar class="viago-customer-navbar-wrapper"></app-customer-navbar>
+
+  <!-- Main Content Route -->
+  <main class="viago-customer-main">
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- Customer Footer -->
+  <app-customer-footer class="viago-customer-footer-wrapper"></app-customer-footer>
+
+  <!-- Fixed Overlays -->
+  <app-chatbot></app-chatbot>
+  <app-auth-modal></app-auth-modal>
+
+</div>

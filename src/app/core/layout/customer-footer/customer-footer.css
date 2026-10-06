@@ -82,3 +82,4 @@
   .footer-container { padding-inline: var(--page-padding-mobile); }
   .footer-grid { grid-template-columns: minmax(0, 1fr); padding-block: var(--section-spacing-sm) var(--space-8); gap: var(--space-8); }
 }
+/* Customer Footer Component Styles */
