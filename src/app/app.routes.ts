@@ -20,6 +20,11 @@ import { Policies } from './featured/customer/about/policies/policies';
 import { Terms } from './featured/customer/about/terms/terms';
 
 export const routes: Routes = [
+  { path: 'admin', pathMatch: 'full', redirectTo: 'admin/login' },
+  {
+    path: 'admin/login',
+    loadComponent: () => import('./featured/admin/auth/login/login').then(m => m.Login),
+  },
   {
     path: 'admin',
     component: AdminLayout,

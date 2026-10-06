@@ -1,7 +1,12 @@
 <div class="admin-layout" [class.sidebar-collapsed]="isCollapsed()">
   <app-admin-sidebar />
   <main class="admin-content">
-    <app-admin-topbar />
+    <app-admin-topbar [user]="{ name: profile.displayName, role: 'Admin', avatarUrl: profile.avatarUrl }"
+      (userAction)="$event === 'profile' && openProfile()" />
+    @if (profileSaved) {
+      <p class="profile-feedback" role="status">Đã lưu thông tin cá nhân.</p>
+    }
     <router-outlet />
   </main>
 </div>
+<app-admin-profile (saved)="saveProfile($event)" />

@@ -1,0 +1,42 @@
+<dialog #dialog aria-labelledby="profile-title" (cancel)="close()" (click)="$event.target === dialog && close()">
+  <form #profileForm="ngForm" (ngSubmit)="save()">
+    <header>
+      <div>
+        <h2 id="profile-title">Thông tin cá nhân</h2>
+        <div class="subtitle"><span>NVQT100001</span><span>·</span><span class="role">Quản trị viên</span><span class="status">Đang hoạt động</span></div>
+      </div>
+      <button type="button" class="close" aria-label="Đóng hồ sơ cá nhân" (click)="close()">×</button>
+    </header>
+    <div class="profile-body">
+      <aside>
+        <div class="avatar">
+          @if (draft.avatarUrl) { <img [src]="draft.avatarUrl" alt="Ảnh đại diện" /> }
+          @else { <span>{{ draft.displayName.trim().charAt(0).toUpperCase() || 'TV' }}</span> }
+        </div>
+        <input type="file" #fileInput hidden accept="image/jpeg,image/png,image/webp" (change)="onFileSelected($event)" />
+        <button type="button" class="change-photo" (click)="fileInput.click()">Đổi ảnh</button>
+        <small>JPG, PNG, WebP · Tối đa 5 MB</small>
+        @if (readingAvatar) { <small role="status">Đang đọc ảnh…</small> }
+        @if (avatarError) { <small class="error" role="alert">{{ avatarError }}</small> }
+      </aside>
+      <div class="fields">
+        <div class="row names">
+          <label>Họ và tên đệm<input name="familyName" [(ngModel)]="draft.familyName" required maxlength="100" #familyName="ngModel" autocomplete="family-name" />@if (familyName.invalid && (familyName.touched || profileForm.submitted)) { <small class="error">Vui lòng nhập họ và tên đệm.</small> }</label>
+          <label>Tên<input name="givenName" [(ngModel)]="draft.givenName" required maxlength="50" #givenName="ngModel" autocomplete="given-name" />@if (givenName.invalid && (givenName.touched || profileForm.submitted)) { <small class="error">Vui lòng nhập tên.</small> }</label>
+        </div>
+        <label>Tên hiển thị<input name="displayName" [(ngModel)]="draft.displayName" required maxlength="100" #displayName="ngModel" autocomplete="nickname" />@if (displayName.invalid && (displayName.touched || profileForm.submitted)) { <small class="error">Vui lòng nhập tên hiển thị.</small> }</label>
+        <div class="row">
+          <label>Số điện thoại<input type="tel" name="phone" [(ngModel)]="draft.phone" required pattern="0[0-9]{9}" #phone="ngModel" autocomplete="tel" />@if (phone.invalid && (phone.touched || profileForm.submitted)) { <small class="error">Nhập 10 chữ số, bắt đầu bằng 0.</small> }</label>
+          <label>Email<input type="email" name="email" [(ngModel)]="draft.email" required email pattern="[^\s@]+@[^\s@]+\.[^\s@]+" #email="ngModel" autocomplete="email" />@if (email.invalid && (email.touched || profileForm.submitted)) { <small class="error">Nhập email hợp lệ, ví dụ admin@viago.vn.</small> }</label>
+        </div>
+        <div class="row">
+          <label>Giới tính<select name="gender" [(ngModel)]="draft.gender"><option value="">Chưa cập nhật</option><option>Nam</option><option>Nữ</option><option>Khác</option></select></label>
+          <label>Ngày sinh<input type="date" name="birthday" [(ngModel)]="draft.birthday" [max]="today" autocomplete="bday" /></label>
+        </div>
+        <label>Địa chỉ<input name="address" [(ngModel)]="draft.address" maxlength="300" autocomplete="street-address" /></label>
+        <label>Ghi chú<textarea name="notes" [(ngModel)]="draft.notes" rows="2" maxlength="1000" placeholder="Nhập ghi chú…"></textarea></label>
+      </div>
+    </div>
+    <footer><button type="button" class="cancel" (click)="close()">Hủy</button><button type="submit" class="save" [disabled]="readingAvatar">Lưu thay đổi</button></footer>
+  </form>
+</dialog>

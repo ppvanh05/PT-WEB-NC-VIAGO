@@ -1,1 +1,54 @@
-<p>login works!</p>
+<main class="login-page-container">
+  <section class="login-card" aria-labelledby="login-title">
+    <div class="logo-container">
+      <img src="/assets/brand/logo.png" alt="VIAGO" class="login-logo" />
+    </div>
+    <h1 id="login-title" class="login-title">Đăng nhập quản trị</h1>
+    <p class="login-subtitle">Dành riêng cho nhân viên và quản trị viên</p>
+
+    <form class="login-form" [formGroup]="form" (ngSubmit)="onLogin()" novalidate>
+      <div class="form-group">
+        <label for="admin-email" class="form-label">Email</label>
+        <div class="input-wrapper">
+          <span class="input-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+            </svg>
+          </span>
+          <input type="email" id="admin-email" name="email" formControlName="email"
+            placeholder="Nhập email" autocomplete="username" autocapitalize="none" spellcheck="false"
+            class="form-input" required [class.form-input--invalid]="emailInvalid"
+            [attr.aria-invalid]="emailInvalid" [attr.aria-describedby]="emailInvalid ? 'email-error' : null" />
+        </div>
+        @if (emailInvalid) {
+          <p id="email-error" class="field-error" role="alert">
+            {{ form.controls.email.hasError('required') ? 'Vui lòng nhập email.' : 'Email không hợp lệ. Ví dụ: admin@viago.vn.' }}
+          </p>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="admin-password" class="form-label">Mật khẩu</label>
+        <div class="input-wrapper">
+          <span class="input-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+            </svg>
+          </span>
+          <input type="password" id="admin-password" name="password" formControlName="password"
+            placeholder="Nhập mật khẩu" autocomplete="current-password" class="form-input" required
+            [class.form-input--invalid]="passwordInvalid" [attr.aria-invalid]="passwordInvalid"
+            [attr.aria-describedby]="passwordInvalid ? 'password-error' : null" />
+        </div>
+        @if (passwordInvalid) {
+          <p id="password-error" class="field-error" role="alert">Vui lòng nhập mật khẩu.</p>
+        }
+      </div>
+
+      <button type="submit" class="btn-submit">Đăng nhập</button>
+    </form>
+    <div class="back-link-container">
+      <a routerLink="/customer" class="back-link">Quay lại trang khách hàng</a>
+    </div>
+  </section>
+</main>
