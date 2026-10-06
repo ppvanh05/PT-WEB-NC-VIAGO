@@ -1,1 +1,121 @@
-<p>news-detail works!</p>
+<div class="container mx-auto px-4 md:px-10 lg:px-16 mt-6" *ngIf="article">
+  <nav class="breadcrumbs">
+    <a routerLink="/tin-tuc">Tin tức</a>
+    <span>›</span>
+    <strong>{{ article.title }}</strong>
+  </nav>
+</div>
+
+<main class="container mx-auto px-4 md:px-10 lg:px-16 my-8 article-main-grid" *ngIf="article">
+  <article class="article-content-wrapper">
+    <header class="article-header">
+      <span class="badge-category">{{ article.category }}</span>
+      <h1>{{ article.title }}</h1>
+      <div class="article-meta-row">
+        <span>{{ article.date }} • {{ article.author }}</span>
+        <div class="article-actions flex gap-2">
+          <button type="button" (click)="openShare()" class="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-gray-600 hover:border-[#123063] hover:text-[#123063] transition flex items-center gap-1 cursor-pointer bg-slate-50">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <p class="highlight-block">{{ article.excerpt }}</p>
+
+    <img [src]="article.imageUrl" [alt]="article.title" class="article-cover" />
+
+    <div class="article-chips">
+      <span *ngIf="article.route">{{ article.route }}</span>
+      <span *ngIf="article.discount">Ưu đãi: {{ article.discount }}</span>
+      <span *ngIf="article.target">{{ article.target }}</span>
+      <span *ngIf="article.eventDate">Ngày sự kiện: {{ article.eventDate }}</span>
+      <span *ngIf="article.deadline">Hạn nộp: {{ article.deadline }}</span>
+    </div>
+
+    <div class="article-body">
+      {{ article.contentBody || article.excerpt }}
+    </div>
+
+    <!-- Comments Section -->
+    <section class="comment-box mt-10 pt-6 border-t border-slate-200">
+      <h2 class="text-lg font-black text-[#123063] mb-4 uppercase">Bình luận</h2>
+      
+      <!-- List of comments -->
+      <div class="comments-list space-y-4 mb-6" *ngIf="comments.length > 0">
+        <div *ngFor="let comment of comments" class="comment-item p-4 bg-slate-50 rounded-2xl border border-slate-100">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-bold text-xs text-[#123063]">{{ comment.author }}</span>
+            <span class="text-[10px] text-slate-400 font-bold">{{ comment.date }}</span>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">{{ comment.content }}</p>
+        </div>
+      </div>
+
+      <!-- Add comment form -->
+      <div class="space-y-3 mt-4">
+        <input type="text" [(ngModel)]="newCommentName" placeholder="Tên của bạn..." class="w-full p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-gray-800 outline-none focus:border-[#123063] focus:bg-white transition" />
+        <textarea rows="3" [(ngModel)]="newCommentText" placeholder="Chia sẻ cảm nhận hoặc câu hỏi của bạn..." class="w-full p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-gray-800 outline-none focus:border-[#123063] focus:bg-white transition resize-none"></textarea>
+        <button type="button" (click)="submitComment()" class="px-5 py-2.5 bg-[#123063] text-white text-xs font-bold rounded-xl hover:bg-[#1d4586] transition cursor-pointer">Gửi bình luận</button>
+      </div>
+    </section>
+  </article>
+
+  <aside class="sidebar-container">
+    <section class="sidebar-section">
+      <h2>Tin liên quan</h2>
+      <a class="related-item" *ngFor="let art of relatedArticles; let i = index" [routerLink]="['/tin-tuc/chi-tiet', art.id]">
+        <strong>0{{ i + 1 }}</strong>
+        <span>
+          {{ art.title }}
+          <small>{{ art.date }} • {{ art.category }}</small>
+        </span>
+      </a>
+    </section>
+  </aside>
+</main>
+
+<section class="bottom-related-section" *ngIf="bottomArticles.length > 0">
+  <div class="container mx-auto px-4 md:px-10 lg:px-16">
+    <div class="section-header-block">
+      <h2>Bài viết liên quan</h2>
+      <a routerLink="/tin-tuc">Xem tất cả</a>
+    </div>
+
+    <div class="related-cards-grid">
+      <article class="news-card" *ngFor="let art of bottomArticles">
+        <a [routerLink]="['/tin-tuc/chi-tiet', art.id]" class="news-img-wrapper">
+          <img [src]="art.imageUrl" [alt]="art.title" />
+        </a>
+        <div class="news-content">
+          <span class="news-card-badge">{{ art.category }}</span>
+          <h3><a [routerLink]="['/tin-tuc/chi-tiet', art.id]">{{ art.title }}</a></h3>
+          <p>{{ art.excerpt }}</p>
+          <small>{{ art.date }}</small>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- Custom Share Modal Dialog -->
+<div class="share-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs" *ngIf="showShareModal">
+  <div class="share-modal-card bg-white rounded-3xl p-6 shadow-xl max-w-md w-full mx-4 border border-slate-100 flex flex-col gap-4">
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h3 class="text-sm font-bold text-[#123063]">Chia sẻ liên kết</h3>
+      <button (click)="showShareModal = false" class="text-slate-400 hover:text-slate-600 cursor-pointer text-sm font-bold bg-transparent border-0">Đóng</button>
+    </div>
+    <p class="text-xs text-slate-500">Sao chép liên kết dưới đây để chia sẻ với bạn bè:</p>
+    <div class="flex gap-2">
+      <input type="text" readonly [value]="shareUrl" class="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none" />
+      <button (click)="copyLink()" class="px-4 py-2.5 bg-[#123063] hover:bg-[#1d4586] text-white text-xs font-bold rounded-xl transition cursor-pointer">Copy</button>
+    </div>
+  </div>
+</div>

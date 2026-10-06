@@ -1,1 +1,144 @@
-<p>terms works!</p>
+<div class="terms-page">
+  <!-- Terms Hero Section - Model for other pages -->
+  <section class="terms-hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="display-lg">ĐIỀU KHOẢN SỬ DỤNG</h1>
+        <p class="body-lg">
+          Chào mừng bạn đến với hệ thống đặt vé trực tuyến ViAGO. Vui lòng đọc kỹ các điều khoản dưới đây trước khi sử dụng dịch vụ của chúng tôi.
+        </p>
+        <div class="hero-meta">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="caption">Cập nhật lần cuối: 16/06/2026</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Layout -->
+  <div class="container terms-layout">
+    <!-- Sidebar Navigation - Policies Model -->
+    <aside class="terms-nav">
+      <div class="nav-sticky-card">
+        <h3 class="nav-title">Mục lục</h3>
+        <div class="nav-divider"></div>
+        <nav class="nav-links">
+          <a href="javascript:void(0)" (click)="scrollToSection('booking')" class="nav-item" [class.active]="activeSection === 'booking'">
+            <span class="nav-dot"></span>
+            <span>Đặt vé và giữ chỗ trực tuyến</span>
+          </a>
+          <a href="javascript:void(0)" (click)="scrollToSection('edit')" class="nav-item" [class.active]="activeSection === 'edit'">
+            <span class="nav-dot"></span>
+            <span>Chỉnh sửa thông tin vé</span>
+          </a>
+          <a href="javascript:void(0)" (click)="scrollToSection('cancel')" class="nav-item" [class.active]="activeSection === 'cancel'">
+            <span class="nav-dot"></span>
+            <span>Hủy vé và hoàn tiền</span>
+          </a>
+          <a href="javascript:void(0)" (click)="scrollToSection('service')" class="nav-item" [class.active]="activeSection === 'service'">
+            <span class="nav-dot"></span>
+            <span>Cam kết dịch vụ và bồi thường</span>
+          </a>
+          <a href="javascript:void(0)" (click)="scrollToSection('feedback')" class="nav-item" [class.active]="activeSection === 'feedback'">
+            <span class="nav-dot"></span>
+            <span>Đánh giá và phản hồi chuyến đi</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Quick Help Card -->
+      <div class="help-card">
+        <h3>Cần hỗ trợ?</h3>
+        <p class="body-sm">
+          Nếu bạn có thắc mắc về các điều khoản, vui lòng liên hệ tổng đài 24/7 của chúng tôi.
+        </p>
+        <a href="tel:19001234" class="help-link">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          1900 1234
+        </a>
+      </div>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="terms-content">
+      <div class="content-wrapper">
+        <!-- Section 1 -->
+        <section class="terms-section" id="booking">
+          <h2 class="headline-md">ĐẶT VÉ VÀ GIỮ CHỖ TRỰC TUYẾN</h2>
+          <div class="section-body">
+            <p class="body-md">Hệ thống cho phép người dùng đặt vé trực tuyến thông qua website và ứng dụng di động ViAGO. Khi thực hiện giao dịch, quý khách vui lòng lưu ý:</p>
+            <ul class="policy-list">
+              <li>Hệ thống hỗ trợ giữ ghế tối đa <strong>15 phút</strong> sau khi lệnh đặt chỗ được khởi tạo thành công.</li>
+              <li>Đơn hàng trong thời gian này sẽ ở trạng thái chờ thanh toán.</li>
+              <li>Hệ thống sẽ tự động hủy lệnh đặt vé nếu quá thời hạn 15 phút mà chưa nhận được xác nhận thanh toán thành công.</li>
+              <li>Quý khách yêu cầu cung cấp chính xác họ tên và số điện thoại liên lạc để nhận mã vé điện tử.</li>
+              <li>Khách hàng được quyền tự do chọn ghế theo sơ đồ thời gian thực được hiển thị trên hệ thống.</li>
+              <li>Nhà xe hoặc ban quản lý ViAGO có quyền điều chỉnh vị trí ghế trong các trường hợp đặc biệt (thay đổi xe, lỗi kỹ thuật ghế ngồi) nhưng vẫn đảm bảo đúng hạng vé đã đặt.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Section 2 -->
+        <section class="terms-section" id="edit">
+          <h2 class="headline-md">CHỈNH SỬA THÔNG TIN VÉ</h2>
+          <div class="section-body">
+            <p class="body-md">ViAGO hỗ trợ khách hàng thay đổi các thông tin cơ bản sau khi đã hoàn tất đặt vé:</p>
+            <ul class="policy-list">
+              <li>Chế độ chỉnh sửa chỉ áp dụng cho các vé đã thanh toán thành công.</li>
+              <li>Yêu cầu chỉnh sửa phải được thực hiện trước giờ xe khởi hành ít nhất <strong>2 tiếng</strong>.</li>
+              <li>Mỗi mã vé chỉ được hỗ trợ chỉnh sửa tối đa <strong>2 lần</strong>.</li>
+              <li>Quý khách được phép thay đổi: Thông tin liên hệ, ghi chú gửi nhà xe, điểm đón và điểm trả trong cùng lộ trình.</li>
+              <li>ViAGO không thu phí chỉnh sửa nếu quý khách đáp ứng đầy đủ các điều kiện nêu trên.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Section 3 -->
+        <section class="terms-section" id="cancel">
+          <h2 class="headline-md">HỦY VÉ VÀ HOÀN TIỀN</h2>
+          <div class="section-body">
+            <p class="body-md">Chính sách hủy vé được quy định rõ ràng nhằm đảm bảo quyền lợi cho cả khách hàng và nhà xe:</p>
+            <ul class="policy-list">
+              <li>Điều kiện được hủy vé phụ thuộc vào quy định riêng của từng nhà xe được hiển thị tại bước đặt vé.</li>
+              <li>Số tiền hoàn lại được tính dựa trên thời gian quý khách gửi yêu cầu hủy vé (thường giảm dần theo thời gian sát giờ khởi hành).</li>
+              <li>Quy trình hoàn tiền sẽ được thực hiện tự động về đúng tài khoản thanh toán ban đầu của khách hàng.</li>
+              <li>Trạng thái xử lý hoàn tiền sẽ được cập nhật liên tục qua email hoặc trong phần "Lịch sử đặt vé".</li>
+              <li>Các trường hợp không được hoàn tiền bao gồm: Vé hủy sau giờ khởi hành, vé khuyến mãi không áp dụng hoàn hủy, khách hàng không có mặt tại điểm đón đúng giờ.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Section 4 -->
+        <section class="terms-section" id="service">
+          <h2 class="headline-md">CAM KẾT DỊCH VỤ VÀ BỒI THƯỜNG</h2>
+          <div class="section-body">
+            <p class="body-md">ViAGO cam kết mang đến trải nghiệm di chuyển an toàn và thuận tiện nhất:</p>
+            <ul class="policy-list">
+              <li>Chúng tôi cam kết giữ đúng chỗ và loại xe cho khách hàng sở hữu mã vé hợp lệ.</li>
+              <li>Trong trường hợp xe gặp sự cố kỹ thuật, ViAGO và nhà xe sẽ hỗ trợ chuyển quý khách sang chuyến gần nhất có thể.</li>
+              <li><strong>Hoàn tiền 100%</strong> giá trị vé nếu nhà xe không thể cung cấp dịch vụ như đã cam kết và không có phương án thay thế phù hợp.</li>
+              <li>Tặng thêm voucher giảm giá đền bù cho các sự cố gây trễ giờ nghiêm trọng do lỗi chủ quan từ nhà xe.</li>
+              <li>Các trường hợp bất khả kháng (thiên tai, dịch bệnh, tắc đường do tai nạn giao thông, quy định của cơ quan nhà nước) sẽ được miễn trừ trách nhiệm bồi thường.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Section 5 -->
+        <section class="terms-section" id="feedback">
+          <h2 class="headline-md">ĐÁNH GIÁ VÀ PHẢN HỒI CHUYẾN ĐI</h2>
+          <div class="section-body">
+            <p class="body-md">Chúng tôi luôn lắng nghe ý kiến từ khách hàng để cải thiện chất lượng dịch vụ:</p>
+            <ul class="policy-list">
+              <li>Chỉ những khách hàng đã thực sự hoàn thành chuyến đi mới có quyền thực hiện đánh giá.</li>
+              <li>Mỗi mã vé chỉ được gửi đánh giá một lần duy nhất.</li>
+              <li>Nội dung đánh giá bằng văn bản có giới hạn độ dài tối thiểu và tối đa theo quy định của hệ thống.</li>
+              <li>Hệ thống cho phép đính kèm tối đa 3 hình ảnh thực tế về chuyến đi.</li>
+              <li>Hệ thống tự động kiểm duyệt và ẩn các nội dung chứa từ ngữ phản cảm hoặc thông tin cá nhân trái phép.</li>
+              <li>Mọi đánh giá từ 1–2 sao sẽ được hệ thống tự động chuyển tiếp đến bộ phận Chăm sóc khách hàng để xử lý và phản hồi trong vòng 24 giờ làm việc.</li>
+            </ul>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>

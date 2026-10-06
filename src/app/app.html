@@ -1,1 +1,11 @@
+<!-- Shared Customer Navbar Layout Component -->
+<app-customer-navbar 
+  (openAuthModal)="onAuthModalOpen()" 
+  (openSecurityModal)="onSecurityModalOpen()"
+></app-customer-navbar>
+
+<main class="customer-content">
+  <router-outlet></router-outlet>
+</main>
+<app-customer-footer></app-customer-footer>
 <router-outlet />

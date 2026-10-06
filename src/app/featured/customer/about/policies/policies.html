@@ -1,1 +1,213 @@
-<p>policies works!</p>
+<div class="policies-page">
+  <!-- Policies Hero Section - Synchronized with Terms model -->
+  <section class="policies-hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="display-lg">CHÍNH SÁCH NHÀ XE</h1>
+        <p class="body-lg">
+          VIAGO cam kết minh bạch trong mọi hoạt động và bảo vệ quyền lợi tối đa cho khách hàng. 
+          Hệ thống chính sách được xây dựng để đảm bảo an toàn và trải nghiệm tốt nhất trên mọi hành trình.
+        </p>
+        <div class="hero-meta">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="caption">Cập nhật lần cuối: 16/06/2026</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Layout -->
+  <div class="container policies-layout">
+    <!-- Sidebar Navigation - Policies Model -->
+    <aside class="policies-nav">
+      <div class="nav-sticky-card">
+        <h3 class="nav-title">Mục lục</h3>
+        <div class="nav-divider"></div>
+        <nav class="nav-links">
+          <a href="javascript:void(0)" (click)="scrollToSection('thu-thap')" class="nav-item" [class.active]="activeSection === 'thu-thap'">
+            <span class="nav-dot"></span>
+            <span>Thu thập dữ liệu cá nhân</span>
+          </a>
+          <a href="javascript:void(0)" (click)="scrollToSection('muc-dich')" class="nav-item" [class.active]="activeSection === 'muc-dich'">
+            <span class="nav-dot"></span>
+            <span>Mục đích sử dụng dữ liệu</span>
+          </a>
+          <a href="javascript:void(0)" (click)="scrollToSection('chia-se')" class="nav-item" [class.active]="activeSection === 'chia-se'">
+            <span class="nav-dot"></span>
+            <span>Chia sẻ thông tin</span>
+          </a>
+          <a href="javascript:void(0)" (click)="scrollToSection('bao-mat')" class="nav-item" [class.active]="activeSection === 'bao-mat'">
+            <span class="nav-dot"></span>
+            <span>Bảo mật và lưu trữ</span>
+          </a>
+          <a href="javascript:void(0)" (click)="scrollToSection('quyen-loi')" class="nav-item" [class.active]="activeSection === 'quyen-loi'">
+            <span class="nav-dot"></span>
+            <span>Quyền của khách hàng</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Quick Help Card -->
+      <div class="help-card">
+        <h3>Cần hỗ trợ?</h3>
+        <p class="body-sm">
+          Nếu bạn có thắc mắc về các chính sách, vui lòng liên hệ tổng đài 24/7 của chúng tôi.
+        </p>
+        <a href="tel:19001234" class="help-link">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          1900 1234
+        </a>
+      </div>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="policies-content">
+      <div class="content-wrapper">
+        <!-- Section 1 -->
+        <section class="policy-section" id="thu-thap">
+          <h2 class="headline-md">1. THU THẬP DỮ LIỆU CÁ NHÂN</h2>
+          <div class="section-body">
+            <p class="body-md">Chúng tôi thu thập các thông tin cần thiết để cung cấp dịch vụ vận tải tốt nhất cho bạn:</p>
+            <ul class="policy-list">
+              <li>
+                <strong class="text-navy">Dữ liệu cá nhân cơ bản:</strong> Họ và tên, số điện thoại, email, địa chỉ liên hệ để xác nhận danh tính.
+              </li>
+              <li>
+                <strong class="text-navy">Lịch sử đặt vé:</strong> Thông tin về chuyến đi, ngày giờ, điểm đi/đến và lịch sử thanh toán.
+              </li>
+              <li>
+                <strong class="text-navy">Thông tin thành viên:</strong> Điểm tích lũy, hạng thành viên và các ưu đãi đặc quyền.
+              </li>
+              <li>
+                <strong class="text-navy">Dữ liệu vị trí GPS:</strong> Hỗ trợ tìm trạm xe gần nhất thông qua ứng dụng di động.
+              </li>
+              <li>
+                <strong class="text-navy">Cookies:</strong> Thông tin kỹ thuật về thiết bị và hành vi tương tác trên nền tảng ViAGO.
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Section 2 -->
+        <section class="policy-section" id="muc-dich">
+          <h2 class="headline-md">2. MỤC ĐÍCH SỬ DỤNG DỮ LIỆU</h2>
+          <div class="section-body">
+            <div class="policy-grid">
+              <div class="policy-card">
+                <div class="card-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h3 class="title-sm">Vận hành dịch vụ</h3>
+                <p class="body-sm">Quản lý tài khoản và xác nhận giao dịch đặt vé nhanh chóng, chính xác.</p>
+              </div>
+              <div class="policy-card">
+                <div class="card-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </div>
+                <h3 class="title-sm">Liên lạc & Thông báo</h3>
+                <p class="body-sm">Gửi thông báo qua SMS/Zalo về tình trạng chuyến xe và thay đổi lịch trình.</p>
+              </div>
+              <div class="policy-card">
+                <div class="card-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                </div>
+                <h3 class="title-sm">Tối ưu trải nghiệm</h3>
+                <p class="body-sm">Nghiên cứu hành vi để cải thiện giao diện và tính năng ứng dụng.</p>
+              </div>
+              <div class="policy-card">
+                <div class="card-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <h3 class="title-sm">Chương trình ưu đãi</h3>
+                <p class="body-sm">Cung cấp khuyến mãi, khảo sát sự hài lòng và quà tặng tri ân.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 3 -->
+        <section class="policy-section" id="chia-se">
+          <h2 class="headline-md">3. CHIA SẺ THÔNG TIN</h2>
+          <div class="section-body">
+            <div class="info-box info-warning">
+              <p class="body-md italic">
+                Chúng tôi không bán dữ liệu của bạn. Thông tin chỉ được chia sẻ trong các trường hợp cần thiết sau:
+              </p>
+            </div>
+            <div class="policy-detail-list">
+              <div class="detail-item">
+                <div class="detail-bullet"></div>
+                <div class="detail-content">
+                  <p class="body-md"><strong class="text-navy">Tài xế và Phụ xe:</strong> Cung cấp danh sách hành khách và số điện thoại để liên hệ đón khách.</p>
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-bullet"></div>
+                <div class="detail-content">
+                  <p class="body-md"><strong class="text-navy">Cổng thanh toán:</strong> Chia sẻ dữ liệu giao dịch cần thiết với đối tác ngân hàng/ví điện tử.</p>
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-bullet"></div>
+                <div class="detail-content">
+                  <p class="body-md"><strong class="text-navy">Yêu cầu pháp luật:</strong> Cung cấp thông tin theo yêu cầu của cơ quan nhà nước có thẩm quyền.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 4 -->
+        <section class="policy-section" id="bao-mat">
+          <h2 class="headline-md">4. BẢO MẬT VÀ LƯU TRỮ</h2>
+          <div class="section-body">
+            <div class="security-grid">
+              <div class="security-item">
+                <div class="security-header">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <span class="title-sm">Mã hóa an toàn</span>
+                </div>
+                <p class="body-sm">Sử dụng công nghệ SSL/TLS hiện đại để bảo vệ mật khẩu và dữ liệu nhạy cảm.</p>
+              </div>
+              <div class="security-item">
+                <div class="security-header">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span class="title-sm">Thời gian lưu trữ</span>
+                </div>
+                <p class="body-sm">Lưu trữ tối thiểu 24 tháng theo quy định pháp luật và xóa khi không còn sử dụng.</p>
+              </div>
+              <div class="security-item">
+                <div class="security-header">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <span class="title-sm">Kiểm soát truy cập</span>
+                </div>
+                <p class="body-sm">Phân quyền nghiêm ngặt đối với nhân viên nội bộ tiếp cận dữ liệu khách hàng.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 5 -->
+        <section class="policy-section" id="quyen-loi">
+          <h2 class="headline-md">5. QUYỀN CỦA KHÁCH HÀNG</h2>
+          <div class="section-body">
+            <div class="rights-list">
+              <div class="right-card">
+                <h4 class="title-sm">Quyền kiểm soát</h4>
+                <p class="body-sm">Xem, chỉnh sửa hoặc yêu cầu xóa dữ liệu cá nhân bất cứ lúc nào qua tài khoản hoặc tổng đài.</p>
+              </div>
+              <div class="right-card">
+                <h4 class="title-sm">Quyền từ chối</h4>
+                <p class="body-sm">Rút lại sự đồng ý sử dụng dữ liệu cho mục đích quảng cáo mà không ảnh hưởng đến việc mua vé.</p>
+              </div>
+              <div class="right-card">
+                <h4 class="title-sm">Trách nhiệm</h4>
+                <p class="body-sm">Khách hàng có trách nhiệm cung cấp thông tin chính xác để đảm bảo quyền lợi bồi thường.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>

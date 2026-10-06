@@ -1,1 +1,225 @@
-<p>news works!</p>
+
+<section class="news-filter-bar">
+  <div class="container mx-auto px-4 md:px-10 lg:px-16">
+    <!-- Category selectors row -->
+    <div class="category-links-wrapper mb-6 flex justify-center overflow-x-auto pb-2">
+      <div class="category-capsule-bar flex items-center p-1 bg-slate-100 rounded-full border border-slate-200/60 w-max">
+        <button
+          *ngFor="let cat of categories"
+          type="button"
+          class="category-capsule-btn px-6 py-2.5 rounded-full text-xs font-bold transition duration-300 whitespace-nowrap"
+          [class.active]="activeCategory === cat.key"
+          (click)="setCategory(cat.key)"
+        >
+          {{ cat.name }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Active filters grid -->
+    <div class="filter-controls-grid grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 items-center">
+      <!-- Search input -->
+      <div class="lg:col-span-2 relative">
+        <input
+          type="search"
+          placeholder="Tìm tin tức, khuyến mãi..."
+          [(ngModel)]="searchTerm"
+          (input)="currentPage = 1; applyFilters()"
+          class="w-full px-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-gray-800 outline-none focus:border-[#123063] focus:bg-white transition"
+        />
+      </div>
+
+      <!-- Time filter -->
+      <div>
+        <select [(ngModel)]="timeFilter" (change)="currentPage = 1; applyFilters()" class="w-full p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-gray-700 outline-none focus:border-[#123063] focus:bg-white transition">
+          <option value="all">Thời gian: Tất cả</option>
+          <option value="today">Hôm nay</option>
+          <option value="week">Tuần này</option>
+          <option value="month">Tháng này</option>
+        </select>
+      </div>
+
+      <!-- Sort order -->
+      <div>
+        <select [(ngModel)]="sortOrder" (change)="applyFilters()" class="w-full p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-gray-700 outline-none focus:border-[#123063] focus:bg-white transition">
+          <option value="newest">Sắp xếp: Mới nhất</option>
+          <option value="oldest">Sắp xếp: Cũ nhất</option>
+        </select>
+      </div>
+
+      <!-- Contextual filters (Route) for Promotion/Handbook -->
+      <ng-container *ngIf="activeCategory === 'khuyen-mai' || activeCategory === 'cam-nang'">
+        <div>
+          <select [(ngModel)]="selectedRoute" [disabled]="useFavoriteRoute" (change)="currentPage = 1; applyFilters()" class="w-full p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-gray-700 outline-none focus:border-[#123063] focus:bg-white transition disabled:opacity-50">
+            <option value="all">Tất cả tuyến đường</option>
+            <option *ngFor="let route of routes" [value]="route">{{ route }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="checkbox-filter flex items-center gap-2 cursor-pointer text-xs text-gray-600 font-semibold p-2 border border-slate-200/80 rounded-xl bg-slate-50">
+            <input type="checkbox" [(ngModel)]="useFavoriteRoute" (change)="currentPage = 1; applyFilters()" class="rounded border-gray-300 text-[#123063] focus:ring-[#123063]" />
+            Tuyến tôi thường đi
+          </label>
+        </div>
+      </ng-container>
+
+      <!-- Contextual filters (Job Type) for Recruitment -->
+      <ng-container *ngIf="activeCategory === 'tuyen-dung'">
+        <div class="lg:col-span-2">
+          <select [(ngModel)]="jobType" (change)="currentPage = 1; applyFilters()" class="w-full p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-gray-700 outline-none focus:border-[#123063] focus:bg-white transition">
+            <option value="all">Loại công việc: Tất cả</option>
+            <option value="tai-xe">Tài xế</option>
+            <option value="csvc">Cơ sở vật chất / Dịch vụ bến xe</option>
+            <option value="quan-ly">Quản lý trạm</option>
+          </select>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</section>
+
+<main class="container mx-auto px-4 md:px-10 lg:px-16 my-8">
+  
+  <!-- Tin tức nổi bật (Featured Section) -->
+  <section class="featured-news-section mb-12" *ngIf="activeCategory === 'all' && !searchTerm && featuredArticle">
+    <div class="futa-section-heading mb-6">
+      <h2 class="futa-block-title">Tin tức nổi bật</h2>
+    </div>
+
+    <!-- 2-column Grid for Top Featured Layout -->
+    <div class="futa-top-grid grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-6 mb-8">
+      <!-- Left side: 1 large card -->
+      <article class="futa-large-card bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm flex flex-col">
+        <a [routerLink]="['/tin-tuc/chi-tiet', featuredArticle.id]" class="block relative aspect-video overflow-hidden">
+          <img [src]="featuredArticle.imageUrl" [alt]="featuredArticle.title" class="w-full h-full object-cover hover:scale-105 transition duration-500" />
+        </a>
+        <div class="p-6 flex-1 flex flex-col justify-between">
+          <div>
+            <h3 class="text-lg md:text-xl font-bold text-[#123063] mb-3 leading-snug line-clamp-2">
+              <a [routerLink]="['/tin-tuc/chi-tiet', featuredArticle.id]" class="hover:text-[#f96d00] transition">{{ featuredArticle.title }}</a>
+            </h3>
+            <p class="text-slate-500 text-xs md:text-sm line-clamp-3 mb-4">{{ featuredArticle.excerpt }}</p>
+          </div>
+          <div class="text-[11px] text-slate-400 font-bold">{{ featuredArticle.date }}</div>
+        </div>
+      </article>
+
+      <!-- Right side: 2x2 grid of 4 smaller cards -->
+      <div class="futa-small-grid grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <article class="futa-small-card bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm flex flex-col" *ngFor="let art of rightSideArticles">
+          <a [routerLink]="['/tin-tuc/chi-tiet', art.id]" class="block aspect-video overflow-hidden">
+            <img [src]="art.imageUrl" [alt]="art.title" class="w-full h-full object-cover hover:scale-105 transition duration-500" />
+          </a>
+          <div class="p-4 flex-1 flex flex-col justify-between">
+            <h4 class="text-xs md:text-sm font-bold text-[#123063] mb-2 line-clamp-2 leading-snug">
+              <a [routerLink]="['/tin-tuc/chi-tiet', art.id]" class="hover:text-[#f96d00] transition">{{ art.title }}</a>
+            </h4>
+            <div class="text-[10px] text-slate-400 font-bold">{{ art.date }}</div>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <!-- Underneath: 4 columns (1 highlight block, 3 standard cards) -->
+    <div class="futa-bottom-focus-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Col 1: Tiêu điểm highlight block (orange background, centered white text) -->
+      <div class="futa-highlight-block rounded-2xl bg-[#f96d00] text-white p-6 flex flex-col justify-center items-center text-center shadow-md">
+        <span class="text-xs uppercase font-extrabold tracking-widest opacity-80 mb-2">Tiêu điểm</span>
+        <h3 class="text-base font-black uppercase">VIAGO City Bus</h3>
+        <div class="w-8 h-1 bg-white my-3 rounded-full"></div>
+        <p class="text-[11px] opacity-90 leading-relaxed">Đồng hành cùng giao thông công cộng đô thị xanh hiện đại và tiện lợi.</p>
+      </div>
+
+      <!-- Col 2, 3, 4: Standard cards -->
+      <article class="futa-bottom-card bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm flex flex-col" *ngFor="let art of bottomFocusArticles">
+        <a [routerLink]="['/tin-tuc/chi-tiet', art.id]" class="block aspect-video overflow-hidden">
+          <img [src]="art.imageUrl" [alt]="art.title" class="w-full h-full object-cover hover:scale-105 transition duration-500" />
+        </a>
+        <div class="p-4 flex-1 flex flex-col justify-between">
+          <h4 class="text-xs md:text-sm font-bold text-[#123063] mb-2 line-clamp-2 leading-snug">
+            <a [routerLink]="['/tin-tuc/chi-tiet', art.id]" class="hover:text-[#f96d00] transition">{{ art.title }}</a>
+          </h4>
+          <div class="text-[10px] text-slate-400 font-bold">{{ art.date }}</div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Tất cả tin tức (All News Section with Horizontal list rows) -->
+  <section class="all-news-section" *ngIf="paginatedArticles.length > 0">
+    <div class="futa-section-heading mb-6 flex justify-between items-end">
+      <h2 class="futa-block-title">
+        {{ activeCategory === 'all' ? 'Tất cả tin tức' : getCategoryName(activeCategory) }}
+      </h2>
+      <p class="text-xs text-slate-400 font-bold mb-1">{{ filteredArticles.length }} tin tức</p>
+    </div>
+
+    <!-- 2-column grid of horizontal rows (image on left, content on right) -->
+    <div class="futa-horizontal-news-grid grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <article class="futa-horizontal-card bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm flex gap-4 p-3 items-center hover:shadow-md transition duration-300" *ngFor="let art of paginatedArticles">
+        <a [routerLink]="['/tin-tuc/chi-tiet', art.id]" class="block w-28 h-20 md:w-32 md:h-24 rounded-xl overflow-hidden flex-shrink-0">
+          <img [src]="art.imageUrl" [alt]="art.title" class="w-full h-full object-cover hover:scale-105 transition duration-500" />
+        </a>
+        <div class="flex-1 flex flex-col justify-between h-full py-1">
+          <div>
+            <h4 class="text-xs md:text-sm font-bold text-[#123063] mb-1 line-clamp-2 leading-snug">
+              <a [routerLink]="['/tin-tuc/chi-tiet', art.id]" class="hover:text-[#f96d00] transition">{{ art.title }}</a>
+            </h4>
+            <p class="text-slate-500 text-[10px] md:text-xs line-clamp-2 mb-2">{{ art.excerpt }}</p>
+          </div>
+          <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold mt-1">
+            <span>{{ art.date }}</span>
+            <button type="button" (click)="copyShareLink(art); $event.stopPropagation()" class="text-[#f96d00] hover:underline flex items-center gap-1 cursor-pointer bg-transparent border-0 font-bold" title="Copy liên kết">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+              <span>Share</span>
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- Custom FUTA pagination bar -->
+    <div class="viago-pagination-container" *ngIf="totalPages > 1">
+      <button type="button" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)" class="viago-page-btn">
+        ‹
+      </button>
+      <button
+        type="button"
+        *ngFor="let p of pagesArray"
+        [class.active]="currentPage === p"
+        (click)="setPage(p)"
+        class="viago-page-btn"
+      >
+        {{ p }}
+      </button>
+      <button type="button" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)" class="viago-page-btn">
+        ›
+      </button>
+    </div>
+  </section>
+
+  <div *ngIf="paginatedArticles.length === 0" class="empty-state text-center py-12 text-slate-400 font-bold">
+    Chưa có bài viết phù hợp với bộ lọc hiện tại.
+  </div>
+</main>
+
+<!-- Custom Share Modal Dialog -->
+<div class="share-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs" *ngIf="showShareModal">
+  <div class="share-modal-card bg-white rounded-3xl p-6 shadow-xl max-w-md w-full mx-4 border border-slate-100 flex flex-col gap-4">
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h3 class="text-sm font-bold text-[#123063]">Chia sẻ liên kết</h3>
+      <button (click)="showShareModal = false" class="text-slate-400 hover:text-slate-600 cursor-pointer text-sm font-bold bg-transparent border-0">Đóng</button>
+    </div>
+    <p class="text-xs text-slate-500">Sao chép liên kết dưới đây để chia sẻ với bạn bè:</p>
+    <div class="flex gap-2">
+      <input type="text" readonly [value]="shareUrl" class="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none" />
+      <button (click)="copyLink()" class="px-4 py-2.5 bg-[#123063] hover:bg-[#1d4586] text-white text-xs font-bold rounded-xl transition cursor-pointer">Copy</button>
+    </div>
+  </div>
+</div>

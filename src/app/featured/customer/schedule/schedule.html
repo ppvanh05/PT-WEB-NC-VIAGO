@@ -1,1 +1,234 @@
-<p>schedule works!</p>
+<div class="schedule-page">
+  <!-- Hero Section -->
+  <section class="schedule-hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1 class="hero-title">Lịch Trình Tuyến Xe</h1>
+      <p class="hero-subtitle">Khám phá mạng lưới vận chuyển cao cấp trên toàn quốc. Đảm bảo hành trình an toàn, tiện nghi và đúng giờ tuyệt đối.</p>
+    </div>
+  </section>
+
+  <!-- Search Section -->
+  <section class="schedule-search">
+    <div class="search-container viago-card">
+      <div class="search-wrapper">
+        <svg class="search-icon-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Nhập tỉnh thành hoặc điểm đến..." 
+          [(ngModel)]="searchTerm"
+          (input)="onSearch()"
+        >
+
+      </div>
+      <div class="recent-searches">
+        <span class="recent-label">Tìm kiếm phổ biến:</span>
+        <div class="recent-tags">
+          <button class="tag-btn" (click)="searchTerm = 'TP.HCM'; onSearch()">TP.HCM</button>
+          <button class="tag-btn" (click)="searchTerm = 'Đà Lạt'; onSearch()">Đà Lạt</button>
+          <button class="tag-btn" (click)="searchTerm = 'Nha Trang'; onSearch()">Nha Trang</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Routes -->
+  <section class="featured-section" *ngIf="!searchTerm">
+    <div class="section-header">
+      <h2 class="section-title">Tuyến Xe Nổi Bật</h2>
+      <p class="section-subtitle">Trải nghiệm những hành trình đẳng cấp được yêu thích nhất</p>
+    </div>
+    <div class="featured-grid">
+      <div class="featured-card" *ngFor="let route of featuredRoutes">
+        <img [src]="route.image" [alt]="route.to" class="card-bg">
+        <div class="card-overlay"></div>
+        <div class="card-content">
+          <div class="card-tags">
+            <span class="tag-featured" *ngFor="let tag of route.tags">{{ tag }}</span>
+          </div>
+          <h3 class="card-title">{{ route.from }} ↔ {{ route.to }}</h3>
+          <div class="vehicle-tags">
+            <span class="v-tag" *ngFor="let vType of route.vehicleTypes">{{ vType }}</span>
+          </div>
+          <div class="card-info">
+            <span class="info-item">
+              <svg class="icon-line-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              {{ route.distance }}
+            </span>
+            <span class="info-item">
+              <svg class="icon-line-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              {{ route.duration }}
+            </span>
+          </div>
+          <div class="card-footer">
+            <div class="price-box">
+              <span class="price-label">Giá vé từ</span>
+              <span class="price-value">{{ formatPrice(route.price) }}</span>
+            </div>
+            <button class="viago-btn-secondary view-btn" (click)="handleViewSchedule(route)">Đặt vé ngay</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- All Routes Section -->
+  <section class="all-routes-section">
+    <div class="section-header">
+      <h2 class="section-title">{{ searchTerm ? 'Kết quả tìm kiếm' : 'Tất Cả Tuyến Xe' }}</h2>
+    </div>
+    
+    <div class="routes-grid" *ngIf="filteredRoutes.length > 0; else emptyState">
+      <div class="compact-card viago-card" *ngFor="let route of filteredRoutes">
+        <div class="compact-image">
+          <img [src]="route.image" [alt]="route.to">
+        </div>
+        <div class="compact-body">
+          <h4 class="compact-title">{{ route.from }} ↔ {{ route.to }}</h4>
+          <div class="compact-tags">
+            <span class="v-tag-sm" *ngFor="let vType of route.vehicleTypes">{{ vType }}</span>
+          </div>
+        <div class="compact-info">
+          <div class="info-grid">
+            <div class="info-item-line">
+              <svg class="icon-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <span>{{ route.distance }}</span>
+            </div>
+            <div class="info-item-line">
+              <svg class="icon-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>{{ route.duration }}</span>
+            </div>
+            <div class="info-item-line full-width" *ngIf="route.tripsPerDay">
+              <svg class="icon-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="7" y="10" width="10" height="11" rx="2"></rect>
+                <path d="M5 21h14"></path>
+                <path d="M10 21v-2"></path>
+                <path d="M14 21v-2"></path>
+                <path d="M5 10V7a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v3"></path>
+              </svg>
+              <span>{{ route.tripsPerDay }} chuyến/ngày</span>
+            </div>
+          </div>
+        </div>
+          <div class="compact-footer">
+            <div class="price-box">
+              <span class="price-label-sm">GIÁ VÉ TỪ</span>
+              <span class="price-value-sm">{{ route.price / 1000 }}.000đ</span>
+            </div>
+            <button class="btn-view-schedule" (click)="handleViewSchedule(route)">Đặt vé ngay</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <ng-template #emptyState>
+      <div class="empty-state text-center py-12">
+        <div class="empty-icon-outline w-16 h-16 mx-auto mb-4 text-slate-300">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+        <h3 class="empty-title text-base font-bold text-[#123063] mb-2">Không tìm thấy tuyến xe phù hợp</h3>
+        <p class="empty-desc text-xs text-slate-500 max-w-md mx-auto mb-6">Rất tiếc, chúng tôi không tìm thấy tuyến xe nào khớp với từ khóa "{{ searchTerm }}". Vui lòng thử lại với từ khóa khác.</p>
+        <button class="viago-btn-secondary rounded-full px-5 py-2.5 text-xs font-bold bg-[#f96d00] text-white" (click)="searchTerm = ''; onSearch()">Xem tất cả tuyến xe</button>
+      </div>
+    </ng-template>
+
+  <!-- Schedule Detail Modal -->
+  <div class="schedule-modal-overlay" *ngIf="selectedRouteForDetails" (click)="closeSchedule()">
+    <div class="schedule-modal-content viago-card animate-fadeIn" (click)="$event.stopPropagation()">
+      <button class="close-modal-btn" (click)="closeSchedule()">×</button>
+      
+      <div class="modal-header">
+        <h3 class="modal-title">Lịch Trình Chi Tiết</h3>
+        <p class="modal-route">{{ selectedRouteForDetails.from }} ↔ {{ selectedRouteForDetails.to }}</p>
+        <span class="modal-meta-badge bg-slate-100 text-slate-700 font-bold px-3 py-1 rounded-full text-xs mt-2 inline-block">
+          📏 {{ selectedRouteForDetails.distance }} • ⏱️ {{ selectedRouteForDetails.duration }}
+        </span>
+      </div>
+
+      <!-- Direction Tabs -->
+      <div class="direction-tabs flex p-1 bg-slate-100 rounded-full border border-slate-200/60 max-w-sm mb-6 mt-4">
+        <button type="button" (click)="selectedDirection = 'forward'"
+                [class.bg-[#123063]]="selectedDirection === 'forward'" [class.text-white]="selectedDirection === 'forward'"
+                class="flex-1 text-center py-2 rounded-full text-xs font-bold transition duration-300">
+          Chiều đi: {{ selectedRouteForDetails.from }} → {{ selectedRouteForDetails.to }}
+        </button>
+        <button type="button" (click)="selectedDirection = 'backward'"
+                [class.bg-[#123063]]="selectedDirection === 'backward'" [class.text-white]="selectedDirection === 'backward'"
+                class="flex-1 text-center py-2 rounded-full text-xs font-bold transition duration-300">
+          Chiều về: {{ selectedRouteForDetails.to }} → {{ selectedRouteForDetails.from }}
+        </button>
+      </div>
+
+      <div class="modal-body-grid grid gap-6 md:grid-cols-[1.5fr_1fr]">
+        <!-- Timetable List -->
+        <div class="timetable-section">
+          <h4 class="section-subtitle font-bold text-[#123063] mb-3">🕒 Danh sách giờ xuất bến</h4>
+          <div class="space-y-3 overflow-y-auto max-h-[300px] pr-2">
+            <div *ngFor="let trip of mockTrips" class="trip-row flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/50 rounded-2xl hover:bg-white hover:border-[#123063]/30 transition">
+              <div class="flex items-center gap-3">
+                <span class="trip-time text-base font-black text-[#f96d00]">{{ trip.time }}</span>
+                <div>
+                  <div class="trip-vehicle text-xs font-bold text-[#123063]">{{ trip.type }}</div>
+                  <div class="trip-amenities text-[10px] text-gray-500">{{ trip.amenities }}</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="trip-price text-sm font-black text-[#123063]">{{ formatPrice(trip.price) }}</div>
+                <span class="text-[9px] text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full font-bold">Còn vé</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Route stops list -->
+        <div class="stops-section">
+          <h4 class="section-subtitle font-bold text-[#123063] mb-3">📍 Điểm đón & Trả khách</h4>
+          <div class="stops-wrapper bg-slate-50 border border-slate-200/50 rounded-3xl p-5">
+            <div class="stop-group">
+              <div class="text-xs uppercase tracking-wider text-[#f96d00] font-black mb-3">🛫 Điểm đón khách</div>
+              <ul class="space-y-2 mb-6">
+                <li *ngFor="let p of (selectedDirection === 'forward' ? mockStops.forward.pickups : mockStops.backward.pickups)" class="text-xs font-semibold text-slate-700 flex items-start gap-2">
+                  <span class="text-teal-600">✓</span> {{ p }}
+                </li>
+              </ul>
+            </div>
+            <div class="stop-group">
+              <div class="text-xs uppercase tracking-wider text-[#123063] font-black mb-3">🛬 Điểm trả khách</div>
+              <ul class="space-y-2">
+                <li *ngFor="let d of (selectedDirection === 'forward' ? mockStops.forward.dropoffs : mockStops.backward.dropoffs)" class="text-xs font-semibold text-slate-700 flex items-start gap-2">
+                  <span class="text-[#f96d00]">✓</span> {{ d }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer flex justify-end gap-3 mt-6 border-t border-slate-100 pt-4">
+        <button class="px-5 py-3 rounded-full bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 transition" (click)="closeSchedule()">Đóng lại</button>
+        <button class="px-6 py-3 rounded-full bg-[#f96d00] text-white font-semibold hover:bg-[#e57b02] transition shadow-md shadow-[#f96d00]/20" (click)="bookSelectedRoute()">Đặt vé ngay</button>
+      </div>
+    </div>
+  </div>
+  </section>
+</div>
