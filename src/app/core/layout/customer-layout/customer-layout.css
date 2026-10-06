@@ -1,0 +1,24 @@
+.viago-customer-layout {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-surface-muted);
+}
+
+.viago-customer-navbar-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  width: 100%;
+}
+
+.viago-customer-main {
+  flex-grow: 1;
+  width: 100%;
+}
+
+.viago-customer-footer-wrapper {
+  width: 100%;
+  margin-top: auto;
+}

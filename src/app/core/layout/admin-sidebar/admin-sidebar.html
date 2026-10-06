@@ -1,1 +1,72 @@
-<p>admin-sidebar works!</p>
+<aside class="admin-sidebar" [class.is-collapsed]="isCollapsed()" aria-label="Thanh điều hướng quản trị">
+  <svg class="icon-sprite" aria-hidden="true">
+    <symbol id="dashboard" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+    <symbol id="ticket" viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 0 6.5 10a2.5 2.5 0 1 1 0 5A2.5 2.5 0 0 0 4 17.5V19h16v-1.5a2.5 2.5 0 0 0-2.5-2.5 2.5 2.5 0 1 1 0-5A2.5 2.5 0 0 0 20 7.5V6H4v1.5Z"/><path d="M12 8v1m0 6v1"/></symbol>
+    <symbol id="truck" viewBox="0 0 24 24"><path d="M3 6h11v11H3zM14 10h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+    <symbol id="users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19v-1a6 6 0 0 1 12 0v1M16 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 5"/></symbol>
+    <symbol id="file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 13h6m-6 3h6"/></symbol>
+    <symbol id="contract" viewBox="0 0 24 24"><path d="M4 6h11v11H4zM15 9h3l2 2v6h-5M8 20h5"/><path d="M7 10h5m-5 3h3"/></symbol>
+    <symbol id="chart" viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/></symbol>
+    <symbol id="log" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h10M4 18h7"/></symbol>
+    <symbol id="chevron-right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  </svg>
+
+  <!-- Header -->
+  <header class="sidebar-header">
+    <img src="/assets/brand/logo.png" alt="VIAGO" class="brand-logo" />
+    <button
+      class="menu-button"
+      type="button"
+      (click)="toggleCollapse()"
+      [attr.aria-label]="isCollapsed() ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'"
+    >
+      <svg class="menu-icon"><use href="#menu" /></svg>
+    </button>
+  </header>
+
+  <!-- Nav: wrapper clip + inner scroll (như reference) -->
+  <div class="sidebar-nav-wrapper">
+    <div class="sidebar-nav">
+      @for (item of menuItems; track item.label) {
+
+        <!-- Parent nav item -->
+        <button
+          type="button"
+          class="nav-item"
+          [class.is-active]="isParentActive(item)"
+          [class.is-expanded]="isExpanded(item.label)"
+          [attr.aria-expanded]="item.expandable ? isExpanded(item.label) : null"
+          (click)="selectItem(item)"
+        >
+          <svg class="nav-icon"><use [attr.href]="'#' + item.icon" /></svg>
+          <span class="nav-label">{{ item.label }}</span>
+          @if (item.expandable) {
+            <svg class="chevron-icon" [class.is-open]="isExpanded(item.label)">
+              <use href="#chevron-right" />
+            </svg>
+          }
+        </button>
+
+        <!-- Submenu — hiện/ẩn bằng display flex/none, không dùng max-height -->
+        @if (item.expandable && item.children) {
+          <div class="submenu" [class.is-open]="isExpanded(item.label)">
+            @for (child of item.children; track child.label) {
+              <button
+                type="button"
+                class="sub-item"
+                [class.is-active]="activeRoute() === child.route"
+                (click)="selectSubItem(child.route)"
+              >
+                {{ child.label }}
+              </button>
+            }
+          </div>
+        }
+
+      }
+    </div>
+  </div>
+
+</aside>
