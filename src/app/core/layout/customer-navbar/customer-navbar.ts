@@ -26,6 +26,11 @@ export class CustomerNavbar {
     public router: Router
   ) {}
 
+  isHomeRouteActive(): boolean {
+    const url = this.router.url.split('?')[0];
+    return url === '/customer' || url === '/customer/' || url === '/';
+  }
+
   isAboutRouteActive(): boolean {
     const activeRoutes = [
       '/customer/ve-chung-toi',
@@ -100,10 +105,8 @@ export class CustomerNavbar {
     this.isDropdownOpen = false;
   }
 
-  onHomeClick(event: Event) {
-    event.preventDefault();
+  onHomeClick(event?: Event) {
     this.closeMobileMenu();
-    this.router.navigate(['/customer'], { queryParams: { reset: Date.now() } });
   }
 }
 

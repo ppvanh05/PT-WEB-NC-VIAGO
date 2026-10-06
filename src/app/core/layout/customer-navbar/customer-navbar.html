@@ -98,7 +98,12 @@
   <div class="main-navbar">
     <div class="navbar-container">
       <nav class="nav-links-list">
-        <a routerLink="/customer" (click)="onHomeClick($event)" routerLinkActive="nav-active" [routerLinkActiveOptions]="{exact: true}" class="nav-link-item">
+        <a 
+          routerLink="/customer" 
+          (click)="onHomeClick($event)" 
+          class="nav-link-item"
+          [class.nav-active]="isHomeRouteActive()"
+        >
           <span>TRANG CHỦ</span>
         </a>
         <a routerLink="/customer/lich-trinh" routerLinkActive="nav-active" class="nav-link-item">
