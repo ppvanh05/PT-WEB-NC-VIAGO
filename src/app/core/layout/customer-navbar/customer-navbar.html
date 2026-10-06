@@ -98,12 +98,24 @@
   <div class="main-navbar">
     <div class="navbar-container">
       <nav class="nav-links-list">
-        <a routerLink="/customer" (click)="onHomeClick($event)" routerLinkActive="nav-active" [routerLinkActiveOptions]="{exact: true}" class="nav-link-item">TRANG CHỦ</a>
-        <a routerLink="/customer/lich-trinh" routerLinkActive="nav-active" class="nav-link-item">LỊCH TRÌNH</a>
-        <a routerLink="/customer/tra-cuu-ve" routerLinkActive="nav-active" class="nav-link-item">TRA CỨU VÉ</a>
-        <a routerLink="/customer/tin-tuc" routerLinkActive="nav-active" class="nav-link-item">TIN TỨC</a>
-        <a routerLink="/customer/hoa-don" routerLinkActive="nav-active" class="nav-link-item">HÓA ĐƠN</a>
-        <a routerLink="/customer/danh-gia" routerLinkActive="nav-active" class="nav-link-item">ĐÁNH GIÁ</a>
+        <a routerLink="/customer" (click)="onHomeClick($event)" routerLinkActive="nav-active" [routerLinkActiveOptions]="{exact: true}" class="nav-link-item">
+          <span>TRANG CHỦ</span>
+        </a>
+        <a routerLink="/customer/lich-trinh" routerLinkActive="nav-active" class="nav-link-item">
+          <span>LỊCH TRÌNH</span>
+        </a>
+        <a routerLink="/customer/tra-cuu-ve" routerLinkActive="nav-active" class="nav-link-item">
+          <span>TRA CỨU VÉ</span>
+        </a>
+        <a routerLink="/customer/tin-tuc" routerLinkActive="nav-active" class="nav-link-item">
+          <span>TIN TỨC</span>
+        </a>
+        <a routerLink="/customer/hoa-don" routerLinkActive="nav-active" class="nav-link-item">
+          <span>HÓA ĐƠN</span>
+        </a>
+        <a routerLink="/customer/danh-gia" routerLinkActive="nav-active" class="nav-link-item">
+          <span>ĐÁNH GIÁ</span>
+        </a>
 
         <!-- Dropdown: Dịch vụ -->
         <div class="nav-dropdown-wrapper">

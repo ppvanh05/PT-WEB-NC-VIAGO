@@ -267,14 +267,25 @@
 }
 
 .nav-link-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   font-size: 13px;
   font-weight: 600;
+  line-height: 1.4;
   color: var(--color-neutral-600, #475569);
   text-decoration: none;
   padding-bottom: 4px;
   border-bottom: 2px solid transparent;
   transition: color 0.15s ease, border-color 0.15s ease;
   cursor: pointer;
+  box-sizing: border-box;
+}
+
+.nav-link-item span {
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* Hover rule: change color only, NO bottom border */
@@ -290,15 +301,12 @@
   font-weight: 700;
 }
 
-.dropdown-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
 .arrow-icon {
   width: 14px;
   height: 14px;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
   transition: transform 0.2s ease;
 }
 
@@ -309,6 +317,8 @@
 /* Nav Dropdown Wrapper & Box */
 .nav-dropdown-wrapper {
   position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 
 .dropdown-menu-box {
