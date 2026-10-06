@@ -1,1 +1,301 @@
-<p>detailed-report works!</p>
+<div class="reports-container">
+
+  <!-- Header Card -->
+  <div class="header-card">
+    <div class="header-titles">
+      <span class="category-tag">BÁO CÁO THỐNG KÊ</span>
+      <h1 class="main-title">Báo cáo doanh thu & chi tiết vận hành</h1>
+    </div>
+    <div class="export-actions">
+      <button class="btn-export excel" (click)="exportReport('excel')">
+        <i class="bi bi-file-earmark-excel-fill"></i> Xuất Excel (.xlsx)
+      </button>
+      <button class="btn-export csv" (click)="exportReport('csv')">
+        <i class="bi bi-file-earmark-text-fill"></i> Xuất CSV (.csv)
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter Panel -->
+  <div class="filter-panel-card">
+    <div class="filter-row">
+      <div class="filter-item date-item">
+        <label>Từ ngày</label>
+        <input type="date" [(ngModel)]="filters.fromDate" (change)="onViewReport()" />
+      </div>
+
+      <div class="filter-item date-item">
+        <label>Đến ngày</label>
+        <input type="date" [(ngModel)]="filters.toDate" (change)="onViewReport()" />
+      </div>
+
+      <div class="filter-item">
+        <label>Tuyến đường</label>
+        <select [(ngModel)]="filters.tuyenXe" (change)="onViewReport()">
+          <option *ngFor="let route of availableRoutes" [value]="route">{{ route }}</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label>Biển số xe</label>
+        <select [(ngModel)]="filters.bienSo" (change)="onViewReport()">
+          <option *ngFor="let plate of availablePlates" [value]="plate">{{ plate }}</option>
+        </select>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn-primary" (click)="onViewReport()">
+          <i class="bi bi-funnel-fill"></i> Lọc dữ liệu
+        </button>
+        <button class="btn-secondary" (click)="onResetFilters()">
+          <i class="bi bi-arrow-counterclockwise"></i> Reset 30 ngày
+        </button>
+      </div>
+    </div>
+
+    <div class="date-error-banner" *ngIf="dateValidationError">
+      <i class="bi bi-exclamation-triangle-fill"></i> {{ dateValidationError }}
+    </div>
+  </div>
+
+  <!-- Summary Metric Cards (Correct Terms) -->
+  <div class="summary-cards-grid">
+    <div class="metric-card revenue">
+      <div class="metric-header">
+        <span class="metric-label">Tổng doanh thu vé</span>
+        <i class="bi bi-cash-stack metric-icon"></i>
+      </div>
+      <div class="metric-value">{{ formatCurrency(summary.totalRevenue) }}</div>
+      <div class="metric-footer">Trong kỳ đang chọn</div>
+    </div>
+
+    <div class="metric-card cost">
+      <div class="metric-header">
+        <span class="metric-label">Tổng chi phí vận hành</span>
+        <i class="bi bi-receipt metric-icon"></i>
+      </div>
+      <div class="metric-value">{{ formatCurrency(summary.totalOperatingCost) }}</div>
+      <div class="metric-footer">Nhiên liệu, BOT, Lương, Bến bãi</div>
+    </div>
+
+    <div class="metric-card profit">
+      <div class="metric-header">
+        <span class="metric-label">Lợi nhuận tuyến</span>
+        <i class="bi bi-graph-up-arrow metric-icon"></i>
+      </div>
+      <div class="metric-value">{{ formatCurrency(summary.totalProfit) }}</div>
+      <div class="metric-footer">Doanh thu - Chi phí</div>
+    </div>
+
+    <div class="metric-card occupancy">
+      <div class="metric-header">
+        <span class="metric-label">Số ghế không bán được trong kỳ</span>
+        <i class="bi bi-person-x-fill metric-icon"></i>
+      </div>
+      <div class="metric-value">{{ summary.unsoldSeats }} ghế</div>
+      <div class="metric-footer">Tỷ lệ lấp đầy TB: {{ summary.avgOccupancy }}%</div>
+    </div>
+  </div>
+
+  <!-- Detailed Trip Status Counters -->
+  <div class="trip-counters-bar">
+    <div class="counter-item">
+      <span class="count-num">{{ summary.totalTrips }}</span>
+      <span class="count-label">Tổng số chuyến</span>
+    </div>
+    <div class="counter-item success">
+      <span class="count-num">{{ summary.completedTrips }}</span>
+      <span class="count-label">Chuyến đã hoàn thành</span>
+    </div>
+    <div class="counter-item info">
+      <span class="count-num">{{ summary.runningTrips }}</span>
+      <span class="count-label">Chuyến đang chạy</span>
+    </div>
+    <div class="counter-item warning">
+      <span class="count-num">{{ summary.delayedTrips }}</span>
+      <span class="count-label">Chuyến trễ</span>
+    </div>
+    <div class="counter-item danger">
+      <span class="count-num">{{ summary.cancelledTrips }}</span>
+      <span class="count-label">Chuyến hủy</span>
+    </div>
+    <div class="counter-item star">
+      <span class="count-num">{{ summary.fullCapacityTrips }}</span>
+      <span class="count-label">Chuyến lấp đầy 100%</span>
+    </div>
+  </div>
+
+  <!-- Main Content Tabs -->
+  <div class="content-card">
+    <div class="tab-buttons">
+      <button [class.active]="activeReportTab === 'charts'" (click)="activeReportTab = 'charts'">
+        <i class="bi bi-bar-chart-line-fill"></i> Biểu đồ Top 5 Tuyến & Chi phí
+      </button>
+      <button [class.active]="activeReportTab === 'table'" (click)="activeReportTab = 'table'">
+        <i class="bi bi-table"></i> Bảng chi tiết chuyến xe ({{ filteredTrips.length }})
+      </button>
+    </div>
+
+    <!-- CHARTS VIEW -->
+    <div class="tab-pane" *ngIf="activeReportTab === 'charts'">
+      <div class="charts-grid">
+        
+        <!-- Top 5 Routes Ranking -->
+        <div class="chart-card col-6">
+          <div class="chart-header">
+            <h3>Top 5 Tuyến xe Doanh thu cao nhất</h3>
+            <span class="chart-subtitle">Xếp hạng theo tổng doanh thu vé trong kỳ</span>
+          </div>
+          <div class="ranking-list" *ngIf="topRoutes.length > 0">
+            <div class="ranking-item" *ngFor="let route of topRoutes; let i = index">
+              <div class="rank-badge" [class.gold]="i === 0" [class.silver]="i === 1" [class.bronze]="i === 2">#{{ i + 1 }}</div>
+              <div class="rank-info">
+                <div class="rank-name">{{ route.name }}</div>
+                <div class="rank-sub">{{ route.trips }} chuyến | Lấp đầy: {{ route.occupancy }}%</div>
+              </div>
+              <div class="rank-val">{{ formatCurrency(route.revenue) }}</div>
+            </div>
+          </div>
+          <div class="empty-state-mini" *ngIf="topRoutes.length === 0">
+            Không có dữ liệu phù hợp
+          </div>
+        </div>
+
+        <!-- Cost Structure Breakdown -->
+        <div class="chart-card col-6">
+          <div class="chart-header">
+            <h3>Cơ cấu Chi phí Vận hành</h3>
+            <span class="chart-subtitle">Phân bổ tổng chi phí theo nhóm</span>
+          </div>
+          <div class="cost-breakdown-list">
+            <div class="cost-bar-item">
+              <div class="cost-info">
+                <span>Nhiên liệu (Xăng / Dầu)</span>
+                <span>{{ formatCurrency(summary.costBreakdown.nhienLieu) }}</span>
+              </div>
+              <div class="bar-bg"><div class="bar-fill fuel" [style.width.%]="summary.totalOperatingCost ? (summary.costBreakdown.nhienLieu / summary.totalOperatingCost * 100) : 0"></div></div>
+            </div>
+
+            <div class="cost-bar-item">
+              <div class="cost-info">
+                <span>Cầu đường BOT</span>
+                <span>{{ formatCurrency(summary.costBreakdown.cauDuongBOT) }}</span>
+              </div>
+              <div class="bar-bg"><div class="bar-fill bot" [style.width.%]="summary.totalOperatingCost ? (summary.costBreakdown.cauDuongBOT / summary.totalOperatingCost * 100) : 0"></div></div>
+            </div>
+
+            <div class="cost-bar-item">
+              <div class="cost-info">
+                <span>Lương chặng (Tài xế + Phụ xe)</span>
+                <span>{{ formatCurrency(summary.costBreakdown.luongChuyen) }}</span>
+              </div>
+              <div class="bar-bg"><div class="bar-fill salary" [style.width.%]="summary.totalOperatingCost ? (summary.costBreakdown.luongChuyen / summary.totalOperatingCost * 100) : 0"></div></div>
+            </div>
+
+            <div class="cost-bar-item">
+              <div class="cost-info">
+                <span>Bến bãi & Ăn uống</span>
+                <span>{{ formatCurrency(summary.costBreakdown.benBaiAnUong) }}</span>
+              </div>
+              <div class="bar-bg"><div class="bar-fill meals" [style.width.%]="summary.totalOperatingCost ? (summary.costBreakdown.benBaiAnUong / summary.totalOperatingCost * 100) : 0"></div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TABLE VIEW -->
+    <div class="tab-pane" *ngIf="activeReportTab === 'table'">
+      
+      <!-- EMPTY STATE WHEN NO MATCHING DATA -->
+      <div class="empty-state-card" *ngIf="filteredTrips.length === 0">
+        <i class="bi bi-inbox empty-icon"></i>
+        <h3>Không có dữ liệu phù hợp</h3>
+        <p>Vui lòng thay đổi khoảng thời gian hoặc điều kiện lọc tìm kiếm.</p>
+      </div>
+
+      <!-- DATA TABLE -->
+      <div class="table-responsive" *ngIf="filteredTrips.length > 0">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Mã chuyến</th>
+              <th>Tuyến đường</th>
+              <th>Biển số & Loại xe</th>
+              <th>Khởi hành</th>
+              <th>Khách / Ghế</th>
+              <th>Doanh thu</th>
+              <th>Chi phí</th>
+              <th>Lợi nhuận tuyến</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let trip of paginatedTrips">
+              <td><strong>{{ trip.maChuyen }}</strong></td>
+              <td>{{ trip.tuyenXe }}</td>
+              <td>{{ trip.bienSo }} <br><small class="text-muted">{{ trip.loaiXe }}</small></td>
+              <td>{{ trip.khoiHanhDate }} <br><small class="text-muted">{{ trip.khoiHanhTime }}</small></td>
+              <td>{{ trip.soKhach }} / {{ trip.tongGhe }} <span class="badge-occupancy">{{ trip.tyLeLapDay }}%</span></td>
+              <td class="text-success"><strong>{{ formatCurrency(trip.doanhThuVe) }}</strong></td>
+              <td class="text-danger">{{ formatCurrency(getTripCost(trip.chiPhi)) }}</td>
+              <td class="text-primary"><strong>{{ formatCurrency(getTripProfit(trip)) }}</strong></td>
+              <td>
+                <span class="status-chip" [ngClass]="trip.trangThai">
+                  {{ trip.trangThai === 'completed' ? 'Hoàn thành' : trip.trangThai === 'running' ? 'Đang chạy' : trip.trangThai === 'delayed' ? 'Chuyến trễ' : 'Đã hủy' }}
+                </span>
+              </td>
+              <td>
+                <button class="btn-detail" (click)="openTripDetail(trip)">Xem chi tiết</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PAGINATION (HIDDEN IF NO DATA) -->
+      <div class="pagination-wrapper" *ngIf="filteredTrips.length > 0">
+        <app-pagination 
+          [currentPage]="currentPage"
+          [totalItems]="filteredTrips.length"
+          [pageSize]="pageSize"
+          [showSummary]="true"
+          (pageChange)="setPage($event)">
+        </app-pagination>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Trip Detail Modal -->
+  <div class="modal-overlay" *ngIf="selectedDetailTrip" (click)="closeTripDetail()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Chi tiết chuyến xe {{ selectedDetailTrip.maChuyen }}</h3>
+        <button class="btn-close" (click)="closeTripDetail()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-grid">
+          <div><strong>Tuyến xe:</strong> {{ selectedDetailTrip.tuyenXe }}</div>
+          <div><strong>Biển số:</strong> {{ selectedDetailTrip.bienSo }} ({{ selectedDetailTrip.loaiXe }})</div>
+          <div><strong>Khởi hành:</strong> {{ selectedDetailTrip.khoiHanhDate }} lúc {{ selectedDetailTrip.khoiHanhTime }}</div>
+          <div><strong>Tài xế chính:</strong> {{ selectedDetailTrip.taiXeChinh }}</div>
+          <div><strong>Phụ xe:</strong> {{ selectedDetailTrip.phuXe }}</div>
+          <div><strong>Số khách:</strong> {{ selectedDetailTrip.soKhach }} / {{ selectedDetailTrip.tongGhe }} ghế ({{ selectedDetailTrip.tyLeLapDay }}%)</div>
+        </div>
+
+        <h4 class="sub-title">Chi tiết chi phí chuyến:</h4>
+        <div class="cost-detail-table">
+          <div class="cost-row"><span>Nhiên liệu:</span> <strong>{{ formatCurrency(selectedDetailTrip.chiPhi.nhienLieu) }}</strong></div>
+          <div class="cost-row"><span>Phí BOT:</span> <strong>{{ formatCurrency(selectedDetailTrip.chiPhi.cauDuongBOT) }}</strong></div>
+          <div class="cost-row"><span>Lương chặng:</span> <strong>{{ formatCurrency(selectedDetailTrip.chiPhi.luongChuyen) }}</strong></div>
+          <div class="cost-row"><span>Bến bãi & Khác:</span> <strong>{{ formatCurrency(selectedDetailTrip.chiPhi.benBaiAnUong) }}</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

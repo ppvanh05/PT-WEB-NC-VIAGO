@@ -1,1 +1,264 @@
-<p>reviews works!</p>
+<div class="reviews-page">
+  <div class="reviews-container">
+
+    <!-- 1. OVERALL RATING HEADER CARD -->
+    <section class="overall-rating-card">
+      <div class="overall-left">
+        <h3 class="overall-title">ĐÁNH GIÁ CHUNG</h3>
+        <div class="overall-score-wrapper">
+          <span class="score-main">{{ overallRating }}</span>
+          <span class="score-max">/ 5</span>
+        </div>
+        <div class="overall-stars">
+          <span class="star-icon">★</span>
+          <span class="star-icon">★</span>
+          <span class="star-icon">★</span>
+          <span class="star-icon">★</span>
+          <span class="star-icon">★</span>
+        </div>
+        <p class="overall-subtext">Dựa trên {{ totalReviewsCount }} đánh giá hành khách</p>
+      </div>
+
+      <div class="overall-right">
+        <div class="criteria-grid">
+          <div class="criteria-item" *ngFor="let item of criteriaList">
+            <div class="criteria-header">
+              <span class="criteria-name">{{ item.name }}</span>
+              <span class="criteria-score">{{ item.score }}</span>
+            </div>
+            <div class="criteria-bar-track">
+              <div class="criteria-bar-fill" [style.width.%]="(item.score / item.maxScore) * 100"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. TOP FILTER BAR CARD -->
+    <section #topFilterSection id="topFilterSection" class="top-filter-card">
+      <!-- Tabs Row -->
+      <div class="filter-tabs-row">
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'all'" 
+          (click)="setActiveTab('all')">
+          Tất cả ({{ totalReviewsCount }})
+        </button>
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'has_comment'" 
+          (click)="setActiveTab('has_comment')">
+          Có nhận xét ({{ hasCommentsCount }})
+        </button>
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'has_image'" 
+          (click)="setActiveTab('has_image')">
+          Có hình ảnh ({{ hasImagesCount }})
+        </button>
+      </div>
+
+      <!-- Select Dropdowns Row -->
+      <div class="filter-selects-row">
+        <div class="select-group">
+          <select [(ngModel)]="selectedRating" (change)="onFilterChange()" class="custom-select">
+            <option value="all">Điểm đánh giá (Tất cả)</option>
+            <option value="5">5 sao</option>
+            <option value="4">4 sao</option>
+            <option value="3">3 sao</option>
+            <option value="2">2 sao</option>
+            <option value="1">1 sao</option>
+          </select>
+          <span class="select-arrow">▼</span>
+        </div>
+
+        <div class="select-group">
+          <select [(ngModel)]="selectedBusType" (change)="onFilterChange()" class="custom-select">
+            <option value="all">Loại xe (Tất cả)</option>
+            <option *ngFor="let type of busTypeOptions" [value]="type">{{ type }}</option>
+          </select>
+          <span class="select-arrow">▼</span>
+        </div>
+
+        <div class="select-group">
+          <select [(ngModel)]="selectedRoute" (change)="onFilterChange()" class="custom-select">
+            <option value="all">Tuyến đường (Tất cả)</option>
+            <option *ngFor="let route of routeOptions" [value]="route">{{ route }}</option>
+          </select>
+          <span class="select-arrow">▼</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. MAIN CONTENT GRID (Sidebar + Reviews List) -->
+    <div class="main-reviews-layout">
+
+      <!-- LEFT SIDEBAR -->
+      <aside class="reviews-sidebar">
+        <!-- Search Card -->
+        <div class="sidebar-card search-card">
+          <h4 class="sidebar-card-title">TÌM KIẾM NHẬN XÉT</h4>
+          <div class="search-input-wrapper">
+            <input 
+              type="text" 
+              [(ngModel)]="searchKeyword" 
+              (input)="onFilterChange()" 
+              placeholder="Nhập từ khóa cần tìm..." 
+              class="search-input" />
+          </div>
+        </div>
+
+        <!-- Category Filter Card -->
+        <div class="sidebar-card category-card">
+          <div class="sidebar-card-header">
+            <h4 class="sidebar-card-title">LỌC</h4>
+            <button (click)="clearFilters()" class="clear-filters-btn">Xóa lọc</button>
+          </div>
+
+          <div class="category-pills-list">
+            <button 
+              class="category-pill" 
+              [class.active]="selectedCategory === 'all'" 
+              (click)="setCategory('all')">
+              Tất cả lĩnh vực
+            </button>
+            <button 
+              *ngFor="let item of criteriaList" 
+              class="category-pill" 
+              [class.active]="selectedCategory === item.name" 
+              (click)="setCategory(item.name)">
+              <span class="pill-name">{{ item.name }}</span>
+              <span class="pill-score">({{ item.score }} / 5)</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- RIGHT REVIEWS LIST COLUMN -->
+      <main class="reviews-content">
+        <!-- Sort and Count Bar -->
+        <div class="sort-bar">
+          <div class="sort-left">
+            <span class="sort-label">SẮP XẾP:</span>
+            <div class="sort-select-wrapper">
+              <select [(ngModel)]="selectedSort" (change)="onFilterChange()" class="sort-select">
+                <option value="newest">Mới nhất</option>
+                <option value="oldest">Cũ nhất</option>
+                <option value="helpful">Nhiều lượt hữu ích nhất</option>
+              </select>
+              <span class="sort-arrow">▼</span>
+            </div>
+          </div>
+
+          <div class="sort-right">
+            <span class="reviews-count-text">Tìm thấy <strong>{{ filteredReviews.length }}</strong> đánh giá</span>
+          </div>
+        </div>
+
+        <!-- Reviews Cards List -->
+        <div class="reviews-list">
+          <div *ngIf="filteredReviews.length === 0" class="no-reviews-box">
+            <div class="empty-icon">💬</div>
+            <p class="empty-title">Không tìm thấy đánh giá nào phù hợp</p>
+            <p class="empty-desc">Thử thay đổi bộ lọc hoặc xóa từ khóa tìm kiếm để xem kết quả khác.</p>
+            <button (click)="clearFilters()" class="btn-reset-filters">Xóa bộ lọc</button>
+          </div>
+
+          <article *ngFor="let review of paginatedReviews" class="review-card">
+            <!-- Review Header -->
+            <div class="review-header">
+              <div class="author-avatar" [style.background-color]="review.avatarColor">
+                {{ review.avatarInitials }}
+              </div>
+              <div class="author-meta">
+                <div class="author-name-row">
+                  <span class="author-name">{{ review.authorName }}</span>
+                  <span *ngIf="review.verifiedTrip" class="verified-badge">Đã đi</span>
+                  <span class="review-date">• {{ review.date }}</span>
+                </div>
+                <div class="rating-stars-row">
+                  <span class="rating-text">Đánh giá: {{ review.rating }}/5 sao</span>
+                  <div class="stars">
+                    <span *ngFor="let s of [1,2,3,4,5]" class="star" [class.filled]="s <= review.rating">★</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Review Content -->
+            <div class="review-body">
+              <p class="review-text">{{ review.content }}</p>
+
+              <!-- Attached Images -->
+              <div *ngIf="review.hasImages && review.images?.length" class="review-images-grid">
+                <img 
+                  *ngFor="let img of review.images" 
+                  [src]="img" 
+                  (click)="openImageModal(img)" 
+                  alt="Review photo" 
+                  class="review-thumb-img" />
+              </div>
+
+              <!-- Metadata Tags -->
+              <div class="review-tags">
+                <span>Loại xe: <strong>{{ review.busType }}</strong></span>
+                <span class="tag-separator">•</span>
+                <span>Tuyến đường: <strong>{{ review.route }}</strong></span>
+              </div>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="review-actions-bar">
+              <button 
+                class="helpful-btn" 
+                [class.toggled]="review.isHelpfulClicked" 
+                (click)="toggleHelpful(review)">
+                <svg class="helpful-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                </svg>
+                <span>{{ review.isHelpfulClicked ? 'Hữu ích! ' : 'Hữu ích? ' }} ({{ review.helpfulCount }})</span>
+              </button>
+
+              <div class="more-options-btn" title="Tùy chọn">
+                <span>⋮</span>
+              </div>
+            </div>
+
+            <!-- Reply Box (VIAGO Team) -->
+            <div *ngIf="review.reply" class="reply-box">
+              <div class="reply-header">
+                <span class="reply-badge-title">PHẢN HỒI CỦA NHÀ XE</span>
+              </div>
+              <div class="reply-author-row">
+                <span class="reply-author">{{ review.reply.author }}</span>
+                <span class="reply-date">- {{ review.reply.date }}</span>
+              </div>
+              <p class="reply-content">{{ review.reply.content }}</p>
+            </div>
+          </article>
+        </div>
+
+        <!-- PAGINATION CONTROLS -->
+        <div class="pagination-wrapper">
+          <app-pagination 
+            *ngIf="filteredReviews.length > 0"
+            [currentPage]="currentPage"
+            [totalItems]="filteredReviews.length"
+            [pageSize]="pageSize"
+            [showSummary]="false"
+            (pageChange)="setPage($event)">
+          </app-pagination>
+        </div>
+      </main>
+
+    </div>
+  </div>
+
+  <!-- Image Lightbox Modal -->
+  <div *ngIf="activeImageModal" class="image-modal-overlay" (click)="closeImageModal()">
+    <div class="image-modal-content" (click)="$event.stopPropagation()">
+      <button class="modal-close-btn" (click)="closeImageModal()">&times;</button>
+      <img [src]="activeImageModal" alt="Review photo" class="modal-full-img" />
+    </div>
+  </div>
+</div>

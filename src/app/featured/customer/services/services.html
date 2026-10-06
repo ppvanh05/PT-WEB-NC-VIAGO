@@ -1,1 +1,646 @@
-<p>services works!</p>
+<div class="services-page">
+  <div class="services-container">
+
+    <!-- ====================================================================
+         VIEW 1: VEHICLE LIST SELECTION (TRANG CHỌN DÒNG XE)
+         ==================================================================== -->
+    <ng-container *ngIf="viewState === 'list'">
+      <!-- 1. HERO HEADER -->
+      <header class="services-hero">
+        <h1 class="hero-title">Thuê xe hợp đồng</h1>
+        <p class="hero-subtitle">Cam kết mang lại sự an tâm, an toàn và đẳng cấp trên mọi hành trình.</p>
+      </header>
+
+      <!-- 2. SECTION: ĐỘI XE CAO CẤP (3 VEHICLES) -->
+      <section class="vehicles-section">
+        <div class="section-header">
+          <div class="header-text">
+            <h2 class="section-title">Đội xe cao cấp</h2>
+            <p class="section-subtext">Lựa chọn đa dạng phù hợp với mọi nhu cầu di chuyển của bạn.</p>
+          </div>
+
+          <div class="stats-badges-group">
+            <span class="stat-pill">3 dòng xe</span>
+            <span class="stat-pill highlight">4.9 / 5 điểm Đánh giá chất lượng</span>
+          </div>
+        </div>
+
+        <!-- 3 Vehicle Cards Grid -->
+        <div class="vehicles-grid">
+          <div *ngFor="let vehicle of vehiclesList" class="vehicle-card" (click)="selectVehicle(vehicle)">
+            <!-- Card Image & Badge -->
+            <div class="card-image-wrapper">
+              <img [src]="vehicle.images[0].url" [alt]="vehicle.name" class="vehicle-img" />
+              <span class="passenger-badge">{{ vehicle.passengers }}</span>
+            </div>
+
+            <!-- Card Body -->
+            <div class="card-body">
+              <div class="vehicle-title-row">
+                <h3 class="vehicle-name">{{ vehicle.name }}</h3>
+                <span class="vehicle-cat-tag">{{ vehicle.category }}</span>
+              </div>
+
+              <!-- Feature Tags -->
+              <div class="vehicle-features-tags">
+                <span *ngFor="let feat of vehicle.amenities | slice:0:3" class="feature-tag">✓ {{ feat }}</span>
+              </div>
+
+              <!-- Price & Action Row -->
+              <div class="card-footer-row">
+                <div class="price-box">
+                  <span class="price-label">Giá từ</span>
+                  <span class="price-value">{{ vehicle.priceFormatted }}</span>
+                </div>
+
+                <button (click)="$event.stopPropagation(); selectVehicle(vehicle)" class="btn-details">
+                  Xem chi tiết
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. SECTION: DỊCH VỤ CHO MỌI HÀNH TRÌNH (6 CLEAN WHITE CARDS IN 1 ROW) -->
+      <section class="services-info-section">
+        <div class="section-header center">
+          <h2 class="section-title">Dịch vụ cho mọi hành trình</h2>
+          <p class="section-subtext">Đáp ứng hoàn hảo mọi nhu cầu di chuyển đa dạng của khách hàng.</p>
+        </div>
+
+        <!-- 6 Clean White Cards in 1 Row (Non-clickable, minimalist style) -->
+        <div class="info-row">
+          <article *ngFor="let info of serviceInfoList" class="info-pill-card">
+            <h4 class="pill-title">{{ info.title }}</h4>
+            <span class="pill-desc">{{ info.subtitle }}</span>
+          </article>
+        </div>
+      </section>
+    </ng-container>
+
+    <!-- ====================================================================
+         VIEW 2: DEDICATED VEHICLE DETAIL PAGE (TRANG CHI TIẾT DÒNG XE)
+         ==================================================================== -->
+    <ng-container *ngIf="viewState === 'detail' && activeVehicle as veh">
+      <!-- Back Navigation -->
+      <div class="detail-nav-header">
+        <button (click)="backToList()" class="btn-back-to-list">
+          ← Quay lại danh sách xe
+        </button>
+      </div>
+
+      <!-- Top Detail Main Grid (Vertical Gallery + Booking Form Sidebar) -->
+      <div class="detail-main-layout">
+
+        <!-- LEFT GALLERY & VEHICLE INTRO -->
+        <div class="gallery-column">
+
+          <!-- Image Gallery with Vertical Thumbnail Slider (Thanh trượt dọc) -->
+          <div class="vertical-gallery-box">
+            <!-- VERTICAL THUMBNAIL SLIDER -->
+            <div class="vertical-thumbnails-slider">
+              <div
+                *ngFor="let img of veh.images; let i = index"
+                class="thumb-item"
+                [class.active]="veh.selectedImageIndex === i"
+                (click)="selectDetailImage(i)">
+                <img [src]="img.url" [alt]="img.caption" class="thumb-img" />
+              </div>
+            </div>
+
+            <!-- MAIN PREVIEW IMAGE -->
+            <div class="main-preview-box">
+              <img [src]="veh.images[veh.selectedImageIndex].url" [alt]="veh.name" class="main-preview-img" />
+              <div class="preview-caption-tag">
+                {{ veh.images[veh.selectedImageIndex].caption }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Vehicle Title & Basic Quick Specs -->
+          <div class="vehicle-title-card">
+            <div class="title-head-row">
+              <h1 class="detail-veh-title">{{ veh.name }}</h1>
+              <span class="detail-cat-badge">{{ veh.category }}</span>
+            </div>
+
+            <div class="quick-ratings-row">
+              <span class="rating-star">{{ veh.rating }}</span>
+              <span class="rating-count">({{ veh.reviewsCount }} đánh giá)</span>
+              <span class="dot-sep">•</span>
+              <span class="quick-spec-item">{{ veh.passengers }}</span>
+              <span class="dot-sep">•</span>
+              <span class="quick-spec-item">{{ veh.transmission }}</span>
+            </div>
+          </div>
+
+          <!-- TABS SECTION NAVIGATION -->
+          <div class="detail-tabs-bar">
+            <button
+              class="tab-item"
+              [class.active]="activeDetailTab === 'overview'"
+              (click)="activeDetailTab = 'overview'">
+              Tổng quan &amp; Tiện nghi
+            </button>
+            <button
+              class="tab-item"
+              [class.active]="activeDetailTab === 'conditions'"
+              (click)="activeDetailTab = 'conditions'">
+              Điều kiện &amp; Giấy tờ
+            </button>
+
+            <button
+              class="tab-item"
+              [class.active]="activeDetailTab === 'drivers'"
+              (click)="activeDetailTab = 'drivers'">
+              Tài xế lựa chọn kèm
+            </button>
+
+            <button
+              class="tab-item"
+              [class.active]="activeDetailTab === 'policy'"
+              (click)="activeDetailTab = 'policy'">
+              Điều khoản &amp; Hủy xe
+            </button>
+
+            <button
+              class="tab-item"
+              [class.active]="activeDetailTab === 'promo'"
+              (click)="activeDetailTab = 'promo'">
+              Khuyến mãi hot
+            </button>
+          </div>
+
+          <!-- TAB CONTENT PANELS -->
+
+          <!-- Tab 1: Overview & Amenities -->
+          <div *ngIf="activeDetailTab === 'overview'" class="tab-panel">
+            <h3 class="panel-title">Mô tả dòng xe</h3>
+            <p class="panel-desc">{{ veh.description }}</p>
+
+            <h3 class="panel-title margin-top">Thông số kỹ thuật</h3>
+            <div class="specs-grid-table">
+              <div class="spec-cell">
+                <span class="cell-label">Động cơ</span>
+                <span class="cell-val">{{ veh.engine }}</span>
+              </div>
+              <div class="spec-cell">
+                <span class="cell-label">Nhiên liệu</span>
+                <span class="cell-val">{{ veh.fuel }}</span>
+              </div>
+              <div class="spec-cell">
+                <span class="cell-label">Năm sản xuất</span>
+                <span class="cell-val">{{ veh.year }}</span>
+              </div>
+              <div class="spec-cell">
+                <span class="cell-label">Hộp số</span>
+                <span class="cell-val">{{ veh.transmission }}</span>
+              </div>
+            </div>
+
+            <h3 class="panel-title margin-top">Tiện nghi trang bị trên xe</h3>
+            <div class="amenities-check-grid">
+              <div *ngFor="let am of veh.amenities" class="amenity-check-item">
+                <span class="check-icon">✓</span>
+                <span>{{ am }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Rental Conditions & Required Deposit Documents -->
+          <div *ngIf="activeDetailTab === 'conditions'" class="tab-panel">
+            <div class="conditions-box-group">
+              <!-- Case A: Self-Drive Rental Conditions -->
+              <div class="condition-card">
+                <h3 class="cond-card-title">Thuê Xe Tự Lái (Nếu áp dụng)</h3>
+
+                <h4 class="sub-cond-title">1. Điều kiện bắt buộc:</h4>
+                <ul class="cond-list">
+                  <li>Bằng lái xe hợp lệ còn hiệu lực (Hạng B2 trở lên).</li>
+                  <li>Căn cước công dân (CCCD) gắn chip hoặc Hộ chiếu gốc.</li>
+                </ul>
+
+                <h4 class="sub-cond-title">2. Giấy tờ / Tài sản thế chấp giữ lại khi nhận xe:</h4>
+                <ul class="cond-list highlight">
+                  <li><strong>Giữ lại 01 CCCD gắn chip gốc</strong> (hoặc Hộ chiếu gốc còn hạn).</li>
+                  <li><strong>Giữ lại 01 Xe máy chính chủ kèm Cavet xe gốc</strong> (giá trị xe &gt; 15.000.000đ) <em>HOẶC</em> thế chấp Tiền mặt <strong>{{ veh.depositRequired }}</strong>.</li>
+                </ul>
+              </div>
+
+              <!-- Case B: Driver Included Rental Conditions -->
+              <div class="condition-card">
+                <h3 class="cond-card-title">Thuê Xe Có Tài Xế VIAGO (Khuyên dùng)</h3>
+
+                <h4 class="sub-cond-title">1. Ưu điểm &amp; Điều kiện:</h4>
+                <ul class="cond-list">
+                  <li><strong>Không cần thế chấp bất kỳ giấy tờ hay tài sản tiền mặt nào.</strong></li>
+                  <li>Tài xế chuyên nghiệp VIAGO phụ trách toàn bộ lộ trình di chuyển an toàn.</li>
+                </ul>
+
+                <h4 class="sub-cond-title">2. Chi phí bao gồm &amp; chưa bao gồm:</h4>
+                <ul class="cond-list">
+                  <li><strong>Đã bao gồm:</strong> Lương tài xế, nhiên liệu xăng dầu toàn bộ chuyến đi.</li>
+                  <li><strong>Chưa bao gồm:</strong> Phí cầu đường (BOT), phí bến bãi bãi đậu xe, phụ phí phát sinh đêm muộn (nếu có).</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Driver Profiles Selection -->
+          <div *ngIf="activeDetailTab === 'drivers'" class="tab-panel">
+            <h3 class="panel-title">Tài xế tiêu biểu có thể lựa chọn kèm</h3>
+            <p class="panel-desc">Đội ngũ tài xế VIAGO được tuyển chọn kỹ lưỡng, kinh nghiệm lâu năm và phong cách phục vụ chu đáo.</p>
+
+            <div class="drivers-cards-list">
+              <div *ngFor="let drv of driversList" class="driver-profile-card">
+                <img [src]="drv.avatar" [alt]="drv.name" class="driver-avatar" />
+
+                <div class="driver-info">
+                  <div class="driver-name-row">
+                    <h4 class="driver-name">{{ drv.name }}</h4>
+                    <span class="driver-star">{{ drv.rating }} ({{ drv.tripsCount }} chuyến)</span>
+                  </div>
+                  <span class="driver-exp">{{ drv.experience }}</span>
+                  <p class="driver-spec">{{ drv.specialty }}</p>
+                </div>
+
+                <button
+                  (click)="bookingForm.selectedDriverId = drv.id; bookingForm.rentalType = 'driver'"
+                  class="btn-select-driver"
+                  [class.selected]="bookingForm.selectedDriverId === drv.id && bookingForm.rentalType === 'driver'">
+                  {{ (bookingForm.selectedDriverId === drv.id && bookingForm.rentalType === 'driver') ? 'Đã Chọn' : 'Chọn Tài Xế' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 4: Terms & Cancellation Policy -->
+          <div *ngIf="activeDetailTab === 'policy'" class="tab-panel">
+            <h3 class="panel-title">Chính sách hủy thuê xe &amp; Hoàn cọc</h3>
+
+            <div class="policy-timeline">
+              <div class="policy-item green">
+                <span class="policy-time">Trước 7 ngày</span>
+                <span class="policy-rule">Miễn phí hủy 100% - Hoàn lại toàn bộ tiền đặt cọc</span>
+              </div>
+
+              <div class="policy-item yellow">
+                <span class="policy-time">Từ 3 - 7 ngày</span>
+                <span class="policy-rule">Phí hủy 30% số tiền đặt cọc</span>
+              </div>
+
+              <div class="policy-item orange">
+                <span class="policy-time">Từ 24h - 3 ngày</span>
+                <span class="policy-rule">Phí hủy 50% số tiền đặt cọc</span>
+              </div>
+
+              <div class="policy-item red">
+                <span class="policy-time">Dưới 24h</span>
+                <span class="policy-rule">Phí hủy 100% số tiền đặt cọc</span>
+              </div>
+            </div>
+
+            <h3 class="panel-title margin-top">Quy định chung khi sử dụng xe</h3>
+            <ul class="cond-list">
+              <li>Không mang hóa chất, chất cháy nổ hoặc hàng cấm lên xe.</li>
+              <li>Không hút thuốc lá trong khoang xe để giữ không gian sạch sẽ thơm tho.</li>
+              <li>Giữ gìn vệ sinh chung, không làm hư hỏng nội thất xe.</li>
+            </ul>
+          </div>
+
+          <!-- Tab 5: Promos -->
+          <div *ngIf="activeDetailTab === 'promo'" class="tab-panel">
+            <h3 class="panel-title">Mã giảm giá đang áp dụng</h3>
+
+            <div class="promos-list-grid">
+              <div *ngFor="let promo of promosList" class="promo-card">
+                <div class="promo-badge">{{ promo.discountText }}</div>
+                <div class="promo-info">
+                  <span class="promo-code-text">Mã: <strong>{{ promo.code }}</strong></span>
+                  <p class="promo-desc">{{ promo.desc }}</p>
+                </div>
+                <button (click)="applyPromoCode(promo.code)" class="btn-apply-code">
+                  {{ bookingForm.appliedPromo === promo.code ? 'Đã Áp Dụng' : 'Dùng Mã' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT STICKY BOOKING FORM COLUMN -->
+        <div class="booking-sidebar-column">
+          <div class="sticky-booking-card">
+            <!-- Price Summary -->
+            <div class="form-price-header">
+              <span class="form-price-label">Giá thuê theo ngày</span>
+              <div class="form-price-val">
+                <span class="price-num">{{ veh.priceFormatted }}</span>
+                <span class="price-unit">/ ngày</span>
+              </div>
+            </div>
+
+            <!-- Rental Mode Selector -->
+            <div class="rental-mode-selector">
+              <button
+                type="button"
+                class="mode-btn"
+                [class.active]="bookingForm.rentalType === 'driver'"
+                (click)="bookingForm.rentalType = 'driver'">
+                Có Tài Xế
+              </button>
+              <button
+                type="button"
+                class="mode-btn"
+                [class.active]="bookingForm.rentalType === 'self'"
+                (click)="bookingForm.rentalType = 'self'">
+                Tự Lái
+              </button>
+            </div>
+
+            <!-- Booking Fields Form -->
+            <form (ngSubmit)="submitBookingForm()" class="booking-form">
+              <div class="form-group">
+                <label class="input-label">Họ và tên người thuê *</label>
+                <input
+                  type="text"
+                  [(ngModel)]="bookingForm.fullName"
+                  name="fullName"
+                  required
+                  placeholder="Nguyễn Văn A"
+                  class="form-input" />
+              </div>
+
+              <div class="form-group">
+                <label class="input-label">Số điện thoại liên hệ *</label>
+                <input
+                  type="tel"
+                  [(ngModel)]="bookingForm.phone"
+                  name="phone"
+                  required
+                  placeholder="0901234567"
+                  class="form-input" />
+              </div>
+
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="input-label">Ngày bắt đầu</label>
+                  <input type="date" [(ngModel)]="bookingForm.startDate" name="startDate" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label class="input-label">Ngày kết thúc</label>
+                  <input type="date" [(ngModel)]="bookingForm.endDate" name="endDate" class="form-input" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="input-label">Địa điểm đón / Nhận xe</label>
+                <select [(ngModel)]="bookingForm.pickupLocation" name="pickupLocation" class="form-input">
+                  <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                  <option value="Hà Nội">Hà Nội</option>
+                  <option value="Đà Nẵng">Đà Nẵng</option>
+                  <option value="Vũng Tàu">Vũng Tàu</option>
+                  <option value="Đà Lạt">Đà Lạt</option>
+                  <option value="Cần Thơ">Cần Thơ</option>
+                </select>
+              </div>
+
+              <!-- Driver selector if 'Có tài xế' -->
+              <div *ngIf="bookingForm.rentalType === 'driver'" class="form-group">
+                <label class="input-label">Chọn tài xế đi kèm</label>
+                <select [(ngModel)]="bookingForm.selectedDriverId" name="selectedDriverId" class="form-input">
+                  <option *ngFor="let drv of driversList" [value]="drv.id">
+                    {{ drv.name }} ({{ drv.experience }})
+                  </option>
+                </select>
+              </div>
+
+              <!-- Promo Code Input -->
+              <div class="form-group">
+                <label class="input-label">Mã khuyến mãi (nếu có)</label>
+                <div class="promo-input-box">
+                  <input
+                    type="text"
+                    [(ngModel)]="bookingForm.appliedPromo"
+                    name="appliedPromo"
+                    placeholder="Nhập mã ưu đãi"
+                    class="form-input" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="input-label">Ghi chú yêu cầu thêm</label>
+                <textarea
+                  [(ngModel)]="bookingForm.note"
+                  name="note"
+                  rows="2"
+                  placeholder="Ví dụ: Cần ghế trẻ em, đón lúc 6h sáng..."
+                  class="form-input textarea"></textarea>
+              </div>
+
+              <!-- Submit Button -->
+              <button type="submit" class="btn-submit-booking">
+                Gửi Yêu Cầu Thuê Xe
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </ng-container>
+
+    <!-- ====================================================================
+         VIEW 3: BOOKING ORDER TRACKING PAGE (TRẠNG THÁI ĐẶT XE)
+         ==================================================================== -->
+    <ng-container *ngIf="viewState === 'order' && currentOrder as order">
+
+      <!-- Order Header Nav -->
+      <div class="order-nav-header">
+        <nav class="breadcrumb-bar">
+          <a (click)="goToHome()" class="breadcrumb-link">Trang chủ</a>
+          <span class="breadcrumb-sep">/</span>
+          <a (click)="backToList()" class="breadcrumb-link">Dịch vụ</a>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-link active">Đơn thuê xe #{{ order.orderId }}</span>
+        </nav>
+        <div class="order-nav-actions">
+          <button (click)="viewAnotherVehicle()" class="btn-back-to-list">
+            ← Thuê xe khác
+          </button>
+          <button (click)="goToHome()" class="btn-go-home">
+            Về trang chủ
+          </button>
+        </div>
+      </div>
+
+      <!-- Order Layout: Tracking + Summary -->
+      <div class="order-layout">
+
+        <!-- LEFT: STATUS TRACKING (Shopee-style) -->
+        <div class="order-tracking-col">
+
+          <!-- Success Banner -->
+          <div class="order-success-banner">
+            <div class="success-checkmark">
+              <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="26" cy="26" r="25" stroke="#10b981" stroke-width="2"/>
+                <path d="M14 27L22 35L38 19" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="success-banner-text">
+              <h2 class="success-banner-title">Yêu cầu thuê xe đã được gửi!</h2>
+              <p class="success-banner-sub">Mã đơn: <strong>#{{ order.orderId }}</strong> · Gửi lúc {{ order.submittedAt }}</p>
+            </div>
+          </div>
+
+          <!-- Shopee-style Step Tracker -->
+          <div class="order-steps-card">
+            <h3 class="steps-card-title">Trạng thái xử lý đơn thuê xe</h3>
+
+            <div class="steps-track">
+              <div *ngFor="let step of order.steps; let i = index; let last = last" class="step-row">
+
+                <!-- Step Icon -->
+                <div class="step-icon-col">
+                  <div class="step-circle" [class.done]="step.status === 'done'" [class.active]="step.status === 'active'" [class.pending]="step.status === 'pending'">
+                    <!-- Done: checkmark -->
+                    <svg *ngIf="step.status === 'done'" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4 10L8.5 14.5L16 7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <!-- Active: pulsing dot -->
+                    <div *ngIf="step.status === 'active'" class="active-dot"></div>
+                    <!-- Pending: step number -->
+                    <span *ngIf="step.status === 'pending'" class="step-num">{{ i + 1 }}</span>
+                  </div>
+                  <!-- Connector line (not for last) -->
+                  <div *ngIf="!last" class="step-connector" [class.filled]="step.status === 'done'"></div>
+                </div>
+
+                <!-- Step Content -->
+                <div class="step-content-col">
+                  <div class="step-header-row">
+                    <span class="step-label" [class.done]="step.status === 'done'" [class.active-label]="step.status === 'active'">
+                      {{ step.label }}
+                    </span>
+                    <span *ngIf="step.status === 'active'" class="step-status-badge active-badge">Đang xử lý</span>
+                    <span *ngIf="step.status === 'done'" class="step-status-badge done-badge">Hoàn thành</span>
+                    <span *ngIf="step.status === 'pending'" class="step-status-badge pending-badge">Chờ</span>
+                  </div>
+                  <p class="step-desc">{{ step.desc }}</p>
+                  <span *ngIf="step.time" class="step-time">{{ step.time }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notice Box -->
+            <div class="order-notice-box">
+              <div class="notice-icon">
+                <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="10" cy="10" r="9" stroke="#0f2b5c" stroke-width="1.5"/>
+                  <path d="M10 6V10.5" stroke="#0f2b5c" stroke-width="1.8" stroke-linecap="round"/>
+                  <circle cx="10" cy="13.5" r="0.9" fill="#0f2b5c"/>
+                </svg>
+              </div>
+              <p class="notice-text">
+                Đội ngũ VIAGO sẽ liên hệ qua số <strong>{{ order.phone }}</strong> trong vòng <strong>15 – 30 phút</strong> để xác nhận lịch trình và ký hợp đồng thuê xe.
+              </p>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="order-action-row">
+            <button (click)="viewAnotherVehicle()" class="btn-order-secondary">
+              Thuê thêm xe khác
+            </button>
+            <button (click)="goToHome()" class="btn-order-primary">
+              Về trang chủ
+            </button>
+          </div>
+        </div>
+
+        <!-- RIGHT: ORDER SUMMARY CARD -->
+        <div class="order-summary-col">
+          <div class="order-summary-card">
+            <h3 class="summary-card-title">Thông tin đơn thuê xe</h3>
+
+            <!-- Vehicle Info -->
+            <div class="summary-vehicle-row">
+              <img [src]="order.vehicleImage" [alt]="order.vehicleName" class="summary-veh-img" />
+              <div class="summary-veh-info">
+                <span class="summary-veh-name">{{ order.vehicleName }}</span>
+                <span class="summary-veh-cat">{{ order.vehicleCategory }}</span>
+                <span class="summary-rental-type" [class.driver]="order.rentalType === 'driver'" [class.self]="order.rentalType === 'self'">
+                  {{ order.rentalType === 'driver' ? 'Có Tài Xế' : 'Tự Lái' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="summary-divider"></div>
+
+            <!-- Booking Details -->
+            <div class="summary-details-list">
+              <div class="summary-row">
+                <span class="s-label">Người thuê</span>
+                <span class="s-val">{{ order.fullName }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="s-label">Số điện thoại</span>
+                <span class="s-val">{{ order.phone }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="s-label">Ngày nhận xe</span>
+                <span class="s-val font-semibold">{{ formatDate(order.startDate) }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="s-label">Ngày trả xe</span>
+                <span class="s-val font-semibold">{{ formatDate(order.endDate) }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="s-label">Tổng số ngày</span>
+                <span class="s-val">{{ order.totalDays }} ngày</span>
+              </div>
+              <div class="summary-row">
+                <span class="s-label">Địa điểm đón</span>
+                <span class="s-val">{{ order.pickupLocation }}</span>
+              </div>
+              <div *ngIf="order.rentalType === 'driver'" class="summary-row">
+                <span class="s-label">Tài xế kèm</span>
+                <span class="s-val">{{ order.driverName }}</span>
+              </div>
+              <div *ngIf="order.appliedPromo" class="summary-row">
+                <span class="s-label">Mã khuyến mãi</span>
+                <span class="s-val promo-applied">{{ order.appliedPromo }}</span>
+              </div>
+              <div *ngIf="order.note" class="summary-row">
+                <span class="s-label">Ghi chú</span>
+                <span class="s-val note-val">{{ order.note }}</span>
+              </div>
+            </div>
+
+            <div class="summary-divider"></div>
+
+            <!-- Price Breakdown -->
+            <div class="summary-price-block">
+              <div class="summary-row">
+                <span class="s-label">Đơn giá</span>
+                <span class="s-val">{{ order.pricePerDay }} / ngày</span>
+              </div>
+              <div class="summary-row">
+                <span class="s-label">Số ngày thuê</span>
+                <span class="s-val">× {{ order.totalDays }} ngày</span>
+              </div>
+              <div class="summary-total-row">
+                <span class="total-label">Dự kiến tổng tiền</span>
+                <span class="total-price">{{ order.totalPrice }}</span>
+              </div>
+              <p class="price-note">* Giá cuối cùng sẽ được xác nhận qua điện thoại khi ký hợp đồng.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </ng-container>
+
+  </div>
+</div>

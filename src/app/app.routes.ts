@@ -19,6 +19,13 @@ import { Guide } from './featured/customer/about/guide/guide';
 import { Policies } from './featured/customer/about/policies/policies';
 import { Terms } from './featured/customer/about/terms/terms';
 
+import { RoutesComponent } from './featured/admin/dispatch/routes/routes';
+import { SchedulesComponent } from './featured/admin/dispatch/schedules/schedules';
+import { PromotionsComponent } from './featured/admin/content/promotions/promotions';
+import { DetailedReportComponent } from './featured/admin/reports/detailed-report/detailed-report';
+import { RouteReportComponent } from './featured/admin/reports/route-report/route-report';
+import { LostAndFound } from './featured/customer/services/lost-and-found/lost-and-found';
+
 export const routes: Routes = [
   {
     path: 'admin',
@@ -26,6 +33,11 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: AdminHome },
+      { path: 'dispatch/routes', component: RoutesComponent },
+      { path: 'dispatch/schedules', component: SchedulesComponent },
+      { path: 'content/promotions', component: PromotionsComponent },
+      { path: 'reports/revenue', component: DetailedReportComponent },
+      { path: 'reports/routes', component: RouteReportComponent },
       { path: '**', redirectTo: 'home' },
     ],
   },
@@ -41,6 +53,7 @@ export const routes: Routes = [
       { path: 'hoa-don', component: Invoice },
       { path: 'danh-gia', component: Reviews },
       { path: 'dich-vu', component: Services },
+      { path: 'dich-vu/tim-do-that-lac', component: LostAndFound },
       { path: 'profile', component: Profile },
       { path: 've-chung-toi', component: AboutUs },
       { path: 'gioi-thieu', component: AboutUs },

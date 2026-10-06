@@ -1,1 +1,274 @@
-<p>schedules works!</p>
+<div class="schedules-container">
+  <!-- Toast Notification -->
+  <div *ngIf="showSuccessToast" class="toast-notification">
+    <i class="fas fa-check-circle"></i> {{ toastMessage }}
+  </div>
+
+  <!-- Header -->
+  <div class="header-bar">
+    <div class="title-group">
+      <h2><i class="fas fa-calendar-alt"></i> Quản Lý Lịch Trình</h2>
+      <p class="subtitle">Sắp xếp ca chạy, phân công tài xế/phụ xe và điều hành chuyến đi real-time</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" (click)="openAddModal()">
+        <i class="fas fa-plus"></i> Tạo Lịch Trình Mới
+      </button>
+    </div>
+  </div>
+
+  <!-- Status Tabs -->
+  <div class="tabs-bar">
+    <button class="tab-btn" [class.active]="activeTab === 'all'" (click)="setTab('all')">
+      Tất Cả ({{ baseFilteredTrips.length }})
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'running'" (click)="setTab('running')">
+      <i class="fas fa-bus-alt text-emerald"></i> Đang Chạy ({{ getRunningCount() }})
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'waiting'" (click)="setTab('waiting')">
+      <i class="fas fa-clock text-amber"></i> Chờ Khởi Hành ({{ getWaitingCount() }})
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'completed'" (click)="setTab('completed')">
+      <i class="fas fa-check-double text-blue"></i> Hoàn Thành ({{ getCompletedCount() }})
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'locked'" (click)="setTab('locked')">
+      <i class="fas fa-lock text-rose"></i> Đang Khóa ({{ getLockedCount() }})
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-card">
+    <div class="filter-grid">
+      <div class="filter-item">
+        <label>Tìm kiếm thông tin</label>
+        <div class="search-input-wrapper">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" [(ngModel)]="searchQuery" (input)="filterTrips()" placeholder="Mã chuyến, tài xế, biển số..." class="form-control padded-left" />
+        </div>
+      </div>
+
+      <div class="filter-item">
+        <label>Tuyến đường</label>
+        <select [(ngModel)]="routeFilter" (change)="filterTrips()" class="form-control">
+          <option value="">Tất cả các tuyến</option>
+          <option *ngFor="let r of routesList" [value]="r">{{ r }}</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label>Ngày khởi hành</label>
+        <input type="date" [(ngModel)]="selectedDateFilter" (change)="filterTrips()" class="form-control" />
+      </div>
+
+      <div class="filter-item">
+        <label>Sắp xếp ưu tiên</label>
+        <select [(ngModel)]="sortBy" (change)="filterTrips()" class="form-control">
+          <option value="priority">Mặc định (Đang chạy & Chờ lên đầu)</option>
+          <option value="time-asc">Thời gian (Sớm nhất trước)</option>
+          <option value="time-desc">Thời gian (Muộn nhất trước)</option>
+          <option value="price-asc">Giá vé (Thấp đến cao)</option>
+          <option value="price-desc">Giá vé (Cao đến thấp)</option>
+        </select>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn btn-secondary" (click)="clearFilters()"><i class="fas fa-redo"></i> Xóa lọc</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="table-card">
+    <div class="table-responsive">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Mã chuyến</th>
+            <th>Tuyến đường</th>
+            <th>Thời gian xuất bến</th>
+            <th>Xe & Biển số</th>
+            <th>Tài xế & Phụ xe</th>
+            <th>Giá vé</th>
+            <th>Trạng thái</th>
+            <th class="text-center">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let trip of paginatedTrips">
+            <td><strong class="code-badge">#LT-{{ trip.id }}</strong></td>
+            <td>
+              <div class="route-info-cell">
+                <span class="route-name">{{ trip.routeName }}</span>
+                <span class="route-sub">{{ trip.duration }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="time-info-cell">
+                <span class="time-text"><i class="far fa-clock"></i> {{ trip.departureTime }}</span>
+                <span class="date-text">{{ trip.departureDate }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="car-info-cell">
+                <span class="car-name">{{ trip.carName }} ({{ trip.seatsCount }} chỗ)</span>
+                <span class="plate-tag"><i class="fas fa-bus"></i> {{ trip.licensePlate }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="staff-info-cell">
+                <span class="driver-name"><i class="fas fa-user-tie"></i> TX: {{ trip.driverName }}</span>
+                <span class="codriver-name" *ngIf="trip.codriverName"><i class="fas fa-user-friends"></i> PX: {{ trip.codriverName }}</span>
+              </div>
+            </td>
+            <td><strong class="price-text">{{ formatCurrency(trip.price) }}</strong></td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusBadgeClass(trip.status)">
+                <i class="fas" [class.fa-running]="trip.status === 'running'" [class.fa-clock]="trip.status === 'waiting'" [class.fa-check-circle]="trip.status === 'completed'" [class.fa-lock]="trip.status === 'locked'"></i>
+                {{ getStatusLabel(trip.status) }}
+              </span>
+            </td>
+            <td class="text-center">
+              <div class="action-buttons">
+                <button class="btn-action edit" (click)="openEditModal(trip, $event)" title="Chỉnh sửa lịch trình">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-action lock" [class.is-locked]="trip.status === 'locked'" (click)="toggleLockStatus(trip, $event)" [title]="trip.status === 'locked' ? 'Mở khóa lịch chạy' : 'Khóa lịch chạy'">
+                  <i class="fas" [class.fa-lock-open]="trip.status === 'locked'" [class.fa-lock]="trip.status !== 'locked'"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredTrips.length === 0">
+            <td colspan="8" class="empty-state">
+              <i class="fas fa-calendar-times"></i>
+              <p>Không tìm thấy lịch trình nào phù hợp!</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-bar" *ngIf="totalPages > 1">
+      <span class="pagination-info">Hiển thị trang {{ currentPage }} / {{ totalPages }}</span>
+      <div class="pagination-controls">
+        <button class="btn btn-sm" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)"><i class="fas fa-chevron-left"></i> Trước</button>
+        <button *ngFor="let p of getVisiblePages()" class="btn btn-sm" [class.active]="p === currentPage" (click)="setPage(p)">{{ p }}</button>
+        <button class="btn btn-sm" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">Sau <i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Schedule Modal -->
+  <div *ngIf="isModalOpen" class="modal-backdrop" (click)="onBackdropClick($event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fas" [class.fa-plus-circle]="!isEditMode" [class.fa-edit]="isEditMode"></i> {{ isEditMode ? 'Cập Nhật Lịch Trình' : 'Tạo Lịch Trình Mới' }}</h3>
+        <button class="btn-close" (click)="closeModal()">&times;</button>
+      </div>
+
+      <div class="modal-tabs">
+        <button class="modal-tab-btn" [class.active]="modalActiveTab === 'setup-car'" (click)="modalActiveTab = 'setup-car'">
+          1. Thông Tin Xe & Phân Công
+        </button>
+        <button class="modal-tab-btn" [class.active]="modalActiveTab === 'setup-time'" (click)="modalActiveTab = 'setup-time'">
+          2. Thời Gian & Điểm Đón Trả
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Step 1: Car & Staff -->
+        <div *ngIf="modalActiveTab === 'setup-car'" class="form-grid">
+          <div class="form-group full-width">
+            <label class="required">Chọn Tuyến Đường</label>
+            <select [(ngModel)]="currentTrip.routeName" (change)="onRouteChange()" class="form-control" [class.is-invalid]="errors['routeName']">
+              <option value="">-- Chọn tuyến --</option>
+              <option *ngFor="let r of routesList" [value]="r">{{ r }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="required">Loại Xe</label>
+            <select [(ngModel)]="currentTrip.carName" (change)="onCarChange()" class="form-control" [class.is-invalid]="errors['carName']">
+              <option value="">-- Chọn xe --</option>
+              <option *ngFor="let c of carsList" [value]="c">{{ c }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Biển Số Xe</label>
+            <input type="text" [(ngModel)]="currentTrip.licensePlate" readonly class="form-control bg-readonly" placeholder="Tự động điền" />
+          </div>
+
+          <div class="form-group">
+            <label class="required">Tài Xế Phụ Trách</label>
+            <select [(ngModel)]="currentTrip.driverName" class="form-control" [class.is-invalid]="errors['driverName']">
+              <option value="">-- Chọn tài xế --</option>
+              <option *ngFor="let d of driversList" [value]="d.name" [disabled]="d.locked">
+                {{ d.name }} {{ d.locked ? '(Đang khóa)' : '' }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Phụ Xe (Nếu có)</label>
+            <select [(ngModel)]="currentTrip.codriverName" class="form-control">
+              <option value="">-- Không có / Chọn phụ xe --</option>
+              <option *ngFor="let cd of codriversList" [value]="cd.name" [disabled]="cd.locked">
+                {{ cd.name }} {{ cd.locked ? '(Đang khóa)' : '' }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Giá Vé (VND)</label>
+            <input type="number" [(ngModel)]="currentTrip.price" class="form-control" placeholder="Ví dụ: 180000" />
+            <span class="form-hint" *ngIf="currentTrip.price">Format: {{ formatCurrency(currentTrip.price || 0) }}</span>
+          </div>
+        </div>
+
+        <!-- Step 2: Time & Stops -->
+        <div *ngIf="modalActiveTab === 'setup-time'" class="form-grid">
+          <div class="form-group">
+            <label class="required">Ngày Khởi Hành</label>
+            <input type="date" [(ngModel)]="currentTrip.departureDate" class="form-control" />
+          </div>
+
+          <div class="form-group">
+            <label class="required">Giờ Khởi Hành</label>
+            <input type="time" [(ngModel)]="currentTrip.departureTime" class="form-control" />
+          </div>
+
+          <div class="form-group full-width" *ngIf="selectedPickups.length > 0">
+            <label>Danh Sách Điểm Đón (Tự động từ tuyến)</label>
+            <div class="tags-container">
+              <span class="tag-badge green" *ngFor="let p of selectedPickups">
+                <i class="fas fa-map-marker-alt"></i> {{ p }}
+              </span>
+            </div>
+          </div>
+
+          <div class="form-group full-width" *ngIf="selectedStops.length > 0">
+            <label>Danh Sách Điểm Dừng Nghỉ</label>
+            <div class="tags-container">
+              <span class="tag-badge amber" *ngFor="let s of selectedStops">
+                <i class="fas fa-coffee"></i> {{ s }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeModal()">Hủy bỏ</button>
+        <button *ngIf="modalActiveTab === 'setup-car'" class="btn btn-primary" (click)="nextStep()">
+          Tiếp theo <i class="fas fa-arrow-right"></i>
+        </button>
+        <button *ngIf="modalActiveTab === 'setup-time'" class="btn btn-primary" (click)="saveTrip()">
+          <i class="fas fa-check"></i> {{ isEditMode ? 'Lưu Thay Đổi' : 'Xác Nhận Tạo Lịch' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

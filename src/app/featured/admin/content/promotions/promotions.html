@@ -1,1 +1,164 @@
-<p>promotions works!</p>
+<div class="promotions-container">
+  <!-- Toast Notification -->
+  <div *ngIf="showToast" class="toast-notification">
+    <i class="fas fa-check-circle"></i> {{ toastMessage }}
+  </div>
+
+  <!-- Header -->
+  <div class="header-bar">
+    <div class="title-group">
+      <h2><i class="fas fa-tags"></i> Quản Lý Khuyến Mãi & Voucher</h2>
+      <p class="subtitle">Thiết lập các chương trình giảm giá và ưu đãi cho khách hàng</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" (click)="openAddModal()">
+        <i class="fas fa-plus"></i> Tạo Voucher Mới
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs & Search -->
+  <div class="controls-bar">
+    <div class="tabs-bar">
+      <button class="tab-btn" [class.active]="activeTab === 'all'" (click)="setTab('all')">
+        Tất Cả ({{ promotions.length }})
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'running'" (click)="setTab('running')">
+        <i class="fas fa-play-circle text-emerald"></i> Đang Chạy ({{ getCount('running') }})
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'upcoming'" (click)="setTab('upcoming')">
+        <i class="fas fa-clock text-amber"></i> Sắp Diễn Ra ({{ getCount('upcoming') }})
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'expired'" (click)="setTab('expired')">
+        <i class="fas fa-stop-circle text-rose"></i> Hết Hạn ({{ getCount('expired') }})
+      </button>
+    </div>
+    <div class="search-box">
+      <i class="fas fa-search search-icon"></i>
+      <input type="text" [(ngModel)]="searchQuery" (input)="filterData()" placeholder="Tìm theo mã code hoặc tên voucher..." class="form-control padded-left" />
+    </div>
+  </div>
+
+  <!-- Voucher Cards Grid -->
+  <div class="vouchers-grid">
+    <div class="voucher-card" *ngFor="let p of filteredPromotions">
+      <div class="voucher-header">
+        <div class="code-badge-large"><i class="fas fa-ticket-alt"></i> {{ p.code }}</div>
+        <span class="status-badge" [ngClass]="getStatusClass(p.status)">
+          {{ getStatusLabel(p.status) }}
+        </span>
+      </div>
+      <div class="voucher-body">
+        <h3 class="voucher-name">{{ p.name }}</h3>
+        <p class="voucher-desc">
+          <span *ngIf="p.discountType === 'percentage'">Giảm {{ p.discountValue }}%</span>
+          <span *ngIf="p.discountType === 'fixed'">Giảm {{ formatCurrency(p.discountValue) }}</span>
+          <span *ngIf="p.maxDiscount"> - Tối đa {{ formatCurrency(p.maxDiscount) }}</span>
+        </p>
+        <ul class="voucher-rules">
+          <li><i class="fas fa-shopping-cart"></i> Đơn tối thiểu: {{ formatCurrency(p.minOrderValue) }}</li>
+          <li><i class="fas fa-calendar-alt"></i> Thời gian: {{ p.startDate }} tới {{ p.endDate }}</li>
+          <li><i class="fas fa-users"></i> Hạng áp dụng: {{ p.targetTiers.join(', ') }}</li>
+          <li><i class="fas fa-sync-alt"></i> Lượt sử dụng: {{ p.usageCount }} lượt (Tối đa: {{ p.limitPerUser }} lần/khách)</li>
+        </ul>
+      </div>
+      <div class="voucher-footer">
+        <button class="btn btn-outline-primary" (click)="openEditModal(p, $event)"><i class="fas fa-edit"></i> Chỉnh Sửa</button>
+      </div>
+    </div>
+
+    <div *ngIf="filteredPromotions.length === 0" class="empty-state">
+      <i class="fas fa-tags"></i>
+      <p>Không tìm thấy khuyến mãi nào phù hợp!</p>
+    </div>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div *ngIf="isModalOpen" class="modal-backdrop" (click)="onBackdropClick($event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fas" [class.fa-plus-circle]="!isEditMode" [class.fa-edit]="isEditMode"></i> {{ isEditMode ? 'Cập Nhật Voucher' : 'Tạo Voucher Mới' }}</h3>
+        <button class="btn-close" (click)="closeModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <!-- Code -->
+          <div class="form-group">
+            <label class="required">Mã Voucher (Code)</label>
+            <div class="input-with-button">
+              <input type="text" [(ngModel)]="currentPromo.code" class="form-control text-uppercase" placeholder="VD: SUMMER30" />
+              <button class="btn btn-secondary" (click)="generateRandomCode()" title="Tạo mã ngẫu nhiên"><i class="fas fa-random"></i></button>
+            </div>
+          </div>
+
+          <!-- Name -->
+          <div class="form-group">
+            <label class="required">Tên Chương Trình</label>
+            <input type="text" [(ngModel)]="currentPromo.name" class="form-control" placeholder="Tên hiển thị cho khách hàng" />
+          </div>
+
+          <!-- Discount Type & Value -->
+          <div class="form-group">
+            <label class="required">Loại Giảm Giá</label>
+            <select [(ngModel)]="currentPromo.discountType" class="form-control">
+              <option value="percentage">Giảm theo phần trăm (%)</option>
+              <option value="fixed">Giảm số tiền cố định (VND)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="required">Mức Giảm</label>
+            <input type="number" [(ngModel)]="currentPromo.discountValue" class="form-control" [placeholder]="currentPromo.discountType === 'percentage' ? 'VD: 10' : 'VD: 50000'" />
+          </div>
+
+          <div class="form-group" *ngIf="currentPromo.discountType === 'percentage'">
+            <label>Giảm Tối Đa (VND)</label>
+            <input type="number" [(ngModel)]="currentPromo.maxDiscount" class="form-control" placeholder="Giới hạn số tiền giảm" />
+          </div>
+
+          <div class="form-group">
+            <label class="required">Đơn Tối Thiểu (VND)</label>
+            <input type="number" [(ngModel)]="currentPromo.minOrderValue" class="form-control" placeholder="0 nếu áp dụng mọi đơn" />
+          </div>
+
+          <!-- Dates -->
+          <div class="form-group">
+            <label class="required">Ngày Bắt Đầu</label>
+            <input type="date" [(ngModel)]="currentPromo.startDate" class="form-control" />
+          </div>
+
+          <div class="form-group">
+            <label class="required">Ngày Kết Thúc</label>
+            <input type="date" [(ngModel)]="currentPromo.endDate" class="form-control" />
+          </div>
+
+          <!-- Config -->
+          <div class="form-group">
+            <label>Giới hạn lượt dùng / Khách</label>
+            <input type="number" [(ngModel)]="currentPromo.limitPerUser" class="form-control" min="1" />
+          </div>
+
+          <div class="form-group full-width">
+            <label>Hạng Hội Viên Áp Dụng</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label" *ngFor="let tier of availableTiers">
+                <input type="checkbox" 
+                       [checked]="currentPromo.targetTiers?.includes(tier)"
+                       (change)="toggleTier(tier, $event)" />
+                {{ tier }}
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeModal()">Hủy bỏ</button>
+        <button class="btn btn-primary" (click)="savePromotion()">
+          <i class="fas fa-check"></i> {{ isEditMode ? 'Lưu Thay Đổi' : 'Xác Nhận Tạo Mới' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

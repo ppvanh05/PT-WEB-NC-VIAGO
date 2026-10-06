@@ -1,1 +1,151 @@
-<p>news works!</p>
+<div class="news-page">
+  <div class="news-container">
+
+    <!-- 1. INTEGRATED SINGLE-ROW HEADER BAR (CATEGORY TABS + SEARCH PILL) -->
+    <div class="news-header-bar">
+      <!-- CATEGORY TABS NAV -->
+      <div class="news-tabs-nav">
+        <button 
+          *ngFor="let cat of categories" 
+          class="nav-tab-btn" 
+          [class.active]="selectedCategory === cat.id"
+          (click)="onCategoryChange(cat.id)">
+          <span class="tab-label">{{ cat.label }}</span>
+        </button>
+      </div>
+
+      <!-- SEARCH PILL -->
+      <div class="news-search-pill">
+        <i class="bi bi-search search-icon"></i>
+        <input 
+          type="text" 
+          class="search-input-pill" 
+          placeholder="Tìm kiếm tin tức..." 
+          [(ngModel)]="searchTerm" 
+          (input)="onFilterChange()">
+      </div>
+    </div>
+
+    <!-- WRAPPER WITH FADE IN ANIMATION FOR SMOOTH TRANSITION -->
+    <div class="news-content-wrapper fade-in-animation">
+
+      <!-- 3. FEATURED NEWS SECTION (SHOWN FOR EVERY CATEGORY IF FEATURED DATA EXISTS) -->
+      <section class="featured-section" *ngIf="featuredData && featuredData.main">
+        <div class="section-heading">
+          <span class="heading-accent"></span>
+          <h2>TIN NỔI BẬT</h2>
+        </div>
+
+        <!-- ROW 1: MAIN HERO CARD + GRID CARDS -->
+        <div class="featured-top-grid">
+          <!-- BIG HERO CARD LEFT -->
+          <div class="featured-hero-card" *ngIf="featuredData.main" (click)="goToDetail(featuredData.main.id)">
+            <div class="hero-image-wrapper">
+              <img [src]="featuredData.main.image" [alt]="featuredData.main.title" (error)="onImageError($event)">
+            </div>
+            <div class="hero-card-content">
+              <h3 class="hero-title">{{ featuredData.main.title }}</h3>
+              <p class="hero-summary">{{ featuredData.main.summary }}</p>
+              <span class="hero-date">{{ featuredData.main.date }}</span>
+            </div>
+          </div>
+
+          <!-- CARDS GRID RIGHT -->
+          <div class="featured-grid-4" *ngIf="featuredData.grid && featuredData.grid.length > 0">
+            <div 
+              class="mini-featured-card" 
+              *ngFor="let item of featuredData.grid" 
+              (click)="goToDetail(item.id)">
+              <div class="mini-card-img">
+                <img [src]="item.image" [alt]="item.title" (error)="onImageError($event)">
+              </div>
+              <div class="mini-card-body">
+                <h4 class="mini-card-title">{{ item.title }}</h4>
+                <span class="mini-card-date">{{ item.date }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROW 2: ORANGE SPOTLIGHT CARD + SUB GRID CARDS -->
+        <div class="featured-bottom-grid" *ngIf="featuredData.subHighlight || (featuredData.subGrid && featuredData.subGrid.length > 0)">
+          <!-- SPOTLIGHT INFORMATIONAL CARD (NON-CLICKABLE) -->
+          <div class="orange-spotlight-card" *ngIf="featuredData.subHighlight">
+            <div class="spotlight-content">
+              <span class="spotlight-tag">TIÊU ĐIỂM</span>
+              <h3 class="spotlight-title">{{ featuredData.subHighlight.title }}</h3>
+              <div class="spotlight-divider"></div>
+              <p class="spotlight-desc">{{ featuredData.subHighlight.summary }}</p>
+            </div>
+          </div>
+
+          <!-- 3 CARDS RIGHT -->
+          <div 
+            class="mini-featured-card" 
+            *ngFor="let item of featuredData.subGrid" 
+            (click)="goToDetail(item.id)">
+            <div class="mini-card-img">
+              <img [src]="item.image" [alt]="item.title" (error)="onImageError($event)">
+            </div>
+            <div class="mini-card-body">
+              <h4 class="mini-card-title">{{ item.title }}</h4>
+              <span class="mini-card-date">{{ item.date }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. ALL NEWS / LIST SECTION -->
+      <section id="all-news-section" class="news-list-section">
+        <div class="section-heading-bar">
+          <div class="section-heading">
+            <span class="heading-accent"></span>
+            <h2>DANH SÁCH BÀI VIẾT</h2>
+          </div>
+          <span class="total-count-badge">{{ filteredArticles.length }} tin tức</span>
+        </div>
+
+        <!-- EMPTY STATE IF NO ARTICLES MATCH FILTER -->
+        <div class="empty-state" *ngIf="filteredArticles.length === 0">
+          <i class="bi bi-newspaper empty-icon"></i>
+          <p>Không tìm thấy bài viết nào phù hợp với từ khóa tìm kiếm.</p>
+        </div>
+
+        <!-- ARTICLES GRID (3 COLUMNS) -->
+        <div class="news-cards-grid" *ngIf="filteredArticles.length > 0">
+          <div 
+            class="news-card-item" 
+            *ngFor="let item of paginatedArticles" 
+            (click)="goToDetail(item.id)">
+            
+            <div class="news-card-img">
+              <img [src]="item.image" [alt]="item.title" (error)="onImageError($event)">
+              <span class="news-card-category-badge">{{ item.categoryLabel }}</span>
+            </div>
+            
+            <div class="news-card-content">
+              <h3 class="news-card-title">{{ item.title }}</h3>
+              <p class="news-card-summary">{{ item.summary }}</p>
+              <div class="news-card-footer">
+                <span class="news-card-date">{{ item.date }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CENTERED PAGINATION BAR -->
+        <div class="pagination-wrapper" *ngIf="filteredArticles.length > pageSize">
+          <app-pagination 
+            [currentPage]="currentPage"
+            [totalItems]="filteredArticles.length"
+            [pageSize]="pageSize"
+            [showSummary]="false"
+            (pageChange)="setPage($event)">
+          </app-pagination>
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+</div>

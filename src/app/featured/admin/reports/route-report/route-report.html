@@ -1,1 +1,205 @@
-<p>route-report works!</p>
+<div class="report-container">
+  <!-- Top Header Bar -->
+  <div class="header-bar">
+    <div class="title-group">
+      <h2><i class="fas fa-route"></i> Báo Cáo Tuyến Xe</h2>
+      <p class="subtitle">Phân tích hiệu quả vận hành, tỷ lệ lấp đầy & chỉ số đánh giá từng tuyến</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-outline" (click)="onExportExcel()">
+        <i class="fas fa-file-export"></i> Xuất Báo Cáo (.CSV)
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter Card -->
+  <div class="filter-card">
+    <div class="filter-grid">
+      <div class="filter-item">
+        <label>Từ ngày</label>
+        <input type="date" [(ngModel)]="filters.fromDate" (change)="onDateChange()" class="form-control" />
+      </div>
+
+      <div class="filter-item">
+        <label>Đến ngày</label>
+        <input type="date" [(ngModel)]="filters.toDate" (change)="onDateChange()" class="form-control" />
+      </div>
+
+      <div class="filter-item">
+        <label>Chọn Tuyến Xe</label>
+        <select [(ngModel)]="filters.maTuyen" (change)="onViewReport()" class="form-control">
+          <option *ngFor="let opt of availableRoutesList" [value]="opt">{{ opt }}</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label>Trạng Thái</label>
+        <select [(ngModel)]="filters.trangThai" (change)="onViewReport()" class="form-control">
+          <option value="Tất cả trạng thái">Tất cả trạng thái</option>
+          <option value="Hoạt động">Hoạt động</option>
+          <option value="Tạm ngưng">Tạm ngưng</option>
+        </select>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn btn-primary" (click)="onViewReport()"><i class="fas fa-search"></i> Tra cứu</button>
+        <button class="btn btn-secondary" (click)="onResetFilters()"><i class="fas fa-redo"></i> Đặt lại (30 ngày)</button>
+      </div>
+    </div>
+    <div *ngIf="dateError" class="error-banner">
+      <i class="fas fa-exclamation-triangle"></i> {{ dateError }}
+    </div>
+  </div>
+
+  <!-- Summary KPI Cards Grid -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon blue"><i class="fas fa-map-signs"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-label">Tổng Số Tuyến</span>
+        <span class="kpi-val">{{ summary.totalRoutesCount }} <small>tuyến</small></span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon emerald"><i class="fas fa-dollar-sign"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-label">Tổng Doanh Thu</span>
+        <span class="kpi-val highlight-emerald">{{ formatCurrency(summary.totalRevenue) }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon orange"><i class="fas fa-chart-pie"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-label">% Lấp Đầy Trung Bình</span>
+        <span class="kpi-val highlight-orange">{{ summary.averageFillRate }}%</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon purple"><i class="fas fa-trophy"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-label">Tuyến Doanh Thu Cao Nhất</span>
+        <span class="kpi-val highlight-purple small-text">{{ summary.topRevenueRouteName }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Table Section -->
+  <div class="table-card">
+    <div class="table-header">
+      <h3><i class="fas fa-list-ol"></i> Chi Tiết Báo Cáo Theo Tuyến</h3>
+      <span class="badge badge-info">Tổng {{ filteredRoutes.length }} bản ghi</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Mã tuyến</th>
+            <th>Hành trình (2 chiều)</th>
+            <th>Số chuyến</th>
+            <th>Vé bán / Ghế trống</th>
+            <th>Tỷ lệ lấp đầy</th>
+            <th>Doanh thu</th>
+            <th>Đánh giá sao</th>
+            <th>Trạng thái</th>
+            <th class="text-center">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let item of paginatedRoutes">
+            <tr [class.expanded-row-active]="expandedRouteId === item.maTuyen">
+              <td><strong class="code-badge">{{ item.maTuyen }}</strong></td>
+              <td>
+                <div class="route-title-cell">
+                  <span class="route-name-text">{{ item.tenTuyen }}</span>
+                  <span class="route-meta-sub">{{ item.khoangCach }} • {{ item.thoiGian }}</span>
+                </div>
+              </td>
+              <td><span class="trip-count">{{ item.lapDay.soChuyenChay }} chuyến</span></td>
+              <td>
+                <div class="ticket-stats">
+                  <span class="text-emerald font-weight-600">{{ item.lapDay.soVeDaBan }} đã bán</span>
+                  <span class="text-muted font-size-12"> / {{ item.lapDay.soVeTrong }} trống</span>
+                </div>
+              </td>
+              <td>
+                <div class="progress-bar-wrapper">
+                  <div class="fill-rate-badge" [class.high]="item.lapDay.tyLeLapDayTrungBinh >= 85" [class.medium]="item.lapDay.tyLeLapDayTrungBinh >= 70 && item.lapDay.tyLeLapDayTrungBinh < 85" [class.low]="item.lapDay.tyLeLapDayTrungBinh < 70">
+                    {{ item.lapDay.tyLeLapDayTrungBinh }}%
+                  </div>
+                  <div class="progress-track">
+                    <div class="progress-fill" [style.width.%]="item.lapDay.tyLeLapDayTrungBinh"></div>
+                  </div>
+                </div>
+              </td>
+              <td><strong class="revenue-text">{{ formatCurrency(item.doanhThu.tongDoanhThu) }}</strong></td>
+              <td>
+                <div class="rating-cell" *ngIf="item.hieuSuat.danhGiaSaoTrungBinh > 0">
+                  <i class="fas fa-star text-warning"></i>
+                  <strong>{{ item.hieuSuat.danhGiaSaoTrungBinh }}</strong>
+                  <span class="text-muted">/5</span>
+                </div>
+                <span *ngIf="item.hieuSuat.danhGiaSaoTrungBinh === 0" class="text-muted">Chưa có</span>
+              </td>
+              <td>
+                <span class="status-badge" [class.active]="item.trangThai === 'Hoạt động'" [class.inactive]="item.trangThai === 'Tạm ngưng'">
+                  <i class="fas" [class.fa-check-circle]="item.trangThai === 'Hoạt động'" [class.fa-pause-circle]="item.trangThai === 'Tạm ngưng'"></i>
+                  {{ item.trangThai }}
+                </span>
+              </td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-icon" (click)="toggleRow(item.maTuyen)" [title]="expandedRouteId === item.maTuyen ? 'Thu gọn' : 'Chi tiết'">
+                  <i class="fas" [class.fa-chevron-up]="expandedRouteId === item.maTuyen" [class.fa-chevron-down]="expandedRouteId !== item.maTuyen"></i>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Expanded Details Row -->
+            <tr *ngIf="expandedRouteId === item.maTuyen" class="details-row">
+              <td colspan="9">
+                <div class="details-box">
+                  <div class="details-column">
+                    <h4><i class="fas fa-coins"></i> Chỉ số tài chính</h4>
+                    <ul>
+                      <li><span>Doanh thu TB / Chuyến:</span> <strong>{{ formatCurrency(item.doanhThu.doanhThuTrungBinhChuyen) }}</strong></li>
+                      <li><span>Giá vé trung bình:</span> <strong>{{ formatCurrency(item.doanhThu.giaVeTrungBinh) }}</strong></li>
+                      <li><span>Ước tính lợi nhuận:</span> <strong class="text-emerald">{{ formatCurrency(item.doanhThu.tongDoanhThu * 0.42) }}</strong></li>
+                    </ul>
+                  </div>
+                  <div class="details-column">
+                    <h4><i class="fas fa-bus"></i> Hiệu suất vận hành</h4>
+                    <ul>
+                      <li><span>Số chuyến đúng giờ:</span> <strong class="text-emerald">{{ item.hieuSuat.soChuyenDungGio }} chuyến</strong></li>
+                      <li><span>Chuyến trễ / Hủy:</span> <strong class="text-danger">{{ item.hieuSuat.soChuyenTre }} trễ / {{ item.hieuSuat.soChuyenHuy }} hủy</strong></li>
+                      <li><span>Khách phản ánh / Khiếu nại:</span> <strong>{{ item.hieuSuat.khieuNai }} lượt</strong></li>
+                    </ul>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+
+          <tr *ngIf="filteredRoutes.length === 0">
+            <td colspan="9" class="empty-state">
+              <i class="fas fa-folder-open"></i>
+              <p>Không tìm thấy dữ liệu tuyến xe tương ứng!</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-bar" *ngIf="totalPages > 1">
+      <span class="pagination-info">Hiển thị trang {{ currentPage }} / {{ totalPages }}</span>
+      <div class="pagination-controls">
+        <button class="btn btn-sm" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)"><i class="fas fa-chevron-left"></i> Trước</button>
+        <button *ngFor="let p of getVisiblePages()" class="btn btn-sm" [class.active]="p === currentPage" (click)="setPage(p)">{{ p }}</button>
+        <button class="btn btn-sm" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">Sau <i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
