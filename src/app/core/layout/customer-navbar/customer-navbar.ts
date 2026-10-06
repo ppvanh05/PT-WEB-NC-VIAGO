@@ -27,12 +27,22 @@ export class CustomerNavbar {
   ) {}
 
   isAboutRouteActive(): boolean {
-    const activeRoutes = ['/customer/ve-chung-toi', '/customer/gioi-thieu', '/customer/chinh-sach', '/customer/dieu-khoan', '/customer/faq', '/customer/lien-he', '/customer/tuyen-dung'];
+    const activeRoutes = [
+      '/customer/ve-chung-toi',
+      '/customer/gioi-thieu',
+      '/customer/chinh-sach',
+      '/customer/huong-dan-mua-ve',
+      '/customer/faq',
+      '/customer/dieu-khoan',
+      '/customer/tuyen-dung',
+      '/customer/lien-he'
+    ];
     return activeRoutes.some(route => this.router.url.includes(route));
   }
 
   isServicesRouteActive(): boolean {
-    return this.router.url.includes('/customer/dich-vu');
+    const activeRoutes = ['/customer/dich-vu'];
+    return activeRoutes.some(route => this.router.url.includes(route));
   }
 
   toggleServices(event: Event) {
