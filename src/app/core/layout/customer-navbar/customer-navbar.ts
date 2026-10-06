@@ -41,7 +41,7 @@ export class CustomerNavbar {
   }
 
   isServicesRouteActive(): boolean {
-    const activeRoutes = ['/customer/dich-vu'];
+    const activeRoutes = ['/customer/dich-vu', '/customer/do-that-lac'];
     return activeRoutes.some(route => this.router.url.includes(route));
   }
 
