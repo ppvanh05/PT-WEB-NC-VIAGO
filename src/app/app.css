@@ -23,6 +23,7 @@ app-customer-footer {
   width: min(100% - (var(--page-padding-desktop) * 2), 1120px);
   margin: 0 auto;
   padding: var(--space-12) 0 var(--space-16);
+}
 .admin-demo {
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);

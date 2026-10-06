@@ -1,6 +1,5 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Badge } from '../badge/badge';
 
 export type CardType = 'default' | 'info' | 'booking' | 'stat';
 export type CardPadding = 'none' | 'sm' | 'md' | 'lg' | 'xl';
@@ -12,7 +11,7 @@ export type StatIconVariant = 'primary' | 'accent' | 'success' | 'warning' | 'da
 @Component({
   selector: 'app-card',
   standalone: true,
-  imports: [CommonModule, Badge],
+  imports: [CommonModule],
   templateUrl: './card.html',
   styleUrl: './card.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
