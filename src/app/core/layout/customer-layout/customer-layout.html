@@ -1,7 +1,10 @@
 <div class="viago-customer-layout">
   
   <!-- Customer Navbar -->
-  <app-customer-navbar class="viago-customer-navbar-wrapper"></app-customer-navbar>
+  <app-customer-navbar
+    class="viago-customer-navbar-wrapper"
+    (openAuthModal)="onAuthModalOpen()"
+  ></app-customer-navbar>
 
   <!-- Main Content Route -->
   <main class="viago-customer-main">

@@ -12,4 +12,9 @@ import { AuthModal } from '../../../auth/auth-modal/auth-modal';
   templateUrl: './customer-layout.html',
   styleUrl: './customer-layout.css',
 })
-export class CustomerLayout {}
+export class CustomerLayout {
+  onAuthModalOpen(): void {
+    // Modal state is managed by the customer layout.
+  }
+
+}

@@ -1,240 +1,121 @@
-<div class="news-detail-page">
-  <!-- TOAST NOTIFICATION FLOATING -->
-  <div class="toast-floating" *ngIf="showToast">
-    <i class="bi bi-check-circle-fill toast-icon"></i>
-    <span class="toast-text">{{ toastMessage }}</span>
-  </div>
+<div class="container mx-auto px-4 md:px-10 lg:px-16 mt-6" *ngIf="article">
+  <nav class="breadcrumbs">
+    <a routerLink="/tin-tuc">Tin tức</a>
+    <span>›</span>
+    <strong>{{ article.title }}</strong>
+  </nav>
+</div>
 
-  <div class="detail-container">
-    <!-- 1. BREADCRUMB -->
-    <nav class="breadcrumb-bar">
-      <a (click)="goBack()" class="breadcrumb-link">
-        <i class="bi bi-arrow-left"></i> Quay lại
-      </a>
-      <span class="breadcrumb-sep">›</span>
-      <span class="breadcrumb-current">{{ article?.title }}</span>
-    </nav>
-
-    <!-- 2. MAIN DETAIL LAYOUT (2 COLUMNS) -->
-    <div class="detail-layout">
-      
-      <!-- LEFT ARTICLE CONTENT -->
-      <article class="article-main">
-        <!-- CATEGORY BADGE -->
-        <span class="category-tag">{{ article?.categoryLabel }}</span>
-
-        <!-- ARTICLE TITLE -->
-        <h1 class="article-title">{{ article?.title }}</h1>
-
-        <!-- META & SHARE ROW -->
-        <div class="meta-share-row">
-          <div class="meta-info">
-            <span class="meta-date">{{ article?.date }}</span>
-            <span class="meta-dot">•</span>
-            <span class="meta-author">{{ article?.author }}</span>
-            <span class="meta-dot">•</span>
-            <span class="meta-views"><i class="bi bi-eye"></i> {{ article?.viewCount }} lượt xem</span>
-          </div>
-
-          <!-- SHARE BUTTON -->
-          <button class="btn-share" (click)="shareArticle()" title="Sao chép liên kết chia sẻ">
-            <i class="bi bi-share"></i> Share
+<main class="container mx-auto px-4 md:px-10 lg:px-16 my-8 article-main-grid" *ngIf="article">
+  <article class="article-content-wrapper">
+    <header class="article-header">
+      <span class="badge-category">{{ article.category }}</span>
+      <h1>{{ article.title }}</h1>
+      <div class="article-meta-row">
+        <span>{{ article.date }} • {{ article.author }}</span>
+        <div class="article-actions flex gap-2">
+          <button type="button" (click)="openShare()" class="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-gray-600 hover:border-[#123063] hover:text-[#123063] transition flex items-center gap-1 cursor-pointer bg-slate-50">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+            <span>Share</span>
           </button>
         </div>
+      </div>
+    </header>
 
-        <!-- HIGHLIGHT CALLOUT BOX -->
-        <div class="highlight-callout" *ngIf="article?.summary">
-          <p>{{ article?.summary }}</p>
-        </div>
+    <p class="highlight-block">{{ article.excerpt }}</p>
 
-        <!-- FEATURED IMAGE -->
-        <div class="article-hero-img" *ngIf="article?.image">
-          <img [src]="article?.image" [alt]="article?.title">
-        </div>
+    <img [src]="article.imageUrl" [alt]="article.title" class="article-cover" />
 
-        <!-- TAGS PILLS -->
-        <div class="article-tags" *ngIf="article?.tags && article?.tags.length > 0">
-          <span class="tag-pill" *ngFor="let tag of article?.tags">
-            {{ tag }}
-          </span>
-        </div>
-
-        <!-- RICH CONTENT BODY -->
-        <div class="article-body" [innerHTML]="article?.content"></div>
-      </article>
-
-      <!-- RIGHT SIDEBAR (TIN LIÊN QUAN) -->
-      <aside class="sidebar-right">
-        <div class="sidebar-box">
-          <h3 class="sidebar-title">TIN LIÊN QUAN</h3>
-          <div class="sidebar-list">
-            <div 
-              class="sidebar-item" 
-              *ngFor="let item of sidebarRelatedNews; let i = index" 
-              (click)="goToDetail(item.id)">
-              <span class="item-num">0{{ i + 1 }}</span>
-              <div class="item-content">
-                <h4 class="item-heading">{{ item.title }}</h4>
-                <div class="item-sub">{{ item.date }} • {{ item.categoryLabel }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-
+    <div class="article-chips">
+      <span *ngIf="article.route">{{ article.route }}</span>
+      <span *ngIf="article.discount">Ưu đãi: {{ article.discount }}</span>
+      <span *ngIf="article.target">{{ article.target }}</span>
+      <span *ngIf="article.eventDate">Ngày sự kiện: {{ article.eventDate }}</span>
+      <span *ngIf="article.deadline">Hạn nộp: {{ article.deadline }}</span>
     </div>
 
-    <!-- 3. COMMENTS SECTION (PLACED BEFORE RELATED ARTICLES) -->
-    <section class="comments-section">
-      <div class="comments-header">
-        <h3 class="comments-title">
-          Bình luận ({{ article?.comments?.length || 0 }})
-        </h3>
-      </div>
+    <div class="article-body">
+      {{ article.contentBody || article.excerpt }}
+    </div>
 
-      <!-- ADD COMMENT FORM -->
-      <div class="comment-form-box">
-        <div class="form-avatar">
-          <i class="bi bi-person-circle"></i>
-        </div>
-        <div class="form-inputs">
-          <input 
-            type="text" 
-            class="input-name" 
-            placeholder="Họ và tên của bạn..." 
-            [(ngModel)]="commentAuthor">
-          
-          <textarea 
-            class="textarea-content" 
-            rows="3" 
-            placeholder="Viết bình luận hoặc thắc mắc của bạn về bài viết này..." 
-            [(ngModel)]="commentText">
-          </textarea>
-
-          <div class="form-actions">
-            <button 
-              class="btn-submit-comment" 
-              [disabled]="!commentText.trim()" 
-              (click)="onAddComment()">
-              <i class="bi bi-send-fill"></i> Gửi bình luận
-            </button>
+    <!-- Comments Section -->
+    <section class="comment-box mt-10 pt-6 border-t border-slate-200">
+      <h2 class="text-lg font-black text-[#123063] mb-4 uppercase">Bình luận</h2>
+      
+      <!-- List of comments -->
+      <div class="comments-list space-y-4 mb-6" *ngIf="comments.length > 0">
+        <div *ngFor="let comment of comments" class="comment-item p-4 bg-slate-50 rounded-2xl border border-slate-100">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-bold text-xs text-[#123063]">{{ comment.author }}</span>
+            <span class="text-[10px] text-slate-400 font-bold">{{ comment.date }}</span>
           </div>
+          <p class="text-xs text-slate-600 leading-relaxed">{{ comment.content }}</p>
         </div>
       </div>
 
-      <!-- COMMENTS LIST -->
-      <div class="comments-list">
-        <div class="comment-item-wrapper" *ngFor="let c of article?.comments">
-          <div class="comment-item">
-            <div class="comment-avatar">
-              <img [src]="c.avatar" *ngIf="c.avatar" [alt]="c.authorName">
-              <div class="avatar-initial" *ngIf="!c.avatar">
-                {{ c.authorName.charAt(0).toUpperCase() }}
-              </div>
-            </div>
-
-            <div class="comment-body">
-              <div class="comment-author-row">
-                <span class="author-name">{{ c.authorName }}</span>
-                <span class="comment-time">{{ c.createdAt }}</span>
-              </div>
-              <p class="comment-text">{{ c.content }}</p>
-
-              <div class="comment-actions">
-                <button 
-                  class="btn-action-like" 
-                  [class.liked]="c.isLiked" 
-                  (click)="toggleLikeComment(c.id)"
-                  title="Thích">
-                  <i class="bi" [class.bi-hand-thumbs-up-fill]="c.isLiked" [class.bi-hand-thumbs-up]="!c.isLiked"></i>
-                  <span class="action-count">{{ c.likes }}</span>
-                </button>
-
-                <button 
-                  class="btn-action-reply" 
-                  (click)="toggleReplyForm(c.id)"
-                  title="Trả lời / Phản hồi">
-                  <i class="bi bi-chat"></i>
-                  <span class="action-count">{{ c.replies?.length || 0 }}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- INLINE REPLY FORM BOX -->
-          <div class="reply-form-box" *ngIf="replyingCommentId === c.id">
-            <div class="reply-form-inputs">
-              <input 
-                type="text" 
-                class="input-name" 
-                placeholder="Họ và tên của bạn..." 
-                [(ngModel)]="replyAuthor">
-              
-              <div class="reply-input-group">
-                <input 
-                  type="text" 
-                  class="input-reply-text" 
-                  placeholder="Nhập nội dung trả lời..." 
-                  [(ngModel)]="replyText"
-                  (keyup.enter)="onAddReply(c.id)">
-                
-                <button 
-                  class="btn-submit-reply" 
-                  [disabled]="!replyText.trim()" 
-                  (click)="onAddReply(c.id)">
-                  Gửi trả lời
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- NESTED REPLIES LIST -->
-          <div class="replies-list" *ngIf="c.replies && c.replies.length > 0">
-            <div class="reply-item" *ngFor="let r of c.replies">
-              <div class="comment-avatar reply-avatar">
-                <img [src]="r.avatar" *ngIf="r.avatar" [alt]="r.authorName">
-                <div class="avatar-initial" *ngIf="!r.avatar">
-                  {{ r.authorName.charAt(0).toUpperCase() }}
-                </div>
-              </div>
-              <div class="comment-body">
-                <div class="comment-author-row">
-                  <span class="author-name">{{ r.authorName }}</span>
-                  <span class="comment-time">{{ r.createdAt }}</span>
-                </div>
-                <p class="comment-text">{{ r.content }}</p>
-              </div>
-            </div>
-          </div>
-
-        </div>
+      <!-- Add comment form -->
+      <div class="space-y-3 mt-4">
+        <input type="text" [(ngModel)]="newCommentName" placeholder="Tên của bạn..." class="w-full p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-gray-800 outline-none focus:border-[#123063] focus:bg-white transition" />
+        <textarea rows="3" [(ngModel)]="newCommentText" placeholder="Chia sẻ cảm nhận hoặc câu hỏi của bạn..." class="w-full p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-gray-800 outline-none focus:border-[#123063] focus:bg-white transition resize-none"></textarea>
+        <button type="button" (click)="submitComment()" class="px-5 py-2.5 bg-[#123063] text-white text-xs font-bold rounded-xl hover:bg-[#1d4586] transition cursor-pointer">Gửi bình luận</button>
       </div>
     </section>
+  </article>
 
-    <!-- 4. BÀI VIẾT LIÊN QUAN GRID -->
-    <section class="related-articles-section">
-      <div class="related-header">
-        <h3 class="related-title">BÀI VIẾT LIÊN QUAN</h3>
-        <button class="btn-view-all" (click)="goToNewsList(article?.category)">Xem tất cả</button>
-      </div>
-
-      <div class="related-grid">
-        <div 
-          class="related-card" 
-          *ngFor="let item of bottomRelatedNews" 
-          (click)="goToDetail(item.id)">
-          <div class="related-card-img">
-            <img [src]="item.image" [alt]="item.title">
-            <span class="related-badge">{{ item.categoryLabel }}</span>
-          </div>
-          <div class="related-card-body">
-            <h4 class="related-card-title">{{ item.title }}</h4>
-            <p class="related-card-summary">{{ item.summary }}</p>
-            <span class="related-card-date">{{ item.date }}</span>
-          </div>
-        </div>
-      </div>
+  <aside class="sidebar-container">
+    <section class="sidebar-section">
+      <h2>Tin liên quan</h2>
+      <a class="related-item" *ngFor="let art of relatedArticles; let i = index" [routerLink]="['/tin-tuc/chi-tiet', art.id]">
+        <strong>0{{ i + 1 }}</strong>
+        <span>
+          {{ art.title }}
+          <small>{{ art.date }} • {{ art.category }}</small>
+        </span>
+      </a>
     </section>
+  </aside>
+</main>
 
+<section class="bottom-related-section" *ngIf="bottomArticles.length > 0">
+  <div class="container mx-auto px-4 md:px-10 lg:px-16">
+    <div class="section-header-block">
+      <h2>Bài viết liên quan</h2>
+      <a routerLink="/tin-tuc">Xem tất cả</a>
+    </div>
+
+    <div class="related-cards-grid">
+      <article class="news-card" *ngFor="let art of bottomArticles">
+        <a [routerLink]="['/tin-tuc/chi-tiet', art.id]" class="news-img-wrapper">
+          <img [src]="art.imageUrl" [alt]="art.title" />
+        </a>
+        <div class="news-content">
+          <span class="news-card-badge">{{ art.category }}</span>
+          <h3><a [routerLink]="['/tin-tuc/chi-tiet', art.id]">{{ art.title }}</a></h3>
+          <p>{{ art.excerpt }}</p>
+          <small>{{ art.date }}</small>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- Custom Share Modal Dialog -->
+<div class="share-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs" *ngIf="showShareModal">
+  <div class="share-modal-card bg-white rounded-3xl p-6 shadow-xl max-w-md w-full mx-4 border border-slate-100 flex flex-col gap-4">
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h3 class="text-sm font-bold text-[#123063]">Chia sẻ liên kết</h3>
+      <button (click)="showShareModal = false" class="text-slate-400 hover:text-slate-600 cursor-pointer text-sm font-bold bg-transparent border-0">Đóng</button>
+    </div>
+    <p class="text-xs text-slate-500">Sao chép liên kết dưới đây để chia sẻ với bạn bè:</p>
+    <div class="flex gap-2">
+      <input type="text" readonly [value]="shareUrl" class="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none" />
+      <button (click)="copyLink()" class="px-4 py-2.5 bg-[#123063] hover:bg-[#1d4586] text-white text-xs font-bold rounded-xl transition cursor-pointer">Copy</button>
+    </div>
   </div>
 </div>
