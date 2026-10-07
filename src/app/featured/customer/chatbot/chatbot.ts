@@ -66,14 +66,17 @@ export class Chatbot implements AfterViewChecked {
     this.messages.push({ text: text, isBot: false, time: this.getCurrentTime() });
     this.userInput = '';
     
-    // Simulate typing
+    // Simulate typing briefly for visual effect, but reply almost instantly
     this.isTyping = true;
     this.cdr.detectChanges();
+    this.scrollToBottom();
+    
     setTimeout(() => {
       this.isTyping = false;
       this.generateBotResponse(text);
       this.cdr.detectChanges();
-    }, 400);
+      this.scrollToBottom();
+    }, 100);
   }
 
   generateBotResponse(userText: string) {
