@@ -30,7 +30,8 @@
     <div class="cb-messages">
       <div *ngFor="let msg of messages" class="cb-message-group" [ngClass]="msg.isBot ? 'msg-bot' : 'msg-user'">
         <div class="cb-avatar-sm" *ngIf="msg.isBot">
-          <i class="bi bi-robot"></i>
+          <i class="bi bi-robot" *ngIf="!msg.isAgent"></i>
+          <i class="bi bi-person-fill" *ngIf="msg.isAgent"></i>
         </div>
         <div class="cb-message-content">
           <div class="cb-bubble" [innerHTML]="msg.text"></div>

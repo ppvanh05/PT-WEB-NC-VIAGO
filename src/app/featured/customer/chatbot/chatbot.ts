@@ -18,7 +18,7 @@ export class Chatbot implements AfterViewChecked {
   isTyping = false;
   userInput = '';
 
-  messages = [
+  messages: any[] = [
     { text: 'Xin chào! Mình là Trợ lý Ảo của VIAGO. Mình có thể giúp gì cho chuyến đi của bạn hôm nay?', isBot: true, time: this.getCurrentTime() }
   ];
 
@@ -119,8 +119,9 @@ export class Chatbot implements AfterViewChecked {
         setTimeout(() => {
           this.isTyping = false;
           this.messages.push({ 
-            text: '<b>[CSKH Mỹ Linh]</b>: Dạ em chào anh/chị ạ. Em là Mỹ Linh - Chuyên viên CSKH VIAGO. Anh/chị đang cần hỗ trợ vấn đề gì để em xử lý ngay cho mình ạ?', 
+            text: 'Dạ em chào anh/chị ạ. Em là <b>Mỹ Linh - Chuyên viên CSKH VIAGO</b>. Anh/chị đang cần hỗ trợ vấn đề gì để em xử lý ngay cho mình ạ?', 
             isBot: true, 
+            isAgent: true,
             time: this.getCurrentTime() 
           });
           this.cdr.detectChanges();
