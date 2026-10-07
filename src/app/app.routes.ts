@@ -25,6 +25,7 @@ import { PromotionsComponent } from './featured/admin/content/promotions/promoti
 import { DetailedReportComponent } from './featured/admin/reports/detailed-report/detailed-report';
 import { RouteReportComponent } from './featured/admin/reports/route-report/route-report';
 import { LostAndFound } from './featured/customer/services/lost-and-found/lost-and-found';
+import { SupportQueue } from './featured/admin/customers/support-queue/support-queue';
 
 export const routes: Routes = [
   {
@@ -38,6 +39,7 @@ export const routes: Routes = [
       { path: 'content/promotions', component: PromotionsComponent },
       { path: 'reports/revenue', component: DetailedReportComponent },
       { path: 'reports/routes', component: RouteReportComponent },
+      { path: 'customers/support', component: SupportQueue },
       { path: '**', redirectTo: 'home' },
     ],
   },
