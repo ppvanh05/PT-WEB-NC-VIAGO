@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '../../../../core/services/toast.service';
 
 export interface RouteRevenueData {
   tongDoanhThu: number;
@@ -46,6 +47,9 @@ export interface RouteReportItem {
   styleUrls: ['./route-report.css']
 })
 export class RouteReportComponent implements OnInit {
+  protected readonly toastService = inject(ToastService);
+
+  // Mock operational routes report data
   routesReport: RouteReportItem[] = [
     {
       maTuyen: 'TX1001',
@@ -145,23 +149,38 @@ export class RouteReportComponent implements OnInit {
     }
   ];
 
+  // Filters State
   filters = {
-    fromDate: '',
-    toDate: '',
+    fromDate: '2026-06-20',
+    toDate: '2026-06-26',
     trangThai: 'Tất cả trạng thái',
     maTuyen: 'Tất cả các tuyến'
   };
 
-  dateError = '';
   availableRoutesList: string[] = [];
   filteredRoutes: RouteReportItem[] = [];
   paginatedRoutes: RouteReportItem[] = [];
 
+  // Pagination
   currentPage = 1;
   pageSize = 10;
   totalPages = 1;
-  expandedRouteId: string | null = null;
 
+  expandedRouteId: string | null = null;
+  activeReportTab: 'charts' | 'table' = 'charts';
+
+  chartColors = [
+    '#1E3A8A',
+    '#FF6A00',
+    '#10B981',
+    '#F59E0B',
+    '#EF4444',
+    '#3053B3',
+    '#FF8126',
+    '#152C68'
+  ];
+
+  // Summary KPI values
   summary = {
     totalRoutesCount: 0,
     totalTicketsSold: 0,
@@ -169,56 +188,22 @@ export class RouteReportComponent implements OnInit {
     averageProfit: 0,
     averageFillRate: 0,
     totalTripsRun: 0,
-    onTimeRate: 0,
-    topRevenueRouteName: '',
-    topFillRateRouteName: ''
+    onTimeRate: 0 // percentage
   };
 
   ngOnInit() {
     this.availableRoutesList = ['Tất cả các tuyến', ...this.routesReport.map(r => r.tenTuyen)];
-    this.onResetFilters();
-  }
-
-  getDefault30DaysRange() {
-    const today = new Date();
-    const prior30 = new Date();
-    prior30.setDate(today.getDate() - 30);
-
-    return {
-      fromDate: prior30.toISOString().slice(0, 10),
-      toDate: today.toISOString().slice(0, 10)
-    };
-  }
-
-  onDateChange() {
-    this.dateError = '';
-    if (this.filters.fromDate && this.filters.toDate) {
-      if (this.filters.fromDate > this.filters.toDate) {
-        this.dateError = 'Từ ngày không được lớn hơn Đến ngày!';
-        return;
-      }
-    }
-    this.onViewReport();
-  }
-
-  onResetFilters() {
-    const defaultRange = this.getDefault30DaysRange();
-    this.filters = {
-      fromDate: defaultRange.fromDate,
-      toDate: defaultRange.toDate,
-      trangThai: 'Tất cả trạng thái',
-      maTuyen: 'Tất cả các tuyến'
-    };
-    this.dateError = '';
     this.onViewReport();
   }
 
   onViewReport() {
-    if (this.dateError) return;
-
     this.filteredRoutes = this.routesReport.filter(r => {
+      // Status Filter
       const matchStatus = this.filters.trangThai === 'Tất cả trạng thái' || r.trangThai === this.filters.trangThai;
+      
+      // Specific Route Filter
       const matchRoute = this.filters.maTuyen === 'Tất cả các tuyến' || r.tenTuyen === this.filters.maTuyen;
+
       return matchStatus && matchRoute;
     });
 
@@ -241,11 +226,22 @@ export class RouteReportComponent implements OnInit {
   }
 
   getVisiblePages(): number[] {
-    const pages: number[] = [];
+    const pages = [];
     for (let i = 1; i <= this.totalPages; i++) {
       pages.push(i);
     }
     return pages;
+  }
+
+  onResetFilters() {
+    this.filters = {
+      fromDate: '2026-06-20',
+      toDate: '2026-06-26',
+      trangThai: 'Tất cả trạng thái',
+      maTuyen: 'Tất cả các tuyến'
+    };
+    this.onViewReport();
+    this.toastService.showSuccess('Đã xóa tất cả bộ lọc báo cáo!');
   }
 
   toggleRow(maTuyen: string) {
@@ -260,30 +256,14 @@ export class RouteReportComponent implements OnInit {
     let activeRoutesCount = 0;
     let sumFillRate = 0;
 
-    let maxRev = -1;
-    let topRevName = 'N/A';
-
-    let maxFill = -1;
-    let topFillName = 'N/A';
-
     this.filteredRoutes.forEach(r => {
       totalRevenue += r.doanhThu.tongDoanhThu;
       totalTickets += r.doanhThu.tongVeBan;
       totalTrips += r.lapDay.soChuyenChay;
       totalOnTimeTrips += r.hieuSuat.soChuyenDungGio;
-
-      if (r.doanhThu.tongDoanhThu > maxRev) {
-        maxRev = r.doanhThu.tongDoanhThu;
-        topRevName = r.tenTuyen;
-      }
-
       if (r.trangThai === 'Hoạt động') {
         activeRoutesCount++;
         sumFillRate += r.lapDay.tyLeLapDayTrungBinh;
-        if (r.lapDay.tyLeLapDayTrungBinh > maxFill) {
-          maxFill = r.lapDay.tyLeLapDayTrungBinh;
-          topFillName = r.tenTuyen;
-        }
       }
     });
 
@@ -291,12 +271,10 @@ export class RouteReportComponent implements OnInit {
       totalRoutesCount: this.filteredRoutes.length,
       totalTicketsSold: totalTickets,
       totalRevenue: totalRevenue,
-      averageProfit: totalTrips > 0 ? Math.round((totalRevenue * 0.42) / totalTrips) : 0,
+      averageProfit: totalRevenue * 0.45, // Assume 45% margin for mock purposes
       totalTripsRun: totalTrips,
       averageFillRate: activeRoutesCount > 0 ? Math.round(sumFillRate / activeRoutesCount) : 0,
-      onTimeRate: totalTrips > 0 ? Math.round((totalOnTimeTrips / totalTrips) * 100) : 0,
-      topRevenueRouteName: topRevName,
-      topFillRateRouteName: topFillName
+      onTimeRate: totalTrips > 0 ? Math.round((totalOnTimeTrips / totalTrips) * 100) : 0
     };
   }
 
@@ -306,27 +284,49 @@ export class RouteReportComponent implements OnInit {
       .replace('₫', 'đ');
   }
 
+  getPercentage(value: number, total: number): number {
+    if (!total) return 0;
+    return Math.round((value / total) * 100);
+  }
+
+  getStarRatingArray(rating: number): number[] {
+    const stars = [];
+    const floor = Math.floor(rating);
+    for (let i = 0; i < floor; i++) {
+      stars.push(1);
+    }
+    if (rating - floor >= 0.5) {
+      stars.push(0.5);
+    }
+    return stars;
+  }
+
   onExportExcel() {
     if (this.filteredRoutes.length === 0) {
-      alert('Không có dữ liệu để xuất báo cáo!');
+      this.toastService.showError('Không có dữ liệu để xuất báo cáo!');
       return;
     }
 
     let csvContent = '\uFEFF';
-    csvContent += 'BÁO CÁO TỔNG HỢP THEO TUYẾN XE\n';
-    csvContent += `Thời gian lọc: ${this.filters.fromDate || 'Tất cả'} đến ${this.filters.toDate || 'Tất cả'}\n`;
-    csvContent += `Tuyến xe: ${this.filters.maTuyen} | Trạng thái: ${this.filters.trangThai}\n\n`;
-    csvContent += 'Mã tuyến,Tên tuyến,Điểm đi,Điểm đến,Khoảng cách,Trạng thái,Số chuyến chạy,Vé bán,Vé trống,% Lấp đầy TB,Doanh thu,Doanh thu TB/chuyến,Sao đánh giá,Dúng giờ,Trễ,Hủy\n';
+    csvContent += 'BÁO CÁO TỔNG HỢP VÀ DOANH THU THEO TUYẾN XE\n';
+    csvContent += `Thời gian lọc: ${this.filters.fromDate || 'Tất cả'} đến ${this.filters.toDate || 'Tất cả'}\n\n`;
+    csvContent += 'Mã tuyến,Tên tuyến,Trạng thái,Cự ly,Thời gian đi,Số chuyến chạy,Vé bán,Vé trống,% Lấp đầy TB,Doanh thu,Lợi nhuận TB/chuyến,Sao đánh giá,Chuyến trễ,Chuyến hủy\n';
 
     this.filteredRoutes.forEach(r => {
-      csvContent += `"${r.maTuyen}","${r.tenTuyen}","${r.diemDi}","${r.diemDen}","${r.khoangCach}","${r.trangThai}",${r.lapDay.soChuyenChay},${r.lapDay.soVeDaBan},${r.lapDay.soVeTrong},${r.lapDay.tyLeLapDayTrungBinh}%,${r.doanhThu.tongDoanhThu},${r.doanhThu.doanhThuTrungBinhChuyen},${r.hieuSuat.danhGiaSaoTrungBinh},${r.hieuSuat.soChuyenDungGio},${r.hieuSuat.soChuyenTre},${r.hieuSuat.soChuyenHuy}\n`;
+      csvContent += `${r.maTuyen},${r.tenTuyen},${r.trangThai},${r.khoangCach},${r.thoiGian},${r.lapDay.soChuyenChay},${r.lapDay.soVeDaBan},${r.lapDay.soVeTrong},${r.lapDay.tyLeLapDayTrungBinh}%,${r.doanhThu.tongDoanhThu},${r.doanhThu.doanhThuTrungBinhChuyen},${r.hieuSuat.danhGiaSaoTrungBinh},${r.hieuSuat.soChuyenTre},${r.hieuSuat.soChuyenHuy}\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `BaoCaoTuyenXe_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `BaoCaoDoanhThuTuyenXe_${new Date().toISOString().slice(0,10)}.csv`);
     link.click();
+    this.toastService.showSuccess('Xuất file báo cáo Excel thành công!');
   }
+
+  onExportChart() {
+    this.toastService.showSuccess('Đã xuất biểu đồ phân tích tuyến xe thành công!');
+  }
+
 }

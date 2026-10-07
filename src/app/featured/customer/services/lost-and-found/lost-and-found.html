@@ -94,13 +94,19 @@
 
         <!-- Pagination -->
         <div class="pagination-wrapper" *ngIf="totalPages > 1">
-          <app-pagination 
-            [currentPage]="currentPage"
-            [totalItems]="filteredItems.length"
-            [pageSize]="pageSize"
-            [showSummary]="false"
-            (pageChange)="setPage($event)">
-          </app-pagination>
+          <button class="page-btn" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          
+          <button class="page-btn" *ngFor="let page of pagesArray" 
+                  [class.active]="currentPage === page" 
+                  (click)="setPage(page)">
+            {{ page }}
+          </button>
+          
+          <button class="page-btn" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">
+            <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
       </div>
 

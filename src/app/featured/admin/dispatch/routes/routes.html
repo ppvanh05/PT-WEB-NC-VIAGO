@@ -6,10 +6,15 @@
       <span class="category-tag">QUẢN LÝ ĐIỀU PHỐI</span>
       <h1 class="main-title">Quản lý Tuyến xe</h1>
     </div>
-    
+
     <div class="header-action-banner" (click)="openAddModal()" title="Nhấp để thêm tuyến xe mới">
       <div class="action-icon-circle">
-        <i class="bi bi-plus-circle-fill action-icon"></i>
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="#0f766e"
+          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
       </div>
       <div class="action-banner-text">
         <h3>Tạo tuyến xe mới</h3>
@@ -20,7 +25,7 @@
 
   <!-- Dashboard Card -->
   <div class="dashboard-card">
-    
+
     <!-- Filter Control Panel -->
     <div class="dashboard-control-panel">
       <div class="pill-tabs">
@@ -62,87 +67,111 @@
         <label class="input-mini-label">Tìm kiếm nhanh</label>
         <div class="search-input-field">
           <i class="bi bi-search search-field-icon"></i>
-          <input type="text" placeholder="Nhập tên tuyến chạy, loại xe..." [(ngModel)]="searchQuery" (input)="filterRoutes()" />
+          <input type="text" placeholder="Nhập tên tuyến chạy, loại xe..." [(ngModel)]="searchQuery"
+            (input)="filterRoutes()" />
         </div>
       </div>
 
       <div class="filter-actions-col">
         <button class="btn-clear-filters" (click)="clearFilters()" title="Xóa bộ lọc">
-          <i class="bi bi-arrow-counterclockwise"></i> Làm mới
+          <i class="bi bi-arrow-counterclockwise"></i> Xóa lọc
         </button>
       </div>
     </div>
 
     <!-- Grid of Route Cards -->
     <div class="routes-grid-container" *ngIf="filteredRoutes.length > 0">
-      <div class="route-premium-card" *ngFor="let route of paginatedRoutes" [class.route-locked]="route.status === 'locked'">
-        
-        <!-- Left Section: Status & Title (NO TEXT WRAP) -->
-        <div class="route-col-info">
-          <div class="status-indicator-badge" [class.active]="route.status === 'active'" [class.locked]="route.status === 'locked'">
-            <i [class]="route.status === 'active' ? 'bi bi-check-circle-fill' : 'bi bi-lock-fill'"></i>
-            <span>{{ route.status === 'active' ? 'Đang hoạt động' : 'Đã tạm khóa' }}</span>
+      <div class="route-premium-card" *ngFor="let route of paginatedRoutes"
+        [class.route-locked]="route.status === 'locked'"
+        style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 24px; padding: 16px 24px; width: 100%; box-sizing: border-box;">
+
+        <!-- Left Section: Status & Title -->
+        <div
+          style="flex: 1.2; display: flex; flex-direction: column; gap: 8px; min-width: 180px; max-width: 220px; overflow: hidden;">
+          <div class="status-indicator-badge" [class.active]="route.status === 'active'"
+            [class.locked]="route.status === 'locked'" style="align-self: flex-start; margin: 0;">
+            <i *ngIf="route.status === 'active'" class="bi bi-check-circle-fill" style="color: #10b981;"></i>
+            <i *ngIf="route.status === 'locked'" class="bi bi-lock-fill" style="color: #ef4444;"></i>
+            <span>{{ route.status === 'active' ? 'Đang hoạt động' : 'Tạm khóa' }}</span>
           </div>
-          <h2 class="card-route-title">{{ route.name }}</h2>
+          <h2 class="card-route-title"
+            style="margin: 0; font-size: 1.05rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+            [title]="route.name">{{ route.name }}</h2>
         </div>
 
         <!-- Middle Section: Road Map Visualization -->
-        <div class="route-col-map">
-          <div class="route-road-map">
-            <div class="road-node start-node">
-              <span class="node-dot"></span>
-              <span class="node-name">{{ route.startPoint }}</span>
+        <div style="flex: 2; min-width: 260px; margin: 0;">
+          <div class="route-road-map"
+            style="margin: 0; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-lg); background-color: var(--slate-light); display: flex; align-items: center; justify-content: space-between;">
+            <div class="road-node start-node" style="width: auto;">
+              <span class="node-dot" style="margin: 0;"></span>
             </div>
-            <div class="road-connector">
-              <span class="connector-line"></span>
-              <div class="road-metrics-box">
-                <span class="metrics-dist">{{ route.distanceNum }} km</span>
-                <span class="metrics-time">{{ route.duration }}</span>
+            <div class="road-connector" style="margin: 0 8px;">
+              <span class="connector-line" style="top: 50%; transform: translateY(-50%);"></span>
+              <div class="road-metrics-box"
+                style="margin: 0; display: flex; flex-direction: row; gap: 8px; align-items: center; z-index: 2; background-color: var(--slate-light); padding: 0 8px;">
+                <span class="metrics-dist" style="margin: 0;">{{ route.distanceNum }} km</span>
+                <span class="metrics-time" style="margin: 0;">{{ route.duration }}</span>
               </div>
             </div>
-            <div class="road-node end-node">
-              <span class="node-dot"></span>
-              <span class="node-name">{{ route.endPoint }}</span>
+            <div class="road-node end-node" style="width: auto;">
+              <span class="node-dot" style="margin: 0;"></span>
             </div>
           </div>
         </div>
 
-        <!-- Details Grid -->
-        <div class="route-details-grid">
-          <div class="detail-cell">
+        <!-- Right Section: Details/Metrics -->
+        <div class="route-details-grid"
+          style="flex: 2.2; margin: 0; padding: 0; border: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; min-width: 250px;">
+          <div class="detail-cell" style="gap: 2px;">
             <span class="cell-label">Loại xe</span>
-            <span class="cell-value">{{ route.carTypes }}</span>
+            <span class="cell-value" style="font-size: 13px;">{{ route.carTypes }}</span>
           </div>
-          <div class="detail-cell">
+          <div class="detail-cell" style="gap: 2px;">
             <span class="cell-label">Chuyến/ngày</span>
-            <span class="cell-value">{{ route.tripsPerDay }} chuyến</span>
+            <span class="cell-value" style="font-size: 13px;">{{ route.tripsPerDay }} chuyến</span>
           </div>
-          <div class="detail-cell price-cell">
-            <span class="cell-label">Giá vé mặc định</span>
-            <span class="cell-value highlight">{{ formatPrice(route.price) }}</span>
+          <div class="detail-cell price-cell" style="gap: 2px;">
+            <span class="cell-label">Giá vé</span>
+            <span class="cell-value" style="font-size: 14px; font-weight: 800;">{{ formatPrice(route.price) }}</span>
           </div>
         </div>
 
-        <!-- Stops Summary & Actions -->
-        <div class="route-col-actions">
-          <div class="stops-summary-footer">
+        <!-- Right End: Stops Footer & Actions -->
+        <div
+          style="flex: 1.8; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-left: 1px solid var(--border); padding-left: 20px; min-width: 220px;">
+          <div class="stops-summary-footer"
+            style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start;">
             <div class="stop-badge" title="Điểm đón khách">
-              <i class="bi bi-box-arrow-in-right"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" height="14" viewBox="0 0 24 24" width="14" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
               <span>{{ route.pickupPoints.length }} điểm đón</span>
             </div>
-            <div class="stop-badge" title="Điểm trả khách">
-              <i class="bi bi-box-arrow-right"></i>
-              <span>{{ route.dropoffPoints ? route.dropoffPoints.length : 0 }} điểm trả</span>
-            </div>
+
             <div class="stop-badge" title="Điểm dừng chân nghỉ ngơi">
-              <i class="bi bi-cup-hot-fill"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" height="14" viewBox="0 0 24 24" width="14" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+              </svg>
               <span>{{ route.stops.length }} điểm dừng</span>
             </div>
           </div>
 
-          <button class="admin-action-btn edit" title="Chỉnh sửa chi tiết" (click)="openEditModal(route, $event)">
-            <i class="bi bi-pencil-square"></i>
-          </button>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="admin-action-btn edit" title="Chỉnh sửa chi tiết" aria-label="Chỉnh sửa chi tiết"
+              (click)="openEditModal(route, $event)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+          </div>
         </div>
 
       </div>
@@ -157,10 +186,12 @@
       </div>
       <div class="pagination-controls">
         <button class="pagination-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
-        <button class="pagination-btn" *ngFor="let page of getPaginationItems()" [class.active]="currentPage === page" (click)="setPage(page)">
+        <button class="pagination-btn" *ngFor="let page of getPaginationItems()" [class.active]="currentPage === page"
+          (click)="setPage(page)">
           {{ page }}
         </button>
-        <button class="pagination-btn" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
+        <button class="pagination-btn" (click)="setPage(currentPage + 1)"
+          [disabled]="currentPage === totalPages">›</button>
       </div>
     </div>
 
@@ -178,85 +209,76 @@
   <!-- Form Modal (Add / Edit) -->
   <div class="modal-overlay" *ngIf="isModalOpen" (click)="onBackdropClick($event)">
     <div class="modal-container">
-      
+
       <div class="modal-header">
         <h3 class="modal-title">{{ isEditMode ? 'Cập Nhật Thông Tin Tuyến Xe' : 'Thêm Tuyến Xe Mới' }}</h3>
         <button class="btn-close" (click)="closeModal()">×</button>
       </div>
 
       <div class="modal-body">
-        <!-- Form Row 1: Start & End Points (EDITABLE IN BOTH ADD AND EDIT MODAL) -->
+        <!-- Form Row 1: Start & End Points -->
         <div class="form-row">
           <div class="form-item col-6" [class.has-error]="errors['startPoint']">
-            <label>Điểm khởi hành (Tỉnh/Thành) <span class="required">*</span></label>
-            <select [(ngModel)]="currentRoute.startPoint">
-              <option value="">-- Chọn điểm đầu --</option>
-              <option *ngFor="let prov of provincesList" [value]="prov">{{ prov }}</option>
+            <label>Điểm đầu <span class="required">*</span></label>
+            <select [(ngModel)]="currentRoute.startPoint" (change)="onStartOrEndPointChange()" [disabled]="isEditMode">
+              <option value="">-- Chọn Tỉnh / Thành --</option>
+              <option *ngFor="let prov of getFilteredStartProvinces()" [value]="prov">{{ prov }}</option>
             </select>
             <span class="error-msg" *ngIf="errors['startPoint']">Điểm đầu không được bỏ trống</span>
           </div>
 
           <div class="form-item col-6" [class.has-error]="errors['endPoint']">
-            <label>Điểm kết thúc (Tỉnh/Thành) <span class="required">*</span></label>
-            <select [(ngModel)]="currentRoute.endPoint">
-              <option value="">-- Chọn điểm cuối --</option>
-              <option *ngFor="let prov of provincesList" [value]="prov">{{ prov }}</option>
+            <label>Điểm cuối <span class="required">*</span></label>
+            <select [(ngModel)]="currentRoute.endPoint" (change)="onStartOrEndPointChange()" [disabled]="isEditMode">
+              <option value="">-- Chọn Tỉnh / Thành --</option>
+              <option *ngFor="let prov of getFilteredEndProvinces()" [value]="prov">{{ prov }}</option>
             </select>
             <span class="error-msg" *ngIf="errors['endPoint']">Điểm cuối không được bỏ trống</span>
           </div>
         </div>
 
-        <!-- Form Row 2: Distance (km integer) & Duration -->
-        <div class="form-row">
+        <!-- Form Row 2: Distance & Duration -->
+        <div class="form-row" *ngIf="currentRoute.startPoint && currentRoute.endPoint">
           <div class="form-item col-6" [class.has-error]="errors['distanceNum']">
-            <label>Khoảng cách (km số nguyên) <span class="required">*</span></label>
-            <div class="input-with-unit">
-              <input type="number" min="1" step="1" placeholder="Ví dụ: 170" [(ngModel)]="currentRoute.distanceNum" />
-              <span class="unit-tag">km</span>
-            </div>
-            <span class="error-msg" *ngIf="errors['distanceNum']">Vui lòng nhập khoảng cách hợp lệ (km)</span>
+            <label>Khoảng cách (km) <span class="required">*</span></label>
+            <input type="number" min="1" step="1" placeholder="Ví dụ: 170" [(ngModel)]="currentRoute.distanceNum" (input)="onDistanceChange()" (change)="onDistanceChange()" />
+            <span class="error-msg" *ngIf="errors['distanceNum']">Khoảng cách phải là số nguyên (km)</span>
           </div>
 
-          <div class="form-item col-6" [class.has-error]="errors['duration']">
-            <label>Thời gian di chuyển ước tính <span class="required">*</span></label>
-            <input type="text" placeholder="Ví dụ: 3.5 tiếng hoặc 3 tiếng 30 phút" [(ngModel)]="currentRoute.duration" />
-            <span class="error-msg" *ngIf="errors['duration']">Vui lòng nhập thời gian di chuyển</span>
+          <div class="form-item col-6" [class.has-error]="errors['durationNum']">
+            <label>Thời gian di chuyển (giờ) <span class="required">*</span></label>
+            <input type="number" min="0.5" max="48" step="0.5" placeholder="Ví dụ: 3.5" [(ngModel)]="currentRoute.durationNum" />
+            <span class="error-msg" *ngIf="errors['durationNum']">Vui lòng nhập số giờ di chuyển (ví dụ: 2.5)</span>
           </div>
         </div>
 
-        <!-- Form Row 3: Trips per day, Price, Car Types Checkboxes -->
+        <!-- Form Row 3: Trips per day, Price, Car Types Dropdown -->
         <div class="form-row">
           <div class="form-item col-4" [class.has-error]="errors['tripsPerDay']">
             <label>Số chuyến / ngày <span class="required">*</span></label>
-            <input type="number" min="1" [(ngModel)]="currentRoute.tripsPerDay" />
-            <span class="error-msg" *ngIf="errors['tripsPerDay']">Số chuyến tối thiểu là 1</span>
+            <input type="number" min="1" step="1" [(ngModel)]="currentRoute.tripsPerDay" />
+            <span class="error-msg" *ngIf="errors['tripsPerDay']">Tối thiểu 1 chuyến</span>
           </div>
 
           <div class="form-item col-4" [class.has-error]="errors['price']">
-            <label>Giá vé mặc định (VNĐ) <span class="required">*</span></label>
-            <input type="number" min="1000" step="5000" [(ngModel)]="currentRoute.price" />
-            <span class="price-formatted-preview" *ngIf="currentRoute.price">Hiển thị: {{ formatPrice(currentRoute.price || 0) }}</span>
-            <span class="error-msg" *ngIf="errors['price']">Giá vé tối thiểu là 1,000đ</span>
+            <label>Giá vé mặc định (đ) <span class="required">*</span></label>
+            <input type="text" placeholder="Ví dụ: 150,000" [ngModel]="formattedPrice" (ngModelChange)="onPriceChange($event)" />
+            <span class="error-msg" *ngIf="errors['price']">Giá vé phải là số nguyên (VNĐ)</span>
           </div>
 
-          <div class="form-item col-4">
-            <label>Trạng thái tuyến</label>
-            <select [(ngModel)]="currentRoute.status">
-              <option value="active">Đang hoạt động</option>
-              <option value="locked">Tạm khóa</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Car Types Selection (Checkboxes) -->
-        <div class="form-row">
-          <div class="form-item col-12">
-            <label>Loại xe vận hành trên tuyến</label>
-            <div class="car-types-checkbox-group">
-              <label class="car-type-checkbox" *ngFor="let type of availableCarTypes">
-                <input 
-                  type="checkbox" 
-                  [checked]="currentRoute.carTypesObj && currentRoute.carTypesObj[type]" 
+          <!-- Car types dropdown matching mockup dropdown -->
+          <div class="form-item col-4" style="position: relative;">
+            <label>Loại xe vận hành</label>
+            <div class="car-types-select-trigger" (click)="toggleCarTypesDropdown()">
+              <span class="car-types-text">{{ getSelectedCarTypesDisplay() }}</span>
+              <svg class="chevron-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+            <div class="car-types-popover" *ngIf="isCarTypesDropdownOpen">
+              <label class="car-type-popover-item" *ngFor="let type of availableCarTypes">
+                <input type="checkbox" [checked]="currentRoute.carTypesObj && currentRoute.carTypesObj[type]"
                   (change)="toggleCarType(type)" />
                 <span>{{ type }}</span>
               </label>
@@ -264,59 +286,54 @@
           </div>
         </div>
 
-        <!-- Dynamic configuration tabs (Pickups, Dropoffs, Shuttles, Stops) -->
-        <div class="sub-configuration-section" *ngIf="currentRoute.startPoint && currentRoute.endPoint">
-          <h4 class="config-section-title">Phân loại & Thiết lập trạm đỗ:</h4>
-          
-          <div class="config-columns-4">
-            <!-- Col 1: Pickup Points -->
-            <div class="config-col">
-              <h5>Điểm đón (Khởi hành)</h5>
-              <div class="checkbox-list-container">
-                <div *ngIf="getPickupPointsForSelectedProvinces().length === 0" class="no-items-text">
-                  Không có dữ liệu tại {{ currentRoute.startPoint }}
+        <!-- Dashed Divider -->
+        <div class="form-dashed-divider"></div>
+
+        <!-- Station Setup Section when BOTH Start and End are selected AND NOT equal (Image B) -->
+        <div class="stations-setup-container"
+          *ngIf="currentRoute.startPoint && currentRoute.endPoint && currentRoute.startPoint !== currentRoute.endPoint">
+          <h4 class="stations-setup-heading">Thiết lập điểm đỗ của tuyến:</h4>
+
+          <div class="stations-three-cols">
+            <!-- Col 1: Điểm đón/trả khách cố định -->
+            <div class="stations-col-box">
+              <span class="stations-col-title">Điểm đón/trả khách cố định</span>
+              <div class="stations-scroll-list">
+                <div *ngIf="getAllPickupDropoffPointsForSelectedProvinces().length === 0" class="no-items-text">
+                  Không có dữ liệu trạm đón/trả.
                 </div>
-                <label class="checkbox-item" *ngFor="let point of getPickupPointsForSelectedProvinces()">
-                  <input type="checkbox" [checked]="isSelected('pickupPoints', point)" (change)="toggleSelection('pickupPoints', point)" />
+                <label class="station-checkbox-row"
+                  *ngFor="let point of getAllPickupDropoffPointsForSelectedProvinces()">
+                  <input type="checkbox"
+                    [checked]="isSelected('pickupPoints', point) || isSelected('dropoffPoints', point)"
+                    (change)="togglePickupDropoffSelection(point)" />
                   <span>{{ point }}</span>
                 </label>
               </div>
             </div>
 
-            <!-- Col 2: Dropoff Points -->
-            <div class="config-col">
-              <h5>Điểm trả (Kết thúc)</h5>
-              <div class="checkbox-list-container">
-                <div *ngIf="getDropoffPointsForSelectedProvinces().length === 0" class="no-items-text">
-                  Không có dữ liệu tại {{ currentRoute.endPoint }}
-                </div>
-                <label class="checkbox-item" *ngFor="let point of getDropoffPointsForSelectedProvinces()">
-                  <input type="checkbox" [checked]="isSelected('dropoffPoints', point)" (change)="toggleSelection('dropoffPoints', point)" />
-                  <span>{{ point }}</span>
-                </label>
-              </div>
-            </div>
-
-            <!-- Col 3: Shuttles -->
-            <div class="config-col">
-              <h5>Trung chuyển / Thả dọc đường</h5>
-              <div class="checkbox-list-container">
+            <!-- Col 2: Điểm trung chuyển đón/trả -->
+            <div class="stations-col-box">
+              <span class="stations-col-title">Điểm trung chuyển đón/trả</span>
+              <div class="stations-scroll-list">
                 <div *ngIf="getShuttlesForSelectedProvinces().length === 0" class="no-items-text">
                   Không có dữ liệu trung chuyển.
                 </div>
-                <label class="checkbox-item" *ngFor="let point of getShuttlesForSelectedProvinces()">
-                  <input type="checkbox" [checked]="isSelected('shuttles', point)" (change)="toggleSelection('shuttles', point)" />
+                <label class="station-checkbox-row" *ngFor="let point of getShuttlesForSelectedProvinces()">
+                  <input type="checkbox" [checked]="isSelected('shuttles', point)"
+                    (change)="toggleSelection('shuttles', point)" />
                   <span>{{ point }}</span>
                 </label>
               </div>
             </div>
 
-            <!-- Col 4: Rest Stops -->
-            <div class="config-col">
-              <h5>Trạm dừng nghỉ</h5>
-              <div class="checkbox-list-container">
-                <label class="checkbox-item" *ngFor="let point of stopsDb">
-                  <input type="checkbox" [checked]="isSelected('stops', point)" (change)="toggleSelection('stops', point)" />
+            <!-- Col 3: Điểm dừng dọc đường -->
+            <div class="stations-col-box">
+              <span class="stations-col-title">Điểm dừng dọc đường</span>
+              <div class="stations-scroll-list">
+                <label class="station-checkbox-row" *ngFor="let point of stopsDb">
+                  <input type="checkbox" [checked]="isSelected('stops', point)"
+                    (change)="toggleSelection('stops', point)" />
                   <span>{{ point }}</span>
                 </label>
               </div>
@@ -324,34 +341,40 @@
           </div>
         </div>
 
-        <div class="sub-configuration-section text-center text-muted" *ngIf="!currentRoute.startPoint || !currentRoute.endPoint">
-          <em>Vui lòng chọn Điểm đầu và Điểm cuối để bắt đầu thiết lập các Trạm đón, trả, dừng...</em>
+        <!-- Initial Placeholder State when Start or End is NOT selected or they are EQUAL (Image A) -->
+        <div class="empty-stations-notice"
+          *ngIf="!currentRoute.startPoint || !currentRoute.endPoint || currentRoute.startPoint === currentRoute.endPoint">
+          <em>Vui lòng chọn Điểm đầu và Điểm cuối (khác nhau) để bắt đầu thiết lập các Trạm đón, trả, dừng...</em>
         </div>
 
       </div>
 
-      <div class="modal-footer">
-        <div class="footer-left">
-          <button *ngIf="isEditMode" class="btn-status-toggle" (click)="toggleRouteStatus(currentRoute, $event)">
-            {{ currentRoute.status === 'active' ? 'Khóa tuyến xe này' : 'Mở khóa tuyến xe này' }}
+      <!-- Modal Footer -->
+      <div class="modal-footer"
+        style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div class="footer-left" *ngIf="isEditMode">
+          <button type="button" class="btn-status-toggle"
+            [style.background-color]="currentRoute.status === 'locked' ? '#f0fdf4' : '#fef2f2'"
+            [style.color]="currentRoute.status === 'locked' ? '#166534' : '#991b1b'"
+            [style.border-color]="currentRoute.status === 'locked' ? '#bbf7d0' : '#fca5a5'"
+            style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; border: 1px solid;"
+            (click)="toggleRouteStatus(currentRoute, $event)">
+            <i *ngIf="currentRoute.status !== 'locked'" class="bi bi-lock-fill" style="font-size: 14px;"></i>
+            <i *ngIf="currentRoute.status === 'locked'" class="bi bi-unlock-fill" style="font-size: 14px;"></i>
+            <span>{{ currentRoute.status === 'locked' ? 'Mở khóa tuyến xe' : 'Khóa tuyến xe này' }}</span>
           </button>
         </div>
-        <div class="footer-right">
-          <button class="btn-cancel" (click)="closeModal()">Hủy</button>
-          <button class="btn-save" (click)="saveRoute()">{{ isEditMode ? 'Lưu thay đổi' : 'Thêm tuyến' }}</button>
+        <div class="footer-right" style="margin-left: auto; display: flex; gap: 12px;">
+          <button class="btn-cancel-custom" (click)="closeModal()">Hủy</button>
+          <button class="btn-save-custom" (click)="saveRoute()">{{ isEditMode ? 'Lưu thay đổi' : 'Thêm tuyến'
+            }}</button>
         </div>
       </div>
 
     </div>
   </div>
 
-  <!-- Toast Notification System -->
-  <div class="toast-container">
-    <div class="toast-card" *ngFor="let toast of toasts" [class.toast-success]="toast.type === 'success'" [class.toast-error]="toast.type === 'error'">
-      <span class="toast-text">{{ toast.message }}</span>
-      <button class="toast-close-btn" (click)="removeToast(toast.id)">×</button>
-    </div>
-  </div>
+
 
   <!-- Centered Success Popup Modal (Auto Dismiss) -->
   <div class="centered-modal-overlay" *ngIf="showCenteredToast" (click)="closeCenteredToast()">

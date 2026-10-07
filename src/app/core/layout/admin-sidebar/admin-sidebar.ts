@@ -1,5 +1,6 @@
 import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { SidebarStateService } from '../../services/sidebar-state.service';
 
 interface SubItem {
@@ -23,13 +24,14 @@ interface SidebarItem {
 })
 export class AdminSidebar {
   private sidebarState = inject(SidebarStateService);
+  private router = inject(Router);
 
   readonly isCollapsed = this.sidebarState.isCollapsed;
-  readonly activeRoute = signal('/admin');
+  readonly activeRoute = signal(this.router.url);
   readonly expandedItem = signal<string | null>(null);
 
   readonly menuItems: SidebarItem[] = [
-    { label: 'Tổng quan', icon: 'dashboard', route: '/admin' },
+    { label: 'Tổng quan', icon: 'dashboard', route: '/admin/home' },
     {
       label: 'Quản lý đặt vé', icon: 'ticket', expandable: true,
       children: [
@@ -83,6 +85,13 @@ export class AdminSidebar {
     { label: 'Quản lý nhật ký', icon: 'log', route: '/admin/logs' },
   ];
 
+  // Listen to router events if needed, but for now just set active route on init
+  constructor() {
+    this.router.events.subscribe(() => {
+      this.activeRoute.set(this.router.url);
+    });
+  }
+
   toggleCollapse(): void {
     this.sidebarState.toggle();
   }
@@ -105,12 +114,14 @@ export class AdminSidebar {
       this.toggleExpand(item.label);
     } else {
       this.activeRoute.set(item.route || '');
+      if (item.route) this.router.navigate([item.route]);
     }
   }
 
   selectSubItem(route: string | undefined): void {
     if (route) {
       this.activeRoute.set(route);
+      this.router.navigate([route]);
     }
   }
 }

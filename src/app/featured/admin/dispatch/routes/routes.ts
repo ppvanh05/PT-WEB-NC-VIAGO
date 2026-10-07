@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '../../../../core/services/toast.service';
 
 export interface TuyenXe {
   id: number;
@@ -8,6 +9,7 @@ export interface TuyenXe {
   startPoint: string;
   endPoint: string;
   distanceNum: number; // Raw integer in km
+  durationNum?: number; // Raw float in hours
   duration: string;
   tripsPerDay: number;
   price: number;
@@ -18,12 +20,6 @@ export interface TuyenXe {
   dropoffPoints: string[];
   stops: string[];
   shuttles: string[];
-}
-
-export interface ToastMessage {
-  id: number;
-  message: string;
-  type: 'success' | 'error';
 }
 
 @Component({
@@ -49,15 +45,14 @@ export class RoutesComponent implements OnInit {
   pageSize = 10;
   totalPages = 1;
 
-  // Toast system state
-  toasts: ToastMessage[] = [];
-  toastIdCounter = 0;
+  protected readonly toastService = inject(ToastService);
 
   // Centered Toast Modal state
   showCenteredToast = false;
   centeredToastTitle = '';
   centeredToastSubtitle = '';
   private centeredToastTimer: any = null;
+
 
   // Form Modal state
   isModalOpen = false;
@@ -68,21 +63,15 @@ export class RoutesComponent implements OnInit {
   errors: { [key: string]: boolean } = {};
 
   provincesList = [
-    'TP.HCM',
-    'Cần Thơ',
-    'Bà Rịa - Vũng Tàu',
-    'Lâm Đồng',
-    'Khánh Hòa',
-    'Đắk Lắk',
-    'Bình Thuận',
-    'Đà Nẵng',
-    'Kiên Giang',
-    'Hà Nội',
-    'Hải Phòng',
-    'Quảng Ninh',
-    'Thừa Thiên Huế',
-    'An Giang',
-    'Cà Mau'
+    'TP.HCM', 'Cần Thơ', 'Bà Rịa - Vũng Tàu', 'Lâm Đồng', 'Khánh Hòa', 'Đắc Lắk', 'Bình Thuận',
+    'Đà Nẵng', 'Kiên Giang', 'Hà Nội', 'Hải Phòng', 'Quảng Ninh', 'Thừa Thiên Huế', 'An Giang',
+    'Cà Mau', 'An Giang', 'Bắc Giang', 'Bắc Kạn', 'Bạc Liêu', 'Bắc Ninh', 'Bến Tre', 'Bình Định',
+    'Bình Dương', 'Bình Phước', 'Cao Bằng', 'Đắk Nông', 'Điện Biên', 'Đồng Nai', 'Đồng Tháp',
+    'Gia Lai', 'Hà Giang', 'Hà Nam', 'Hà Tĩnh', 'Hải Dương', 'Hậu Giang', 'Hòa Bình', 'Hưng Yên',
+    'Kon Tum', 'Lai Châu', 'Lạng Sơn', 'Lào Cai', 'Long An', 'Nam Định', 'Nghệ An', 'Ninh Bình',
+    'Ninh Thuận', 'Phú Thọ', 'Phú Yên', 'Quảng Bình', 'Quảng Nam', 'Quảng Ngãi', 'Quảng Trị',
+    'Sóc Trăng', 'Sơn La', 'Tây Ninh', 'Thái Bình', 'Thái Nguyên', 'Thanh Hóa', 'Tiền Giang',
+    'Trà Vinh', 'Tuyên Quang', 'Vĩnh Long', 'Vĩnh Phúc', 'Yên Bái'
   ];
 
   availableCarTypes = ['Limousine', 'Cabin', 'Giường nằm', 'Ghế ngồi'];
@@ -313,8 +302,18 @@ export class RoutesComponent implements OnInit {
     this.filterRoutes();
   }
 
+  removeAccents(str: string): string {
+    if (!str) return '';
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase();
+  }
+
   filterRoutes() {
-    const query = this.searchQuery.trim().toLowerCase();
+    const query = this.removeAccents(this.searchQuery.trim());
     this.filteredRoutes = this.allRoutes.filter(r => {
       if (this.activeTab === 'active' && r.status !== 'active') return false;
       if (this.activeTab === 'locked' && r.status !== 'locked') return false;
@@ -323,9 +322,11 @@ export class RoutesComponent implements OnInit {
       if (this.endPointFilter && r.endPoint !== this.endPointFilter) return false;
 
       if (query) {
-        const matchesName = r.name.toLowerCase().includes(query);
-        const matchesCar = r.carTypes.toLowerCase().includes(query);
-        return matchesName || matchesCar;
+        const matchesName = this.removeAccents(r.name).includes(query);
+        const matchesCar = this.removeAccents(r.carTypes).includes(query);
+        const matchesStart = this.removeAccents(r.startPoint).includes(query);
+        const matchesEnd = this.removeAccents(r.endPoint).includes(query);
+        return matchesName || matchesCar || matchesStart || matchesEnd;
       }
 
       return true;
@@ -363,19 +364,7 @@ export class RoutesComponent implements OnInit {
     this.startPointFilter = '';
     this.endPointFilter = '';
     this.filterRoutes();
-    this.addToast('Đã xóa tất cả bộ lọc tìm kiếm!', 'success');
-  }
-
-  addToast(message: string, type: 'success' | 'error') {
-    const id = this.toastIdCounter++;
-    this.toasts.push({ id, message, type });
-    setTimeout(() => {
-      this.removeToast(id);
-    }, 3000);
-  }
-
-  removeToast(id: number) {
-    this.toasts = this.toasts.filter(t => t.id !== id);
+    this.toastService.showSuccess('Đã xóa tất cả bộ lọc tìm kiếm!');
   }
 
   triggerCenteredToast(title: string, subtitle: string) {
@@ -406,8 +395,9 @@ export class RoutesComponent implements OnInit {
       name: '',
       startPoint: '',
       endPoint: '',
-      distanceNum: 100,
-      duration: '2.5 tiếng',
+      distanceNum: undefined,
+      durationNum: undefined,
+      duration: '',
       tripsPerDay: 5,
       price: 150000,
       carTypesList: ['Limousine'],
@@ -418,6 +408,7 @@ export class RoutesComponent implements OnInit {
       stops: [],
       shuttles: []
     };
+    this.formattedPrice = this.currentRoute.price ? this.currentRoute.price.toLocaleString('vi-VN') : '';
     this.errors = {};
     this.isModalOpen = true;
   }
@@ -426,7 +417,12 @@ export class RoutesComponent implements OnInit {
     event.stopPropagation();
     this.isEditMode = true;
     const cloned = JSON.parse(JSON.stringify(route));
-    
+    (cloned as any).durationNum = (cloned as any).durationNum || parseFloat(cloned.duration) || 2.5;
+
+    if (cloned.startPoint && cloned.endPoint && cloned.startPoint === cloned.endPoint) {
+      cloned.endPoint = '';
+    }
+
     const carObj: { [key: string]: boolean } = {};
     this.availableCarTypes.forEach(type => {
       carObj[type] = cloned.carTypesList ? cloned.carTypesList.includes(type) : cloned.carTypes.includes(type);
@@ -436,8 +432,21 @@ export class RoutesComponent implements OnInit {
       ...cloned,
       carTypesObj: carObj
     };
+    this.formattedPrice = this.currentRoute.price ? this.currentRoute.price.toLocaleString('vi-VN') : '';
     this.errors = {};
     this.isModalOpen = true;
+  }
+
+  formattedPrice: string = '';
+  onPriceChange(value: string) {
+    const rawValue = value.replace(/[^0-9]/g, '');
+    if (rawValue) {
+      this.currentRoute.price = parseInt(rawValue, 10);
+      this.formattedPrice = this.currentRoute.price.toLocaleString('vi-VN');
+    } else {
+      this.currentRoute.price = 0;
+      this.formattedPrice = '';
+    }
   }
 
   closeModal() {
@@ -449,6 +458,23 @@ export class RoutesComponent implements OnInit {
     if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
       this.closeModal();
     }
+  }
+
+  // Car types dropdown open state
+  isCarTypesDropdownOpen = false;
+
+  toggleCarTypesDropdown() {
+    this.isCarTypesDropdownOpen = !this.isCarTypesDropdownOpen;
+  }
+
+  closeCarTypesDropdown() {
+    this.isCarTypesDropdownOpen = false;
+  }
+
+  getSelectedCarTypesDisplay(): string {
+    if (!this.currentRoute.carTypesObj) return 'Limousine';
+    const selected = this.availableCarTypes.filter(type => this.currentRoute.carTypesObj && this.currentRoute.carTypesObj[type]);
+    return selected.length > 0 ? selected.join(', ') : '-- Chọn loại xe --';
   }
 
   toggleCarType(type: string) {
@@ -471,9 +497,25 @@ export class RoutesComponent implements OnInit {
     }
   }
 
+  togglePickupDropoffSelection(item: string) {
+    this.toggleSelection('pickupPoints', item);
+    this.toggleSelection('dropoffPoints', item);
+  }
+
   isSelected(listName: 'pickupPoints' | 'dropoffPoints' | 'stops' | 'shuttles', item: string): boolean {
     if (!this.currentRoute[listName]) return false;
     return (this.currentRoute[listName] as string[]).includes(item);
+  }
+
+  getAllPickupDropoffPointsForSelectedProvinces(): string[] {
+    const set = new Set<string>();
+    if (this.currentRoute.startPoint && this.pickupPointsDb[this.currentRoute.startPoint]) {
+      this.pickupPointsDb[this.currentRoute.startPoint].forEach(p => set.add(p));
+    }
+    if (this.currentRoute.endPoint && this.pickupPointsDb[this.currentRoute.endPoint]) {
+      this.pickupPointsDb[this.currentRoute.endPoint].forEach(p => set.add(p));
+    }
+    return Array.from(set);
   }
 
   getPickupPointsForSelectedProvinces(): string[] {
@@ -482,6 +524,16 @@ export class RoutesComponent implements OnInit {
       list.push(...this.pickupPointsDb[this.currentRoute.startPoint]);
     }
     return list;
+  }
+
+  getFilteredStartProvinces(): string[] {
+    if (!this.currentRoute.endPoint) return this.provincesList;
+    return this.provincesList.filter(p => p !== this.currentRoute.endPoint);
+  }
+
+  getFilteredEndProvinces(): string[] {
+    if (!this.currentRoute.startPoint) return this.provincesList;
+    return this.provincesList.filter(p => p !== this.currentRoute.startPoint);
   }
 
   getDropoffPointsForSelectedProvinces(): string[] {
@@ -503,19 +555,135 @@ export class RoutesComponent implements OnInit {
     return list;
   }
 
+  distanceMap: { [key: string]: number } = {
+    'TP.HCM_Cần Thơ': 170,
+    'Cần Thơ_TP.HCM': 170,
+    'TP.HCM_Bà Rịa - Vũng Tàu': 100,
+    'Bà Rịa - Vũng Tàu_TP.HCM': 100,
+    'TP.HCM_Lâm Đồng': 310,
+    'Lâm Đồng_TP.HCM': 310,
+    'TP.HCM_Khánh Hòa': 435,
+    'Khánh Hòa_TP.HCM': 435,
+    'TP.HCM_Bình Thuận': 200,
+    'Bình Thuận_TP.HCM': 200,
+    'Cần Thơ_Kiên Giang': 115,
+    'Kiên Giang_Cần Thơ': 115,
+    'Lâm Đồng_Đắk Lắk': 210,
+    'Đắk Lắk_Lâm Đồng': 210,
+    'Lâm Đồng_Khánh Hòa': 140,
+    'Khánh Hòa_Lâm Đồng': 140,
+    'Khánh Hòa_Đà Nẵng': 530,
+    'Đà Nẵng_Khánh Hòa': 530,
+    'Hà Nội_Hải Phòng': 120,
+    'Hải Phòng_Hà Nội': 120,
+    'Hà Nội_Quảng Ninh': 160,
+    'Quảng Ninh_Hà Nội': 160,
+    'Đà Nẵng_Thừa Thiên Huế': 100,
+    'Thừa Thiên Huế_Đà Nẵng': 100,
+    'Hà Nội_TP.HCM': 1720,
+    'TP.HCM_Hà Nội': 1720,
+    'Hà Nội_Đà Nẵng': 760,
+    'Đà Nẵng_Hà Nội': 760,
+    'TP.HCM_Đà Nẵng': 850,
+    'Đà Nẵng_TP.HCM': 850
+  };
+
+  private getRegion(province: string): string {
+    const mienNam = ['TP.HCM', 'Cần Thơ', 'Bà Rịa - Vũng Tàu', 'Bình Dương', 'Bình Phước', 'Đồng Nai', 'Tây Ninh', 'An Giang', 'Bạc Liêu', 'Bến Tre', 'Cà Mau', 'Đồng Tháp', 'Hậu Giang', 'Kiên Giang', 'Long An', 'Sóc Trăng', 'Tiền Giang', 'Trà Vinh', 'Vĩnh Long'];
+    const tayNguyen = ['Lâm Đồng', 'Đắk Lắk', 'Đắk Nông', 'Gia Lai', 'Kon Tum'];
+    const namTrungBo = ['Khánh Hòa', 'Bình Thuận', 'Ninh Thuận', 'Phú Yên', 'Bình Định', 'Quảng Ngãi', 'Quảng Nam', 'Đà Nẵng'];
+    const bacTrungBo = ['Thừa Thiên Huế', 'Quảng Trị', 'Quảng Bình', 'Hà Tĩnh', 'Nghệ An', 'Thanh Hóa'];
+    if (mienNam.includes(province)) return 'MN';
+    if (tayNguyen.includes(province)) return 'TN';
+    if (namTrungBo.includes(province)) return 'NTB';
+    if (bacTrungBo.includes(province)) return 'BTB';
+    return 'MB';
+  }
+
+  getEstimatedDistance(p1: string, p2: string): number {
+    const key1 = `${p1}_${p2}`;
+    const key2 = `${p2}_${p1}`;
+    if (this.distanceMap[key1]) return this.distanceMap[key1];
+    if (this.distanceMap[key2]) return this.distanceMap[key2];
+
+    const r1 = this.getRegion(p1);
+    const r2 = this.getRegion(p2);
+    if (r1 === r2) return r1 === 'MB' ? 140 : 130;
+    
+    const pair = [r1, r2].sort().join('_');
+    switch (pair) {
+      case 'MN_TN': return 310;
+      case 'MN_NTB': return 420;
+      case 'MN_BTB': return 850;
+      case 'MB_MN': return 1720; // Tuyến đường xa Bắc - Nam
+      case 'BTB_MB': return 380;
+      case 'MB_NTB': return 780;
+      case 'MB_TN': return 1150;
+      case 'NTB_TN': return 220;
+      case 'BTB_TN': return 550;
+      case 'BTB_NTB': return 400;
+      default: return 300;
+    }
+  }
+
+  onStartOrEndPointChange() {
+    if (this.currentRoute.startPoint && this.currentRoute.endPoint) {
+      if (this.currentRoute.startPoint === this.currentRoute.endPoint) {
+        this.errors['samePoints'] = true;
+        this.currentRoute.distanceNum = undefined;
+        this.currentRoute.durationNum = undefined;
+        this.toastService.showError('Điểm đầu và điểm cuối không được trùng nhau! Vui lòng chọn điểm khác.');
+      } else {
+        this.errors['samePoints'] = false;
+        const estimatedDist = this.getEstimatedDistance(this.currentRoute.startPoint, this.currentRoute.endPoint);
+        this.currentRoute.distanceNum = estimatedDist;
+        this.autoEstimateDuration();
+      }
+    } else {
+      this.errors['samePoints'] = false;
+      this.currentRoute.distanceNum = undefined;
+      this.currentRoute.durationNum = undefined;
+    }
+    this.extractFilterOptions();
+  }
+
+  onDistanceChange() {
+    this.autoEstimateDuration();
+  }
+
+  autoEstimateDuration() {
+    const dist = this.currentRoute.distanceNum;
+    if (dist && dist > 0) {
+      let speed = 50;
+      if (dist > 500) {
+        speed = 42; // Tuyến xa có dừng nghỉ & đường dài
+      } else if (dist > 200) {
+        speed = 45;
+      }
+      const hrs = dist / speed;
+      this.currentRoute.durationNum = Math.max(0.5, Math.round(hrs * 2) / 2);
+    }
+  }
+
+  stepDuration(delta: number) {
+    let current = Number(this.currentRoute.durationNum) || 0;
+    current = Math.max(0.5, Math.round((current + delta) * 10) / 10);
+    this.currentRoute.durationNum = current;
+  }
+
   validateForm(): boolean {
     this.errors = {
       startPoint: !this.currentRoute.startPoint,
       endPoint: !this.currentRoute.endPoint,
+      samePoints: !!(this.currentRoute.startPoint && this.currentRoute.endPoint && this.currentRoute.startPoint === this.currentRoute.endPoint),
       distanceNum: !this.currentRoute.distanceNum || this.currentRoute.distanceNum <= 0,
-      duration: !this.currentRoute.duration || !this.currentRoute.duration.trim(),
+      durationNum: !this.currentRoute.durationNum || Number(this.currentRoute.durationNum) <= 0,
       price: !this.currentRoute.price || this.currentRoute.price <= 0,
       tripsPerDay: !this.currentRoute.tripsPerDay || this.currentRoute.tripsPerDay <= 0
     };
 
-    if (this.currentRoute.startPoint && this.currentRoute.endPoint && this.currentRoute.startPoint === this.currentRoute.endPoint) {
-      this.errors['samePoints'] = true;
-      this.addToast('Điểm đầu và điểm cuối không thể trùng nhau!', 'error');
+    if (this.errors['samePoints']) {
+      this.toastService.showError('Điểm đầu và điểm cuối không được giống nhau!');
       return false;
     }
 
@@ -524,7 +692,7 @@ export class RoutesComponent implements OnInit {
 
   saveRoute() {
     if (!this.validateForm()) {
-      this.addToast('Vui lòng điền đầy đủ và đúng thông tin!', 'error');
+      this.toastService.showError('Vui lòng nhập đầy đủ thông tin hợp lệ.');
       return;
     }
 
@@ -534,6 +702,7 @@ export class RoutesComponent implements OnInit {
     this.currentRoute.name = `${this.currentRoute.startPoint} ↔ ${this.currentRoute.endPoint}`;
     this.currentRoute.carTypesList = selectedCarTypes;
     this.currentRoute.carTypes = carTypesStr;
+    this.currentRoute.duration = `${this.currentRoute.durationNum} tiếng`;
 
     if (this.isEditMode) {
       const idx = this.allRoutes.findIndex(r => r.id === this.currentRoute.id);
@@ -541,7 +710,8 @@ export class RoutesComponent implements OnInit {
         this.allRoutes[idx] = { ...(this.currentRoute as TuyenXe) };
       }
       this.filterRoutes();
-      this.triggerCenteredToast('Cập Nhật Thành Công', 'Thông tin tuyến xe đã được ghi nhận vào hệ thống.');
+      this.closeModal();
+      this.toastService.showSuccess('Cập nhật thông tin tuyến xe thành công!');
     } else {
       const newRoute: TuyenXe = {
         ...(this.currentRoute as TuyenXe),
@@ -549,7 +719,8 @@ export class RoutesComponent implements OnInit {
       };
       this.allRoutes.unshift(newRoute);
       this.filterRoutes();
-      this.triggerCenteredToast('Tạo Tuyến Xe Thành Công', 'Tuyến xe mới đã được đăng ký và đưa vào hoạt động.');
+      this.closeModal();
+      this.toastService.showSuccess('Tạo tuyến xe mới thành công!');
     }
     this.extractFilterOptions();
   }
@@ -562,9 +733,9 @@ export class RoutesComponent implements OnInit {
 
     const name = route.name || '';
     if (route.status === 'locked') {
-      this.addToast(`Đã tạm khóa tuyến xe ${name}!`, 'success');
+      this.toastService.showError(`Đã tạm khóa tuyến xe ${name}!`);
     } else {
-      this.addToast(`Đã mở khóa tuyến xe ${name}!`, 'success');
+      this.toastService.showSuccess(`Đã mở khóa tuyến xe ${name}!`);
     }
   }
 
@@ -572,3 +743,4 @@ export class RoutesComponent implements OnInit {
     return new Intl.NumberFormat('vi-VN').format(price) + ' đ';
   }
 }
+

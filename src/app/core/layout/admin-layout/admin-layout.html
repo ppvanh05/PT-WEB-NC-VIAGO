@@ -2,6 +2,20 @@
   <app-admin-sidebar />
   <main class="admin-content">
     <app-admin-topbar />
-    <router-outlet />
+    <div class="admin-page-container">
+      <router-outlet />
+    </div>
   </main>
 </div>
+
+<!-- Global Admin Top-Right Toast Notification Container -->
+<div class="admin-toast-container" *ngIf="toastService.toasts.length > 0">
+  <app-toast
+    *ngFor="let t of toastService.toasts"
+    [variant]="t.type"
+    [title]="t.title || ''"
+    [message]="t.message"
+    (closed)="toastService.remove(t.id)"
+  ></app-toast>
+</div>
+

@@ -53,6 +53,10 @@ export class LostAndFound implements OnInit {
   pageSize = 6;
   totalPages = 1;
 
+  get pagesArray(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  }
+
   // Report Form Logic
   reportForm = {
     ticketCode: '',
@@ -86,8 +90,17 @@ export class LostAndFound implements OnInit {
       const matchSearch = item.name.toLowerCase().includes(this.searchQuery.toLowerCase());
       const matchRoute = this.selectedRoute === 'Tất cả các tuyến' || item.route === this.selectedRoute;
       const matchStatus = this.selectedStatus === 'Tất cả trạng thái' || item.status === this.selectedStatus;
-      // ticket code search could simulate matching if it existed on the item, for mock we just rely on text search
-      const matchTicket = this.searchTicketCode ? true : true; 
+      // If a ticket code is entered, simulate filtering by checking if the ticket exists
+      // and if the item's route matches the ticket's route.
+      let matchTicket = true;
+      if (this.searchTicketCode.trim()) {
+        const ticket = this.mockTickets[this.searchTicketCode.trim().toUpperCase()];
+        if (ticket) {
+          matchTicket = item.route === ticket.route;
+        } else {
+          matchTicket = false; // Invalid ticket code shows no items
+        }
+      }
       
       return matchSearch && matchRoute && matchStatus && matchTicket;
     });

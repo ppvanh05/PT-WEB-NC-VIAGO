@@ -1,57 +1,75 @@
 :host {
   display: block;
-  width: min(100%, 420px);
+  width: 100%;
 }
 
 .toast {
-  --toast-accent: var(--color-info-500);
-  --toast-background: var(--color-info-50);
+  --toast-accent: #3b82f6;
+  --toast-background: #ffffff;
+  --toast-text: #1e293b;
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) 32px;
-  gap: var(--space-3);
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  gap: 12px;
   align-items: center;
-  min-height: 84px;
-  padding: var(--space-4) var(--space-3) var(--space-4) var(--space-4);
-  border-left: 4px solid var(--toast-accent);
-  border-radius: var(--radius-sm);
+  min-height: 54px;
+  padding: 12px 16px;
+  border-left: 5px solid var(--toast-accent);
+  border-radius: 10px;
   background: var(--toast-background);
-  box-shadow: var(--shadow-md);
-  color: var(--color-text-primary);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05), 0 0 1px rgba(0, 0, 0, 0.1);
+  color: var(--toast-text);
   box-sizing: border-box;
+  animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+@keyframes toastSlideIn {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .toast--success {
-  --toast-accent: var(--color-success-500);
-  --toast-background: var(--color-success-50);
+  --toast-accent: #10b981;
+  --toast-text: #065f46;
 }
 
 .toast--error {
-  --toast-accent: var(--color-danger-500);
-  --toast-background: var(--color-danger-50);
+  --toast-accent: #ef4444;
+  --toast-text: #991b1b;
 }
 
 .toast--warning {
-  --toast-accent: var(--color-warning-500);
-  --toast-background: var(--color-warning-50);
+  --toast-accent: #f59e0b;
+  --toast-text: #92400e;
+}
+
+.toast--info {
+  --toast-accent: #3b82f6;
+  --toast-text: #1e40af;
 }
 
 .toast__icon {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-circle);
-  background: var(--toast-accent);
-  color: var(--color-text-inverse);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--toast-accent);
+  flex-shrink: 0;
 }
 
-.toast__icon svg,
-.toast__close svg {
-  width: 16px;
-  height: 16px;
+.toast__icon svg {
+  width: 22px;
+  height: 22px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.5;
+  stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -62,47 +80,56 @@
 
 .toast__title {
   display: block;
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-body);
-  font-weight: var(--font-weight-semibold);
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 700;
+  color: var(--toast-text);
+  margin-bottom: 2px;
 }
 
 .toast__message {
-  margin: var(--space-1) 0 0;
-  color: var(--color-text-body);
-  font-size: var(--font-size-body-sm);
-  line-height: var(--line-height-body-sm);
+  margin: 0;
+  color: var(--toast-text);
+  font-size: 13.5px;
+  line-height: 1.4;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
 .toast__close {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: 6px;
   background: transparent;
-  color: var(--color-text-body);
+  color: #94a3b8;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .toast__close:hover {
-  background: color-mix(in srgb, var(--toast-accent) 10%, transparent);
-  color: var(--color-text-primary);
+  background: rgba(0, 0, 0, 0.05);
+  color: #475569;
 }
 
-.toast__close:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring-primary);
+.toast__close svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 @media (max-width: 480px) {
   .toast {
-    grid-template-columns: 22px minmax(0, 1fr) 32px;
-    gap: var(--space-2);
-    min-height: 80px;
-    padding: var(--space-3) var(--space-2) var(--space-3) var(--space-3);
+    grid-template-columns: 24px minmax(0, 1fr) 24px;
+    gap: 8px;
+    padding: 10px 12px;
   }
 }
+

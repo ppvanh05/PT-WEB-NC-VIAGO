@@ -1,274 +1,617 @@
-<div class="schedules-container">
-  <!-- Toast Notification -->
-  <div *ngIf="showSuccessToast" class="toast-notification">
-    <i class="fas fa-check-circle"></i> {{ toastMessage }}
-  </div>
+<!-- Management Container -->
+<div class="management-container">
 
-  <!-- Header -->
-  <div class="header-bar">
-    <div class="title-group">
-      <h2><i class="fas fa-calendar-alt"></i> Quản Lý Lịch Trình</h2>
-      <p class="subtitle">Sắp xếp ca chạy, phân công tài xế/phụ xe và điều hành chuyến đi real-time</p>
+  <!-- Premium Header Container (Exactly like route page) -->
+  <div class="header-card-container">
+    <div class="header-titles">
+      <span class="category-tag">QUẢN LÝ ĐIỀU PHỐI</span>
+      <h1 class="main-title">Lịch trình</h1>
     </div>
-    <div class="actions">
-      <button class="btn btn-primary" (click)="openAddModal()">
-        <i class="fas fa-plus"></i> Tạo Lịch Trình Mới
-      </button>
+
+    <!-- Info Banner & Create Button Box -->
+    <div class="header-action-banner" (click)="openAddModal()" title="Nhấp để lên lịch trình mới">
+      <div class="action-icon-circle">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="#0f766e"
+          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+      </div>
+      <div class="action-banner-text">
+        <h3>Thêm lịch trình mới</h3>
+        <p>Chọn tuyến xe, gán tài xế, sắp xếp phương tiện và thời gian chạy.</p>
+      </div>
     </div>
-  </div>
 
-  <!-- Status Tabs -->
-  <div class="tabs-bar">
-    <button class="tab-btn" [class.active]="activeTab === 'all'" (click)="setTab('all')">
-      Tất Cả ({{ baseFilteredTrips.length }})
-    </button>
-    <button class="tab-btn" [class.active]="activeTab === 'running'" (click)="setTab('running')">
-      <i class="fas fa-bus-alt text-emerald"></i> Đang Chạy ({{ getRunningCount() }})
-    </button>
-    <button class="tab-btn" [class.active]="activeTab === 'waiting'" (click)="setTab('waiting')">
-      <i class="fas fa-clock text-amber"></i> Chờ Khởi Hành ({{ getWaitingCount() }})
-    </button>
-    <button class="tab-btn" [class.active]="activeTab === 'completed'" (click)="setTab('completed')">
-      <i class="fas fa-check-double text-blue"></i> Hoàn Thành ({{ getCompletedCount() }})
-    </button>
-    <button class="tab-btn" [class.active]="activeTab === 'locked'" (click)="setTab('locked')">
-      <i class="fas fa-lock text-rose"></i> Đang Khóa ({{ getLockedCount() }})
-    </button>
-  </div>
-
-  <!-- Filters -->
-  <div class="filter-card">
-    <div class="filter-grid">
-      <div class="filter-item">
-        <label>Tìm kiếm thông tin</label>
-        <div class="search-input-wrapper">
-          <i class="fas fa-search search-icon"></i>
-          <input type="text" [(ngModel)]="searchQuery" (input)="filterTrips()" placeholder="Mã chuyến, tài xế, biển số..." class="form-control padded-left" />
+    <!-- Premium Stats Overview Cards -->
+    <div class="stats-overview-row">
+      <!-- Stat 1: Tổng số lịch trình -->
+      <div class="stats-overview-card border-blue">
+        <div class="stat-card-content">
+          <span class="stat-label">TỔNG SỐ CHUYẾN XE</span>
+          <h2 class="stat-value">{{ allTrips.length }} chuyến</h2>
         </div>
       </div>
 
-      <div class="filter-item">
-        <label>Tuyến đường</label>
-        <select [(ngModel)]="routeFilter" (change)="filterTrips()" class="form-control">
-          <option value="">Tất cả các tuyến</option>
-          <option *ngFor="let r of routesList" [value]="r">{{ r }}</option>
-        </select>
+      <!-- Stat 2: Đang di chuyển -->
+      <div class="stats-overview-card border-green">
+        <div class="stat-card-content">
+          <span class="stat-label">XE ĐANG CHẠY</span>
+          <h2 class="stat-value">{{ getRunningCount() }} chuyến</h2>
+        </div>
       </div>
 
-      <div class="filter-item">
-        <label>Ngày khởi hành</label>
-        <input type="date" [(ngModel)]="selectedDateFilter" (change)="filterTrips()" class="form-control" />
+      <!-- Stat 3: Tài xế điều động -->
+      <div class="stats-overview-card border-teal">
+        <div class="stat-card-content">
+          <span class="stat-label">TÀI XẾ PHÂN BỔ</span>
+          <h2 class="stat-value">{{ getDispatchedDriversCount() }} người</h2>
+        </div>
       </div>
 
-      <div class="filter-item">
-        <label>Sắp xếp ưu tiên</label>
-        <select [(ngModel)]="sortBy" (change)="filterTrips()" class="form-control">
-          <option value="priority">Mặc định (Đang chạy & Chờ lên đầu)</option>
-          <option value="time-asc">Thời gian (Sớm nhất trước)</option>
-          <option value="time-desc">Thời gian (Muộn nhất trước)</option>
-          <option value="price-asc">Giá vé (Thấp đến cao)</option>
-          <option value="price-desc">Giá vé (Cao đến thấp)</option>
-        </select>
-      </div>
-
-      <div class="filter-actions">
-        <button class="btn btn-secondary" (click)="clearFilters()"><i class="fas fa-redo"></i> Xóa lọc</button>
+      <!-- Stat 4: Tuyến được đặt nhiều nhất -->
+      <div class="stats-overview-card border-orange">
+        <div class="stat-card-content">
+          <span class="stat-label">TUYẾN PHỔ BIẾN NHẤT</span>
+          <h2 class="stat-value" [title]="getMostBookedRoute()">{{ getMostBookedRoute() || 'N/A' }}</h2>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Table Card -->
-  <div class="table-card">
-    <div class="table-responsive">
-      <table class="custom-table">
+  <!-- Main Dashboard Card -->
+  <div class="dashboard-card">
+
+    <!-- Filter Bar & View Options -->
+    <div class="dashboard-control-panel">
+      <!-- Clean Pill Tabs (Style of the screenshot) -->
+      <div class="pill-tabs">
+        <button class="pill-tab-item" [class.active]="activeTab === 'all'" (click)="setTab('all')">
+          Tất cả ({{ baseFilteredTrips.length }})
+        </button>
+        <button class="pill-tab-item" [class.active]="activeTab === 'running'" (click)="setTab('running')">
+          Đang chạy ({{ getRunningCount() }})
+        </button>
+        <button class="pill-tab-item" [class.active]="activeTab === 'waiting'" (click)="setTab('waiting')">
+          Chờ khởi hành ({{ getWaitingCount() }})
+        </button>
+        <button class="pill-tab-item" [class.active]="activeTab === 'completed'" (click)="setTab('completed')">
+          Hoàn thành ({{ getCompletedCount() }})
+        </button>
+        <button class="pill-tab-item" [class.active]="activeTab === 'locked'" (click)="setTab('locked')">
+          Đã khóa ({{ getLockedCount() }})
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters Area (styled like input boxes in screenshot) -->
+    <div class="search-filters-row">
+      <!-- Search Input -->
+      <div class="filter-input-wrapper filter-search">
+        <label class="input-mini-label">Tìm kiếm thông tin</label>
+        <div class="search-input-container">
+          <input type="text" [(ngModel)]="searchQuery" (input)="filterTrips()"
+            placeholder="Tìm theo tài xế, tuyến, biển số..." />
+        </div>
+      </div>
+
+      <div class="filter-input-wrapper filter-date">
+        <label class="input-mini-label">Ngày khởi hành</label>
+        <input class="filter-control" type="date" [(ngModel)]="selectedDateFilter" (change)="filterTrips()"
+          (click)="$any($event.target).showPicker?.()" (keydown)="$event.preventDefault()" />
+      </div>
+
+      <div class="filter-input-wrapper">
+        <label class="input-mini-label">Điểm đi</label>
+        <div class="custom-select-container">
+          <select [(ngModel)]="startPointFilter" (change)="filterTrips()">
+            <option value="">Tất cả điểm đi</option>
+            <option *ngFor="let point of startPointsList" [value]="point">{{ point }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-input-wrapper">
+        <label class="input-mini-label">Điểm đến</label>
+        <div class="custom-select-container">
+          <select [(ngModel)]="endPointFilter" (change)="filterTrips()">
+            <option value="">Tất cả điểm đến</option>
+            <option *ngFor="let point of endPointsList" [value]="point">{{ point }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Sort Dropdown -->
+      <div class="filter-input-wrapper filter-sort">
+        <label class="input-mini-label">Sắp xếp theo</label>
+        <div class="custom-select-container">
+          <select [(ngModel)]="sortBy" (change)="filterTrips()">
+            <option value="default">Mặc định</option>
+            <option value="time-asc">Khởi hành: Sớm nhất</option>
+            <option value="time-desc">Khởi hành: Muộn nhất</option>
+            <option value="price-asc">Giá vé: Thấp → Cao</option>
+            <option value="price-desc">Giá vé: Cao → Thấp</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-actions-col">
+        <button class="btn-clear-filters" (click)="clearFilters()" title="Xóa bộ lọc">
+          Xóa lọc
+        </button>
+      </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-wrapper">
+      <table class="data-table">
         <thead>
           <tr>
-            <th>Mã chuyến</th>
-            <th>Tuyến đường</th>
-            <th>Thời gian xuất bến</th>
-            <th>Xe & Biển số</th>
-            <th>Tài xế & Phụ xe</th>
-            <th>Giá vé</th>
-            <th>Trạng thái</th>
-            <th class="text-center">Thao tác</th>
+            <th class="col-stt">STT</th>
+            <th class="col-route">Tuyến đường</th>
+            <th class="col-plate">Phương tiện</th>
+            <th class="col-driver">Tài xế & Phụ xe</th>
+            <th class="col-time">Thời gian khởi hành</th>
+            <th class="col-status">Trạng thái</th>
+            <th class="col-actions">Chức năng</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let trip of paginatedTrips">
-            <td><strong class="code-badge">#LT-{{ trip.id }}</strong></td>
-            <td>
-              <div class="route-info-cell">
-                <span class="route-name">{{ trip.routeName }}</span>
-                <span class="route-sub">{{ trip.duration }}</span>
-              </div>
-            </td>
-            <td>
-              <div class="time-info-cell">
-                <span class="time-text"><i class="far fa-clock"></i> {{ trip.departureTime }}</span>
-                <span class="date-text">{{ trip.departureDate }}</span>
-              </div>
-            </td>
-            <td>
-              <div class="car-info-cell">
-                <span class="car-name">{{ trip.carName }} ({{ trip.seatsCount }} chỗ)</span>
-                <span class="plate-tag"><i class="fas fa-bus"></i> {{ trip.licensePlate }}</span>
-              </div>
-            </td>
-            <td>
-              <div class="staff-info-cell">
-                <span class="driver-name"><i class="fas fa-user-tie"></i> TX: {{ trip.driverName }}</span>
-                <span class="codriver-name" *ngIf="trip.codriverName"><i class="fas fa-user-friends"></i> PX: {{ trip.codriverName }}</span>
-              </div>
-            </td>
-            <td><strong class="price-text">{{ formatCurrency(trip.price) }}</strong></td>
-            <td>
-              <span class="status-badge" [ngClass]="getStatusBadgeClass(trip.status)">
-                <i class="fas" [class.fa-running]="trip.status === 'running'" [class.fa-clock]="trip.status === 'waiting'" [class.fa-check-circle]="trip.status === 'completed'" [class.fa-lock]="trip.status === 'locked'"></i>
-                {{ getStatusLabel(trip.status) }}
-              </span>
-            </td>
-            <td class="text-center">
-              <div class="action-buttons">
-                <button class="btn-action edit" (click)="openEditModal(trip, $event)" title="Chỉnh sửa lịch trình">
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn-action lock" [class.is-locked]="trip.status === 'locked'" (click)="toggleLockStatus(trip, $event)" [title]="trip.status === 'locked' ? 'Mở khóa lịch chạy' : 'Khóa lịch chạy'">
-                  <i class="fas" [class.fa-lock-open]="trip.status === 'locked'" [class.fa-lock]="trip.status !== 'locked'"></i>
-                </button>
+          <tr *ngIf="filteredTrips.length === 0">
+            <td colspan="7" class="empty-state">
+              <div class="empty-content">
+                <svg xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 -960 960 960" width="48"
+                  fill="currentColor">
+                  <path
+                    d="M480-312q9 0 16.5-4.5T507-329l118-208q7-12 1-24.5t-19-12.5H520v-226q0-17-11.5-28.5T480-816q-17 0-28.5 11.5T440-776v226H354q-13 0-19 12.5t1 24.5l118 208q8 8 15.5 12.5t16.5 4.5Zm0 232q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z" />
+                </svg>
+                <span>Không tìm thấy lịch trình nào phù hợp.</span>
               </div>
             </td>
           </tr>
 
-          <tr *ngIf="filteredTrips.length === 0">
-            <td colspan="8" class="empty-state">
-              <i class="fas fa-calendar-times"></i>
-              <p>Không tìm thấy lịch trình nào phù hợp!</p>
+          <!-- Data Rows -->
+          <tr *ngFor="let trip of paginatedTrips; let i = index">
+            <td class="col-stt text-center">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+            <td class="col-route">
+              <div class="name-with-status">
+                <span class="status-indicator" [class.waiting]="trip.status === 'waiting'"
+                  [class.running]="trip.status === 'running'" [class.completed]="trip.status === 'completed'"
+                  [class.locked]="trip.status === 'locked'"></span>
+                <span class="text-semibold">{{ trip.routeName }}</span>
+              </div>
+              <div class="car-types-badge">{{ trip.carName }}</div>
+            </td>
+            <td class="col-plate">
+              <span class="license-plate-badge">{{ trip.licensePlate }}</span>
+            </td>
+            <td class="col-driver">
+              <div class="driver-info-line">
+                <strong class="text-muted">Tài xế:</strong> {{ trip.driverName }}
+              </div>
+              <div class="driver-info-line" *ngIf="trip.codriverName">
+                <strong class="text-muted">Phụ xe:</strong> {{ trip.codriverName }}
+              </div>
+            </td>
+            <td class="col-time">
+              <div class="time-item">
+                <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 0 24 24" width="16" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span>{{ formatDate(trip.departureDate) }}</span>
+              </div>
+              <div class="time-item time-bold">
+                <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 0 24 24" width="16" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>{{ trip.departureTime }}</span>
+              </div>
+              <!-- Journey Progress Bar for Running Trips -->
+              <div class="journey-progress-container" *ngIf="trip.status === 'running'"
+                title="Tiến độ hành trình: {{ getTripProgress(trip) }}%">
+                <div class="journey-progress-bar">
+                  <div class="journey-progress-fill" [style.width.%]="getTripProgress(trip)"></div>
+                </div>
+                <span class="journey-progress-text">Đã đi {{ getTripProgress(trip) }}%</span>
+              </div>
+            </td>
+            <td class="col-status">
+              <span class="badge" [class.badge-info]="trip.status === 'waiting'"
+                [class.badge-primary]="trip.status === 'running'" [class.badge-success]="trip.status === 'completed'"
+                [class.badge-locked]="trip.status === 'locked'">
+                {{ trip.status === 'waiting' ? 'Chờ khởi hành' : (trip.status === 'running' ? 'Đang chạy' : (trip.status
+                === 'completed' ? 'Hoàn thành' : 'Đã khóa')) }}
+              </span>
+            </td>
+            <td class="col-actions text-center">
+              <button class="admin-action-btn edit" title="Chỉnh sửa chi tiết" aria-label="Chỉnh sửa chi tiết"
+                (click)="openEditModal(trip, $event)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Pagination -->
-    <div class="pagination-bar" *ngIf="totalPages > 1">
-      <span class="pagination-info">Hiển thị trang {{ currentPage }} / {{ totalPages }}</span>
+    <!-- Pagination Footer -->
+    <div class="pagination-footer">
+      <div>
+        Hiển thị {{ filteredTrips.length > 0 ? (currentPage - 1) * pageSize + 1 : 0 }} -
+        {{ currentPage * pageSize > filteredTrips.length ? filteredTrips.length : currentPage * pageSize }}
+        của {{ filteredTrips.length }} lịch trình
+      </div>
       <div class="pagination-controls">
-        <button class="btn btn-sm" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)"><i class="fas fa-chevron-left"></i> Trước</button>
-        <button *ngFor="let p of getVisiblePages()" class="btn btn-sm" [class.active]="p === currentPage" (click)="setPage(p)">{{ p }}</button>
-        <button class="btn btn-sm" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">Sau <i class="fas fa-chevron-right"></i></button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Add/Edit Schedule Modal -->
-  <div *ngIf="isModalOpen" class="modal-backdrop" (click)="onBackdropClick($event)">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3><i class="fas" [class.fa-plus-circle]="!isEditMode" [class.fa-edit]="isEditMode"></i> {{ isEditMode ? 'Cập Nhật Lịch Trình' : 'Tạo Lịch Trình Mới' }}</h3>
-        <button class="btn-close" (click)="closeModal()">&times;</button>
-      </div>
-
-      <div class="modal-tabs">
-        <button class="modal-tab-btn" [class.active]="modalActiveTab === 'setup-car'" (click)="modalActiveTab = 'setup-car'">
-          1. Thông Tin Xe & Phân Công
+        <button class="pagination-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1"
+          aria-label="Trang trước">
+          ‹
         </button>
-        <button class="modal-tab-btn" [class.active]="modalActiveTab === 'setup-time'" (click)="modalActiveTab = 'setup-time'">
-          2. Thời Gian & Điểm Đón Trả
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <!-- Step 1: Car & Staff -->
-        <div *ngIf="modalActiveTab === 'setup-car'" class="form-grid">
-          <div class="form-group full-width">
-            <label class="required">Chọn Tuyến Đường</label>
-            <select [(ngModel)]="currentTrip.routeName" (change)="onRouteChange()" class="form-control" [class.is-invalid]="errors['routeName']">
-              <option value="">-- Chọn tuyến --</option>
-              <option *ngFor="let r of routesList" [value]="r">{{ r }}</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="required">Loại Xe</label>
-            <select [(ngModel)]="currentTrip.carName" (change)="onCarChange()" class="form-control" [class.is-invalid]="errors['carName']">
-              <option value="">-- Chọn xe --</option>
-              <option *ngFor="let c of carsList" [value]="c">{{ c }}</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Biển Số Xe</label>
-            <input type="text" [(ngModel)]="currentTrip.licensePlate" readonly class="form-control bg-readonly" placeholder="Tự động điền" />
-          </div>
-
-          <div class="form-group">
-            <label class="required">Tài Xế Phụ Trách</label>
-            <select [(ngModel)]="currentTrip.driverName" class="form-control" [class.is-invalid]="errors['driverName']">
-              <option value="">-- Chọn tài xế --</option>
-              <option *ngFor="let d of driversList" [value]="d.name" [disabled]="d.locked">
-                {{ d.name }} {{ d.locked ? '(Đang khóa)' : '' }}
-              </option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Phụ Xe (Nếu có)</label>
-            <select [(ngModel)]="currentTrip.codriverName" class="form-control">
-              <option value="">-- Không có / Chọn phụ xe --</option>
-              <option *ngFor="let cd of codriversList" [value]="cd.name" [disabled]="cd.locked">
-                {{ cd.name }} {{ cd.locked ? '(Đang khóa)' : '' }}
-              </option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Giá Vé (VND)</label>
-            <input type="number" [(ngModel)]="currentTrip.price" class="form-control" placeholder="Ví dụ: 180000" />
-            <span class="form-hint" *ngIf="currentTrip.price">Format: {{ formatCurrency(currentTrip.price || 0) }}</span>
-          </div>
-        </div>
-
-        <!-- Step 2: Time & Stops -->
-        <div *ngIf="modalActiveTab === 'setup-time'" class="form-grid">
-          <div class="form-group">
-            <label class="required">Ngày Khởi Hành</label>
-            <input type="date" [(ngModel)]="currentTrip.departureDate" class="form-control" />
-          </div>
-
-          <div class="form-group">
-            <label class="required">Giờ Khởi Hành</label>
-            <input type="time" [(ngModel)]="currentTrip.departureTime" class="form-control" />
-          </div>
-
-          <div class="form-group full-width" *ngIf="selectedPickups.length > 0">
-            <label>Danh Sách Điểm Đón (Tự động từ tuyến)</label>
-            <div class="tags-container">
-              <span class="tag-badge green" *ngFor="let p of selectedPickups">
-                <i class="fas fa-map-marker-alt"></i> {{ p }}
-              </span>
-            </div>
-          </div>
-
-          <div class="form-group full-width" *ngIf="selectedStops.length > 0">
-            <label>Danh Sách Điểm Dừng Nghỉ</label>
-            <div class="tags-container">
-              <span class="tag-badge amber" *ngFor="let s of selectedStops">
-                <i class="fas fa-coffee"></i> {{ s }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeModal()">Hủy bỏ</button>
-        <button *ngIf="modalActiveTab === 'setup-car'" class="btn btn-primary" (click)="nextStep()">
-          Tiếp theo <i class="fas fa-arrow-right"></i>
-        </button>
-        <button *ngIf="modalActiveTab === 'setup-time'" class="btn btn-primary" (click)="saveTrip()">
-          <i class="fas fa-check"></i> {{ isEditMode ? 'Lưu Thay Đổi' : 'Xác Nhận Tạo Lịch' }}
+        <ng-container *ngFor="let page of getPaginationItems()">
+          <button class="pagination-btn" [class.active]="currentPage === page" (click)="setPage(page)">
+            {{ page }}
+          </button>
+        </ng-container>
+        <button class="pagination-btn" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages"
+          aria-label="Trang sau">
+          ›
         </button>
       </div>
     </div>
+
+
+    <!-- Form Modal (Chi tiết thông tin lịch chạy) -->
+    <div class="modal-overlay" *ngIf="isModalOpen">
+      <div class="modal-container">
+
+        <div class="modal-header">
+          <h3 class="modal-title">Chi tiết thông tin lịch chạy</h3>
+          <button class="btn-close" (click)="closeModal()">
+            <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
+              <path
+                d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
+            </svg>
+          </button>
+        </div>
+
+
+
+        <div class="modal-body">
+
+          <!-- STEP 1: SETUP TIME, ROUTE & DEPARTURE -->
+          <div class="step-content">
+            <!-- Row 1: Route selection -->
+            <div class="form-row">
+              <div class="form-item col-12" [class.has-error]="errors['routeName']">
+                <label>Tuyến *</label>
+                <select [(ngModel)]="currentTrip.routeName" (change)="onRouteChange()">
+                  <option value="">Chọn tuyến chạy</option>
+                  <option *ngFor="let route of routesDb" [value]="route.name">{{ route.name }}</option>
+                </select>
+                <span class="error-msg" *ngIf="errors['routeName']">Vui lòng chọn tuyến xe vận hành</span>
+              </div>
+            </div>
+
+            <!-- Row 2: Departure Date & Time -->
+            <div class="form-row">
+              <div class="form-item col-6" [class.has-error]="errors['departureDate']">
+                <label>Ngày khởi hành *</label>
+                <div style="position: relative;">
+                  <input type="text" [value]="formatDate(currentTrip.departureDate || '')" readonly
+                    placeholder="dd/mm/yyyy" style="cursor: pointer; width: 100%;"
+                    (click)="depDateInput.showPicker?.()" />
+                  <input #depDateInput type="date" [(ngModel)]="currentTrip.departureDate" [min]="minAllowedDate"
+                    (keydown)="$event.preventDefault()" (click)="$any($event.target).showPicker?.()"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 1;" />
+                </div>
+                <span class="error-msg" *ngIf="errors['departureDate']">Vui lòng chọn ngày</span>
+              </div>
+
+              <div class="form-item col-6" [class.has-error]="errors['departureTime']">
+                <label>Giờ khởi hành *</label>
+                <input type="time" [(ngModel)]="currentTrip.departureTime" (keydown)="$event.preventDefault()"
+                  (click)="$any($event.target).showPicker?.()" style="cursor: pointer;" />
+                <span class="error-msg" *ngIf="errors['departureTime']">Vui lòng chọn giờ</span>
+              </div>
+            </div>
+
+            <!-- Time calculation card matching screenshot exactly -->
+            <div class="time-calculation-row" *ngIf="currentTrip.departureDate && currentTrip.departureTime">
+              <div class="time-calc-card start-calc">
+                <span class="calc-label">GIỜ KHỞI HÀNH</span>
+                <span class="calc-value-time">{{ currentTrip.departureTime }}</span>
+                <span class="calc-value-date">ngày {{ formatDate(currentTrip.departureDate) }}</span>
+              </div>
+
+              <div class="time-calc-connector">
+                <span class="calc-duration-badge">{{ currentTrip.duration || '---' }}</span>
+                <span class="connector-arrow-line"></span>
+                <span class="calc-sub-text">TỔNG THỜI GIAN ĐI</span>
+              </div>
+
+              <div class="time-calc-card end-calc">
+                <span class="calc-label">GIỜ TỚI (DỰ KIẾN)</span>
+                <span class="calc-value-time">{{ getArrivalTime() }}</span>
+                <span class="calc-value-date">ngày {{ getArrivalDate() }}</span>
+              </div>
+            </div>
+
+            <!-- Advanced parameters (Days, Minutes) -->
+            <div class="form-row advanced-row">
+              <div class="form-item col-4">
+                <label>Mở chuyến trước *</label>
+                <div class="unit-input-field">
+                  <input type="number" [(ngModel)]="openDaysBefore" />
+                  <span class="unit-tag">Ngày</span>
+                </div>
+              </div>
+
+              <div class="form-item col-4">
+                <label>Đóng chuyến trước *</label>
+                <div class="unit-input-field">
+                  <input type="number" [(ngModel)]="closeMinutesBefore" />
+                  <span class="unit-tag">Phút</span>
+                </div>
+              </div>
+
+              <div class="form-item col-4">
+                <label>Thời gian giữ chỗ *</label>
+                <div class="unit-input-field">
+                  <input type="number" [(ngModel)]="holdMinutes" />
+                  <span class="unit-tag">Phút</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Config list for Pickup / Dropoff Points -->
+            <div class="route-setup-section" *ngIf="getRoutePickups().length > 0">
+              <h4 class="config-section-title">THIẾT LẬP ĐIỂM ĐÓN TRẢ TRÊN TUYẾN</h4>
+
+              <div class="route-point-row" *ngFor="let point of getRoutePickups(); let idx = index">
+                <div class="point-left-col">
+                  <span class="point-badge-index">ĐIỂM ĐÓN TRẢ {{ idx + 1 }}</span>
+                  <h5 class="point-station-name">{{ point }}</h5>
+                </div>
+
+                <div class="point-mid-col">
+                  <span class="input-mini-label">ĐỊA ĐIỂM CỤ THỂ</span>
+                  <span class="auto-fill-text">Tự động điền theo hệ thống</span>
+                </div>
+
+                <div class="point-right-col">
+                  <div class="time-spinner">
+                    <span class="input-mini-label">THỜI GIAN ĐẾN DỰ KIẾN</span>
+                    <div class="spinner-box">
+                      <input type="number" [value]="getEstimatedStopHour(idx, false)" min="0" max="23" />
+                      <span class="spinner-unit">giờ</span>
+                      <input type="number" [value]="getEstimatedStopMinute(idx, false)" min="0" max="59" />
+                      <span class="spinner-unit">phút</span>
+                    </div>
+                  </div>
+
+                  <div class="date-picker-small">
+                    <span class="input-mini-label">NGÀY</span>
+                    <div class="date-display-box">
+                      <span>{{ formatDate(currentTrip.departureDate || '2026-10-07') }}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="#64748b" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Config list for Stops along the way -->
+            <div class="route-setup-section" *ngIf="getRouteStops().length > 0">
+              <h4 class="config-section-title">THIẾT LẬP ĐIỂM DỪNG CHÂN DỌC ĐƯỜNG</h4>
+
+              <div class="route-point-row" *ngFor="let point of getRouteStops(); let idx = index">
+                <div class="point-left-col">
+                  <span class="point-badge-index stop-badge">ĐIỂM DỪNG {{ idx + 1 }}</span>
+                  <h5 class="point-station-name">{{ point }}</h5>
+                </div>
+
+                <div class="point-mid-col">
+                  <span class="input-mini-label">ĐỊA CHỈ</span>
+                  <span class="auto-fill-text">Tự động điền theo hệ thống</span>
+                </div>
+
+                <div class="point-right-col">
+                  <div class="time-spinner">
+                    <span class="input-mini-label">THỜI GIAN ĐẾN DỰ KIẾN</span>
+                    <div class="spinner-box">
+                      <input type="number" [value]="getEstimatedStopHour(idx, true)" min="0" max="23" />
+                      <span class="spinner-unit">giờ</span>
+                      <input type="number" [value]="getEstimatedStopMinute(idx, true)" min="0" max="59" />
+                      <span class="spinner-unit">phút</span>
+                    </div>
+                  </div>
+
+                  <div class="date-picker-small">
+                    <span class="input-mini-label">NGÀY</span>
+                    <div class="date-display-box">
+                      <span>{{ formatDate(currentTrip.departureDate || '2026-10-07') }}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="#64748b" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- STEP 2: SETUP CAR & DRIVER -->
+          <div class="step-content"
+            style="margin-top: 32px; padding-top: 32px; border-top: 1px dashed var(--border); position: relative;">
+
+            <div *ngIf="!currentTrip.routeName || !currentTrip.departureDate || !currentTrip.departureTime"
+              style="background-color: #fff1f2; color: #e11d48; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-weight: 600; font-size: 13px; border: 1px solid #ffe4e6; display: flex; align-items: center; gap: 8px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              Vui lòng chọn <b>Tuyến</b>, <b>Ngày</b> và <b>Giờ khởi hành</b> ở trên trước khi chọn Phương tiện và Tài
+              xế!
+            </div>
+
+            <!-- Row 2: Driver & Codriver selection -->
+            <div class="form-row"
+              [style.opacity]="(!currentTrip.routeName || !currentTrip.departureDate || !currentTrip.departureTime) ? '0.5' : '1'"
+              [style.pointer-events]="(!currentTrip.routeName || !currentTrip.departureDate || !currentTrip.departureTime) ? 'none' : 'auto'">
+              <div class="form-item col-6" [class.has-error]="errors['driverName']">
+                <label>Tài xế *</label>
+                <select [(ngModel)]="currentTrip.driverName">
+                  <option value="">Chọn tài xế chính</option>
+                  <option *ngFor="let driver of driversList" [value]="driver"
+                    [disabled]="isDriverBusy(driver) && driver !== currentTrip.driverName">
+                    {{ driver }}{{ isDriverBusy(driver) && driver !== currentTrip.driverName ? ' (Bận trùng lịch)' : ''
+                    }}
+                  </option>
+                </select>
+                <span class="error-msg" *ngIf="errors['driverName']">Tài xế chính không được bỏ trống</span>
+              </div>
+
+              <div class="form-item col-6">
+                <label>Phụ xe</label>
+                <select [(ngModel)]="currentTrip.codriverName">
+                  <option value="">Chọn phụ xe (Không bắt buộc)</option>
+                  <option *ngFor="let codriver of codriversList" [value]="codriver"
+                    [disabled]="isCodriverBusy(codriver) && codriver !== currentTrip.codriverName">
+                    {{ codriver }}{{ isCodriverBusy(codriver) && codriver !== currentTrip.codriverName ? ' (Bận trùng
+                    lịch)' : '' }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Row 3: Car Name selection -->
+            <div class="form-row"
+              [style.opacity]="(!currentTrip.routeName || !currentTrip.departureDate || !currentTrip.departureTime) ? '0.5' : '1'"
+              [style.pointer-events]="(!currentTrip.routeName || !currentTrip.departureDate || !currentTrip.departureTime) ? 'none' : 'auto'">
+              <div class="form-item col-12" [class.has-error]="errors['carName']">
+                <label>Tên xe *</label>
+                <select [(ngModel)]="currentTrip.carName" (change)="onCarChange()">
+                  <option value="">Chọn loại xe</option>
+                  <option *ngFor="let car of carsList" [value]="car">{{ car }}</option>
+                </select>
+                <span class="error-msg" *ngIf="errors['carName']">Vui lòng chọn loại xe</span>
+              </div>
+            </div>
+
+            <!-- Row 4: Plate and Seat count -->
+            <div class="form-row"
+              [style.opacity]="(!currentTrip.routeName || !currentTrip.departureDate || !currentTrip.departureTime) ? '0.5' : '1'"
+              [style.pointer-events]="(!currentTrip.routeName || !currentTrip.departureDate || !currentTrip.departureTime) ? 'none' : 'auto'">
+              <div class="form-item col-6">
+                <label>Biển số xe *</label>
+                <input type="text" [(ngModel)]="currentTrip.licensePlate" readonly placeholder="Tự động cập nhật"
+                  class="readonly-field" />
+              </div>
+
+              <div class="form-item col-6">
+                <label>Số chỗ *</label>
+                <input type="number" [(ngModel)]="currentTrip.seatsCount" readonly placeholder="Tự động"
+                  class="readonly-field" />
+              </div>
+            </div>
+
+            <!-- Row 5: Status -->
+            <div class="form-row"
+              [style.opacity]="(!currentTrip.routeName || !currentTrip.departureDate || !currentTrip.departureTime) ? '0.5' : '1'"
+              [style.pointer-events]="(!currentTrip.routeName || !currentTrip.departureDate || !currentTrip.departureTime) ? 'none' : 'auto'">
+              <div class="form-item col-12">
+                <label>Trạng thái (Tự động cập nhật theo thời gian) *</label>
+                <select [(ngModel)]="currentTrip.status" disabled class="readonly-field">
+                  <option value="waiting">Chờ khởi hành</option>
+                  <option value="running">Đang chạy</option>
+                  <option value="completed">Hoàn thành</option>
+                  <option value="locked">Đã khóa</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Row 6: Default Price input (No seat map graphic as requested) -->
+            <div class="form-row" *ngIf="currentTrip.carName"
+              style="margin-top: 15px; opacity: {{ (!currentTrip.routeName || !currentTrip.departureDate || !currentTrip.departureTime) ? '0.5' : '1' }}; pointer-events: {{ (!currentTrip.routeName || !currentTrip.departureDate || !currentTrip.departureTime) ? 'none' : 'auto' }};">
+              <div class="form-item col-12">
+                <label>Giá vé mặc định *</label>
+                <div class="price-input-box">
+                  <input type="number" min="1000" step="5000" placeholder="Ví dụ: 180000"
+                    [(ngModel)]="currentTrip.price" />
+                  <span class="currency-tag">VND</span>
+                </div>
+                <span class="input-helper-text">Mức giá áp dụng cho tất cả các chỗ ngồi trên lịch trình này (Số tiền tự
+                  nhập tay hoặc tăng/giảm theo bước 5.000đ).</span>
+              </div>
+            </div>
+          </div>
+
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+          <div class="footer-left" *ngIf="isEditMode && currentTrip.status !== 'completed'">
+            <button type="button" class="btn-status-toggle"
+              [style.background-color]="currentTrip.status === 'locked' ? '#f0fdf4' : '#fef2f2'"
+              [style.color]="currentTrip.status === 'locked' ? '#166534' : '#991b1b'"
+              [style.border-color]="currentTrip.status === 'locked' ? '#bbf7d0' : '#fca5a5'"
+              style="display: flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; border: 1px solid; transition: all 0.2s;"
+              (click)="toggleLockStatus()">
+              <i *ngIf="currentTrip.status !== 'locked'" class="bi bi-lock-fill" style="font-size: 14px;"></i>
+              <i *ngIf="currentTrip.status === 'locked'" class="bi bi-unlock-fill" style="font-size: 14px;"></i>
+              <span>{{ currentTrip.status === 'locked' ? 'Mở khóa lịch trình' : 'Khóa lịch trình này' }}</span>
+            </button>
+          </div>
+          <div class="footer-right">
+            <button class="btn-cancel" (click)="closeModal()">Hủy</button>
+
+            <button class="btn-save" (click)="saveTrip()">
+              Lưu thông tin
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+
+    <!-- 2. Centered / Modal Status Toast Notification -->
+    <div class="centered-modal-overlay" *ngIf="showCenteredToast">
+      <div class="centered-modal-box">
+        <div class="centered-icon-wrapper">
+          <svg xmlns="http://www.w3.org/2000/svg" height="40" viewBox="0 -960 960 960" width="40" fill="#10B981">
+            <path
+              d="m382-354 283-283-56-56-227 227-113-113-56 56 169 169Zm98 274q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z" />
+          </svg>
+        </div>
+        <h2 class="centered-modal-title">{{ centeredToastTitle }}</h2>
+        <p class="centered-modal-subtitle">{{ centeredToastSubtitle }}</p>
+      </div>
+    </div>
+
   </div>
-</div>

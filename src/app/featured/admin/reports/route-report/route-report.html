@@ -1,181 +1,448 @@
-<div class="report-container">
-  <!-- Top Header Bar -->
-  <div class="header-bar">
-    <div class="title-group">
-      <h2><i class="fas fa-route"></i> Báo Cáo Tuyến Xe</h2>
-      <p class="subtitle">Phân tích hiệu quả vận hành, tỷ lệ lấp đầy & chỉ số đánh giá từng tuyến</p>
+<div class="baocao-container">
+  <!-- Main Report Panel (Header, Stats, and Filters wrapped inside one card) -->
+  <div class="main-report-panel-container">
+    <!-- Header -->
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
+      <div>
+        <span class="report-subtitle">BÁO CÁO QUẢN TRỊ</span>
+        <h1 class="page-title" style="margin: 0;">Báo cáo tổng hợp theo tuyến xe</h1>
+      </div>
+      <!-- Switcher Button Group -->
+      <div style="background-color: #f1f5f9; border-radius: 8px; padding: 4px; display: flex; gap: 4px; border: 1px solid #e2e8f0; align-items: center;">
+        <button (click)="activeReportTab = 'charts'"
+                [style.background-color]="activeReportTab === 'charts' ? '#1E3A8A' : 'transparent'"
+                [style.color]="activeReportTab === 'charts' ? '#ffffff' : '#64748b'"
+                style="border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; outline: none; line-height: 1;">
+          Xem biểu đồ
+        </button>
+        <button (click)="activeReportTab = 'table'"
+                [style.background-color]="activeReportTab === 'table' ? '#1E3A8A' : 'transparent'"
+                [style.color]="activeReportTab === 'table' ? '#ffffff' : '#64748b'"
+                style="border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; outline: none; line-height: 1;">
+          Xem danh sách
+        </button>
+      </div>
     </div>
-    <div class="actions">
-      <button class="btn btn-outline" (click)="onExportExcel()">
-        <i class="fas fa-file-export"></i> Xuất Báo Cáo (.CSV)
-      </button>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <!-- Total Routes -->
+      <div class="stat-card border-blue">
+        <div class="stat-info">
+          <span class="stat-title">Số tuyến xe báo cáo</span>
+          <span class="stat-val text-blue">{{ summary.totalRoutesCount }} tuyến</span>
+        </div>
+      </div>
+
+      <!-- Total Tickets Sold -->
+      <div class="stat-card border-orange">
+        <div class="stat-info">
+          <span class="stat-title">Tổng vé đã bán</span>
+          <span class="stat-val text-orange">{{ summary.totalTicketsSold | number }} vé</span>
+        </div>
+      </div>
+
+      <!-- Total Revenue -->
+      <div class="stat-card border-green">
+        <div class="stat-info">
+          <span class="stat-title">Tổng doanh thu tuyến</span>
+          <span class="stat-val text-green">{{ formatCurrency(summary.totalRevenue) }}</span>
+        </div>
+      </div>
+
+      <!-- Operating Cost -->
+      <div class="stat-card border-red">
+        <div class="stat-info">
+          <span class="stat-title">Tổng chi phí vận hành</span>
+          <span class="stat-val text-red">{{ formatCurrency(summary.totalRevenue * 0.55) }}</span>
+        </div>
+      </div>
+
+      <!-- Net Profit -->
+      <div class="stat-card border-purple">
+        <div class="stat-info">
+          <span class="stat-title">Tổng lợi nhuận tuyến</span>
+          <span class="stat-val text-purple">{{ formatCurrency(summary.averageProfit) }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+
+  <!-- Charts Section -->
+  <div class="charts-grid-three" *ngIf="activeReportTab === 'charts'">
+    <!-- Revenue Distribution Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <h2 class="chart-title">Phân bổ doanh thu theo tuyến xe</h2>
+          <span class="chart-subtitle">Tỷ trọng đóng góp doanh thu của các tuyến chính</span>
+        </div>
+      </div>
+      
+      <div class="progress-list">
+        <div class="progress-item interactive-chart-item" *ngFor="let item of filteredRoutes; let i = index" tabindex="0" [attr.data-tip]="item.tenTuyen + ': ' + formatCurrency(item.doanhThu.tongDoanhThu) + ' · ' + getPercentage(item.doanhThu.tongDoanhThu, summary.totalRevenue) + '%'">
+          <div class="progress-label-row">
+            <span class="progress-label-name">{{ item.tenTuyen }}</span>
+            <span class="progress-label-val">
+              {{ formatCurrency(item.doanhThu.tongDoanhThu) }} 
+              ({{ getPercentage(item.doanhThu.tongDoanhThu, summary.totalRevenue) }}%)
+            </span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" [style.background-color]="chartColors[i % chartColors.length]" [style.width.%]="getPercentage(item.doanhThu.tongDoanhThu, summary.totalRevenue)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Operating On-Time Rate Circle Widget -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <h2 class="chart-title">Hiệu suất vận hành chuyến</h2>
+          <span class="chart-subtitle">Tỷ lệ chuyến xe khởi hành đúng giờ trung bình</span>
+        </div>
+      </div>
+
+      <div class="financial-widget">
+        <div class="ratio-metric">
+          <div class="ratio-circle-container interactive-chart-item" tabindex="0" [attr.data-tip]="'Tỷ lệ chuyến đúng giờ: ' + summary.onTimeRate + '%'">
+            <svg class="progress-ring" width="120" height="120">
+              <circle class="progress-ring__background" stroke="#f1f5f9" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+              <circle class="progress-ring__circle" stroke="#1E3A8A" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"
+                      [attr.stroke-dashoffset]="314 - (314 * summary.onTimeRate / 100)"
+                      stroke-dasharray="314"/>
+            </svg>
+            <div class="ratio-circle-text text-indigo-val">
+              {{ summary.onTimeRate }}%
+            </div>
+          </div>
+          <span class="ratio-label">Tỷ lệ chuyến đúng giờ</span>
+        </div>
+        
+        <div class="cost-ratio-badge-blue">
+          <span style="font-size: 13px; color: #1E3A8A; font-weight: 500; display: block; margin-bottom: 2px;">Tỷ lệ lấp đầy ghế trung bình</span>
+          <strong style="color: #10B981; font-size: 18px; font-weight: 800;">{{ summary.averageFillRate }}%</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Average Fill Rate Chart (New) -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <h2 class="chart-title">Tỷ lệ lấp đầy ghế từng tuyến</h2>
+          <span class="chart-subtitle">So sánh hiệu suất khai thác ghế (%)</span>
+        </div>
+      </div>
+
+      <div class="progress-list">
+        <div class="progress-item interactive-chart-item" *ngFor="let item of filteredRoutes; let i = index" tabindex="0" [attr.data-tip]="item.tenTuyen + ': lấp đầy ' + item.lapDay.tyLeLapDayTrungBinh + '%'">
+          <div class="progress-label-row">
+            <span class="progress-label-name">{{ item.tenTuyen }}</span>
+            <span class="progress-label-val text-teal-val">{{ item.lapDay.tyLeLapDayTrungBinh }}%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" 
+                 [style.width.%]="item.lapDay.tyLeLapDayTrungBinh"
+                 [style.background-color]="chartColors[i % chartColors.length]" style="opacity: 0.85;"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Filter Card -->
-  <div class="filter-card">
+  <!-- Additional Revenue vs Cost Comparison Grid (New) -->
+  <div class="charts-grid-two-equal" *ngIf="activeReportTab === 'charts'">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <h2 class="chart-title">So sánh Cơ cấu Tài chính (Doanh thu - Chi phí - Lợi nhuận)</h2>
+          <span class="chart-subtitle">Ước tính hiệu quả kinh tế trên mỗi tuyến đường</span>
+        </div>
+      </div>
+
+      <div class="financial-breakdown-list">
+        <div class="breakdown-item interactive-chart-item" *ngFor="let item of filteredRoutes" tabindex="0" [attr.data-tip]="item.tenTuyen + ': doanh thu ' + formatCurrency(item.doanhThu.tongDoanhThu) + ' · chi phí 55% · lợi nhuận 45%'">
+          <div class="breakdown-label-row">
+            <span class="breakdown-name">{{ item.tenTuyen }}</span>
+            <span class="breakdown-values">
+              DT: <strong style="color: #0f172a;">{{ formatCurrency(item.doanhThu.tongDoanhThu) }}</strong>
+            </span>
+          </div>
+          <div class="stacked-bar-container">
+            <!-- Cost bar portion -->
+            <div class="bar-segment cost-segment" 
+                 [style.width.%]="item.doanhThu.tongDoanhThu > 0 ? 55 : 0" 
+                 title="Chi phí vận hành: 55%">
+              <span class="segment-txt">CP: 55%</span>
+            </div>
+            <!-- Profit bar portion -->
+            <div class="bar-segment profit-segment" 
+                 [style.width.%]="item.doanhThu.tongDoanhThu > 0 ? 45 : 0" 
+                 title="Lợi nhuận: 45%">
+              <span class="segment-txt">LN: 45%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <h2 class="chart-title">Chất lượng dịch vụ hành khách</h2>
+          <span class="chart-subtitle">Tỉ lệ chuyến xe bị hủy hoặc trễ trong kỳ báo cáo</span>
+        </div>
+      </div>
+
+      <div class="service-quality-list">
+        <div class="quality-item interactive-chart-item" *ngFor="let item of filteredRoutes" tabindex="0" [attr.data-tip]="item.tenTuyen + ': đúng giờ ' + item.hieuSuat.soChuyenDungGio + ' · trễ ' + item.hieuSuat.soChuyenTre + ' · hủy ' + item.hieuSuat.soChuyenHuy">
+          <div class="quality-label-row">
+            <span class="quality-name">{{ item.tenTuyen }}</span>
+            <span class="quality-status">
+              Trễ: <strong class="text-orange-val">{{ item.hieuSuat.soChuyenTre }}</strong> | 
+              Hủy: <strong style="color: #EF4444;">{{ item.hieuSuat.soChuyenHuy }}</strong>
+            </span>
+          </div>
+          <div class="quality-track">
+            <!-- Green segment: On-time -->
+            <div class="quality-fill ontime-fill" 
+                 [style.width.%]="getPercentage(item.hieuSuat.soChuyenDungGio, item.lapDay.soChuyenChay || 1)"></div>
+            <!-- Orange segment: Late -->
+            <div class="quality-fill late-fill" 
+                 [style.width.%]="getPercentage(item.hieuSuat.soChuyenTre, item.lapDay.soChuyenChay || 1)"></div>
+            <!-- Red segment: Canceled -->
+            <div class="quality-fill canceled-fill" 
+                 [style.width.%]="getPercentage(item.hieuSuat.soChuyenHuy, item.lapDay.soChuyenChay || 1)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filter-section" *ngIf="activeReportTab === 'table'" style="margin-bottom: 24px;">
+    <div class="filter-title">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+      </svg>
+      <span>Bộ lọc báo cáo tổng hợp theo tuyến</span>
+    </div>
+
     <div class="filter-grid">
-      <div class="filter-item">
+      <!-- From Date -->
+      <div class="filter-control">
         <label>Từ ngày</label>
-        <input type="date" [(ngModel)]="filters.fromDate" (change)="onDateChange()" class="form-control" />
+        <input type="date" [(ngModel)]="filters.fromDate" (keydown)="$event.preventDefault()" (click)="$any($event.target).showPicker?.()" style="cursor: pointer;" />
       </div>
 
-      <div class="filter-item">
+      <!-- To Date -->
+      <div class="filter-control">
         <label>Đến ngày</label>
-        <input type="date" [(ngModel)]="filters.toDate" (change)="onDateChange()" class="form-control" />
+        <input type="date" [(ngModel)]="filters.toDate" (keydown)="$event.preventDefault()" (click)="$any($event.target).showPicker?.()" style="cursor: pointer;" />
       </div>
 
-      <div class="filter-item">
-        <label>Chọn Tuyến Xe</label>
-        <select [(ngModel)]="filters.maTuyen" (change)="onViewReport()" class="form-control">
-          <option *ngFor="let opt of availableRoutesList" [value]="opt">{{ opt }}</option>
+      <!-- Route Name Filter -->
+      <div class="filter-control">
+        <label>Tuyến xe</label>
+        <select [(ngModel)]="filters.maTuyen">
+          <option *ngFor="let routeName of availableRoutesList" [value]="routeName">{{ routeName }}</option>
         </select>
       </div>
 
-      <div class="filter-item">
-        <label>Trạng Thái</label>
-        <select [(ngModel)]="filters.trangThai" (change)="onViewReport()" class="form-control">
+      <!-- Route Status Filter -->
+      <div class="filter-control">
+        <label>Trạng thái tuyến xe</label>
+        <select [(ngModel)]="filters.trangThai">
           <option value="Tất cả trạng thái">Tất cả trạng thái</option>
-          <option value="Hoạt động">Hoạt động</option>
-          <option value="Tạm ngưng">Tạm ngưng</option>
+          <option value="Hoạt động">Đang hoạt động</option>
+          <option value="Tạm ngưng">Tạm ngưng khai thác</option>
         </select>
       </div>
+    </div>
 
-      <div class="filter-actions">
-        <button class="btn btn-primary" (click)="onViewReport()"><i class="fas fa-search"></i> Tra cứu</button>
-        <button class="btn btn-secondary" (click)="onResetFilters()"><i class="fas fa-redo"></i> Đặt lại (30 ngày)</button>
+    <!-- Actions -->
+    <div class="filter-buttons">
+      <div class="btn-group">
+        <button class="btn btn-secondary" (click)="onViewReport()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          Xem báo cáo
+        </button>
+        <button class="btn btn-outline" (click)="onResetFilters()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6"></path>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          Xóa lọc
+        </button>
       </div>
-    </div>
-    <div *ngIf="dateError" class="error-banner">
-      <i class="fas fa-exclamation-triangle"></i> {{ dateError }}
-    </div>
-  </div>
-
-  <!-- Summary KPI Cards Grid -->
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <div class="kpi-icon blue"><i class="fas fa-map-signs"></i></div>
-      <div class="kpi-info">
-        <span class="kpi-label">Tổng Số Tuyến</span>
-        <span class="kpi-val">{{ summary.totalRoutesCount }} <small>tuyến</small></span>
-      </div>
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-icon emerald"><i class="fas fa-dollar-sign"></i></div>
-      <div class="kpi-info">
-        <span class="kpi-label">Tổng Doanh Thu</span>
-        <span class="kpi-val highlight-emerald">{{ formatCurrency(summary.totalRevenue) }}</span>
-      </div>
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-icon orange"><i class="fas fa-chart-pie"></i></div>
-      <div class="kpi-info">
-        <span class="kpi-label">% Lấp Đầy Trung Bình</span>
-        <span class="kpi-val highlight-orange">{{ summary.averageFillRate }}%</span>
-      </div>
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-icon purple"><i class="fas fa-trophy"></i></div>
-      <div class="kpi-info">
-        <span class="kpi-label">Tuyến Doanh Thu Cao Nhất</span>
-        <span class="kpi-val highlight-purple small-text">{{ summary.topRevenueRouteName }}</span>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-outline" (click)="onExportChart()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          Xuất biểu đồ
+        </button>
+        <button class="btn" style="background-color: #FF6A00; color: #ffffff; border-color: #FF6A00;" (click)="onExportExcel()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Xuất Excel
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Data Table Section -->
-  <div class="table-card">
+  <!-- Data Table Card -->
+  <div class="table-card" *ngIf="activeReportTab === 'table'">
     <div class="table-header">
-      <h3><i class="fas fa-list-ol"></i> Chi Tiết Báo Cáo Theo Tuyến</h3>
-      <span class="badge badge-info">Tổng {{ filteredRoutes.length }} bản ghi</span>
+      <h2 class="table-title">
+        Doanh số tổng hợp theo tuyến
+        <span class="badge-count">Tổng cộng {{ filteredRoutes.length }} tuyến đang khai thác</span>
+      </h2>
     </div>
 
-    <div class="table-responsive">
-      <table class="custom-table">
+    <div class="table-wrapper">
+      <table class="report-table">
         <thead>
           <tr>
             <th>Mã tuyến</th>
-            <th>Hành trình (2 chiều)</th>
-            <th>Số chuyến</th>
-            <th>Vé bán / Ghế trống</th>
-            <th>Tỷ lệ lấp đầy</th>
-            <th>Doanh thu</th>
-            <th>Đánh giá sao</th>
+            <th>Tên tuyến xe</th>
+            <th>Cự ly & Thời gian dự kiến</th>
+            <th>Số chuyến chạy</th>
+            <th>Số lượng vé bán</th>
+            <th>Lấp đầy trung bình</th>
+            <th>Tổng doanh thu (VND)</th>
+            <th>Tổng chi phí vận hành (VND)</th>
+            <th>Lợi nhuận tuyến (VND)</th>
             <th>Trạng thái</th>
-            <th class="text-center">Thao tác</th>
           </tr>
         </thead>
         <tbody>
           <ng-container *ngFor="let item of paginatedRoutes">
-            <tr [class.expanded-row-active]="expandedRouteId === item.maTuyen">
-              <td><strong class="code-badge">{{ item.maTuyen }}</strong></td>
+            <!-- Main Row -->
+            <tr class="main-row" [class.active]="expandedRouteId === item.maTuyen" (click)="toggleRow(item.maTuyen)">
+              <td class="route-id">{{ item.maTuyen }}</td>
+              <td class="route-title">{{ item.tenTuyen }}</td>
               <td>
-                <div class="route-title-cell">
-                  <span class="route-name-text">{{ item.tenTuyen }}</span>
-                  <span class="route-meta-sub">{{ item.khoangCach }} • {{ item.thoiGian }}</span>
-                </div>
+                <div style="font-weight: 600; color: #1e293b;">{{ item.khoangCach }}</div>
+                <div style="font-size: 12px; color: #64748b;">Thời gian: {{ item.thoiGian }}</div>
               </td>
-              <td><span class="trip-count">{{ item.lapDay.soChuyenChay }} chuyến</span></td>
+              <td style="font-weight: 700; color: #1e293b; text-align: center;">{{ item.lapDay.soChuyenChay }}</td>
+              <td style="font-weight: 700; color: #1e293b; text-align: center;">{{ item.lapDay.soVeDaBan | number }}</td>
               <td>
-                <div class="ticket-stats">
-                  <span class="text-emerald font-weight-600">{{ item.lapDay.soVeDaBan }} đã bán</span>
-                  <span class="text-muted font-size-12"> / {{ item.lapDay.soVeTrong }} trống</span>
-                </div>
-              </td>
-              <td>
-                <div class="progress-bar-wrapper">
-                  <div class="fill-rate-badge" [class.high]="item.lapDay.tyLeLapDayTrungBinh >= 85" [class.medium]="item.lapDay.tyLeLapDayTrungBinh >= 70 && item.lapDay.tyLeLapDayTrungBinh < 85" [class.low]="item.lapDay.tyLeLapDayTrungBinh < 70">
-                    {{ item.lapDay.tyLeLapDayTrungBinh }}%
-                  </div>
-                  <div class="progress-track">
-                    <div class="progress-fill" [style.width.%]="item.lapDay.tyLeLapDayTrungBinh"></div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="color: #0f766e;">{{ item.lapDay.tyLeLapDayTrungBinh }}%</strong>
+                  <div style="width: 50px; height: 6px; background-color: #f1f5f9; border-radius: 3px; overflow: hidden; display: inline-block;">
+                    <div style="height: 100%; background-color: #10B981;" [style.width.%]="item.lapDay.tyLeLapDayTrungBinh"></div>
                   </div>
                 </div>
               </td>
-              <td><strong class="revenue-text">{{ formatCurrency(item.doanhThu.tongDoanhThu) }}</strong></td>
+              <td style="font-weight: 700; color: #0f172a;">{{ formatCurrency(item.doanhThu.tongDoanhThu) }}</td>
+              <td style="font-weight: 700; color: #FF6A00;">{{ formatCurrency(item.doanhThu.tongDoanhThu * 0.55) }}</td>
+              <td style="font-weight: 700; color: #10b981;">{{ formatCurrency(item.doanhThu.tongDoanhThu * 0.45) }}</td>
               <td>
-                <div class="rating-cell" *ngIf="item.hieuSuat.danhGiaSaoTrungBinh > 0">
-                  <i class="fas fa-star text-warning"></i>
-                  <strong>{{ item.hieuSuat.danhGiaSaoTrungBinh }}</strong>
-                  <span class="text-muted">/5</span>
-                </div>
-                <span *ngIf="item.hieuSuat.danhGiaSaoTrungBinh === 0" class="text-muted">Chưa có</span>
-              </td>
-              <td>
-                <span class="status-badge" [class.active]="item.trangThai === 'Hoạt động'" [class.inactive]="item.trangThai === 'Tạm ngưng'">
-                  <i class="fas" [class.fa-check-circle]="item.trangThai === 'Hoạt động'" [class.fa-pause-circle]="item.trangThai === 'Tạm ngưng'"></i>
+                <span class="badge-status" 
+                      [class.badge-status-active]="item.trangThai === 'Hoạt động'"
+                      [class.badge-status-suspended]="item.trangThai === 'Tạm ngưng'">
                   {{ item.trangThai }}
                 </span>
               </td>
-              <td class="text-center">
-                <button class="btn btn-sm btn-icon" (click)="toggleRow(item.maTuyen)" [title]="expandedRouteId === item.maTuyen ? 'Thu gọn' : 'Chi tiết'">
-                  <i class="fas" [class.fa-chevron-up]="expandedRouteId === item.maTuyen" [class.fa-chevron-down]="expandedRouteId !== item.maTuyen"></i>
-                </button>
-              </td>
             </tr>
 
-            <!-- Expanded Details Row -->
-            <tr *ngIf="expandedRouteId === item.maTuyen" class="details-row">
-              <td colspan="9">
-                <div class="details-box">
-                  <div class="details-column">
-                    <h4><i class="fas fa-coins"></i> Chỉ số tài chính</h4>
-                    <ul>
-                      <li><span>Doanh thu TB / Chuyến:</span> <strong>{{ formatCurrency(item.doanhThu.doanhThuTrungBinhChuyen) }}</strong></li>
-                      <li><span>Giá vé trung bình:</span> <strong>{{ formatCurrency(item.doanhThu.giaVeTrungBinh) }}</strong></li>
-                      <li><span>Ước tính lợi nhuận:</span> <strong class="text-emerald">{{ formatCurrency(item.doanhThu.tongDoanhThu * 0.42) }}</strong></li>
-                    </ul>
+            <!-- Expandable Details Row -->
+            <tr class="detail-row" *ngIf="expandedRouteId === item.maTuyen">
+              <td colspan="10">
+                <div class="drawer-container">
+                  <div class="drawer-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="20" x2="18" y2="10"></line>
+                      <line x1="12" y1="20" x2="12" y2="4"></line>
+                      <line x1="6" y1="20" x2="6" y2="14"></line>
+                      <line x1="2" y1="20" x2="22" y2="20"></line>
+                    </svg>
+                    <span>Phân tích chi tiết hiệu suất tuyến {{ item.tenTuyen }}</span>
                   </div>
-                  <div class="details-column">
-                    <h4><i class="fas fa-bus"></i> Hiệu suất vận hành</h4>
-                    <ul>
-                      <li><span>Số chuyến đúng giờ:</span> <strong class="text-emerald">{{ item.hieuSuat.soChuyenDungGio }} chuyến</strong></li>
-                      <li><span>Chuyến trễ / Hủy:</span> <strong class="text-danger">{{ item.hieuSuat.soChuyenTre }} trễ / {{ item.hieuSuat.soChuyenHuy }} hủy</strong></li>
-                      <li><span>Khách phản ánh / Khiếu nại:</span> <strong>{{ item.hieuSuat.khieuNai }} lượt</strong></li>
-                    </ul>
+
+                  <div class="drawer-grid">
+                    <!-- Column Left: Fill Rate Details -->
+                    <div class="drawer-col border-col-left">
+                      <div class="col-title">DỮ LIỆU LẤP ĐẦY GHẾ</div>
+                      
+                      <div class="meta-info-row">
+                        <span class="meta-label">Số chuyến chạy (Tổng)</span>
+                        <span class="meta-val">{{ item.lapDay.soChuyenChay }} chuyến</span>
+                      </div>
+
+                      <div class="meta-info-row">
+                        <span class="meta-label">Số vé đã bán</span>
+                        <span class="meta-val text-green">{{ item.lapDay.soVeDaBan | number }} vé</span>
+                      </div>
+
+                      <div class="meta-info-row">
+                        <span class="meta-label">Số vé trống còn lại</span>
+                        <span class="meta-val text-orange">{{ item.lapDay.soVeTrong | number }} vé</span>
+                      </div>
+
+                      <div class="meta-info-row">
+                        <span class="meta-label">% Lấp đầy ghế trung bình</span>
+                        <span class="meta-val text-blue" style="font-size: 16px;">{{ item.lapDay.tyLeLapDayTrungBinh }}%</span>
+                      </div>
+
+                      <div class="meta-info-row">
+                        <span class="meta-label">Số chuyến quá tải (đầy 100%)</span>
+                        <span class="meta-val text-red">{{ item.lapDay.soChuyenQuaTai }} chuyến</span>
+                      </div>
+                    </div>
+
+                    <!-- Column Right: Performance Details -->
+                    <div class="drawer-col border-col-right">
+                      <div class="col-title">ĐÁNH GIÁ HIỆU SUẤT VẬN HÀNH</div>
+
+                      <div class="meta-info-row">
+                        <span class="meta-label">Đúng giờ / Trễ chuyến</span>
+                        <span class="meta-val text-green">
+                          {{ item.hieuSuat.soChuyenDungGio }} chuyến đúng giờ / 
+                          <span class="text-orange">{{ item.hieuSuat.soChuyenTre }} trễ</span>
+                        </span>
+                      </div>
+
+                      <div class="meta-info-row">
+                        <span class="meta-label">Số chuyến bị hủy bỏ</span>
+                        <span class="meta-val text-red">{{ item.hieuSuat.soChuyenHuy }} chuyến hủy</span>
+                      </div>
+
+                      <div class="meta-info-row">
+                        <span class="meta-label">Khiếu nại / Liên hệ phản ánh</span>
+                        <span class="meta-val text-orange">{{ item.hieuSuat.khieuNai }} trường hợp</span>
+                      </div>
+
+                      <div class="meta-info-row">
+                        <span class="meta-label">Đánh giá sao trung bình</span>
+                        <span class="meta-val">
+                          <span style="font-weight: 800; font-size: 16px; margin-right: 6px;">{{ item.hieuSuat.danhGiaSaoTrungBinh }} / 5.0</span>
+                          <span class="star-rating">
+                            <span class="star-gold">★</span>
+                            <span class="star-gold">★</span>
+                            <span class="star-gold">★</span>
+                            <span class="star-gold">★</span>
+                            <span class="star-gold" *ngIf="item.hieuSuat.danhGiaSaoTrungBinh >= 4.5">★</span>
+                            <span class="star-gray" *ngIf="item.hieuSuat.danhGiaSaoTrungBinh < 4.5">★</span>
+                          </span>
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </td>
@@ -183,22 +450,35 @@
           </ng-container>
 
           <tr *ngIf="filteredRoutes.length === 0">
-            <td colspan="9" class="empty-state">
-              <i class="fas fa-folder-open"></i>
-              <p>Không tìm thấy dữ liệu tuyến xe tương ứng!</p>
+            <td colspan="10" class="empty-state">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <p>Không tìm thấy dữ liệu tuyến đường phù hợp với bộ lọc hiện tại</p>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Pagination -->
-    <div class="pagination-bar" *ngIf="totalPages > 1">
-      <span class="pagination-info">Hiển thị trang {{ currentPage }} / {{ totalPages }}</span>
-      <div class="pagination-controls">
-        <button class="btn btn-sm" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)"><i class="fas fa-chevron-left"></i> Trước</button>
-        <button *ngFor="let p of getVisiblePages()" class="btn btn-sm" [class.active]="p === currentPage" (click)="setPage(p)">{{ p }}</button>
-        <button class="btn btn-sm" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">Sau <i class="fas fa-chevron-right"></i></button>
+    <!-- Pagination Footer -->
+    <div style="padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #64748b; background-color: #f8fafc;">
+      <div>
+        Hiển thị {{ filteredRoutes.length > 0 ? (currentPage - 1) * pageSize + 1 : 0 }} - 
+        {{ currentPage * pageSize > filteredRoutes.length ? filteredRoutes.length : currentPage * pageSize }} 
+        của {{ filteredRoutes.length }} tuyến xe
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <button (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1" style="width: 32px; height: 32px; border-radius: 4px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; background: white; cursor: pointer; color: #1e293b; font-weight: bold; transition: all 0.2s;">
+          ‹
+        </button>
+        <button *ngFor="let page of getVisiblePages()" (click)="setPage(page)" [style.background-color]="currentPage === page ? '#1E3A8A' : 'white'" [style.color]="currentPage === page ? 'white' : '#1e293b'" [style.border-color]="currentPage === page ? '#1E3A8A' : '#e2e8f0'" style="width: 32px; height: 32px; border-radius: 4px; border: 1px solid; display: flex; align-items: center; justify-content: center; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+          {{ page }}
+        </button>
+        <button (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages" style="width: 32px; height: 32px; border-radius: 4px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; background: white; cursor: pointer; color: #1e293b; font-weight: bold; transition: all 0.2s;">
+          ›
+        </button>
       </div>
     </div>
   </div>

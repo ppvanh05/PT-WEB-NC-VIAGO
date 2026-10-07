@@ -1,163 +1,549 @@
-<div class="promotions-container">
-  <!-- Toast Notification -->
-  <div *ngIf="showToast" class="toast-notification">
-    <i class="fas fa-check-circle"></i> {{ toastMessage }}
-  </div>
+<div class="ticket-list-page khuyenmai-container">
+  <!-- Title -->
+  <section class="lookup-panel">
+    <div class="lookup-heading page-header">
+      <span class="report-subtitle">HỆ THỐNG MARKETING</span>
+      <h1 class="page-title">Quản lý Khuyến mãi & Vouchers</h1>
+    </div>
 
-  <!-- Header -->
-  <div class="header-bar">
-    <div class="title-group">
-      <h2><i class="fas fa-tags"></i> Quản Lý Khuyến Mãi & Voucher</h2>
-      <p class="subtitle">Thiết lập các chương trình giảm giá và ưu đãi cho khách hàng</p>
-    </div>
-    <div class="actions">
-      <button class="btn btn-primary" (click)="openAddModal()">
-        <i class="fas fa-plus"></i> Tạo Voucher Mới
-      </button>
-    </div>
-  </div>
+    <button class="header-action-banner promo-action-banner" (click)="openNewVoucher()" title="Thiết lập khuyến mãi mới">
+      <span class="action-icon-circle">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+      </span>
+      <span class="action-banner-text">
+        <h3>Thiết lập mã mới</h3>
+        <p>Tạo voucher, cấu hình ưu đãi và điều kiện áp dụng.</p>
+      </span>
+    </button>
 
-  <!-- Tabs & Search -->
-  <div class="controls-bar">
-    <div class="tabs-bar">
-      <button class="tab-btn" [class.active]="activeTab === 'all'" (click)="setTab('all')">
-        Tất Cả ({{ promotions.length }})
-      </button>
-      <button class="tab-btn" [class.active]="activeTab === 'running'" (click)="setTab('running')">
-        <i class="fas fa-play-circle text-emerald"></i> Đang Chạy ({{ getCount('running') }})
-      </button>
-      <button class="tab-btn" [class.active]="activeTab === 'upcoming'" (click)="setTab('upcoming')">
-        <i class="fas fa-clock text-amber"></i> Sắp Diễn Ra ({{ getCount('upcoming') }})
-      </button>
-      <button class="tab-btn" [class.active]="activeTab === 'expired'" (click)="setTab('expired')">
-        <i class="fas fa-stop-circle text-rose"></i> Hết Hạn ({{ getCount('expired') }})
-      </button>
-    </div>
-    <div class="search-box">
-      <i class="fas fa-search search-icon"></i>
-      <input type="text" [(ngModel)]="searchQuery" (input)="filterData()" placeholder="Tìm theo mã code hoặc tên voucher..." class="form-control padded-left" />
-    </div>
-  </div>
-
-  <!-- Voucher Cards Grid -->
-  <div class="vouchers-grid">
-    <div class="voucher-card" *ngFor="let p of filteredPromotions">
-      <div class="voucher-header">
-        <div class="code-badge-large"><i class="fas fa-ticket-alt"></i> {{ p.code }}</div>
-        <span class="status-badge" [ngClass]="getStatusClass(p.status)">
-          {{ getStatusLabel(p.status) }}
-        </span>
-      </div>
-      <div class="voucher-body">
-        <h3 class="voucher-name">{{ p.name }}</h3>
-        <p class="voucher-desc">
-          <span *ngIf="p.discountType === 'percentage'">Giảm {{ p.discountValue }}%</span>
-          <span *ngIf="p.discountType === 'fixed'">Giảm {{ formatCurrency(p.discountValue) }}</span>
-          <span *ngIf="p.maxDiscount"> - Tối đa {{ formatCurrency(p.maxDiscount) }}</span>
-        </p>
-        <ul class="voucher-rules">
-          <li><i class="fas fa-shopping-cart"></i> Đơn tối thiểu: {{ formatCurrency(p.minOrderValue) }}</li>
-          <li><i class="fas fa-calendar-alt"></i> Thời gian: {{ p.startDate }} tới {{ p.endDate }}</li>
-          <li><i class="fas fa-users"></i> Hạng áp dụng: {{ p.targetTiers.join(', ') }}</li>
-          <li><i class="fas fa-sync-alt"></i> Lượt sử dụng: {{ p.usageCount }} lượt (Tối đa: {{ p.limitPerUser }} lần/khách)</li>
-        </ul>
-      </div>
-      <div class="voucher-footer">
-        <button class="btn btn-outline-primary" (click)="openEditModal(p, $event)"><i class="fas fa-edit"></i> Chỉnh Sửa</button>
+  <!-- Stats Grid -->
+  <div class="summary-strip stats-grid-promotion">
+    <!-- Card 1 -->
+    <div class="stat-card border-orange">
+      <div class="stat-info">
+        <span class="stat-title">Số chương trình chạy</span>
+        <span class="stat-val text-orange">{{ totalActiveVouchers }} đang chạy</span>
       </div>
     </div>
 
-    <div *ngIf="filteredPromotions.length === 0" class="empty-state">
-      <i class="fas fa-tags"></i>
-      <p>Không tìm thấy khuyến mãi nào phù hợp!</p>
+    <!-- Card 2 -->
+    <div class="stat-card border-blue">
+      <div class="stat-info">
+        <span class="stat-title">Tổng số voucher tạo ra</span>
+        <span class="stat-val text-blue">{{ vouchers.length }} chương trình</span>
+      </div>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="stat-card border-green">
+      <div class="stat-info">
+        <span class="stat-title">Lượt áp dụng thành công</span>
+        <span class="stat-val text-green">{{ totalVoucherUsages | number }} lượt sử dụng</span>
+      </div>
+    </div>
+
+    <!-- Card 4 -->
+    <div class="stat-card border-purple">
+      <div class="stat-info">
+        <span class="stat-title">Voucher dùng nhiều nhất</span>
+        <span class="stat-val text-purple">{{ mostUsedVoucher }}</span>
+      </div>
     </div>
   </div>
+  </section>
 
-  <!-- Add/Edit Modal -->
-  <div *ngIf="isModalOpen" class="modal-backdrop" (click)="onBackdropClick($event)">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3><i class="fas" [class.fa-plus-circle]="!isEditMode" [class.fa-edit]="isEditMode"></i> {{ isEditMode ? 'Cập Nhật Voucher' : 'Tạo Voucher Mới' }}</h3>
-        <button class="btn-close" (click)="closeModal()">&times;</button>
+  <!-- Voucher List & Monitoring Area -->
+  <div class="layout-main-grid full-width-list">
+    <!-- Left column: Voucher List -->
+    <section class="table-panel table-card" style="grid-column: span 12;">
+      <div class="table-header-custom">
+        <h2 class="table-title">Danh sách Chương trình Khuyến mãi & Vouchers</h2>
       </div>
 
-      <div class="modal-body">
-        <div class="form-grid">
-          <!-- Code -->
-          <div class="form-group">
-            <label class="required">Mã Voucher (Code)</label>
-            <div class="input-with-button">
-              <input type="text" [(ngModel)]="currentPromo.code" class="form-control text-uppercase" placeholder="VD: SUMMER30" />
-              <button class="btn btn-secondary" (click)="generateRandomCode()" title="Tạo mã ngẫu nhiên"><i class="fas fa-random"></i></button>
-            </div>
-          </div>
+      <!-- Filters & Search -->
+      <div class="table-filters">
+        <div class="search-box">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" [(ngModel)]="searchText" placeholder="Tìm theo mã, tên hoặc mô tả..." />
+        </div>
 
-          <!-- Name -->
-          <div class="form-group">
-            <label class="required">Tên Chương Trình</label>
-            <input type="text" [(ngModel)]="currentPromo.name" class="form-control" placeholder="Tên hiển thị cho khách hàng" />
-          </div>
+        <div class="filter-controls-row">
+          <select [(ngModel)]="filterTier">
+            <option value="all">Tất cả đối tượng</option>
+            <option value="Bạc">Hạng Bạc</option>
+            <option value="Vàng">Hạng Vàng</option>
+            <option value="Kim cương">Hạng Kim cương</option>
+          </select>
 
-          <!-- Discount Type & Value -->
-          <div class="form-group">
-            <label class="required">Loại Giảm Giá</label>
-            <select [(ngModel)]="currentPromo.discountType" class="form-control">
-              <option value="percentage">Giảm theo phần trăm (%)</option>
-              <option value="fixed">Giảm số tiền cố định (VND)</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="required">Mức Giảm</label>
-            <input type="number" [(ngModel)]="currentPromo.discountValue" class="form-control" [placeholder]="currentPromo.discountType === 'percentage' ? 'VD: 10' : 'VD: 50000'" />
-          </div>
-
-          <div class="form-group" *ngIf="currentPromo.discountType === 'percentage'">
-            <label>Giảm Tối Đa (VND)</label>
-            <input type="number" [(ngModel)]="currentPromo.maxDiscount" class="form-control" placeholder="Giới hạn số tiền giảm" />
-          </div>
-
-          <div class="form-group">
-            <label class="required">Đơn Tối Thiểu (VND)</label>
-            <input type="number" [(ngModel)]="currentPromo.minOrderValue" class="form-control" placeholder="0 nếu áp dụng mọi đơn" />
-          </div>
-
-          <!-- Dates -->
-          <div class="form-group">
-            <label class="required">Ngày Bắt Đầu</label>
-            <input type="date" [(ngModel)]="currentPromo.startDate" class="form-control" />
-          </div>
-
-          <div class="form-group">
-            <label class="required">Ngày Kết Thúc</label>
-            <input type="date" [(ngModel)]="currentPromo.endDate" class="form-control" />
-          </div>
-
-          <!-- Config -->
-          <div class="form-group">
-            <label>Giới hạn lượt dùng / Khách</label>
-            <input type="number" [(ngModel)]="currentPromo.limitPerUser" class="form-control" min="1" />
-          </div>
-
-          <div class="form-group full-width">
-            <label>Hạng Hội Viên Áp Dụng</label>
-            <div class="checkbox-group">
-              <label class="checkbox-label" *ngFor="let tier of availableTiers">
-                <input type="checkbox" 
-                       [checked]="currentPromo.targetTiers?.includes(tier)"
-                       (change)="toggleTier(tier, $event)" />
-                {{ tier }}
-              </label>
-            </div>
-          </div>
+          <select [(ngModel)]="filterStatus">
+            <option value="all">Tất cả trạng thái</option>
+            <option value="running">🟢 Đang chạy</option>
+            <option value="upcoming">🟡 Sắp diễn ra</option>
+            <option value="paused">⚪ Tạm dừng</option>
+            <option value="expired">🔴 Hết hạn</option>
+          </select>
         </div>
       </div>
 
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeModal()">Hủy bỏ</button>
-        <button class="btn btn-primary" (click)="savePromotion()">
-          <i class="fas fa-check"></i> {{ isEditMode ? 'Lưu Thay Đổi' : 'Xác Nhận Tạo Mới' }}
-        </button>
+      <!-- Table Wrapper -->
+      <div class="table-wrapper">
+        <table class="report-table">
+          <colgroup>
+            <col class="col-code" />
+            <col class="col-info" />
+            <col class="col-discount" />
+            <col class="col-target" />
+            <col class="col-date" />
+            <col class="col-status" />
+            <col class="col-actions" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Mã Voucher</th>
+              <th>Khuyến mãi & Điều kiện</th>
+              <th>Mức ưu đãi</th>
+              <th>Đối tượng áp dụng</th>
+              <th>Thời gian hiệu lực</th>
+              <th>Trạng thái</th>
+              <th style="width: 96px; text-align: center;">Chức năng</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of filteredVouchers" [class.row-active]="selectedVoucherForStats?.code === item.code">
+              <td>
+                <span class="voucher-code-badge">{{ item.code }}</span>
+              </td>
+              <td>
+                <div class="voucher-name-txt">{{ item.name }}</div>
+                <div class="voucher-desc-txt">{{ item.description }}</div>
+              </td>
+              <td>
+                <strong style="color: #ea580c; font-size: 15px;">
+                  <span *ngIf="item.discountType === 'percentage'">Giảm {{ item.discountValue }}%</span>
+                  <span *ngIf="item.discountType === 'fixed'">Giảm {{ formatCurrency(item.discountValue) }}</span>
+                  <span *ngIf="item.discountType === 'gift'">Quà tặng / Hoàn hủy</span>
+                </strong>
+                <div class="voucher-sub-value" *ngIf="item.maxDiscount">Tối đa {{ formatCurrency(item.maxDiscount) }}</div>
+                <div class="voucher-sub-value">Đơn tối thiểu: {{ formatCurrency(item.minOrderValue) }}</div>
+              </td>
+              <td>
+                <div class="tiers-applied-row">
+                  <span class="tier-pill" *ngFor="let t of item.memberTiers"
+                        [class.tier-pill-all]="t === 'Tất cả'"
+                        [class.tier-pill-silver]="t === 'Bạc'"
+                        [class.tier-pill-gold]="t === 'Vàng'"
+                        [class.tier-pill-diamond]="t === 'Kim cương'">
+                    {{ t }}
+                  </span>
+                </div>
+                <div class="customer-type-indicators">
+                  <span class="indicator-badge" *ngIf="item.firstOrderOnly">🆕 Lần đầu</span>
+                  <span class="indicator-badge" *ngIf="item.birthdayMonthOnly">🎂 Sinh nhật</span>
+                  <span class="indicator-badge" *ngIf="item.assignedCustomer">👤 Gán cụ thể</span>
+                </div>
+              </td>
+              <td>
+                <div style="font-size: 12px; font-weight: 500; color: #334155;">{{ item.startDate | date:'dd/MM/yyyy' }}</div>
+                <div style="font-size: 12px; color: #64748b;">đến {{ item.endDate | date:'dd/MM/yyyy' }}</div>
+              </td>
+              <td>
+                <span class="status-dot-badge" [class]="getStatusClass(item.status)">
+                  {{ getStatusLabel(item.status) }}
+                </span>
+              </td>
+              <td>
+                <div class="btn-actions-cell">
+                  <button class="btn-action-icon btn-edit" title="Sửa cấu hình" (click)="editVoucher(item)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <button class="btn-action-icon btn-stats" title="Xem thống kê chi tiết" (click)="viewStats(item)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="20" x2="18" y2="10"></line>
+                      <line x1="12" y1="20" x2="12" y2="4"></line>
+                      <line x1="6" y1="20" x2="6" y2="14"></line>
+                      <line x1="2" y1="20" x2="22" y2="20"></line>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="filteredVouchers.length === 0">
+              <td colspan="7" class="empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <p>Không tìm thấy khuyến mãi nào khớp với bộ lọc tìm kiếm của bạn.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Section A: Form Card Modal backdrop (Centers in middle of screen) -->
+  <div class="modal-overlay" *ngIf="showForm">
+    <div class="modal-container">
+      <div class="form-card" id="voucher-form-card">
+        <div class="form-card-header">
+          <h3 class="form-title">
+            {{ newVoucher.stt ? 'Cập nhật' : 'Thiết lập' }} Khuyến mãi / Voucher
+          </h3>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn-clear-form" (click)="resetForm()" title="Làm mới form">Làm mới</button>
+            <button class="btn-close-form" (click)="closeVoucherForm()" style="background: none; border: none; color: #94a3b8; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Đóng form">✕</button>
+          </div>
+        </div>
+
+        <div class="form-feedback" *ngIf="formFeedbackMessage" [class.form-feedback-error]="formFeedbackType === 'error'" [class.form-feedback-success]="formFeedbackType === 'success'">
+          {{ formFeedbackMessage }}
+        </div>
+
+        <div class="form-body">
+          <!-- Basic Info Box -->
+          <div class="form-group-section">
+            <span class="section-badge">Thông tin cơ bản</span>
+            
+            <div class="form-group">
+              <label>Mã Voucher (Code) <span class="required">*</span></label>
+              <div class="input-with-action">
+                <input type="text" [(ngModel)]="newVoucher.code" placeholder="Ví dụ: LIMO20, TET2027" style="text-transform: uppercase;" />
+                <button class="btn btn-outline-small" (click)="generateRandomCode()">Ngẫu nhiên</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Tên khuyến mãi (Mô tả ngắn) <span class="required">*</span></label>
+              <input type="text" [(ngModel)]="newVoucher.name" placeholder="Ví dụ: Giảm giá đặt Limousine" />
+            </div>
+
+            <div class="form-group">
+              <label>Mô tả chi tiết & Điều kiện áp dụng</label>
+              <textarea [(ngModel)]="newVoucher.description" rows="2" placeholder="Ví dụ: Ưu đãi áp dụng khi đi xe Limousine tuyến Sài Gòn ↔ Đà Lạt..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Loại khuyến mãi</label>
+              <div class="radio-group-custom">
+                <label class="radio-label-box">
+                  <input type="radio" name="discountType" value="percentage" [(ngModel)]="newVoucher.discountType" />
+                  <span>Giảm giá %</span>
+                </label>
+                <label class="radio-label-box">
+                  <input type="radio" name="discountType" value="fixed" [(ngModel)]="newVoucher.discountType" />
+                  <span>Tiền cố định</span>
+                </label>
+                <label class="radio-label-box">
+                  <input type="radio" name="discountType" value="gift" [(ngModel)]="newVoucher.discountType" />
+                  <span>Quà tặng/Hủy vé</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Value Settings -->
+          <div class="form-group-section" *ngIf="newVoucher.discountType !== 'gift'">
+            <span class="section-badge">Giá trị khuyến mãi</span>
+
+            <div class="form-grid-two">
+              <div class="form-group">
+                <label>Mức giảm <span *ngIf="newVoucher.discountType === 'percentage'">(%)</span><span *ngIf="newVoucher.discountType === 'fixed'">(VND)</span></label>
+                <input type="number" [(ngModel)]="newVoucher.discountValue" />
+              </div>
+              <div class="form-group" *ngIf="newVoucher.discountType === 'percentage'">
+                <label>Mức giảm tối đa (VND)</label>
+                <input type="number" [(ngModel)]="newVoucher.maxDiscount" placeholder="Không giới hạn" />
+              </div>
+            </div>
+
+            <div class="form-grid-two">
+              <div class="form-group">
+                <label>Giá trị đơn hàng tối thiểu (VND)</label>
+                <input type="number" [(ngModel)]="newVoucher.minOrderValue" />
+              </div>
+              <div class="form-group">
+                <label>Lượt sử dụng tối đa của người/mã</label>
+                <input type="number" [(ngModel)]="newVoucher.limitPerUser" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Conditional targets -->
+          <div class="form-group-section">
+            <span class="section-badge">Điều kiện áp dụng</span>
+
+            <div class="form-group">
+              <label>Đối tượng khách hàng áp dụng</label>
+              <select [(ngModel)]="targetType">
+                <option value="all">Tất cả khách hàng (Không giới hạn)</option>
+                <option value="tier">Theo Hạng thành viên (Bạc, Vàng, Kim Cương)</option>
+                <option value="birthday">Hội viên có Sinh nhật trong tháng</option>
+                <option value="first_order">Khách hàng mới (Lần đặt đầu tiên)</option>
+                <option value="assigned">Gán cho Khách hàng cụ thể (Đền bù/Bồi hoàn)</option>
+              </select>
+            </div>
+
+            <!-- Conditionally display membership tier checkboxes -->
+            <div class="form-group" *ngIf="targetType === 'tier'">
+              <label>Chọn các Hạng thành viên áp dụng:</label>
+              <div class="checkbox-row-custom">
+                <label class="checkbox-label-box" *ngFor="let tier of availableTiers">
+                  <input type="checkbox" 
+                         [checked]="newVoucher.memberTiers?.includes(tier)" 
+                         (change)="onTierCheckboxChange(tier, $event)" />
+                  <span>{{ tier }}</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Conditionally display birthday month settings -->
+            <div class="form-group border-dashed-box" *ngIf="targetType === 'birthday'">
+              <span class="note-title">Đặc quyền tháng sinh nhật</span>
+              <p style="font-size: 12px; color: #64748b; margin: 0 0 8px 0;">Mã khuyến mãi sẽ tự động kích hoạt và hiển thị cho hành khách có ngày sinh trong tháng diễn ra chuyến đi.</p>
+              <div class="checkbox-row-custom" style="margin-bottom: 8px;">
+                <label class="checkbox-label-box" *ngFor="let month of monthOptions">
+                  <input type="checkbox"
+                         [checked]="newVoucher.birthdayMonths?.includes(month.value)"
+                         (change)="onBirthdayMonthChange(month.value, $event)" />
+                  <span>{{ month.label }}</span>
+                </label>
+              </div>
+              <button class="btn btn-outline-small" type="button" (click)="clearBirthdayMonths()">Xóa hết</button>
+            </div>
+
+            <!-- Conditionally display new customer message -->
+            <div class="form-group border-dashed-box" *ngIf="targetType === 'first_order'">
+              <span class="note-title">Ưu đãi khách hàng mới</span>
+              <p style="font-size: 12px; color: #64748b; margin: 0 0 8px 0;">Hệ thống sẽ kiểm tra và chỉ cho phép áp dụng voucher này cho các tài khoản chưa thực hiện chuyến đi nào.</p>
+            </div>
+
+            <!-- Conditionally display specific customer compensation inputs -->
+            <div class="form-group border-dashed-box" *ngIf="targetType === 'assigned'">
+              <span class="note-title">Gán bồi hoàn khách hàng</span>
+
+              <div class="assign-fields-container">
+                <div class="form-group">
+                  <label>Lý do bồi đắp</label>
+                  <select [(ngModel)]="assignedReason">
+                    <option value="complaint">Khiếu nại / sự cố vận hành</option>
+                    <option value="delay_cancel">Chuyến xe bị trễ / bị hủy</option>
+                    <option value="system_error">Lỗi hệ thống phần mềm</option>
+                    <option value="custom_compensation">Bồi thường tùy chọn của Đại lý</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Số điện thoại, Email hoặc Mã KH nhận</label>
+                  <input type="text" [(ngModel)]="assignedCustomerEmail" placeholder="Ví dụ: 0901234567, KH8839" />
+                </div>
+
+                <div class="form-group">
+                  <label>Ghi chú lý do chi tiết bồi đắp</label>
+                  <input type="text" [(ngModel)]="assignedNote" placeholder="Ví dụ: Khách bị trễ chuyến xe đi Đà Lạt ngày 26/06" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Apply to routes -->
+          <div class="form-group-section">
+            <span class="section-badge">Áp dụng cho tuyến xe</span>
+            
+            <div class="form-group">
+              <label>Phạm vi tuyến đường áp dụng</label>
+              <select [(ngModel)]="newVoucher.routesType">
+                <option value="all">Tất cả các tuyến xe khai thác</option>
+                <option value="specific">Chỉ áp dụng cho một số tuyến cụ thể</option>
+                <option value="exclude">Áp dụng tất cả tuyến ngoại trừ tuyến được chọn</option>
+              </select>
+            </div>
+
+            <div class="form-group" *ngIf="newVoucher.routesType !== 'all'">
+              <label>Chọn các tuyến xe:</label>
+              <div class="routes-selection-box">
+                <div *ngFor="let route of routesList" style="margin-bottom: 4px;">
+                  <label class="checkbox-label-box">
+                    <input type="checkbox" 
+                           [checked]="newVoucher.selectedRoutes?.includes(route)"
+                           (change)="$event.target.checked ? newVoucher.selectedRoutes?.push(route) : (newVoucher.selectedRoutes = newVoucher.selectedRoutes?.filter(r => r !== route))" />
+                    <span style="font-size: 13px;">{{ route }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Validity period -->
+          <div class="form-group-section">
+            <span class="section-badge">Thời gian hiệu lực</span>
+            
+            <div class="form-grid-two">
+              <div class="form-group">
+                <label>Ngày bắt đầu</label>
+                <div style="position: relative;">
+                  <input type="text" [value]="newVoucher.startDate ? (newVoucher.startDate | date:'dd/MM/yyyy') : ''" readonly placeholder="dd/mm/yyyy" style="cursor: pointer; width: 100%;" (click)="startDateInput.showPicker?.()" />
+                  <input #startDateInput type="date" [(ngModel)]="newVoucher.startDate" [min]="minAllowedDate" (keydown)="$event.preventDefault()" (click)="$any($event.target).showPicker?.()" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 1;" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Ngày kết thúc</label>
+                <div style="position: relative;">
+                  <input type="text" [value]="newVoucher.endDate ? (newVoucher.endDate | date:'dd/MM/yyyy') : ''" readonly placeholder="dd/mm/yyyy" style="cursor: pointer; width: 100%;" (click)="endDateInput.showPicker?.()" />
+                  <input #endDateInput type="date" [(ngModel)]="newVoucher.endDate" [min]="minAllowedDate" (keydown)="$event.preventDefault()" (click)="$any($event.target).showPicker?.()" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 1;" />
+                </div>
+              </div>
+            </div>
+
+
+            <div class="form-grid-two" style="margin-top: 12px;">
+              <div class="form-group">
+                <label>Mức ưu tiên của mã</label>
+                <select [(ngModel)]="newVoucher.priority">
+                  <option value="high">Đặc biệt ưu tiên (Cao)</option>
+                  <option value="normal">Mức độ thông thường</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Trạng thái khởi tạo</label>
+                <select [(ngModel)]="newVoucher.status">
+                  <option value="running">Hoạt động ngay</option>
+                  <option value="paused">Tạm dừng (Nháp)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-footer">
+          <button class="btn btn-danger" *ngIf="newVoucher.stt" type="button" (click)="deleteEditingVoucher()">
+            Xóa khuyến mãi
+          </button>
+          <span class="form-footer-spacer"></span>
+          <button class="btn btn-outline" (click)="closeVoucherForm()">Thoát</button>
+          <button class="btn btn-orange" (click)="saveVoucher()">
+            Lưu khuyến mãi
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section B: Statistics & Monitoring Card Modal Popup Overlay -->
+  <div class="modal-overlay" *ngIf="showStatsModal && selectedVoucherForStats">
+    <div class="modal-container" style="max-width: 520px; width: 90%;">
+      <div class="stats-card-container" id="voucher-stats-card" style="margin: 0; border: none; box-shadow: none;">
+        <div class="stats-card-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 14px; margin-bottom: 16px;">
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: #ea580c; text-transform: uppercase; display: block; margin-bottom: 2px;">📊 THỐNG KÊ CHI TIẾT SỬ DỤNG</span>
+            <h3 style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">
+              Mã: {{ selectedVoucherForStats.code }}
+            </h3>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span class="status-dot-badge" [class]="getStatusClass(selectedVoucherForStats.status)">
+              {{ getStatusLabel(selectedVoucherForStats.status) }}
+            </span>
+            <button (click)="showStatsModal = false" style="background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; padding: 4px; display: flex; align-items: center;" title="Đóng">✕</button>
+          </div>
+        </div>
+
+        <div class="stats-summary-grid">
+          <div class="stat-mini-box">
+            <span class="stat-mini-label">Số lần đã dùng</span>
+            <span class="stat-mini-val text-orange-val">{{ selectedVoucherForStats.usageCount | number }} lần</span>
+          </div>
+
+          <div class="stat-mini-box">
+            <span class="stat-mini-label">Doanh thu tạo ra</span>
+            <span class="stat-mini-val" style="color: #10b981;">{{ formatCurrency(selectedVoucherForStats.revenueGenerated) }}</span>
+          </div>
+        </div>
+
+        <!-- If specific compensation assigned -->
+        <div class="compensation-details-box" *ngIf="selectedVoucherForStats.assignedCustomer" style="margin-top: 16px;">
+          <div class="box-title">Khách hàng được gán bồi hoàn</div>
+          <div class="comp-info-row">
+            <span>Người nhận:</span>
+            <strong>{{ selectedVoucherForStats.assignedCustomer.emailOrPhone }}</strong>
+          </div>
+          <div class="comp-info-row">
+            <span>Lý do gán:</span>
+            <strong class="text-orange-val">{{ getReasonLabel(selectedVoucherForStats.assignedCustomer.reason) }}</strong>
+          </div>
+          <div class="comp-info-row">
+            <span>Chi tiết ghi chú:</span>
+            <span>{{ selectedVoucherForStats.assignedCustomer.note }}</span>
+          </div>
+          <div class="comp-info-row">
+            <span>Trạng thái dùng:</span>
+            <span class="badge-status" 
+                  [class.badge-status-active]="selectedVoucherForStats.assignedCustomer.used"
+                  [class.badge-status-suspended]="!selectedVoucherForStats.assignedCustomer.used">
+              {{ selectedVoucherForStats.assignedCustomer.used ? 'Đã dùng voucher' : 'Chưa sử dụng' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Customer Usage List -->
+        <div class="usage-list-section" style="margin-top: 16px;">
+          <div class="usage-list-title" style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;">Khách hàng đã áp dụng mã gần đây:</div>
+          <div class="usage-records-list" style="max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+            <div class="usage-record-card" *ngFor="let c of mockCustomerUsage" style="border: 1px solid #e2e8f0; background-color: #ffffff; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
+              <div class="record-header" style="display: flex; justify-content: space-between; font-size: 12px;">
+                <strong>{{ c.name }}</strong>
+                <span class="record-time" style="color: #94a3b8;">{{ c.time | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <div class="record-meta" style="display: flex; justify-content: space-between; font-size: 11px; color: #64748b;">
+                <span>Khách hàng: {{ c.emailOrPhone }}</span>
+                <span>Số vé: <strong>{{ c.tickets }} vé</strong></span>
+              </div>
+              <div class="record-values" style="display: flex; justify-content: space-between; font-size: 11px;">
+                <span>Tổng giá trị đơn: <strong>{{ formatCurrency(c.orderVal) }}</strong></span>
+                <span>Đã giảm: <strong style="color: #ea580c;">-{{ formatCurrency(c.savedVal) }}</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 14px; gap: 12px;">
+          <button class="btn btn-outline" (click)="showStatsModal = false">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" *ngIf="voucherPendingDelete">
+    <div class="modal-container confirm-modal">
+      <div class="confirm-dialog">
+        <div class="confirm-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+            <path d="M10 11v6"></path>
+            <path d="M14 11v6"></path>
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </div>
+        <div class="confirm-content">
+          <span class="confirm-eyebrow">Xác nhận xóa voucher</span>
+          <h3>Xóa mã {{ voucherPendingDelete.code }}?</h3>
+          <p>Voucher này sẽ được gỡ khỏi danh sách khuyến mãi hiện tại.</p>
+        </div>
+        <div class="confirm-actions">
+          <button class="btn btn-outline" type="button" (click)="cancelDeleteVoucher()">Hủy</button>
+          <button class="btn btn-danger" type="button" (click)="confirmDeleteVoucher()">Xóa voucher</button>
+        </div>
       </div>
     </div>
   </div>
