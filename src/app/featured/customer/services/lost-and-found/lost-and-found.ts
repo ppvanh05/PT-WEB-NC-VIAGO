@@ -52,7 +52,7 @@ export class LostAndFound implements OnInit {
   ];
 
   currentPage = 1;
-  pageSize = 9;
+  pageSize = 20;
   totalPages = 1;
 
   get pagesArray(): number[] {
