@@ -83,13 +83,15 @@ export class Chatbot implements AfterViewChecked {
     const text = userText.toLowerCase();
     let reply = 'Dạ mình đã ghi nhận thông tin. Bạn có thể cho mình xin thêm chi tiết để hỗ trợ tốt nhất không ạ?';
     
-    if (text.includes('tra cứu') || text.includes('chuyến đi') || text.includes('vé')) {
-      reply = 'Để tra cứu vé, bạn vui lòng cung cấp **Mã số vé** (ví dụ: VG123456) hoặc **Số điện thoại** đặt vé nhé! Mình sẽ kiểm tra ngay lập tức.';
+    if (text.includes('đặt vé') || text.includes('mua vé') || text.includes('book vé')) {
+      reply = 'Để đặt vé, bạn có thể quay lại <b>Trang chủ</b> và sử dụng công cụ Tìm chuyến đi, hoặc bấm vào phần <b>Lịch trình</b> trên thanh menu nhé! Chúc bạn chọn được vé ưng ý.';
+    } else if (text.includes('tra cứu') || text.includes('kiểm tra vé') || text.includes('xem vé') || text.includes('thông tin chuyến')) {
+      reply = 'Để tra cứu vé, bạn vui lòng cung cấp <b>Mã số vé</b> (ví dụ: VG123456) hoặc <b>Số điện thoại</b> đặt vé nhé! Mình sẽ kiểm tra ngay lập tức.';
     } else if (text.includes('hoàn') || text.includes('hủy') || text.includes('huỷ')) {
       reply = 'Quy định hoàn/huỷ của VIAGO như sau:<br>- <b>Hủy trước 24h:</b> Miễn phí hoàn tiền 100%.<br>- <b>Hủy trong vòng 24h:</b> Phí 20% giá vé.<br>Bạn cần hỗ trợ hủy chuyến nào ạ?';
     } else if (text.includes('nhân viên') || text.includes('cskh') || text.includes('gặp') || text.includes('người')) {
       reply = 'Mình đang kết nối tới Chuyên viên Hỗ trợ Khách hàng (CSKH). Sẽ có người tư vấn trực tiếp cho bạn ngay sau giây lát... 🎧';
-    } else if (text.includes('xin chào') || text.includes('hello') || text.includes('chào') || text.includes('hi')) {
+    } else if (text.includes('xin chào') || text.includes('hello') || text.includes('chào') || text.includes('hi ') || text === 'hi') {
       reply = 'Chào bạn! VIAGO rất hân hạnh được phục vụ. Bạn cần hỗ trợ đặt vé hay kiểm tra thông tin chuyến đi ạ?';
     }
 
