@@ -107,6 +107,12 @@ export class Chatbot implements AfterViewChecked {
     else if (text.includes('mất đồ') || text.includes('quên đồ') || text.includes('thất lạc')) {
       reply = 'Ôi đừng quá lo lắng nhé! VIAGO có hẳn một trang <b>Đồ Thất Lạc</b> luôn. Bạn vui lòng truy cập vào mục <b>Dịch vụ -> Đồ thất lạc</b> để xem danh sách hoặc điền form báo mất đồ nha. Mong bạn sớm tìm lại được bảo bối!';
     }
+    else if (text.includes('tin tức') || text.includes('tuyển dụng') || text.includes('khuyến mãi') || text.includes('ưu đãi')) {
+      reply = 'Dạ, để xem các thông tin ưu đãi hấp dẫn, tin tức mới nhất hoặc các vị trí đang tuyển dụng, bạn vui lòng nhấn vào mục <b>Tin tức</b> trên thanh Menu chính nhé! Chúc bạn săn được nhiều deal hời!';
+    }
+    else if (text.includes('địa chỉ') || text.includes('liên hệ') || text.includes('tổng đài') || text.includes('số điện thoại')) {
+      reply = 'Tổng đài chăm sóc khách hàng của VIAGO là <b>1900 9999</b>. Trụ sở chính nằm tại Bến xe Miền Tây. Bạn có thể kéo xuống cuối trang (Footer) để xem thêm chi tiết các văn phòng đại diện nhé!';
+    }
     else if (text.includes('nhân viên') || text.includes('cskh') || text.includes('gặp') || text.includes('người') || text.includes('hỗ trợ')) {
       reply = 'Dạ vâng! Mình đang kết nối tới Chuyên viên Hỗ trợ Khách hàng (CSKH). Sẽ có "người thật việc thật" tư vấn trực tiếp cho bạn ngay sau vài giây... Vui lòng giữ máy nha!';
       
