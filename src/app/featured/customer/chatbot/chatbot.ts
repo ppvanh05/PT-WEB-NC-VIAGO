@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, AfterViewChecked } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -11,6 +11,8 @@ import { FormsModule } from '@angular/forms';
 })
 export class Chatbot implements AfterViewChecked {
   @ViewChild('chatScroll') private chatScrollContainer!: ElementRef;
+
+  constructor(private cdr: ChangeDetectorRef) {}
 
   isOpen = false;
   isTyping = false;
@@ -66,10 +68,12 @@ export class Chatbot implements AfterViewChecked {
     
     // Simulate typing
     this.isTyping = true;
+    this.cdr.detectChanges();
     setTimeout(() => {
       this.isTyping = false;
       this.generateBotResponse(text);
-    }, 1200);
+      this.cdr.detectChanges();
+    }, 400);
   }
 
   generateBotResponse(userText: string) {

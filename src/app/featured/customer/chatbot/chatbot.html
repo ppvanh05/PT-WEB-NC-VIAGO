@@ -1,7 +1,12 @@
 <!-- Floating Chatbot Toggle Button -->
-<button class="cb-toggle-btn" (click)="toggleChat()" [class.active]="isOpen">
-  <i class="fas fa-comment-dots" *ngIf="!isOpen"></i>
-  <i class="fas fa-times" *ngIf="isOpen"></i>
+<button class="viago-chatbot-btn" aria-label="Mở Chatbot" (click)="toggleChat()">
+  <i class="bi bi-chat-text-fill" *ngIf="!isOpen"></i>
+  <i class="bi bi-x-lg" *ngIf="isOpen"></i>
+  
+  <span class="viago-chatbot-dot" *ngIf="!isOpen">
+    <span class="viago-chatbot-ping"></span>
+    <span class="viago-chatbot-badge"></span>
+  </span>
 </button>
 
 <!-- Chat Window -->
