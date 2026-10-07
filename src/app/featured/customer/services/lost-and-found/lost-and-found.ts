@@ -23,16 +23,16 @@ export interface LostItem {
 export class LostAndFound implements OnInit {
   // Items logic
   allItems: LostItem[] = [
-    { id: '1', name: 'Điện thoại iPhone', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&auto=format&fit=crop&q=80', foundDate: '21/10/2026', route: 'Đà Lạt - TP.HCM', storage: 'VP Đà Nẵng', status: 'stored' },
-    { id: '2', name: 'Balo xám', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&auto=format&fit=crop&q=80', foundDate: '22/10/2026', route: 'TP.HCM - Nha Trang', storage: 'VP Mỹ Đình', status: 'stored' },
-    { id: '3', name: 'Đồng hồ thông minh', image: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=300&auto=format&fit=crop&q=80', foundDate: '23/10/2026', route: 'Nha Trang - TP.HCM', storage: 'VP Quảng Ngãi', status: 'stored' },
-    { id: '4', name: 'Túi xách da nữ', image: 'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?w=300&auto=format&fit=crop&q=80', foundDate: '25/10/2026', route: 'Cần Thơ - TP.HCM', storage: 'VP Gia Lâm', status: 'stored' },
-    { id: '5', name: 'Kính mắt thời trang', image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=300&auto=format&fit=crop&q=80', foundDate: '26/10/2026', route: 'TP.HCM - Vũng Tàu', storage: 'VP Lê Hồng Phong', status: 'stored' },
-    { id: '6', name: 'Laptop Dell', image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=300&auto=format&fit=crop&q=80', foundDate: '27/10/2026', route: 'Vũng Tàu - TP.HCM', storage: 'VP Huế', status: 'stored' },
-    { id: '7', name: 'Ví da đen #2', image: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=300&auto=format&fit=crop&q=80', foundDate: '29/10/2026', route: 'Nha Trang - Đà Lạt', storage: 'VP Vũng Tàu', status: 'stored' },
-    { id: '8', name: 'Điện thoại iPhone #2', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&auto=format&fit=crop&q=80', foundDate: '20/10/2026', route: 'Nha Trang - Đà Nẵng', storage: 'VP Hàng Xanh', status: 'stored' },
-    { id: '9', name: 'Balo xám #2', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&auto=format&fit=crop&q=80', foundDate: '21/10/2026', route: 'Đà Nẵng - Nha Trang', storage: 'VP Đà Nẵng', status: 'stored' },
-    { id: '10', name: 'Tai nghe Bluetooth', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&auto=format&fit=crop&q=80', foundDate: '29/10/2026', route: 'TP.HCM - Cần Thơ', storage: 'VP Bến Xe Miền Tây', status: 'stored' }
+    { id: '1', name: 'Điện thoại iPhone 14 Pro Max 256GB', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&auto=format&fit=crop&q=80', foundDate: '21/10/2026', route: 'Đà Lạt - TP.HCM', storage: 'VP Đà Nẵng', status: 'stored' },
+    { id: '2', name: 'Balo The North Face Surge', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&auto=format&fit=crop&q=80', foundDate: '22/10/2026', route: 'TP.HCM - Nha Trang', storage: 'VP Mỹ Đình', status: 'stored' },
+    { id: '3', name: 'Apple Watch Series 8', image: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=300&auto=format&fit=crop&q=80', foundDate: '23/10/2026', route: 'Nha Trang - TP.HCM', storage: 'VP Quảng Ngãi', status: 'processing' },
+    { id: '4', name: 'Túi xách tay nữ Charles & Keith', image: 'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?w=300&auto=format&fit=crop&q=80', foundDate: '20/10/2026', route: 'Cần Thơ - TP.HCM', storage: 'VP Gia Lâm', status: 'stored' },
+    { id: '5', name: 'Kính râm Ray-Ban Aviator', image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=300&auto=format&fit=crop&q=80', foundDate: '26/10/2026', route: 'TP.HCM - Vũng Tàu', storage: 'VP Lê Hồng Phong', status: 'stored' },
+    { id: '6', name: 'Laptop Dell XPS 13 (2022)', image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=300&auto=format&fit=crop&q=80', foundDate: '19/10/2026', route: 'Vũng Tàu - TP.HCM', storage: 'VP Huế', status: 'stored' },
+    { id: '7', name: 'Ví da thật Pedro màu nâu', image: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=300&auto=format&fit=crop&q=80', foundDate: '28/10/2026', route: 'TP.HCM - Đà Lạt', storage: 'VP Bến Xe Miền Đông', status: 'stored' },
+    { id: '8', name: 'Tai nghe AirPods Pro 2', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&auto=format&fit=crop&q=80', foundDate: '29/10/2026', route: 'TP.HCM - Cần Thơ', storage: 'VP Bến Xe Miền Tây', status: 'returned' },
+    { id: '9', name: 'Vali kéo nhựa size 20 màu bạc', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&auto=format&fit=crop&q=80', foundDate: '15/10/2026', route: 'Đà Nẵng - Nha Trang', storage: 'VP Đà Nẵng', status: 'stored' },
+    { id: '10', name: 'Áo khoác gió Canifa xám', image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=300&auto=format&fit=crop&q=80', foundDate: '18/10/2026', route: 'Nha Trang - Đà Lạt', storage: 'VP Vũng Tàu', status: 'processing' }
   ];
 
   filteredItems: LostItem[] = [];
@@ -74,8 +74,9 @@ export class LostAndFound implements OnInit {
 
   // Mock data for ticket auto-fill
   mockTickets: { [key: string]: { route: string, date: string, seat: string, fullName: string, phone: string, email: string } } = {
-    'VG123456': { route: 'TP.HCM - Đà Lạt', date: '2026-10-25', seat: 'A01', fullName: 'Nguyễn Văn A', phone: '0987654321', email: 'nguyenvana@gmail.com' },
-    'VG654321': { route: 'Nha Trang - TP.HCM', date: '2026-10-28', seat: 'B05', fullName: 'Trần Thị B', phone: '0912345678', email: 'tranthib@gmail.com' },
+    'VG123456': { route: 'TP.HCM - Đà Lạt', date: '2026-10-25', seat: 'A01', fullName: 'Nguyễn Văn Anh', phone: '0987654321', email: 'vananh.nguyen@email.com' },
+    'VG654321': { route: 'Nha Trang - TP.HCM', date: '2026-10-28', seat: 'B05', fullName: 'Trần Thị Ngọc Bích', phone: '0912345678', email: 'ngocbich.tran@email.com' },
+    'VG789012': { route: 'Cần Thơ - TP.HCM', date: '2026-10-15', seat: 'Phòng 02', fullName: 'Lê Hoàng Long', phone: '0909123456', email: 'long.lehoang@email.com' },
   };
 
   showToast = false;

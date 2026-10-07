@@ -1,4 +1,4 @@
-<div class="container py-8 bg-slate-50 min-h-screen">
+<div class="container py-10 bg-slate-50 min-h-screen">
   <!-- Toast Notification -->
   <div class="toast-notification" [class.show]="showToast">
     <div class="toast-icon"><i class="fas fa-check-circle"></i></div>
@@ -8,150 +8,179 @@
     </div>
   </div>
 
-  <div class="lg:grid-cols-[1.8fr_1fr] grid gap-8 lg:px-4 items-start" id="items-list-top">
+  <div class="lg:grid-cols-[1.8fr_1fr] grid gap-10 lg:px-6 items-start" id="items-list-top">
     <!-- Left Column: Items List -->
     <div>
-      <div class="flex justify-between items-center mb-6">
-        <h1 class="headline-md text-navy flex items-center gap-3">
+      <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-extrabold text-slate-800 flex items-center gap-3 tracking-tight">
           Vật phẩm vừa thu hồi
-          <span class="bg-slate-200 text-slate-700 text-sm font-bold px-3 py-1 rounded-full">{{ filteredItems.length }}</span>
+          <span class="bg-blue-100 text-blue-800 text-sm font-bold px-3 py-1 rounded-full shadow-sm">{{ filteredItems.length }}</span>
         </h1>
-        <div class="text-sm text-slate-500 font-semibold" *ngIf="totalPages > 0">
-          Xem trang {{ currentPage }} trên {{ totalPages }}
+        <div class="text-sm text-slate-500 font-medium bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm" *ngIf="totalPages > 0">
+          Trang <span class="text-slate-800 font-bold">{{ currentPage }}</span> / {{ totalPages }}
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col" *ngFor="let item of paginatedItems">
+        <div class="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden flex flex-col group transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)]" *ngFor="let item of paginatedItems">
           <!-- Image and Status -->
-          <div class="relative h-48 w-full bg-slate-100">
-            <img [src]="item.image" [alt]="item.name" class="w-full h-full object-cover" />
-            <div class="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm" *ngIf="item.status === 'stored'">
-              <span class="text-[#f96d00] text-[10px] font-bold uppercase tracking-wider">Đang lưu trữ</span>
+          <div class="relative h-48 w-full bg-slate-100 overflow-hidden">
+            <img [src]="item.image" [alt]="item.name" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent pointer-events-none"></div>
+            
+            <div class="absolute top-3 right-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5" *ngIf="item.status === 'stored'">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#f96d00] animate-pulse"></span>
+              <span class="text-[#f96d00] text-[10px] font-bold uppercase tracking-widest">Đang lưu trữ</span>
             </div>
-            <div class="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm" *ngIf="item.status === 'processing'">
-              <span class="text-blue-600 text-[10px] font-bold uppercase tracking-wider">Đang xử lý</span>
+            <div class="absolute top-3 right-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5" *ngIf="item.status === 'processing'">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+              <span class="text-blue-600 text-[10px] font-bold uppercase tracking-widest">Đang xử lý</span>
             </div>
-            <div class="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm" *ngIf="item.status === 'returned'">
-              <span class="text-green-600 text-[10px] font-bold uppercase tracking-wider">Đã trao trả</span>
+            <div class="absolute top-3 right-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5" *ngIf="item.status === 'returned'">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-600"></span>
+              <span class="text-green-600 text-[10px] font-bold uppercase tracking-widest">Đã trao trả</span>
             </div>
           </div>
           
           <!-- Info -->
-          <div class="p-5 flex-1 flex flex-col">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">{{ item.name }}</h3>
+          <div class="p-5 flex-1 flex flex-col relative bg-white">
+            <h3 class="text-lg font-bold text-slate-800 mb-4 line-clamp-1 group-hover:text-[#123063] transition-colors">{{ item.name }}</h3>
             
-            <div class="space-y-2 mb-6 flex-1">
-              <div class="flex text-sm">
-                <span class="text-slate-500 w-20">Tìm thấy:</span>
-                <span class="text-navy font-semibold">{{ item.foundDate }}</span>
+            <div class="space-y-3 mb-6 flex-1">
+              <div class="flex items-center text-[13px]">
+                <i class="far fa-calendar-alt text-slate-400 w-5"></i>
+                <span class="text-slate-500 w-16">Tìm thấy:</span>
+                <span class="text-slate-800 font-semibold">{{ item.foundDate }}</span>
               </div>
-              <div class="flex text-sm">
-                <span class="text-slate-500 w-20">Tuyến:</span>
-                <span class="text-navy font-semibold truncate">{{ item.route }}</span>
+              <div class="flex items-center text-[13px]">
+                <i class="fas fa-route text-slate-400 w-5"></i>
+                <span class="text-slate-500 w-16">Tuyến:</span>
+                <span class="text-slate-800 font-semibold truncate">{{ item.route }}</span>
               </div>
-              <div class="flex text-sm">
-                <span class="text-slate-500 w-20">Lưu trữ:</span>
-                <span class="text-navy font-semibold truncate">{{ item.storage }}</span>
+              <div class="flex items-center text-[13px]">
+                <i class="fas fa-map-marker-alt text-slate-400 w-5"></i>
+                <span class="text-slate-500 w-16">Lưu trữ:</span>
+                <span class="text-slate-800 font-semibold truncate">{{ item.storage }}</span>
               </div>
             </div>
             
-            <button class="w-full bg-[#123063] hover:bg-[#1d4586] text-white font-bold py-2.5 rounded-xl transition shadow-md"
+            <button class="w-full bg-[#123063] hover:bg-[#1d4586] text-white font-bold py-3 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 group/btn"
                     (click)="openClaimModal(item)" [disabled]="item.status === 'returned'">
               Báo nhận sở hữu
+              <i class="fas fa-arrow-right text-xs transition-transform group-hover/btn:translate-x-1" *ngIf="item.status !== 'returned'"></i>
             </button>
           </div>
         </div>
       </div>
 
       <!-- Empty state -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center mt-6" *ngIf="filteredItems.length === 0">
-        <i class="fas fa-box-open text-4xl text-slate-300 mb-4"></i>
-        <h3 class="text-lg font-bold text-slate-700 mb-2">Không tìm thấy dữ liệu</h3>
-        <p class="text-slate-500 mb-6">Chưa có vật phẩm nào khớp với bộ lọc tìm kiếm của bạn.</p>
-        <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-6 rounded-xl transition" (click)="clearFilters()">Xóa bộ lọc</button>
+      <div class="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-16 text-center mt-6" *ngIf="filteredItems.length === 0">
+        <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+          <i class="fas fa-box-open text-4xl text-slate-300"></i>
+        </div>
+        <h3 class="text-xl font-bold text-slate-800 mb-2">Không tìm thấy dữ liệu</h3>
+        <p class="text-slate-500 mb-8">Chúng tôi chưa ghi nhận vật phẩm nào khớp với bộ lọc tìm kiếm của bạn.</p>
+        <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-8 rounded-xl transition" (click)="clearFilters()">Xóa bộ lọc</button>
       </div>
 
       <!-- Pagination -->
-      <div class="flex justify-center items-center gap-2 mt-8" *ngIf="totalPages > 1">
-        <button class="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#123063] hover:text-[#123063] transition disabled:opacity-50"
+      <div class="flex justify-center items-center gap-2 mt-10" *ngIf="totalPages > 1">
+        <button class="w-10 h-10 rounded-xl border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#123063] hover:text-[#123063] hover:bg-blue-50 transition disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-transparent"
                 [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">
-          <i class="fas fa-chevron-left"></i>
+          <i class="fas fa-chevron-left text-sm"></i>
         </button>
         <button *ngFor="let page of pagesArray" 
-                class="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center font-bold transition"
-                [ngClass]="currentPage === page ? 'bg-[#123063] border-[#123063] text-white shadow-md' : 'text-slate-600 hover:border-[#123063] hover:text-[#123063]'"
+                class="w-10 h-10 rounded-xl flex items-center justify-center font-bold transition border-2"
+                [ngClass]="currentPage === page ? 'bg-[#123063] border-[#123063] text-white shadow-md' : 'border-slate-200 text-slate-600 hover:border-[#123063] hover:text-[#123063] hover:bg-blue-50'"
                 (click)="setPage(page)">
           {{ page }}
         </button>
-        <button class="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#123063] hover:text-[#123063] transition disabled:opacity-50"
+        <button class="w-10 h-10 rounded-xl border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#123063] hover:text-[#123063] hover:bg-blue-50 transition disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-transparent"
                 [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">
-          <i class="fas fa-chevron-right"></i>
+          <i class="fas fa-chevron-right text-sm"></i>
         </button>
       </div>
     </div>
 
     <!-- Right Column: Form -->
-    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 sticky top-24">
-      <h2 class="text-2xl font-bold text-slate-800 mb-2">Khai báo thất lạc</h2>
-      <p class="text-slate-500 text-sm mb-8 leading-relaxed">
-        Hãy điền chi tiết biểu mẫu khai báo dưới đây để bộ phận đối soát trích xuất camera hành trình hỗ trợ bạn tìm kiếm.
+    <div class="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 p-8 sticky top-28">
+      <div class="flex items-center gap-4 mb-3">
+        <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-[#123063]">
+          <i class="fas fa-clipboard-check text-xl"></i>
+        </div>
+        <div>
+          <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Khai báo thất lạc</h2>
+        </div>
+      </div>
+      <p class="text-slate-500 text-[13px] mb-8 leading-relaxed pl-16">
+        Hãy điền chi tiết biểu mẫu khai báo dưới đây để bộ phận đối soát trích xuất camera hành trình hỗ trợ bạn tìm kiếm một cách nhanh nhất.
       </p>
 
-      <div class="space-y-5">
+      <div class="space-y-6">
         <div>
-          <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Mô tả vật phẩm thất lạc <span class="text-red-500">*</span></label>
-          <input type="text" [(ngModel)]="reportForm.description" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition" placeholder="Ví dụ: Ví da cá sấu đen, iPhone 14 Pro màu tím..." />
+          <label class="block text-[11px] font-bold text-slate-600 uppercase mb-2 tracking-wider">Mô tả vật phẩm thất lạc <span class="text-red-500">*</span></label>
+          <input type="text" [(ngModel)]="reportForm.description" class="w-full border-2 border-slate-100 bg-slate-50 rounded-xl px-4 py-3.5 text-sm focus:bg-white focus:border-[#123063] focus:ring-0 outline-none transition-all text-slate-700 font-medium placeholder:font-normal placeholder:text-slate-400" placeholder="Ví dụ: Ví da cá sấu đen, điện thoại iPhone 14 Pro màu tím có ốp lưng dẻo..." />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-2 gap-5">
           <div>
-            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Tuyến xe <span class="text-red-500">*</span></label>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-2 tracking-wider">Tuyến xe <span class="text-red-500">*</span></label>
             <div class="relative">
-              <select [(ngModel)]="reportForm.route" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm appearance-none focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition bg-white text-slate-700">
-                <option value="">Chọn tuyến</option>
+              <select [(ngModel)]="reportForm.route" class="w-full border-2 border-slate-100 bg-slate-50 rounded-xl px-4 py-3.5 text-sm appearance-none focus:bg-white focus:border-[#123063] focus:ring-0 outline-none transition-all text-slate-700 font-medium">
+                <option value="">-- Chọn tuyến di chuyển --</option>
                 <option *ngFor="let route of routes" [value]="route" [disabled]="route === 'Tất cả các tuyến'">{{ route }}</option>
               </select>
-              <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm"></i>
+              <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs"></i>
             </div>
           </div>
           <div>
-            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Ngày di chuyển <span class="text-red-500">*</span></label>
-            <input type="date" [(ngModel)]="reportForm.date" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition text-slate-700" />
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-2 tracking-wider">Ngày di chuyển <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <input type="date" [(ngModel)]="reportForm.date" class="w-full border-2 border-slate-100 bg-slate-50 rounded-xl px-4 py-3.5 text-sm focus:bg-white focus:border-[#123063] focus:ring-0 outline-none transition-all text-slate-700 font-medium" />
+            </div>
           </div>
         </div>
 
         <div>
-          <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Số ghế / Vị trí phòng (Nếu nhớ)</label>
-          <input type="text" [(ngModel)]="reportForm.seat" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition" placeholder="Ví dụ: Phòng A12, số ghế 5..." />
+          <label class="block text-[11px] font-bold text-slate-600 uppercase mb-2 tracking-wider">Số ghế / Vị trí phòng (Nếu nhớ)</label>
+          <input type="text" [(ngModel)]="reportForm.seat" class="w-full border-2 border-slate-100 bg-slate-50 rounded-xl px-4 py-3.5 text-sm focus:bg-white focus:border-[#123063] focus:ring-0 outline-none transition-all text-slate-700 font-medium placeholder:font-normal placeholder:text-slate-400" placeholder="Ví dụ: Phòng A12, số ghế 5..." />
+        </div>
+
+        <div class="pt-2">
+          <hr class="border-slate-100">
         </div>
 
         <div>
-          <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Họ tên hành khách <span class="text-red-500">*</span></label>
-          <input type="text" [(ngModel)]="reportForm.fullName" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition" placeholder="Nguyễn Văn A" />
+          <label class="block text-[11px] font-bold text-slate-600 uppercase mb-2 tracking-wider">Họ tên hành khách <span class="text-red-500">*</span></label>
+          <input type="text" [(ngModel)]="reportForm.fullName" class="w-full border-2 border-slate-100 bg-slate-50 rounded-xl px-4 py-3.5 text-sm focus:bg-white focus:border-[#123063] focus:ring-0 outline-none transition-all text-slate-700 font-medium placeholder:font-normal placeholder:text-slate-400" placeholder="Tên đầy đủ theo CMND/CCCD" />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-2 gap-5">
           <div>
-            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Số điện thoại <span class="text-red-500">*</span></label>
-            <input type="text" [(ngModel)]="reportForm.phone" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition" placeholder="0987xxxxxx" />
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-2 tracking-wider">Số điện thoại <span class="text-red-500">*</span></label>
+            <input type="text" [(ngModel)]="reportForm.phone" class="w-full border-2 border-slate-100 bg-slate-50 rounded-xl px-4 py-3.5 text-sm focus:bg-white focus:border-[#123063] focus:ring-0 outline-none transition-all text-slate-700 font-medium placeholder:font-normal placeholder:text-slate-400" placeholder="Ví dụ: 0987654321" />
           </div>
           <div>
-            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Địa chỉ Email <span class="text-red-500">*</span></label>
-            <input type="email" [(ngModel)]="reportForm.email" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition" placeholder="name@example.com" />
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-2 tracking-wider">Địa chỉ Email <span class="text-red-500">*</span></label>
+            <input type="email" [(ngModel)]="reportForm.email" class="w-full border-2 border-slate-100 bg-slate-50 rounded-xl px-4 py-3.5 text-sm focus:bg-white focus:border-[#123063] focus:ring-0 outline-none transition-all text-slate-700 font-medium placeholder:font-normal placeholder:text-slate-400" placeholder="name@example.com" />
           </div>
         </div>
 
         <div>
-          <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Hình ảnh vật phẩm (Nếu có)</label>
-          <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center cursor-pointer hover:border-[#123063] transition bg-slate-50">
-            <span class="text-xs text-slate-400">Tải ảnh vật phẩm lên (.jpg, .png)</span>
+          <label class="block text-[11px] font-bold text-slate-600 uppercase mb-2 tracking-wider">Hình ảnh vật phẩm (Nếu có)</label>
+          <div class="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center cursor-pointer hover:border-[#123063] hover:bg-blue-50/50 transition-colors bg-slate-50 group">
+            <div class="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-3 text-slate-400 group-hover:text-[#123063] transition-colors">
+              <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <p class="text-[13px] font-semibold text-slate-600 mb-1">Nhấn để tải ảnh vật phẩm lên</p>
+            <span class="text-[11px] text-slate-400">Hỗ trợ định dạng .jpg, .png (Tối đa 5MB)</span>
           </div>
         </div>
 
         <div class="pt-4">
-          <button class="w-full bg-[#f96d00] hover:bg-[#e55a00] text-white font-bold py-3.5 rounded-xl transition shadow-md" (click)="submitReport()">
+          <button class="w-full bg-gradient-to-r from-[#f96d00] to-[#ff8c33] hover:from-[#e55a00] hover:to-[#f96d00] text-white font-bold py-4 rounded-xl transition-all shadow-[0_8px_20px_rgba(249,109,0,0.25)] hover:shadow-[0_10px_25px_rgba(249,109,0,0.35)] hover:-translate-y-0.5 flex items-center justify-center gap-2 text-[15px]" (click)="submitReport()">
             GỬI YÊU CẦU ĐỐI SOÁT
+            <i class="fas fa-paper-plane text-sm"></i>
           </button>
         </div>
       </div>
@@ -159,41 +188,49 @@
   </div>
 
   <!-- Claim Modal -->
-  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center transition-opacity duration-300" 
+  <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center transition-opacity duration-300" 
        [class.opacity-0]="!isClaimModalOpen" 
        [class.pointer-events-none]="!isClaimModalOpen"
        (click)="closeClaimModal()">
-    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden transform transition-all duration-300"
+    <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-300"
          [class.scale-95]="!isClaimModalOpen"
          [class.scale-100]="isClaimModalOpen"
+         [class.translate-y-4]="!isClaimModalOpen"
+         [class.translate-y-0]="isClaimModalOpen"
          (click)="$event.stopPropagation()">
-      <div class="p-6 border-b border-slate-100 flex justify-between items-start">
-        <div>
-          <h3 class="text-xl font-bold text-slate-800">Xác thực sở hữu</h3>
-          <p class="text-sm text-slate-500 mt-1">{{ selectedClaimItem?.name }}</p>
-        </div>
-        <button class="text-slate-400 hover:text-slate-700 text-xl" (click)="closeClaimModal()"><i class="fas fa-times"></i></button>
-      </div>
-      <div class="p-6">
-        <div class="bg-blue-50 text-blue-700 p-4 rounded-xl text-sm flex gap-3 mb-6">
-          <i class="fas fa-info-circle mt-0.5"></i>
-          <span>Vui lòng cung cấp chính xác mã vé chuyến đi và đặc điểm riêng biệt để hệ thống đối chiếu bảo mật.</span>
-        </div>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Mã vé chuyến đi liên quan <span class="text-red-500">*</span></label>
-            <input type="text" [(ngModel)]="claimForm.ticketCode" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] outline-none transition" placeholder="Ví dụ: VG123456" />
+      <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center">
+            <i class="fas fa-shield-check"></i>
           </div>
           <div>
-            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Đặc điểm nhận dạng độc nhất <span class="text-red-500">*</span></label>
-            <textarea [(ngModel)]="claimForm.description" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] outline-none transition" rows="3" placeholder="Mật khẩu khóa máy, vết xước góc trái..."></textarea>
+            <h3 class="text-[17px] font-bold text-slate-800 tracking-tight">Xác thực sở hữu</h3>
+            <p class="text-xs text-slate-500 font-medium">{{ selectedClaimItem?.name }}</p>
+          </div>
+        </div>
+        <button class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition" (click)="closeClaimModal()"><i class="fas fa-times text-sm"></i></button>
+      </div>
+      <div class="p-8">
+        <div class="bg-blue-50/80 border border-blue-100 text-blue-700 p-4 rounded-2xl text-[13px] leading-relaxed flex gap-3 mb-8">
+          <i class="fas fa-info-circle mt-0.5 text-blue-500"></i>
+          <span>Hệ thống yêu cầu cung cấp chính xác <strong>mã vé chuyến đi</strong> và <strong>đặc điểm nhận dạng độc nhất</strong> để đối chiếu bảo mật, phòng ngừa gian lận.</span>
+        </div>
+        <div class="space-y-6">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-2 tracking-wider">Mã vé chuyến đi liên quan <span class="text-red-500">*</span></label>
+            <input type="text" [(ngModel)]="claimForm.ticketCode" class="w-full border-2 border-slate-100 bg-slate-50 rounded-xl px-4 py-3.5 text-sm focus:bg-white focus:border-[#123063] focus:ring-0 outline-none transition-all text-slate-700 font-medium placeholder:font-normal placeholder:text-slate-400" placeholder="Ví dụ: VG123456" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-2 tracking-wider">Đặc điểm nhận dạng độc nhất <span class="text-red-500">*</span></label>
+            <textarea [(ngModel)]="claimForm.description" class="w-full border-2 border-slate-100 bg-slate-50 rounded-xl px-4 py-3.5 text-sm focus:bg-white focus:border-[#123063] focus:ring-0 outline-none transition-all text-slate-700 font-medium placeholder:font-normal placeholder:text-slate-400" rows="3" placeholder="Ví dụ: Hình nền điện thoại là ảnh con chó, vết xước sâu ở góc dưới bên trái, trong ví có thẻ BHYT mang tên Nguyễn Văn A..."></textarea>
           </div>
         </div>
       </div>
-      <div class="p-6 bg-slate-50 flex gap-3 justify-end">
-        <button class="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition" (click)="closeClaimModal()">Hủy bỏ</button>
-        <button class="px-5 py-2.5 rounded-xl font-bold text-white bg-[#123063] hover:bg-[#1d4586] transition shadow-md" (click)="submitClaim()">
+      <div class="p-6 bg-slate-50 border-t border-slate-100 flex gap-3 justify-end">
+        <button class="px-6 py-3 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition shadow-sm text-sm" (click)="closeClaimModal()">Hủy bỏ</button>
+        <button class="px-6 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#123063] to-[#1d4586] hover:from-[#0d234a] hover:to-[#123063] transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 text-sm flex items-center gap-2" (click)="submitClaim()">
           Gửi yêu cầu xác thực
+          <i class="fas fa-check text-xs"></i>
         </button>
       </div>
     </div>
