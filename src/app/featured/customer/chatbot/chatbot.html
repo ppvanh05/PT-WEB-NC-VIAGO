@@ -15,14 +15,14 @@
   <div class="cb-header">
     <div class="cb-header-info">
       <div class="cb-avatar">
-        <i class="fas fa-robot"></i>
+        <i class="bi bi-robot"></i>
       </div>
       <div>
         <h3 class="cb-title">VIAGO Assistant</h3>
         <span class="cb-status"><span class="cb-dot"></span> Đang trực tuyến</span>
       </div>
     </div>
-    <button class="cb-close-btn" (click)="toggleChat()"><i class="fas fa-minus"></i></button>
+    <button class="cb-close-btn" (click)="toggleChat()"><i class="bi bi-dash-lg"></i></button>
   </div>
 
   <!-- Chat Area -->
@@ -30,7 +30,7 @@
     <div class="cb-messages">
       <div *ngFor="let msg of messages" class="cb-message-group" [ngClass]="msg.isBot ? 'msg-bot' : 'msg-user'">
         <div class="cb-avatar-sm" *ngIf="msg.isBot">
-          <i class="fas fa-robot"></i>
+          <i class="bi bi-robot"></i>
         </div>
         <div class="cb-message-content">
           <div class="cb-bubble" [innerHTML]="msg.text"></div>
@@ -41,7 +41,7 @@
       <!-- Typing Indicator -->
       <div class="cb-message-group msg-bot" *ngIf="isTyping">
         <div class="cb-avatar-sm">
-          <i class="fas fa-robot"></i>
+          <i class="bi bi-robot"></i>
         </div>
         <div class="cb-message-content">
           <div class="cb-bubble typing">
@@ -69,7 +69,7 @@
         [(ngModel)]="userInput" 
         (keyup.enter)="sendMessage()">
       <button class="cb-send-btn" [disabled]="!userInput.trim()" (click)="sendMessage()">
-        <i class="fas fa-paper-plane"></i>
+        <i class="bi bi-send-fill"></i>
       </button>
     </div>
   </div>
