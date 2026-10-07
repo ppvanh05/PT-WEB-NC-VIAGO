@@ -1,251 +1,199 @@
-<div class="page-container">
+<div class="container py-8 bg-slate-50 min-h-screen">
   <!-- Toast Notification -->
   <div class="toast-notification" [class.show]="showToast">
-    <div class="toast-icon">
-      <i class="fas fa-check-circle"></i>
-    </div>
+    <div class="toast-icon"><i class="fas fa-check-circle"></i></div>
     <div class="toast-content">
       <strong>Thành công</strong>
       <span>{{ toastMessage }}</span>
     </div>
   </div>
 
-  <!-- Hero Section with Animated Gradient -->
-  <div class="hero-section">
-    <div class="hero-bg-shapes">
-      <div class="shape shape-1"></div>
-      <div class="shape shape-2"></div>
-    </div>
-    <div class="hero-content">
-      <h1 class="hero-title">Tìm đồ thất lạc</h1>
-      <p class="hero-subtitle">Tra cứu hệ thống kho lưu trữ và đối soát camera hành trình nhanh chóng.</p>
-    </div>
-  </div>
-
-  <div class="main-content">
-    <!-- Filter Bar (Glassmorphism) -->
-    <div class="filter-bar glass-panel" id="items-list-top">
-      <div class="search-box">
-        <i class="fas fa-search search-icon"></i>
-        <input type="text" placeholder="Tìm tên đồ vật (ví, điện thoại...)" [(ngModel)]="searchQuery" (input)="filterItems()" class="form-control" />
-      </div>
-      <div class="search-box ticket-search">
-        <i class="fas fa-ticket-alt search-icon"></i>
-        <input type="text" placeholder="Tìm bằng mã vé chuyến..." [(ngModel)]="searchTicketCode" (input)="filterItems()" class="form-control" />
-      </div>
-      <div class="select-wrapper">
-        <select [(ngModel)]="selectedRoute" (change)="filterItems()" class="form-control dropdown">
-          <option *ngFor="let route of routes" [value]="route">{{ route }}</option>
-        </select>
-        <i class="fas fa-chevron-down select-arrow"></i>
-      </div>
-      <div class="select-wrapper">
-        <select [(ngModel)]="selectedStatus" (change)="filterItems()" class="form-control dropdown">
-          <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
-        </select>
-        <i class="fas fa-chevron-down select-arrow"></i>
-      </div>
-    </div>
-
-    <!-- Layout Grid -->
-    <div class="grid-layout">
-      <!-- Left Column: Items Grid -->
-      <div class="items-section">
-        <div class="items-header">
-          <h2>Danh sách tài sản <span class="count-badge">{{ filteredItems.length }}</span></h2>
-          <span class="pagination-info" *ngIf="totalPages > 0">Trang {{ currentPage }} / {{ totalPages }}</span>
+  <div class="lg:grid-cols-[1.8fr_1fr] grid gap-8 lg:px-4 items-start" id="items-list-top">
+    <!-- Left Column: Items List -->
+    <div>
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="headline-md text-navy flex items-center gap-3">
+          Vật phẩm vừa thu hồi
+          <span class="bg-slate-200 text-slate-700 text-sm font-bold px-3 py-1 rounded-full">{{ filteredItems.length }}</span>
+        </h1>
+        <div class="text-sm text-slate-500 font-semibold" *ngIf="totalPages > 0">
+          Xem trang {{ currentPage }} trên {{ totalPages }}
         </div>
+      </div>
 
-        <div class="items-grid">
-          <div class="item-card" *ngFor="let item of paginatedItems">
-            <div class="item-image-wrapper">
-              <img [src]="item.image" [alt]="item.name" class="item-img" />
-              <div class="overlay-gradient"></div>
-              <div class="status-badge" [ngClass]="item.status">
-                <i class="fas fa-circle status-dot"></i> {{ getStatusLabel(item.status) }}
-              </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col" *ngFor="let item of paginatedItems">
+          <!-- Image and Status -->
+          <div class="relative h-48 w-full bg-slate-100">
+            <img [src]="item.image" [alt]="item.name" class="w-full h-full object-cover" />
+            <div class="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm" *ngIf="item.status === 'stored'">
+              <span class="text-[#f96d00] text-[10px] font-bold uppercase tracking-wider">Đang lưu trữ</span>
             </div>
-            <div class="item-info">
-              <h3 class="item-name">{{ item.name }}</h3>
-              <ul class="item-details-list">
-                <li><i class="far fa-calendar-alt text-brand"></i> <span><strong>{{ item.foundDate }}</strong></span></li>
-                <li><i class="fas fa-route text-brand"></i> <span class="truncate" title="{{ item.route }}">{{ item.route }}</span></li>
-                <li><i class="fas fa-map-marker-alt text-brand"></i> <span class="truncate" title="{{ item.storage }}">{{ item.storage }}</span></li>
-              </ul>
+            <div class="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm" *ngIf="item.status === 'processing'">
+              <span class="text-blue-600 text-[10px] font-bold uppercase tracking-wider">Đang xử lý</span>
             </div>
-            <div class="item-footer">
-              <button class="btn btn-claim" (click)="openClaimModal(item)" [disabled]="item.status === 'returned'">
-                <span>Báo nhận sở hữu</span>
-                <i class="fas fa-arrow-right"></i>
-              </button>
+            <div class="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm" *ngIf="item.status === 'returned'">
+              <span class="text-green-600 text-[10px] font-bold uppercase tracking-wider">Đã trao trả</span>
             </div>
           </div>
-        </div>
-
-        <!-- Empty state -->
-        <div class="empty-state glass-panel" *ngIf="filteredItems.length === 0">
-          <div class="empty-icon-wrapper">
-            <i class="fas fa-box-open"></i>
-          </div>
-          <h3>Không tìm thấy dữ liệu</h3>
-          <p>Rất tiếc, chưa có vật phẩm nào khớp với bộ lọc tìm kiếm của bạn.</p>
-          <button class="btn btn-outline" (click)="clearFilters()">Xóa bộ lọc</button>
-        </div>
-
-        <!-- Pagination -->
-        <div class="pagination-wrapper" *ngIf="totalPages > 1">
-          <button class="page-btn" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">
-            <i class="fas fa-chevron-left"></i>
-          </button>
           
-          <button class="page-btn" *ngFor="let page of pagesArray" 
-                  [class.active]="currentPage === page" 
-                  (click)="setPage(page)">
-            {{ page }}
-          </button>
-          
-          <button class="page-btn" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">
-            <i class="fas fa-chevron-right"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Right Column: Report Form -->
-      <div class="form-section">
-        <div class="form-card glass-panel-strong">
-          <div class="form-card-header">
-            <div class="icon-circle"><i class="fas fa-clipboard-list"></i></div>
-            <div>
-              <h2>Khai báo thất lạc</h2>
-              <p>Gửi yêu cầu để VIAGO trích xuất camera hỗ trợ</p>
-            </div>
-          </div>
-
-          <div class="form-body">
-            <!-- Ticket Auto Fill -->
-            <div class="form-group highlight-group">
-              <label>Tự động điền qua Mã vé</label>
-              <div class="input-with-button">
-                <div class="input-icon-wrapper">
-                  <i class="fas fa-ticket-alt input-icon"></i>
-                  <input type="text" [(ngModel)]="reportForm.ticketCode" class="form-control with-icon" placeholder="VD: VG123456" />
-                </div>
-                <button class="btn btn-auto-fill" (click)="onTicketCodeChange()">
-                  <i class="fas fa-magic"></i> Tự động
-                </button>
+          <!-- Info -->
+          <div class="p-5 flex-1 flex flex-col">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">{{ item.name }}</h3>
+            
+            <div class="space-y-2 mb-6 flex-1">
+              <div class="flex text-sm">
+                <span class="text-slate-500 w-20">Tìm thấy:</span>
+                <span class="text-navy font-semibold">{{ item.foundDate }}</span>
+              </div>
+              <div class="flex text-sm">
+                <span class="text-slate-500 w-20">Tuyến:</span>
+                <span class="text-navy font-semibold truncate">{{ item.route }}</span>
+              </div>
+              <div class="flex text-sm">
+                <span class="text-slate-500 w-20">Lưu trữ:</span>
+                <span class="text-navy font-semibold truncate">{{ item.storage }}</span>
               </div>
             </div>
-
-            <div class="form-group mt-3">
-              <label class="required">Mô tả vật phẩm</label>
-              <textarea [(ngModel)]="reportForm.description" class="form-control" rows="2" placeholder="Ví dụ: Ví da màu đen nhãn hiệu Tommy, bên trong có CCCD..."></textarea>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="required">Tuyến di chuyển</label>
-                <div class="select-wrapper">
-                  <select [(ngModel)]="reportForm.route" class="form-control">
-                    <option value="">-- Chọn tuyến --</option>
-                    <option *ngFor="let route of routes" [value]="route" [disabled]="route === 'Tất cả các tuyến'">{{ route }}</option>
-                  </select>
-                  <i class="fas fa-chevron-down select-arrow"></i>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="required">Ngày đi</label>
-                <input type="date" [(ngModel)]="reportForm.date" class="form-control" />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>Vị trí ghế ngồi (Nếu nhớ)</label>
-              <input type="text" [(ngModel)]="reportForm.seat" class="form-control" placeholder="A1, B5, Phòng 12..." />
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="form-group">
-              <label class="required">Họ tên người khai báo</label>
-              <div class="input-icon-wrapper">
-                <i class="far fa-user input-icon"></i>
-                <input type="text" [(ngModel)]="reportForm.fullName" class="form-control with-icon" placeholder="Tên đầy đủ của bạn" />
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="required">Số điện thoại</label>
-                <div class="input-icon-wrapper">
-                  <i class="fas fa-phone-alt input-icon"></i>
-                  <input type="text" [(ngModel)]="reportForm.phone" class="form-control with-icon" placeholder="0987xxxxxx" />
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Email liên hệ</label>
-                <div class="input-icon-wrapper">
-                  <i class="far fa-envelope input-icon"></i>
-                  <input type="email" [(ngModel)]="reportForm.email" class="form-control with-icon" placeholder="name@email.com" />
-                </div>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>Hình ảnh minh họa (Nếu có)</label>
-              <div class="upload-zone">
-                <div class="upload-icon-circle"><i class="fas fa-cloud-upload-alt"></i></div>
-                <div class="upload-text">
-                  <strong>Nhấn để tải ảnh lên</strong>
-                  <span>Hỗ trợ PNG, JPG, JPEG (Tối đa 5MB)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-footer">
-            <button class="btn btn-submit-glow" (click)="submitReport()">
-              <i class="fas fa-paper-plane"></i> GỬI YÊU CẦU ĐỐI SOÁT
+            
+            <button class="w-full bg-[#123063] hover:bg-[#1d4586] text-white font-bold py-2.5 rounded-xl transition shadow-md"
+                    (click)="openClaimModal(item)" [disabled]="item.status === 'returned'">
+              Báo nhận sở hữu
             </button>
           </div>
         </div>
       </div>
+
+      <!-- Empty state -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center mt-6" *ngIf="filteredItems.length === 0">
+        <i class="fas fa-box-open text-4xl text-slate-300 mb-4"></i>
+        <h3 class="text-lg font-bold text-slate-700 mb-2">Không tìm thấy dữ liệu</h3>
+        <p class="text-slate-500 mb-6">Chưa có vật phẩm nào khớp với bộ lọc tìm kiếm của bạn.</p>
+        <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-6 rounded-xl transition" (click)="clearFilters()">Xóa bộ lọc</button>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex justify-center items-center gap-2 mt-8" *ngIf="totalPages > 1">
+        <button class="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#123063] hover:text-[#123063] transition disabled:opacity-50"
+                [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button *ngFor="let page of pagesArray" 
+                class="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center font-bold transition"
+                [ngClass]="currentPage === page ? 'bg-[#123063] border-[#123063] text-white shadow-md' : 'text-slate-600 hover:border-[#123063] hover:text-[#123063]'"
+                (click)="setPage(page)">
+          {{ page }}
+        </button>
+        <button class="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#123063] hover:text-[#123063] transition disabled:opacity-50"
+                [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Column: Form -->
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 sticky top-24">
+      <h2 class="text-2xl font-bold text-slate-800 mb-2">Khai báo thất lạc</h2>
+      <p class="text-slate-500 text-sm mb-8 leading-relaxed">
+        Hãy điền chi tiết biểu mẫu khai báo dưới đây để bộ phận đối soát trích xuất camera hành trình hỗ trợ bạn tìm kiếm.
+      </p>
+
+      <div class="space-y-5">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Mô tả vật phẩm thất lạc <span class="text-red-500">*</span></label>
+          <input type="text" [(ngModel)]="reportForm.description" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition" placeholder="Ví dụ: Ví da cá sấu đen, iPhone 14 Pro màu tím..." />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Tuyến xe <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <select [(ngModel)]="reportForm.route" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm appearance-none focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition bg-white text-slate-700">
+                <option value="">Chọn tuyến</option>
+                <option *ngFor="let route of routes" [value]="route" [disabled]="route === 'Tất cả các tuyến'">{{ route }}</option>
+              </select>
+              <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm"></i>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Ngày di chuyển <span class="text-red-500">*</span></label>
+            <input type="date" [(ngModel)]="reportForm.date" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition text-slate-700" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Số ghế / Vị trí phòng (Nếu nhớ)</label>
+          <input type="text" [(ngModel)]="reportForm.seat" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition" placeholder="Ví dụ: Phòng A12, số ghế 5..." />
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Họ tên hành khách <span class="text-red-500">*</span></label>
+          <input type="text" [(ngModel)]="reportForm.fullName" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition" placeholder="Nguyễn Văn A" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Số điện thoại <span class="text-red-500">*</span></label>
+            <input type="text" [(ngModel)]="reportForm.phone" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition" placeholder="0987xxxxxx" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Địa chỉ Email <span class="text-red-500">*</span></label>
+            <input type="email" [(ngModel)]="reportForm.email" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] focus:ring-1 focus:ring-[#123063] outline-none transition" placeholder="name@example.com" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Hình ảnh vật phẩm (Nếu có)</label>
+          <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center cursor-pointer hover:border-[#123063] transition bg-slate-50">
+            <span class="text-xs text-slate-400">Tải ảnh vật phẩm lên (.jpg, .png)</span>
+          </div>
+        </div>
+
+        <div class="pt-4">
+          <button class="w-full bg-[#f96d00] hover:bg-[#e55a00] text-white font-bold py-3.5 rounded-xl transition shadow-md" (click)="submitReport()">
+            GỬI YÊU CẦU ĐỐI SOÁT
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Modern Claim Modal -->
-  <div class="modal-backdrop" [class.show]="isClaimModalOpen" (click)="closeClaimModal()">
-    <div class="modal-card scale-in" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <div class="header-title-group">
-          <div class="icon-box"><i class="fas fa-shield-check"></i></div>
-          <div>
-            <h3>Xác thực sở hữu</h3>
-            <p>{{ selectedClaimItem?.name }}</p>
-          </div>
+  <!-- Claim Modal -->
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center transition-opacity duration-300" 
+       [class.opacity-0]="!isClaimModalOpen" 
+       [class.pointer-events-none]="!isClaimModalOpen"
+       (click)="closeClaimModal()">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden transform transition-all duration-300"
+         [class.scale-95]="!isClaimModalOpen"
+         [class.scale-100]="isClaimModalOpen"
+         (click)="$event.stopPropagation()">
+      <div class="p-6 border-b border-slate-100 flex justify-between items-start">
+        <div>
+          <h3 class="text-xl font-bold text-slate-800">Xác thực sở hữu</h3>
+          <p class="text-sm text-slate-500 mt-1">{{ selectedClaimItem?.name }}</p>
         </div>
-        <button class="btn-close-circle" (click)="closeClaimModal()"><i class="fas fa-times"></i></button>
+        <button class="text-slate-400 hover:text-slate-700 text-xl" (click)="closeClaimModal()"><i class="fas fa-times"></i></button>
       </div>
-      <div class="modal-body">
-        <div class="alert-box info">
-          <i class="fas fa-info-circle"></i>
+      <div class="p-6">
+        <div class="bg-blue-50 text-blue-700 p-4 rounded-xl text-sm flex gap-3 mb-6">
+          <i class="fas fa-info-circle mt-0.5"></i>
           <span>Vui lòng cung cấp chính xác mã vé chuyến đi và đặc điểm riêng biệt để hệ thống đối chiếu bảo mật.</span>
         </div>
-        <div class="form-group mt-3">
-          <label class="required">Mã vé chuyến đi liên quan</label>
-          <div class="input-icon-wrapper">
-            <i class="fas fa-ticket-alt input-icon"></i>
-            <input type="text" [(ngModel)]="claimForm.ticketCode" class="form-control with-icon" placeholder="Ví dụ: VG123456" />
+        <div class="space-y-4">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Mã vé chuyến đi liên quan <span class="text-red-500">*</span></label>
+            <input type="text" [(ngModel)]="claimForm.ticketCode" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] outline-none transition" placeholder="Ví dụ: VG123456" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Đặc điểm nhận dạng độc nhất <span class="text-red-500">*</span></label>
+            <textarea [(ngModel)]="claimForm.description" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-[#123063] outline-none transition" rows="3" placeholder="Mật khẩu khóa máy, vết xước góc trái..."></textarea>
           </div>
         </div>
-        <div class="form-group mt-3">
-          <label class="required">Đặc điểm nhận dạng độc nhất</label>
-          <textarea [(ngModel)]="claimForm.description" class="form-control" rows="3" placeholder="Mật khẩu khóa máy, vết xước góc trái, CMND/CCCD mang tên bạn..."></textarea>
-        </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost" (click)="closeClaimModal()">Hủy bỏ</button>
-        <button class="btn btn-primary-gradient" (click)="submitClaim()">
-          Gửi yêu cầu xác thực <i class="fas fa-check ml-2"></i>
+      <div class="p-6 bg-slate-50 flex gap-3 justify-end">
+        <button class="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition" (click)="closeClaimModal()">Hủy bỏ</button>
+        <button class="px-5 py-2.5 rounded-xl font-bold text-white bg-[#123063] hover:bg-[#1d4586] transition shadow-md" (click)="submitClaim()">
+          Gửi yêu cầu xác thực
         </button>
       </div>
     </div>

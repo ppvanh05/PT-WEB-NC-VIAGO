@@ -29,8 +29,10 @@ export class LostAndFound implements OnInit {
     { id: '4', name: 'Túi xách da nữ', image: 'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?w=300&auto=format&fit=crop&q=80', foundDate: '25/10/2026', route: 'Cần Thơ - TP.HCM', storage: 'VP Gia Lâm', status: 'stored' },
     { id: '5', name: 'Kính mắt thời trang', image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=300&auto=format&fit=crop&q=80', foundDate: '26/10/2026', route: 'TP.HCM - Vũng Tàu', storage: 'VP Lê Hồng Phong', status: 'stored' },
     { id: '6', name: 'Laptop Dell', image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=300&auto=format&fit=crop&q=80', foundDate: '27/10/2026', route: 'Vũng Tàu - TP.HCM', storage: 'VP Huế', status: 'stored' },
-    { id: '7', name: 'Ví da nam', image: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=300&auto=format&fit=crop&q=80', foundDate: '28/10/2026', route: 'TP.HCM - Đà Lạt', storage: 'VP Bến Xe Miền Đông', status: 'processing' },
-    { id: '8', name: 'Tai nghe Bluetooth', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&auto=format&fit=crop&q=80', foundDate: '29/10/2026', route: 'TP.HCM - Cần Thơ', storage: 'VP Bến Xe Miền Tây', status: 'stored' }
+    { id: '7', name: 'Ví da đen #2', image: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=300&auto=format&fit=crop&q=80', foundDate: '29/10/2026', route: 'Nha Trang - Đà Lạt', storage: 'VP Vũng Tàu', status: 'stored' },
+    { id: '8', name: 'Điện thoại iPhone #2', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&auto=format&fit=crop&q=80', foundDate: '20/10/2026', route: 'Nha Trang - Đà Nẵng', storage: 'VP Hàng Xanh', status: 'stored' },
+    { id: '9', name: 'Balo xám #2', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&auto=format&fit=crop&q=80', foundDate: '21/10/2026', route: 'Đà Nẵng - Nha Trang', storage: 'VP Đà Nẵng', status: 'stored' },
+    { id: '10', name: 'Tai nghe Bluetooth', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&auto=format&fit=crop&q=80', foundDate: '29/10/2026', route: 'TP.HCM - Cần Thơ', storage: 'VP Bến Xe Miền Tây', status: 'stored' }
   ];
 
   filteredItems: LostItem[] = [];
@@ -50,7 +52,7 @@ export class LostAndFound implements OnInit {
   ];
 
   currentPage = 1;
-  pageSize = 6;
+  pageSize = 9;
   totalPages = 1;
 
   get pagesArray(): number[] {
