@@ -107,8 +107,26 @@ export class Chatbot implements AfterViewChecked {
     else if (text.includes('mất đồ') || text.includes('quên đồ') || text.includes('thất lạc')) {
       reply = 'Ôi đừng quá lo lắng nhé! VIAGO có hẳn một trang <b>Đồ Thất Lạc</b> luôn. Bạn vui lòng truy cập vào mục <b>Dịch vụ -> Đồ thất lạc</b> để xem danh sách hoặc điền form báo mất đồ nha. Mong bạn sớm tìm lại được bảo bối!';
     }
-    else if (text.includes('nhân viên') || text.includes('cskh') || text.includes('gặp') || text.includes('người')) {
+    else if (text.includes('nhân viên') || text.includes('cskh') || text.includes('gặp') || text.includes('người') || text.includes('hỗ trợ')) {
       reply = 'Dạ vâng! Mình đang kết nối tới Chuyên viên Hỗ trợ Khách hàng (CSKH). Sẽ có "người thật việc thật" tư vấn trực tiếp cho bạn ngay sau vài giây... Vui lòng giữ máy nha!';
+      
+      // Giả lập nhân viên thật tham gia chat sau 2.5 giây
+      setTimeout(() => {
+        this.isTyping = true;
+        this.cdr.detectChanges();
+        this.scrollToBottom();
+        
+        setTimeout(() => {
+          this.isTyping = false;
+          this.messages.push({ 
+            text: '<b>[CSKH Mỹ Linh]</b>: Dạ em chào anh/chị ạ. Em là Mỹ Linh - Chuyên viên CSKH VIAGO. Anh/chị đang cần hỗ trợ vấn đề gì để em xử lý ngay cho mình ạ?', 
+            isBot: true, 
+            time: this.getCurrentTime() 
+          });
+          this.cdr.detectChanges();
+          this.scrollToBottom();
+        }, 1000);
+      }, 1500);
     } 
     else if (text.includes('xin chào') || text.includes('hello') || text.includes('chào') || text.includes('hi ') || text === 'hi' || text.includes('ê') || text.includes('bot')) {
       reply = 'Dạ chào bạn! Trợ lý ảo VIAGO rất hân hạnh được phục vụ. Hôm nay mình có thể giúp gì cho chuyến đi của bạn thêm phần trọn vẹn ạ?';
