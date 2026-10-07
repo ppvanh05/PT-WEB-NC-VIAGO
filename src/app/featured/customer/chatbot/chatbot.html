@@ -1,9 +1,71 @@
-<button class="viago-chatbot-btn" aria-label="Mở Chatbot">
-  <i class="bi bi-chat-text-fill"></i>
-  
-  <!-- Chấm thông báo (tùy chọn) -->
-  <span class="viago-chatbot-dot">
-    <span class="viago-chatbot-ping"></span>
-    <span class="viago-chatbot-badge"></span>
-  </span>
+<!-- Floating Chatbot Toggle Button -->
+<button class="cb-toggle-btn" (click)="toggleChat()" [class.active]="isOpen">
+  <i class="fas fa-comment-dots" *ngIf="!isOpen"></i>
+  <i class="fas fa-times" *ngIf="isOpen"></i>
 </button>
+
+<!-- Chat Window -->
+<div class="cb-window" [class.open]="isOpen">
+  <!-- Header -->
+  <div class="cb-header">
+    <div class="cb-header-info">
+      <div class="cb-avatar">
+        <i class="fas fa-robot"></i>
+      </div>
+      <div>
+        <h3 class="cb-title">VIAGO Assistant</h3>
+        <span class="cb-status"><span class="cb-dot"></span> Đang trực tuyến</span>
+      </div>
+    </div>
+    <button class="cb-close-btn" (click)="toggleChat()"><i class="fas fa-minus"></i></button>
+  </div>
+
+  <!-- Chat Area -->
+  <div class="cb-body" #chatScroll>
+    <div class="cb-messages">
+      <div *ngFor="let msg of messages" class="cb-message-group" [ngClass]="msg.isBot ? 'msg-bot' : 'msg-user'">
+        <div class="cb-avatar-sm" *ngIf="msg.isBot">
+          <i class="fas fa-robot"></i>
+        </div>
+        <div class="cb-message-content">
+          <div class="cb-bubble" [innerHTML]="msg.text"></div>
+          <span class="cb-time">{{ msg.time }}</span>
+        </div>
+      </div>
+      
+      <!-- Typing Indicator -->
+      <div class="cb-message-group msg-bot" *ngIf="isTyping">
+        <div class="cb-avatar-sm">
+          <i class="fas fa-robot"></i>
+        </div>
+        <div class="cb-message-content">
+          <div class="cb-bubble typing">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suggestions & Input Area -->
+  <div class="cb-footer">
+    <div class="cb-suggestions">
+      <button *ngFor="let sug of suggestions" class="cb-sug-btn" (click)="sendSuggestion(sug)">
+        {{ sug }}
+      </button>
+    </div>
+    <div class="cb-input-wrap">
+      <input 
+        type="text" 
+        class="cb-input" 
+        placeholder="Nhập câu hỏi của bạn..." 
+        [(ngModel)]="userInput" 
+        (keyup.enter)="sendMessage()">
+      <button class="cb-send-btn" [disabled]="!userInput.trim()" (click)="sendMessage()">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+  </div>
+</div>
