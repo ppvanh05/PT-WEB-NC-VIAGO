@@ -93,14 +93,9 @@
         </p>
 
         <div class="lf-form-body">
-          <div class="lf-form-group" style="background: #eff6ff; padding: 1rem; border-radius: 8px; border: 1px solid #bfdbfe; margin-bottom: 1.5rem;">
-            <label style="color: #1e3a8a;">TỰ ĐỘNG ĐIỀN QUA MÃ VÉ</label>
-            <div style="display: flex; gap: 0.5rem;">
-              <input type="text" [(ngModel)]="reportForm.ticketCode" class="lf-input" placeholder="Nhập mã vé VD: VG123456" style="flex: 1;" (keyup.enter)="onTicketCodeChange()" />
-              <button class="lf-btn-outline" style="background: white;" (click)="onTicketCodeChange()">
-                Tự động điền
-              </button>
-            </div>
+          <div class="lf-form-group">
+            <label>MÃ SỐ VÉ CHUYẾN ĐI (Tùy chọn)</label>
+            <input type="text" [(ngModel)]="reportForm.ticketCode" class="lf-input" placeholder="Ví dụ: VG123456 (Nhập để tự động điền)" (blur)="onTicketCodeChange()" />
           </div>
 
           <div class="lf-form-group">
