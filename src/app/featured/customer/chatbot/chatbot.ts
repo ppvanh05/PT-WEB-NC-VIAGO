@@ -19,7 +19,7 @@ export class Chatbot implements AfterViewChecked {
   userInput = '';
 
   messages = [
-    { text: 'Xin chào! Mình là Trợ lý Ảo của VIAGO 👋. Mình có thể giúp gì cho chuyến đi của bạn hôm nay?', isBot: true, time: this.getCurrentTime() }
+    { text: 'Xin chào! Mình là Trợ lý Ảo của VIAGO. Mình có thể giúp gì cho chuyến đi của bạn hôm nay?', isBot: true, time: this.getCurrentTime() }
   ];
 
   suggestions = [
@@ -83,32 +83,39 @@ export class Chatbot implements AfterViewChecked {
     const text = userText.toLowerCase();
     
     // Câu trả lời mặc định nếu không hiểu (Vui nhộn, tinh tế)
-    let reply = 'Dạ Trợ lý ảo hơi "ngốc nghếch" xíu nên chưa hiểu hết ý bạn. 😅 Bạn có thể nói rõ hơn hoặc gõ chữ <b>Gặp nhân viên</b> để mình gọi "con người" ra hỗ trợ bạn ngay và luôn nha!';
+    let reply = 'Dạ Trợ lý ảo hơi "ngốc nghếch" xíu nên chưa hiểu hết ý bạn. Bạn có thể nói rõ hơn hoặc gõ chữ <b>Gặp nhân viên</b> để mình gọi "con người" ra hỗ trợ bạn ngay và luôn nha!';
     
     // Các từ khóa chửi bậy, tức giận
     const angryWords = ['chó', 'đù', 'mẹ', 'điên', 'lừa đảo', 'cc', 'cmn', 'đkm', 'vãi', 'vl', 'tức', 'bực', 'làm ăn'];
     const isAngry = angryWords.some(word => text.includes(word));
 
     if (isAngry) {
-      reply = 'Ấy ấy, khách yêu ơi xin bớt nóng bớt nóng! 🧯💦 Có chuyện gì từ từ nói nè, giận quá là nhăn da mau già đó nha. Bạn đang gặp sự cố gì bực mình cứ kể nghe, VIAGO sẽ giải quyết đến nơi đến chốn cho bạn luôn! 🥺';
+      reply = 'Ấy ấy, khách yêu ơi xin bớt nóng bớt nóng! Có chuyện gì từ từ nói nè, giận quá là nhăn da mau già đó nha. Bạn đang gặp sự cố gì bực mình cứ kể nghe, VIAGO sẽ giải quyết đến nơi đến chốn cho bạn luôn!';
     } 
     else if (text.includes('đặt vé') || text.includes('mua vé') || text.includes('book vé')) {
-      reply = 'Để đặt vé, bạn có thể quay lại <b>Trang chủ</b> và sử dụng công cụ Tìm chuyến đi, hoặc bấm vào phần <b>Lịch trình</b> trên thanh menu nhé! Chúc bạn chọn được vé ưng ý. 🎫';
+      reply = 'Để đặt vé, bạn có thể quay lại <b>Trang chủ</b> và sử dụng công cụ Tìm chuyến đi, hoặc bấm vào phần <b>Lịch trình</b> trên thanh menu nhé! Chúc bạn chọn được vé ưng ý.';
     } 
     else if (text.includes('tra cứu') || text.includes('kiểm tra vé') || text.includes('xem vé') || text.includes('thông tin chuyến')) {
-      reply = 'Để tra cứu vé, bạn vui lòng cung cấp <b>Mã số vé</b> (ví dụ: VG123456) hoặc <b>Số điện thoại</b> đặt vé nhé! Mình sẽ dùng tốc độ ánh sáng để kiểm tra ngay. ⚡';
+      reply = 'Để tra cứu vé, bạn vui lòng cung cấp <b>Mã số vé</b> (ví dụ: VG123456) hoặc <b>Số điện thoại</b> đặt vé nhé! Mình sẽ dùng tốc độ ánh sáng để kiểm tra ngay.';
     } 
     else if (text.includes('hoàn') || text.includes('hủy') || text.includes('huỷ')) {
-      reply = 'Quy định hoàn/huỷ của VIAGO như sau:<br>- <b>Hủy trước 24h:</b> Miễn phí hoàn tiền 100%.<br>- <b>Hủy trong vòng 24h:</b> Phí 20% giá vé.<br>Bạn cần hỗ trợ hủy chuyến nào để mình giúp ạ? 💸';
+      reply = 'Quy định hoàn/huỷ của VIAGO như sau:<br>- <b>Hủy trước 24h:</b> Miễn phí hoàn tiền 100%.<br>- <b>Hủy trong vòng 24h:</b> Phí 20% giá vé.<br>Bạn cần hỗ trợ hủy chuyến nào để mình giúp ạ?';
     } 
     else if (text.includes('thuê xe') || text.includes('bao xe') || text.includes('mướn xe') || text.includes('hợp đồng')) {
-      reply = 'VIAGO có cung cấp dịch vụ cho thuê xe hợp đồng từ 16 đến 45 chỗ đời mới siêu xịn sò luôn! 🚌✨ Bạn vui lòng truy cập vào phần <b>Dịch vụ</b> trên thanh menu hoặc để lại Số điện thoại để chuyên viên tư vấn gọi lại báo giá tốt nhất nha!';
+      reply = 'VIAGO có cung cấp dịch vụ cho thuê xe hợp đồng từ 16 đến 45 chỗ đời mới siêu xịn sò luôn! Bạn vui lòng truy cập vào phần <b>Dịch vụ</b> trên thanh menu hoặc để lại Số điện thoại để chuyên viên tư vấn gọi lại báo giá tốt nhất nha!';
     }
     else if (text.includes('mất đồ') || text.includes('quên đồ') || text.includes('thất lạc')) {
-      reply = 'Ôi đừng quá lo lắng nhé! VIAGO có hẳn một trang <b>Đồ Thất Lạc</b> luôn. Bạn vui lòng truy cập vào mục <b>Dịch vụ -> Đồ thất lạc</b> để xem danh sách hoặc điền form báo mất đồ nha. Mong bạn sớm tìm lại được bảo bối! 🕵️‍♂️👜';
+      reply = 'Ôi đừng quá lo lắng nhé! VIAGO có hẳn một trang <b>Đồ Thất Lạc</b> luôn. Bạn vui lòng truy cập vào mục <b>Dịch vụ -> Đồ thất lạc</b> để xem danh sách hoặc điền form báo mất đồ nha. Mong bạn sớm tìm lại được bảo bối!';
     }
     else if (text.includes('nhân viên') || text.includes('cskh') || text.includes('gặp') || text.includes('người')) {
-      reply = 'Dạ vâng! Mình đang kết nối tới Chuyên viên Hỗ trợ Khách hàng (CSKH). Sẽ có "người thật việc thật" tư vấn trực tiếp cho bạn ngay sau vài giây... 🎧 Vui lòng giữ máy nha!';
+      reply = 'Dạ vâng! Mình đang kết nối tới Chuyên viên Hỗ trợ Khách hàng (CSKH). Sẽ có "người thật việc thật" tư vấn trực tiếp cho bạn ngay sau vài giây... Vui lòng giữ máy nha!';
+    } 
+    else if (text.includes('xin chào') || text.includes('hello') || text.includes('chào') || text.includes('hi ') || text === 'hi' || text.includes('ê') || text.includes('bot')) {
+      reply = 'Dạ chào bạn! Trợ lý ảo VIAGO rất hân hạnh được phục vụ. Hôm nay mình có thể giúp gì cho chuyến đi của bạn thêm phần trọn vẹn ạ?';
+    }
+
+    this.messages.push({ text: reply, isBot: true, time: this.getCurrentTime() });
+  }y = 'Dạ vâng! Mình đang kết nối tới Chuyên viên Hỗ trợ Khách hàng (CSKH). Sẽ có "người thật việc thật" tư vấn trực tiếp cho bạn ngay sau vài giây... 🎧 Vui lòng giữ máy nha!';
     } 
     else if (text.includes('xin chào') || text.includes('hello') || text.includes('chào') || text.includes('hi ') || text === 'hi' || text.includes('ê') || text.includes('bot')) {
       reply = 'Dạ chào bạn! Trợ lý ảo VIAGO rất hân hạnh được phục vụ. 🥰 Hôm nay mình có thể giúp gì cho chuyến đi của bạn thêm phần trọn vẹn ạ?';
