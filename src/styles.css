@@ -250,6 +250,12 @@
 body { font-family: var(--font-family-base); margin: 0; padding: 0; background-color: var(--color-background); color: var(--color-text-primary); }
 * { box-sizing: border-box; }
 
+.page-hero {
+  padding: 44px 0 126px;
+  background-color: var(--color-primary-600);
+  color: var(--color-text-inverse);
+}
+
 button, input, select, textarea { font-family: inherit; }
 html,
 body {
@@ -258,3 +264,8 @@ body {
   margin: 0;
 }
 
+@media (max-width: 640px) {
+  .page-hero {
+    padding-block: 32px 100px;
+  }
+}

@@ -49,7 +49,7 @@
 
 /* Search Section */
 .schedule-search {
-  margin-top: calc(-1 * var(--space-16));
+  margin-top: -60px;
   padding: 0 var(--space-5);
   position: relative;
   z-index: 10; /* Chỉ cần nổi lên trên Hero (z-index: 2) */
@@ -59,9 +59,10 @@
   max-width: 1000px;
   margin: 0 auto;
   padding: var(--space-6) var(--space-8);
-  background-color: var(--color-text-inverse);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
+  background-color: var(--color-surface);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 0;
+  border-radius: 24px;
 }
 
 .search-wrapper {
@@ -72,6 +73,10 @@
   padding: var(--space-1-5) var(--space-3);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-primary-500);
+}
+
+.search-wrapper:focus-within {
+  box-shadow: var(--focus-ring-primary);
 }
 
 .search-icon-outline {
@@ -109,13 +114,28 @@
 
 .search-input {
   flex: 1;
+  min-width: 0;
   border: none;
-  background: transparent;
-  padding: var(--space-3-5) var(--space-1);
+  background-color: var(--color-surface-muted);
+  border-radius: 0;
+  padding: 14px var(--space-1);
   font-size: var(--font-size-body-lg);
   outline: none;
-  color: var(--color-text-body);
+  color: var(--color-neutral-700);
   font-family: var(--font-family-base);
+}
+
+.search-wrapper .search-input {
+  min-height: 0 !important;
+  padding: 14px var(--space-1) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.search-input::placeholder {
+  color: var(--color-text-secondary);
 }
 
 .search-btn {
@@ -135,6 +155,7 @@
   align-items: center;
   gap: var(--space-3);
   padding-left: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .recent-label {
@@ -296,7 +317,7 @@
 
 .view-btn {
   padding: var(--space-2-5) var(--space-4);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-size: var(--font-size-body);
   background: var(--color-accent-600);
   border: none;
@@ -427,10 +448,10 @@
 
 .btn-view-schedule {
   padding: var(--space-2-5) var(--space-4);
-  border: 1px solid var(--color-primary-500);
-  border-radius: 10px;
-  background: var(--color-text-inverse);
-  color: var(--color-primary-500);
+  border: 1px solid var(--color-accent-600);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-accent-600);
   font-size: var(--font-size-body-sm);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
@@ -438,7 +459,7 @@
 }
 
 .btn-view-schedule:hover {
-  background-color: var(--color-primary-500);
+  background-color: var(--color-accent-600);
   color: var(--color-text-inverse);
 }
 
@@ -447,6 +468,23 @@
   text-align: center;
   padding: var(--space-16) var(--space-5);
   grid-column: 1 / -1;
+}
+
+.empty-state-button {
+  padding: var(--control-padding-x-sm) var(--control-padding-x-lg);
+  border: 1px solid var(--color-accent-600);
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent-600);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.empty-state-button:hover {
+  background-color: var(--color-accent-700);
+  border-color: var(--color-accent-700);
 }
 
 .empty-icon {
@@ -466,6 +504,24 @@
 }
 
 @media (max-width: 768px) {
+
+  .schedule-search {
+    padding: 0 var(--page-padding-mobile);
+  }
+
+  .search-container {
+    padding: var(--space-4);
+  }
+
+  .search-wrapper {
+    gap: var(--space-3);
+    padding-inline: var(--space-3);
+  }
+
+  .recent-searches {
+    align-items: flex-start;
+    padding-left: 0;
+  }
 
   .featured-grid,
   .routes-grid {

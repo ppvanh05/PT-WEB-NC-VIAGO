@@ -1,1 +1,88 @@
-<p>guide works!</p>
+<div class="guide-page">
+  <section class="guide-hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="display-lg">Hướng dẫn</h1>
+        <p class="body-lg">Tìm hiểu cách đặt vé và nhận vé cùng VIAGO</p>
+      </div>
+    </div>
+  </section>
+
+  <main class="container guide-content">
+    <section class="guide-section" aria-labelledby="guide-heading">
+      <h2 id="guide-heading" class="headline-md">Bạn cần hỗ trợ về vấn đề gì?</h2>
+
+      <div class="guide-grid">
+        <a class="guide-card" routerLink="/customer/huong-dan-mua-ve/dat-ve-online">
+          <div class="guide-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h4M7 16h7"/></svg>
+          </div>
+          <h3>Hướng dẫn đặt vé online</h3>
+          <p>Các bước tìm chuyến, chọn ghế, nhập thông tin và thanh toán trực tuyến.</p>
+          <span class="guide-card-link">Xem hướng dẫn <span aria-hidden="true">→</span></span>
+        </a>
+
+        <a class="guide-card" href="#dat-ve-hotline">
+          <div class="guide-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15.5v3a2 2 0 0 1-2.2 2A17.5 17.5 0 0 1 4 5.2 2 2 0 0 1 6 3h3l1.2 4.2-2 1.4a13 13 0 0 0 7.2 7.2l1.4-2L21 15.5Z"/></svg>
+          </div>
+          <h3>Đặt vé qua Hotline</h3>
+          <p>Liên hệ nhân viên VIAGO để được hỗ trợ đặt vé nhanh chóng.</p>
+          <span class="guide-card-link">Xem hướng dẫn <span aria-hidden="true">→</span></span>
+        </a>
+
+        <a class="guide-card" href="#nhan-ve-tai-ben">
+          <div class="guide-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"/><path d="m8 12 2.5 2.5L16 9"/></svg>
+          </div>
+          <h3>Cách nhận vé tại bến</h3>
+          <p>Hướng dẫn nhận và xác nhận vé khi đến bến trước giờ khởi hành.</p>
+          <span class="guide-card-link">Xem hướng dẫn <span aria-hidden="true">→</span></span>
+        </a>
+      </div>
+    </section>
+
+    <section id="dat-ve-online" class="guide-detail" [class.guide-detail-visible]="onlineGuideVisible" aria-labelledby="online-guide-heading">
+      <h2 id="online-guide-heading" class="headline-md">Quy trình mua vé online</h2>
+      <p class="guide-detail-intro">Thực hiện theo các bước sau để hoàn tất đặt vé nhanh chóng trên website VIAGO.</p>
+
+      <div class="guide-steps">
+        <article class="guide-step">
+          <span class="guide-step-number">1</span>
+          <div><h3>Tìm chuyến xe</h3><p>Chọn điểm đi, điểm đến, ngày khởi hành và nhấn <strong>Tìm kiếm</strong>.</p></div>
+        </article>
+        <article class="guide-step">
+          <span class="guide-step-number">2</span>
+          <div><h3>Chọn chuyến và ghế ngồi</h3><p>Xem giờ chạy, loại xe, giá vé và chọn vị trí ghế phù hợp.</p></div>
+        </article>
+        <article class="guide-step">
+          <span class="guide-step-number">3</span>
+          <div><h3>Nhập thông tin hành khách</h3><p>Điền chính xác họ tên, số điện thoại và email để nhận thông tin vé.</p></div>
+        </article>
+        <article class="guide-step">
+          <span class="guide-step-number">4</span>
+          <div><h3>Thanh toán</h3><p>Kiểm tra lại thông tin chuyến đi, sau đó chọn phương thức thanh toán phù hợp.</p></div>
+        </article>
+        <article class="guide-step">
+          <span class="guide-step-number">5</span>
+          <div><h3>Nhận vé điện tử</h3><p>Vé được gửi qua email hoặc số điện thoại. Hãy lưu mã vé để sử dụng khi lên xe.</p></div>
+        </article>
+      </div>
+
+      <div class="guide-note">
+        <strong>Lưu ý:</strong> Vui lòng kiểm tra kỹ thời gian, điểm đón và thông tin hành khách trước khi thanh toán. Nếu chưa nhận được vé, hãy liên hệ Hotline 1900 1234 để được hỗ trợ.
+      </div>
+    </section>
+
+    <section class="guide-help" aria-labelledby="guide-help-heading">
+      <div>
+        <h2 id="guide-help-heading">Cần hỗ trợ thêm?</h2>
+        <p>Đội ngũ VIAGO luôn sẵn sàng giải đáp thắc mắc của bạn.</p>
+      </div>
+      <div class="guide-help-actions">
+        <a class="guide-hotline" href="tel:19001234">1900 1234</a>
+        <a class="btn btn-primary" href="tel:19001234">Gọi Hotline</a>
+      </div>
+    </section>
+  </main>
+</div>

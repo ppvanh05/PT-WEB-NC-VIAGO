@@ -147,26 +147,30 @@
             </svg>
           </a>
 
-          <div class="dropdown-menu-box" [class.open]="isAboutOpen">
+          <div class="dropdown-menu-box about-dropdown-menu" [class.open]="isAboutOpen">
             <a routerLink="/customer/ve-chung-toi" (click)="isAboutOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Về chúng tôi</span>
               <span class="menu-item-desc">Hành trình phát triển VIAGO</span>
             </a>
-            <a routerLink="/customer/tuyen-dung" (click)="isAboutOpen = false" class="dropdown-menu-item">
-              <span class="menu-item-title">Tuyển dụng</span>
-              <span class="menu-item-desc">Cơ hội việc làm hấp dẫn</span>
+            <a routerLink="/customer/chinh-sach" (click)="isAboutOpen = false" class="dropdown-menu-item">
+              <span class="menu-item-title">Chính sách nhà xe</span>
+              <span class="menu-item-desc">Cam kết bảo vệ dữ liệu</span>
+            </a>
+            <a routerLink="/customer/huong-dan-mua-ve" (click)="isAboutOpen = false" class="dropdown-menu-item">
+              <span class="menu-item-title">Hướng dẫn mua vé</span>
+              <span class="menu-item-desc">Hướng dẫn đặt vé nhanh chóng</span>
+            </a>
+            <a routerLink="/customer/faq" (click)="isAboutOpen = false" class="dropdown-menu-item">
+              <span class="menu-item-title">Câu hỏi thường gặp</span>
+              <span class="menu-item-desc">Giải đáp thắc mắc dịch vụ</span>
             </a>
             <a routerLink="/customer/dieu-khoan" (click)="isAboutOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Điều khoản sử dụng</span>
               <span class="menu-item-desc">Quy định và điều kiện dịch vụ</span>
             </a>
-            <a routerLink="/customer/chinh-sach" (click)="isAboutOpen = false" class="dropdown-menu-item">
-              <span class="menu-item-title">Chính sách bảo mật</span>
-              <span class="menu-item-desc">Cam kết bảo vệ dữ liệu</span>
-            </a>
-            <a routerLink="/customer/faq" (click)="isAboutOpen = false" class="dropdown-menu-item">
-              <span class="menu-item-title">Câu hỏi thường gặp</span>
-              <span class="menu-item-desc">Giải đáp thắc mắc dịch vụ</span>
+            <a routerLink="/customer/tuyen-dung" (click)="isAboutOpen = false" class="dropdown-menu-item">
+              <span class="menu-item-title">Tuyển dụng</span>
+              <span class="menu-item-desc">Cơ hội việc làm hấp dẫn</span>
             </a>
             <a routerLink="/customer/lien-he" (click)="isAboutOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Liên hệ</span>

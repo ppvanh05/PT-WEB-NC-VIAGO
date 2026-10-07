@@ -27,16 +27,16 @@
             [(ngModel)]="searchQuery"
             (input)="onSearch()"
           />
-          <button class="search-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
+          <span class="search-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </span>
         </div>
         <div class="search-suggestions">
           <span class="label-sm">Từ khóa gợi ý:</span>
           <div class="suggestion-tags">
-            <button class="tag" (click)="setSearch('Chính sách trẻ em')">Chính sách trẻ em</button>
-            <button class="tag" (click)="setSearch('Hành lý ký gửi')">Hành lý ký gửi</button>
-            <button class="tag" (click)="setSearch('Vé tết 2025')">Vé tết 2025</button>
+            <button class="tag" (click)="setSearch('Chính sách trẻ em', 'booking')">Chính sách trẻ em</button>
+            <button class="tag" (click)="setSearch('Hành lý ký gửi', 'booking')">Hành lý ký gửi</button>
+            <button class="tag" (click)="setSearch('Vé tết 2025', 'booking')">Vé tết 2025</button>
           </div>
         </div>
       </div>
@@ -52,7 +52,7 @@
         <div class="nav-divider"></div>
         <nav class="faq-category-list">
           <button 
-            *ngFor="let cat of categories" 
+            *ngFor="let cat of categories; let i = index" 
             class="nav-item" 
             [class.active]="activeSection === cat.id"
             (click)="scrollToSection(cat.id)"
@@ -79,19 +79,18 @@
     <!-- FAQ Items Area -->
     <main class="faq-main">
       <div class="faq-content-wrapper">
-        <ng-container *ngFor="let cat of categories">
+        <ng-container *ngFor="let cat of categories; let i = index">
           <section class="faq-category-section" [id]="cat.id" *ngIf="getFaqsByCategory(cat.id).length > 0">
-            <h2 class="headline-md">{{ cat.name }}</h2>
+            <h2 class="headline-md">{{ i + 1 }}. {{ cat.name }}</h2>
             <div class="faq-list">
               <div 
                 *ngFor="let item of getFaqsByCategory(cat.id); let i = index" 
                 class="faq-item" 
                 [class.open]="isAccordionOpen(i, cat.id)"
               >
-                <button class="faq-question" (click)="toggleAccordion(i, cat.id)">
+                <div class="faq-question">
                   <span class="title-md">{{ item.question }}</span>
-                  <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                </button>
+                </div>
                 <div class="faq-answer">
                   <div class="answer-content">
                     <p class="body-md">{{ item.answer }}</p>

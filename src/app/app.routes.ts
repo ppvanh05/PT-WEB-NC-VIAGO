@@ -16,6 +16,7 @@ import { Careers } from './featured/customer/about/careers/careers';
 import { Contact } from './featured/customer/about/contact/contact';
 import { Faq } from './featured/customer/about/faq/faq';
 import { Guide } from './featured/customer/about/guide/guide';
+import { GuideDetail } from './featured/customer/about/guide/guide-detail';
 import { Policies } from './featured/customer/about/policies/policies';
 import { Terms } from './featured/customer/about/terms/terms';
 
@@ -48,6 +49,7 @@ export const routes: Routes = [
       { path: 'lien-he', component: Contact },
       { path: 'faq', component: Faq },
       { path: 'huong-dan-mua-ve', component: Guide },
+      { path: 'huong-dan-mua-ve/dat-ve-online', component: GuideDetail },
       { path: 'chinh-sach', component: Policies },
       { path: 'dieu-khoan', component: Terms },
       { path: '**', redirectTo: '' },

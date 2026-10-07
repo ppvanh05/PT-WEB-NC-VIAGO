@@ -14,6 +14,20 @@
           <button class="btn btn-primary" (click)="goToRentalServices()">Khám Phá Dịch Vụ</button>
           <button class="btn btn-outline" (click)="goToSchedule()">Xem Lịch Trình</button>
         </div>
+        <div class="hero-counters" #countersSection>
+          <div class="counter-item">
+            <p class="counter-number text-secondary">{{ passengersDisplay }}</p>
+            <p class="counter-label">Hành Khách Tin Tưởng</p>
+          </div>
+          <div class="counter-item">
+            <p class="counter-number text-secondary">{{ onTimeDisplay }}</p>
+            <p class="counter-label">Đúng Giờ</p>
+          </div>
+          <div class="counter-item">
+            <p class="counter-number text-secondary">{{ tripsDisplay }}</p>
+            <p class="counter-label">Chuyến / Ngày</p>
+          </div>
+        </div>
       </div>
       <div class="hero-image">
         <div class="image-wrapper">
@@ -58,6 +72,41 @@
         <p class="body-md">
           Suốt nhiều năm hoạt động, VIAGO đã không ngừng cải tiến quy trình, đầu tư vào công nghệ quản lý hiện đại để đảm bảo tính minh bạch và công bằng cho mọi hành khách.
         </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Limousine Interior Carousel Section -->
+  <section class="about-us-section limo-carousel-section">
+    <div class="container">
+      <div class="section-header text-center">
+        <span class="section-tag">Nội thất Limousine</span>
+        <h2 class="headline-lg">Trải Nghiệm Nội Thất Hạng Sang</h2>
+        <p class="body-md section-desc">Mỗi chiếc xe Limousine của VIAGO được trang bị nội thất cao cấp, mang đến sự thoải mái tuyệt đối trên mọi hành trình.</p>
+      </div>
+      <div class="carousel-wrapper">
+        <button class="carousel-btn carousel-btn-prev" (click)="prevSlide()" aria-label="Hình trước">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <div class="carousel-viewport">
+          <div class="carousel-track" [style.transform]="'translateX(-' + (currentSlide * 100) + '%)'">
+            <div class="carousel-slide" *ngFor="let image of limoImages; let i = index">
+              <img [src]="image.src" [alt]="image.alt" class="carousel-image" />
+            </div>
+          </div>
+        </div>
+        <button class="carousel-btn carousel-btn-next" (click)="nextSlide()" aria-label="Hình sau">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+      <div class="carousel-dots">
+        <button
+          *ngFor="let image of limoImages; let i = index"
+          class="carousel-dot"
+          [class.active]="i === currentSlide"
+          (click)="goToSlide(i)"
+          [attr.aria-label]="'Chuyển đến hình ' + (i + 1)"
+        ></button>
       </div>
     </div>
   </section>
@@ -139,7 +188,7 @@
           </li>
         </ul>
         <div class="vision-action">
-          <button class="btn btn-navy" (click)="goToBookingSection()">
+          <button class="btn btn-primary" (click)="goToBookingSection()">
             Đặt Vé Ngay Hôm Nay
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
           </button>

@@ -23,7 +23,6 @@
           [(ngModel)]="searchTerm"
           (input)="onSearch()"
         >
-
       </div>
       <div class="recent-searches">
         <span class="recent-label">Tìm kiếm phổ biến:</span>
@@ -148,7 +147,7 @@
         </div>
         <h3 class="empty-title text-base font-bold text-[#123063] mb-2">Không tìm thấy tuyến xe phù hợp</h3>
         <p class="empty-desc text-xs text-slate-500 max-w-md mx-auto mb-6">Rất tiếc, chúng tôi không tìm thấy tuyến xe nào khớp với từ khóa "{{ searchTerm }}". Vui lòng thử lại với từ khóa khác.</p>
-        <button class="viago-btn-secondary rounded-full px-5 py-2.5 text-xs font-bold bg-[#f96d00] text-white" (click)="searchTerm = ''; onSearch()">Xem tất cả tuyến xe</button>
+        <button class="empty-state-button" type="button" (click)="searchTerm = ''; onSearch()">Xem tất cả tuyến xe</button>
       </div>
     </ng-template>
 

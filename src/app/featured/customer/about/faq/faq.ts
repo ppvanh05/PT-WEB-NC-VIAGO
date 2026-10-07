@@ -25,6 +25,7 @@ interface Category {
 })
 export class Faq {
   searchQuery: string = '';
+  selectedSearchCategory: string | null = null;
   activeSection: string = 'booking';
   openIndex: number | null = null;
 
@@ -91,6 +92,7 @@ export class Faq {
   scrollToSection(sectionId: string) {
     this.activeSection = sectionId;
     this.searchQuery = '';
+    this.selectedSearchCategory = null;
     this.updateFilteredFaqs();
     
     // Use setTimeout to ensure the DOM is updated if filtering changed
@@ -103,7 +105,10 @@ export class Faq {
   }
 
   getFaqsByCategory(categoryId: string): FaqItem[] {
-    if (this.searchQuery) {
+    if (this.selectedSearchCategory && this.selectedSearchCategory !== categoryId) {
+      return [];
+    }
+    if (this.searchQuery && !this.selectedSearchCategory) {
       return this.faqs.filter(f => 
         f.categoryId === categoryId && 
         (f.question.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
@@ -133,10 +138,15 @@ export class Faq {
   }
 
   onSearch() {
+    this.selectedSearchCategory = null;
     this.updateFilteredFaqs();
   }
 
   updateFilteredFaqs() {
+    if (this.selectedSearchCategory) {
+      this.filteredFaqs = this.faqs.filter(item => item.categoryId === this.selectedSearchCategory);
+      return;
+    }
     if (!this.searchQuery) {
       this.filteredFaqs = [...this.faqs];
       return;
@@ -148,8 +158,9 @@ export class Faq {
     );
   }
 
-  setSearch(text: string) {
+  setSearch(text: string, categoryId: string) {
     this.searchQuery = text;
+    this.selectedSearchCategory = categoryId;
     this.updateFilteredFaqs();
   }
 }
