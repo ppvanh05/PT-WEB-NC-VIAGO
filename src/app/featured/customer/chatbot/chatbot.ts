@@ -115,12 +115,5 @@ export class Chatbot implements AfterViewChecked {
     }
 
     this.messages.push({ text: reply, isBot: true, time: this.getCurrentTime() });
-  }y = 'Dạ vâng! Mình đang kết nối tới Chuyên viên Hỗ trợ Khách hàng (CSKH). Sẽ có "người thật việc thật" tư vấn trực tiếp cho bạn ngay sau vài giây... 🎧 Vui lòng giữ máy nha!';
-    } 
-    else if (text.includes('xin chào') || text.includes('hello') || text.includes('chào') || text.includes('hi ') || text === 'hi' || text.includes('ê') || text.includes('bot')) {
-      reply = 'Dạ chào bạn! Trợ lý ảo VIAGO rất hân hạnh được phục vụ. 🥰 Hôm nay mình có thể giúp gì cho chuyến đi của bạn thêm phần trọn vẹn ạ?';
-    }
-
-    this.messages.push({ text: reply, isBot: true, time: this.getCurrentTime() });
   }
 }
