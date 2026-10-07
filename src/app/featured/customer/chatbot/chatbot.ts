@@ -86,7 +86,7 @@ export class Chatbot implements AfterViewChecked {
     let reply = 'Dạ Trợ lý ảo hơi "ngốc nghếch" xíu nên chưa hiểu hết ý bạn. Bạn có thể nói rõ hơn hoặc gõ chữ <b>Gặp nhân viên</b> để mình gọi "con người" ra hỗ trợ bạn ngay và luôn nha!';
     
     // Các từ khóa chửi bậy, tức giận
-    const angryWords = ['chó', 'đù', 'mẹ', 'điên', 'lừa đảo', 'cc', 'cmn', 'đkm', 'vãi', 'vl', 'tức', 'bực', 'làm ăn'];
+    const angryWords = [' lừa đảo', ' bực mình', ' làm ăn như', ' chó', ' điên ', ' đkm', ' vcl'];
     const isAngry = angryWords.some(word => text.includes(word));
 
     if (isAngry) {
@@ -135,7 +135,7 @@ export class Chatbot implements AfterViewChecked {
         }, 1000);
       }, 1500);
     } 
-    else if (text.includes('xin chào') || text.includes('hello') || text.includes('chào') || text.includes('hi ') || text === 'hi' || text.includes('ê') || text.includes('bot')) {
+    else if (text.startsWith('chào') || text.startsWith('hi ') || text.startsWith('hello') || text === 'hi' || text === 'ê' || text.includes('xin chào')) {
       reply = 'Dạ chào bạn! Trợ lý ảo VIAGO rất hân hạnh được phục vụ. Hôm nay mình có thể giúp gì cho chuyến đi của bạn thêm phần trọn vẹn ạ?';
     }
 
