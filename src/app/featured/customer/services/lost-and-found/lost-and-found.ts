@@ -156,7 +156,6 @@ export class LostAndFound implements OnInit {
       this.reportForm.fullName = ticket.fullName;
       this.reportForm.phone = ticket.phone;
       this.reportForm.email = ticket.email;
-      this.triggerToast('Đã tự động điền thông tin từ mã vé!');
     }
   }
 
