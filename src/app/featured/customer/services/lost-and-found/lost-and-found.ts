@@ -85,6 +85,17 @@ export class LostAndFound implements OnInit {
   selectedClaimItem: LostItem | null = null;
 
   ngOnInit() {
+    // Generate 37 more items to total 47 items
+    const bases = this.allItems.slice();
+    for (let i = 11; i <= 47; i++) {
+      const base = bases[i % bases.length];
+      this.allItems.push({
+        ...base,
+        id: i.toString(),
+        name: `${base.name} #${i}`,
+      });
+    }
+    
     this.filterItems();
   }
 

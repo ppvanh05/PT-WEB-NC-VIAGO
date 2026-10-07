@@ -73,19 +73,14 @@
       </div>
 
       <!-- Pagination -->
-      <div class="lf-pagination" *ngIf="totalPages > 1">
-        <button class="lf-page-btn" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">
-          <i class="fas fa-chevron-left"></i>
-        </button>
-        <button *ngFor="let page of pagesArray" 
-                class="lf-page-btn"
-                [class.active]="currentPage === page" 
-                (click)="setPage(page)">
-          {{ page }}
-        </button>
-        <button class="lf-page-btn" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">
-          <i class="fas fa-chevron-right"></i>
-        </button>
+      <div class="lf-pagination-wrapper" *ngIf="totalPages > 1" style="margin-top: 2rem; display: flex; justify-content: center;">
+        <app-pagination 
+          [currentPage]="currentPage"
+          [totalItems]="filteredItems.length"
+          [pageSize]="pageSize"
+          [showSummary]="false"
+          (pageChange)="setPage($event)">
+        </app-pagination>
       </div>
     </div>
 
@@ -98,6 +93,16 @@
         </p>
 
         <div class="lf-form-body">
+          <div class="lf-form-group" style="background: #eff6ff; padding: 1rem; border-radius: 8px; border: 1px solid #bfdbfe; margin-bottom: 1.5rem;">
+            <label style="color: #1e3a8a;">TỰ ĐỘNG ĐIỀN QUA MÃ VÉ</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="text" [(ngModel)]="reportForm.ticketCode" class="lf-input" placeholder="Nhập mã vé VD: VG123456" style="flex: 1;" (keyup.enter)="onTicketCodeChange()" />
+              <button class="lf-btn-outline" style="background: white;" (click)="onTicketCodeChange()">
+                Tự động điền
+              </button>
+            </div>
+          </div>
+
           <div class="lf-form-group">
             <label>MÔ TẢ VẬT PHẨM THẤT LẠC <span class="lf-req">*</span></label>
             <input type="text" [(ngModel)]="reportForm.description" class="lf-input" placeholder="Ví dụ: Ví da cá sấu đen, iPhone 14 Pro màu tím..." />
