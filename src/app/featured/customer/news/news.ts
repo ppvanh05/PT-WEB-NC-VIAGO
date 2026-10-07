@@ -1,201 +1,160 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { ARTICLES, Article, ArticleCategory, JobType, ROUTES } from './news-data';
-
-type TimeFilter = 'all' | 'today' | 'week' | 'month';
-type SortOrder = 'newest' | 'oldest';
+import { ActivatedRoute, Router } from '@angular/router';
+import { NewsService, NewsItem } from '../../../core/services/news.service';
 import { Pagination } from '../../../shared/components/pagination/pagination';
 
 @Component({
   selector: 'app-news',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, Pagination],
+  imports: [CommonModule, FormsModule, Pagination],
   templateUrl: './news.html',
-  styleUrls: ['../customer-pages.css', './news.css', '../customer-page-theme.css'],
+  styleUrl: './news.css',
 })
 export class News implements OnInit {
-  activeCategory: ArticleCategory | 'all' = 'all';
-  searchTerm = '';
-  timeFilter: TimeFilter = 'all';
-  sortOrder: SortOrder = 'newest';
-  selectedRoute = 'all';
-  jobType: JobType | 'all' = 'all';
-  useFavoriteRoute = false;
-  favoriteRoute = 'TP.HCM - Đà Lạt';
-  email = '';
-
-  // Share modal state
-  showShareModal = false;
-  shareUrl = '';
-
   categories = [
-    { key: 'all', name: 'Tất cả' },
-    { key: 'tin-nha-xe', name: 'Tin tức nhà xe' },
-    { key: 'khuyen-mai', name: 'Khuyến mãi' },
-    { key: 'cam-nang', name: 'Cẩm nang di chuyển' },
-    { key: 'su-kien', name: 'Sự kiện' },
-    { key: 'tuyen-dung', name: 'Tuyển dụng' },
-  ] as const;
+    { id: 'all', label: 'Tin tức tổng hợp', icon: 'bi bi-grid-fill' },
+    { id: 'news', label: 'Tin tức nhà xe', icon: 'bi bi-bus-front-fill' },
+    { id: 'promotion', label: 'Khuyến mãi', icon: 'bi bi-tag-fill' },
+    { id: 'guide', label: 'Cẩm nang di chuyển', icon: 'bi bi-compass-fill' },
+    { id: 'event', label: 'Sự kiện', icon: 'bi bi-calendar-event-fill' },
+    { id: 'recruitment', label: 'Tuyển dụng', icon: 'bi bi-briefcase-fill' }
+  ];
 
-  routes = ROUTES;
-  articles: Article[] = ARTICLES;
-  filteredArticles: Article[] = [];
-  paginatedArticles: Article[] = [];
-  featuredArticle?: Article;
-  rightSideArticles: Article[] = [];
-  bottomFocusArticles: Article[] = [];
-  relatedPreview: Article[] = [];
-  bookmarkedIds = new Set<number>();
-  subscribed = false;
+  selectedCategory = 'all';
+  searchTerm = '';
+  selectedTime = 'all';
+  selectedSort = 'newest';
 
   currentPage = 1;
-  pageSize = 8;
-  totalPages = 1;
-  pagesArray: number[] = [];
+  pageSize = 12;
 
-  ngOnInit() {
-    this.applyFilters();
+  featuredData: {
+    main?: NewsItem;
+    grid: NewsItem[];
+    subHighlight?: NewsItem;
+    subGrid: NewsItem[];
+  } = { grid: [], subGrid: [] };
+
+  filteredArticles: NewsItem[] = [];
+
+  constructor(
+    private newsService: NewsService,
+    private router: Router,
+    private route: ActivatedRoute
+  ) {}
+
+  ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      const catParam = params['category'];
+      if (catParam && this.categories.some(c => c.id === catParam)) {
+        this.selectedCategory = catParam;
+      } else {
+        this.selectedCategory = 'all';
+      }
+      this.featuredData = this.newsService.getFeaturedNews(this.selectedCategory);
+      this.loadArticles();
+      window.scrollTo(0, 0);
+    });
   }
 
-  setCategory(categoryKey: ArticleCategory | 'all') {
-    this.activeCategory = categoryKey;
+  onCategoryChange(catId: string): void {
+    this.selectedCategory = catId;
     this.currentPage = 1;
-    this.selectedRoute = 'all';
-    this.jobType = 'all';
-    this.applyFilters();
+    this.featuredData = this.newsService.getFeaturedNews(catId);
+    this.loadArticles();
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: catId === 'all' ? {} : { category: catId },
+      queryParamsHandling: ''
+    });
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  applyFilters() {
-    const query = this.searchTerm.trim().toLowerCase();
-    const routeFilter = this.useFavoriteRoute ? this.favoriteRoute : this.selectedRoute;
-    const now = new Date(2026, 5, 27);
-
-    let filtered = this.articles.filter((article) => {
-      const matchesCategory = this.activeCategory === 'all' || article.categoryKey === this.activeCategory;
-      const haystack = `${article.title} ${article.category} ${article.excerpt} ${article.route ?? ''}`.toLowerCase();
-      const matchesSearch = !query || haystack.includes(query);
-      const matchesRoute =
-        !['khuyen-mai', 'cam-nang'].includes(this.activeCategory) ||
-        routeFilter === 'all' ||
-        article.route === routeFilter;
-      const matchesJob = this.activeCategory !== 'tuyen-dung' || this.jobType === 'all' || article.jobType === this.jobType;
-      const matchesTime = this.matchesTimeFilter(article.date, now);
-
-      return matchesCategory && matchesSearch && matchesRoute && matchesJob && matchesTime;
-    });
-
-    filtered = filtered.sort((a, b) => {
-      const dateA = this.parseDate(a.date).getTime();
-      const dateB = this.parseDate(b.date).getTime();
-      return this.sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-    });
-
-    this.filteredArticles = filtered;
-    this.featuredArticle = filtered.find((article) => article.id === 1) ?? filtered[0];
-    
-    const remaining = filtered.filter((article) => article.id !== this.featuredArticle?.id);
-    this.rightSideArticles = remaining.slice(0, 4);
-    this.bottomFocusArticles = remaining.slice(4, 7);
-
-    if (this.rightSideArticles.length < 4) {
-      const extra = this.articles.filter(a => a.id !== this.featuredArticle?.id && !this.rightSideArticles.includes(a));
-      this.rightSideArticles = [...this.rightSideArticles, ...extra].slice(0, 4);
-    }
-    if (this.bottomFocusArticles.length < 3) {
-      const extra = this.articles.filter(a => a.id !== this.featuredArticle?.id && !this.rightSideArticles.includes(a) && !this.bottomFocusArticles.includes(a));
-      this.bottomFocusArticles = [...this.bottomFocusArticles, ...extra].slice(0, 3);
-    }
-
-    this.pageSize = this.getPageSize();
-    this.totalPages = Math.max(1, Math.ceil(this.filteredArticles.length / this.pageSize));
-    this.currentPage = Math.min(this.currentPage, this.totalPages);
-    this.pagesArray = Array.from({ length: this.totalPages }, (_, i) => i + 1);
-    this.updatePaginatedArticles();
-  }
-
-  setPage(page: number) {
-    if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
-      this.updatePaginatedArticles();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+  onImageError(event: Event): void {
+    const target = event.target as HTMLImageElement;
+    if (target) {
+      target.src = 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=800';
     }
   }
 
-  updatePaginatedArticles() {
-    const startIndex = (this.currentPage - 1) * this.pageSize;
-    this.paginatedArticles = this.filteredArticles.slice(startIndex, startIndex + this.pageSize);
+  onFilterChange(): void {
+    this.currentPage = 1;
+    this.loadArticles();
   }
 
-  toggleBookmark(articleId: number) {
-    if (this.bookmarkedIds.has(articleId)) {
-      this.bookmarkedIds.delete(articleId);
-      return;
+  loadArticles(): void {
+    this.filteredArticles = this.newsService.getNewsListFiltered(
+      this.selectedCategory,
+      this.searchTerm,
+      this.selectedTime,
+      this.selectedSort
+    );
+  }
+
+  get paginatedArticles(): NewsItem[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredArticles.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredArticles.length / this.pageSize) || 1;
+  }
+
+  get firstItem(): number {
+    if (this.filteredArticles.length === 0) return 0;
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get lastItem(): number {
+    return Math.min(this.currentPage * this.pageSize, this.filteredArticles.length);
+  }
+
+  get displayedPages(): (number | string)[] {
+    const total = this.totalPages;
+    const current = this.currentPage;
+
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
     }
-    this.bookmarkedIds.add(articleId);
-  }
 
-  copyShareLink(article: Article) {
-    this.shareUrl = `${window.location.origin}/tin-tuc/chi-tiet/${article.id}`;
-    this.showShareModal = true;
-  }
-
-  copyLink() {
-    navigator.clipboard.writeText(this.shareUrl).then(() => {
-      window.alert('Đã sao chép liên kết vào bộ nhớ tạm!');
-      this.showShareModal = false;
-    }).catch(() => {
-      window.alert('Không thể sao chép liên kết.');
-    });
-  }
-
-  subscribe() {
-    this.subscribed = Boolean(this.email.trim());
-  }
-
-  getCategoryName(key: ArticleCategory | 'all'): string {
-    return this.categories.find((category) => category.key === key)?.name ?? '';
-  }
-
-  getCardMeta(article: Article): string {
-    return `${article.date} • ${article.author}`;
-  }
-
-  private getPageSize(): number {
-    switch (this.activeCategory) {
-      case 'khuyen-mai':
-        return 12;
-      case 'tuyen-dung':
-        return 6;
-      case 'cam-nang':
-      case 'su-kien':
-        return 8;
-      default:
-        return 8;
+    if (current <= 4) {
+      return [1, 2, 3, 4, 5, '...', total];
+    } else if (current >= total - 3) {
+      return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+    } else {
+      return [1, '...', current - 1, current, current + 1, '...', total];
     }
   }
 
-  private matchesTimeFilter(dateText: string, now: Date): boolean {
-    if (this.timeFilter === 'all') {
-      return true;
-    }
-
-    const articleDate = this.parseDate(dateText);
-    const diffDays = Math.floor((now.getTime() - articleDate.getTime()) / 86400000);
-
-    if (this.timeFilter === 'today') {
-      return diffDays === 0;
-    }
-    if (this.timeFilter === 'week') {
-      return diffDays >= 0 && diffDays <= 7;
-    }
-    return diffDays >= 0 && diffDays <= 31;
+  get sectionTitle(): string {
+    const cat = this.categories.find(c => c.id === this.selectedCategory);
+    if (this.selectedCategory === 'all') return 'TẤT CẢ TIN TỨC';
+    return (cat ? cat.label : 'DANH SÁCH TIN TỨC').toUpperCase();
   }
 
-  private parseDate(dateText: string): Date {
-    const [day, month, year] = dateText.split('/').map(Number);
-    return new Date(year, month - 1, day);
+  setPage(page: number | string): void {
+    if (typeof page !== 'number') return;
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+
+    setTimeout(() => {
+      const sectionEl = document.getElementById('all-news-section');
+      if (sectionEl) {
+        const navbarOffset = 100;
+        const y = sectionEl.getBoundingClientRect().top + window.pageYOffset - navbarOffset;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 400, behavior: 'smooth' });
+      }
+    }, 50);
+  }
+
+  goToDetail(id?: string): void {
+    if (!id) return;
+    this.router.navigate(['/customer/tin-tuc', id]);
   }
 }
