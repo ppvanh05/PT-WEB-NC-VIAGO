@@ -248,6 +248,7 @@
 }
 
 body { font-family: var(--font-family-base); margin: 0; padding: 0; background-color: var(--color-background); color: var(--color-text-primary); }
+body:has(app-home .booking-title) app-chatbot { display: none; }
 * { box-sizing: border-box; }
 
 button, input, select, textarea { font-family: inherit; }
@@ -258,3 +259,7 @@ body {
   margin: 0;
 }
 
+@media print {
+  body:has(app-home .ticket-document) :is(app-customer-navbar, app-customer-footer, app-chatbot, app-auth-modal) { display: none !important; }
+  body:has(app-home .ticket-document) .viago-customer-main { padding: 0 !important; margin: 0 !important; min-height: 0 !important; }
+}

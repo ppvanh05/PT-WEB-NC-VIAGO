@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Amenities } from '../../../shared/components/amenities/amenities';
 
 interface Route {
   id: number;
@@ -21,7 +22,7 @@ interface Route {
 @Component({
   selector: 'app-schedule',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, Amenities],
   templateUrl: './schedule.html',
   styleUrls: ['../customer-pages.css', './schedule.css', '../customer-page-theme.css'],
 })

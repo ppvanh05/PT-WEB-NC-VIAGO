@@ -1,23 +1,5 @@
+import { bookingLeaveGuard } from './featured/customer/home/booking.guard';
 import { Routes } from '@angular/router';
-import { AdminLayout } from './core/layout/admin-layout/admin-layout';
-import { CustomerLayout } from './core/layout/customer-layout/customer-layout';
-import { Home as AdminHome } from './featured/admin/home/home';
-import { Home as CustomerHome } from './featured/customer/home/home';
-import { Schedule } from './featured/customer/schedule/schedule';
-import { TicketLookup } from './featured/customer/ticket-lookup/ticket-lookup';
-import { News } from './featured/customer/news/news';
-import { NewsDetail } from './featured/customer/news/news-detail/news-detail';
-import { Invoice } from './featured/customer/invoice/invoice';
-import { Reviews } from './featured/customer/reviews/reviews';
-import { Services } from './featured/customer/services/services';
-import { Profile } from './featured/customer/profile/profile';
-import { AboutUs } from './featured/customer/about/about-us/about-us';
-import { Careers } from './featured/customer/about/careers/careers';
-import { Contact } from './featured/customer/about/contact/contact';
-import { Faq } from './featured/customer/about/faq/faq';
-import { Guide } from './featured/customer/about/guide/guide';
-import { Policies } from './featured/customer/about/policies/policies';
-import { Terms } from './featured/customer/about/terms/terms';
 
 export const routes: Routes = [
   { path: 'admin', pathMatch: 'full', redirectTo: 'admin/login' },
@@ -27,34 +9,35 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
-    component: AdminLayout,
+    loadComponent: () => import('./core/layout/admin-layout/admin-layout').then(m => m.AdminLayout),
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
-      { path: 'home', component: AdminHome },
+      { path: 'home', loadComponent: () => import('./featured/admin/home/home').then(m => m.Home) },
       { path: '**', redirectTo: 'home' },
     ],
   },
   {
     path: 'customer',
-    component: CustomerLayout,
+    loadComponent: () => import('./core/layout/customer-layout/customer-layout').then(m => m.CustomerLayout),
     children: [
-      { path: '', component: CustomerHome },
-      { path: 'lich-trinh', component: Schedule },
-      { path: 'tra-cuu-ve', component: TicketLookup },
-      { path: 'tin-tuc', component: News },
-      { path: 'tin-tuc/:id', component: NewsDetail },
-      { path: 'hoa-don', component: Invoice },
-      { path: 'danh-gia', component: Reviews },
-      { path: 'dich-vu', component: Services },
-      { path: 'profile', component: Profile },
-      { path: 've-chung-toi', component: AboutUs },
-      { path: 'gioi-thieu', component: AboutUs },
-      { path: 'tuyen-dung', component: Careers },
-      { path: 'lien-he', component: Contact },
-      { path: 'faq', component: Faq },
-      { path: 'huong-dan-mua-ve', component: Guide },
-      { path: 'chinh-sach', component: Policies },
-      { path: 'dieu-khoan', component: Terms },
+      { path: '', loadComponent: () => import('./featured/customer/home/home').then(m => m.Home), canDeactivate: [bookingLeaveGuard] },
+      { path: 'lich-trinh', loadComponent: () => import('./featured/customer/schedule/schedule').then(m => m.Schedule) },
+      { path: 'tra-cuu-ve', loadComponent: () => import('./featured/customer/ticket-lookup/ticket-lookup').then(m => m.TicketLookup) },
+      { path: 'tin-tuc', loadComponent: () => import('./featured/customer/news/news').then(m => m.News) },
+      { path: 'tin-tuc/:id', loadComponent: () => import('./featured/customer/news/news-detail/news-detail').then(m => m.NewsDetail) },
+      { path: 'hoa-don', loadComponent: () => import('./featured/customer/invoice/invoice').then(m => m.Invoice) },
+      { path: 'danh-gia', loadComponent: () => import('./featured/customer/reviews/reviews').then(m => m.Reviews) },
+      { path: 'dich-vu', loadComponent: () => import('./featured/customer/services/services').then(m => m.Services) },
+      { path: 'do-that-lac', loadComponent: () => import('./featured/customer/services/services').then(m => m.Services) },
+      { path: 'profile', loadComponent: () => import('./featured/customer/profile/profile').then(m => m.Profile) },
+      { path: 've-chung-toi', loadComponent: () => import('./featured/customer/about/about-us/about-us').then(m => m.AboutUs) },
+      { path: 'gioi-thieu', loadComponent: () => import('./featured/customer/about/about-us/about-us').then(m => m.AboutUs) },
+      { path: 'tuyen-dung', loadComponent: () => import('./featured/customer/about/careers/careers').then(m => m.Careers) },
+      { path: 'lien-he', loadComponent: () => import('./featured/customer/about/contact/contact').then(m => m.Contact) },
+      { path: 'faq', loadComponent: () => import('./featured/customer/about/faq/faq').then(m => m.Faq) },
+      { path: 'huong-dan-mua-ve', loadComponent: () => import('./featured/customer/about/guide/guide').then(m => m.Guide) },
+      { path: 'chinh-sach', loadComponent: () => import('./featured/customer/about/policies/policies').then(m => m.Policies) },
+      { path: 'dieu-khoan', loadComponent: () => import('./featured/customer/about/terms/terms').then(m => m.Terms) },
       { path: '**', redirectTo: '' },
     ],
   },

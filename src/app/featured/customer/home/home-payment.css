@@ -1,0 +1,32 @@
+/* Original payment layout: methods / QR and confirmation / passenger summary. */
+.payment-layout { max-width: 1000px; margin: var(--space-6) auto; grid-template-columns: minmax(0, 25fr) minmax(0, 45fr) minmax(0, 30fr); gap: var(--space-5); padding: var(--space-5); border: 0; border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); align-items: start; }
+.payment-layout > .panel { min-width: 0; padding: var(--space-2); border: 0; border-radius: 0; box-shadow: none; }
+.payment-layout > .panel + .panel { border: 0; }
+.payment-layout > aside { grid-column: auto; position: static; }
+.payment-layout h2 { font-size: var(--font-size-body-lg); line-height: var(--line-height-body-lg); font-weight: var(--font-weight-bold); margin: 0 0 var(--space-3); color: var(--color-primary-600); }
+.payment-layout .method { display: flex; align-items: center; gap: var(--space-3); padding: 10px 14px; margin: 0 0 var(--space-2); min-height: 42px; border: 2px solid transparent; border-radius: var(--radius-sm); background: var(--color-background); color: var(--color-text-body); font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); text-align: left; }
+.payment-layout .method img { width: 32px; height: 18px; flex-shrink: 0; object-fit: contain; }
+.payment-layout .method span { display: inline; margin: 0; }
+.payment-layout .method:hover:not(:disabled) { background: var(--color-surface-muted); }
+.payment-layout .method.chosen { border-color: var(--color-accent-600); background: var(--color-accent-50); color: var(--color-accent-600); }
+.payment-content { text-align: center; }
+.payment-layout .payment-total { color: var(--color-accent-600); font-size: var(--font-size-h2); line-height: var(--line-height-h2); font-weight: var(--font-weight-bold); margin: 0 0 6px; }
+.payment-layout .payment-timer { color: var(--color-text-secondary); font-size: var(--font-size-body); line-height: var(--line-height-body); margin: 0 0 var(--space-4); }
+.payment-layout .payment-order-code { display: flex; justify-content: center; margin: 0 0 var(--space-4); padding: 0; }
+.payment-qr-frame { display: grid; place-items: center; width: 208px; height: 208px; max-width: 100%; box-sizing: border-box; padding: var(--space-2); background: var(--color-surface); border: 4px solid var(--color-primary-600); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); transition: border-color .2s; }
+/* Keep the provider colors used by the reference. */
+.payment-qr-frame.qr-vnpay { border-color: #005aab; }
+.payment-qr-frame.qr-momo { border-color: #a50064; }
+.payment-qr-frame.qr-zalopay { border-color: #00c4cc; }
+.payment-layout .payment-reference { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin: 0 0 var(--space-3); padding: 0; background: transparent; border: 0; font-size: var(--font-size-caption); overflow-wrap: anywhere; }
+.payment-layout .payment-reference strong { color: var(--color-primary-600); }
+.payment-layout .payment-instructions { text-align: left; margin: 0 0 var(--space-3); padding: 0 0 0 18px; background: transparent; border-radius: 0; color: var(--color-text-secondary); font-size: var(--font-size-body-sm); line-height: var(--line-height-body-sm); }
+.payment-instructions li { margin-bottom: var(--space-2); }
+.payment-layout .summary-leg { padding: 0; margin: 0; border: 0; }
+.payment-layout .summary-leg + .summary-leg { margin-top: var(--space-4); }
+.payment-summary-row { margin-bottom: var(--space-2); color: var(--color-text-body); font-size: var(--font-size-body); line-height: var(--line-height-body); overflow-wrap: anywhere; }
+.payment-price-box { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); margin-top: 18px; padding: var(--space-3); background: var(--color-info-50); border-radius: var(--radius-sm); font-size: var(--font-size-body); }
+.payment-price-box > strong:last-child { color: var(--color-accent-600); font-size: var(--font-size-title); }
+.payment-layout .payment-cancel { margin: var(--space-4) 0 0; padding: 0; }
+@media (max-width: 900px) { .payment-layout { grid-template-columns: minmax(0, 1fr); }.payment-layout > aside { grid-column: auto; } }
+@media (max-width: 600px) { .payment-layout { padding: var(--space-4); } }

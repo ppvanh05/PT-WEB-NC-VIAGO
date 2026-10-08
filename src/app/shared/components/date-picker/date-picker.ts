@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, forwardRef, HostListener, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, forwardRef, HostListener, Input, OnChanges, Output, SimpleChanges, ViewChild, ElementRef, AfterViewChecked, OnDestroy } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { convertSolar2Lunar } from '../../utils/lunar-calendar';
 
@@ -10,7 +10,27 @@ interface CalendarDay { date: string; day: number; lunarLabel: string; currentMo
   templateUrl: './date-picker.html', styleUrl: './date-picker.css',
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => DatePickerComponent), multi: true }],
 })
-export class DatePickerComponent implements ControlValueAccessor, OnChanges {
+export class DatePickerComponent implements ControlValueAccessor, OnChanges, AfterViewChecked, OnDestroy {
+  @ViewChild('control') private control?: ElementRef<HTMLElement>;
+  @ViewChild('calendar') private calendar?: ElementRef<HTMLElement>;
+  private readonly scrollListener = () => this.positionCalendar();
+  ngAfterViewChecked(): void { this.positionCalendar(); }
+  ngOnDestroy(): void { document.removeEventListener('scroll', this.scrollListener, true); }
+  @HostListener('window:resize') onResize(): void { this.positionCalendar(); }
+  private positionCalendar(): void {
+    if (!this.isOpen || !this.control || !this.calendar) return;
+    const control = this.control.nativeElement, calendar = this.calendar.nativeElement;
+    const anchor = control.getBoundingClientRect(), panel = control.closest('.modal-panel')?.getBoundingClientRect();
+    const styles = getComputedStyle(control), margin = parseFloat(styles.getPropertyValue('--space-4')) || 16, gap = parseFloat(styles.getPropertyValue('--space-2')) || 8;
+    const left = Math.max(margin, (panel?.left || 0) + margin), right = Math.min(window.innerWidth - margin, (panel?.right || window.innerWidth) - margin);
+    const top = margin, bottom = window.innerHeight - margin;
+    const width = Math.min(320, Math.max(0, right - left)); calendar.style.width = `${width}px`;
+    const below = Math.max(0, bottom - anchor.bottom - gap), above = Math.max(0, anchor.top - top - gap);
+    calendar.style.maxHeight = 'none';
+    const height = calendar.offsetHeight, placeAbove = below < height && above > below;
+    const preferredTop = placeAbove ? anchor.top - gap - height : anchor.bottom + gap;
+    calendar.style.position = 'fixed'; calendar.style.left = `${Math.max(left, Math.min(anchor.left, right - width))}px`; calendar.style.top = `${Math.max(top, Math.min(preferredTop, bottom - height))}px`;
+  }
   @Input() label = '';
   @Input() placeholder = 'dd/mm/yyyy';
   @Input() format = 'dd/MM/yyyy';
@@ -47,8 +67,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnChanges {
   }
 
   toggle(): void { if (this.disabled) return; this.isOpen ? this.close() : this.open(); }
-  open(): void { this.isOpen = true; if (this.value) this.viewDate = this.parseDate(this.value) || this.viewDate; this.generateCalendar(); this.focusedDate = this.value || this.calendarDays.find(day => day.currentMonth && !day.disabled)?.date || ''; this.opened.emit(); }
-  close(): void { if (!this.isOpen) return; this.isOpen = false; this.onTouched(); this.closed.emit(); }
+  open(): void { this.isOpen = true; document.addEventListener('scroll', this.scrollListener, true); if (this.value) this.viewDate = this.parseDate(this.value) || this.viewDate; this.generateCalendar(); this.focusedDate = this.value || this.calendarDays.find(day => day.currentMonth && !day.disabled)?.date || ''; this.opened.emit(); }
+  close(): void { if (!this.isOpen) return; document.removeEventListener('scroll', this.scrollListener, true); this.isOpen = false; this.onTouched(); this.closed.emit(); }
   clear(event: MouseEvent): void { event.stopPropagation(); this.selectValue(''); }
   previousMonth(): void { if (this.previousMonthDisabled) return; this.viewDate = new Date(this.viewDate.getFullYear(), this.viewDate.getMonth() - 1, 1); this.generateCalendar(); this.monthChange.emit({ month: this.viewDate.getMonth() + 1, year: this.viewDate.getFullYear() }); }
   nextMonth(): void { if (this.nextMonthDisabled) return; this.viewDate = new Date(this.viewDate.getFullYear(), this.viewDate.getMonth() + 1, 1); this.generateCalendar(); this.monthChange.emit({ month: this.viewDate.getMonth() + 1, year: this.viewDate.getFullYear() }); }
@@ -96,7 +116,12 @@ export class DatePickerComponent implements ControlValueAccessor, OnChanges {
     setTimeout(() => document.querySelector<HTMLElement>(`[data-date-picker-day="${nextDate}"]`)?.focus());
   }
   private toIso(date: Date): string { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
-  private parseDate(value: string): Date | null { const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value); return match ? new Date(+match[1], +match[2] - 1, +match[3]) : null; }
+  private parseDate(value: string): Date | null {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) return null;
+    const date = new Date(+match[1], +match[2] - 1, +match[3]);
+    return date.getFullYear() === +match[1] && date.getMonth() === +match[2] - 1 && date.getDate() === +match[3] ? date : null;
+  }
   private monthStart(offset = 0): string { return this.toIso(new Date(this.viewDate.getFullYear(), this.viewDate.getMonth() + offset, 1)); }
   private monthEnd(offset = 0): string { return this.toIso(new Date(this.viewDate.getFullYear(), this.viewDate.getMonth() + offset + 1, 0)); }
   private isMonthOutsideRange(date: Date): boolean { const start = this.toIso(new Date(date.getFullYear(), date.getMonth(), 1)); const end = this.toIso(new Date(date.getFullYear(), date.getMonth() + 1, 0)); return (!!this.minDate && end < this.minDate) || (!!this.maxDate && start > this.maxDate); }
@@ -106,6 +131,6 @@ export class DatePickerComponent implements ControlValueAccessor, OnChanges {
   get nextMonthDisabled(): boolean { return !!this.maxDate && this.monthStart(1) > this.maxDate; }
   get displayValue(): string { const date = this.parseDate(this.value); if (!date) return ''; const dd = String(date.getDate()).padStart(2, '0'); const mm = String(date.getMonth() + 1).padStart(2, '0'); const yyyy = date.getFullYear(); if (this.format === 'MM/dd/yyyy') return `${mm}/${dd}/${yyyy}`; if (this.format === 'yyyy-MM-dd') return `${yyyy}-${mm}-${dd}`; return `${dd}/${mm}/${yyyy}`; }
   get monthLabel(): string { return this.viewDate.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' }); }
-  @HostListener('document:click', ['$event']) onDocumentClick(event: MouseEvent): void { const target = event.target as HTMLElement; if (this.isOpen && !target.closest('app-date-picker')) this.close(); }
+  @HostListener('document:click', ['$event']) onDocumentClick(event: MouseEvent): void { const target = event.target as HTMLElement; const host = this.control?.nativeElement.closest('app-date-picker'); if (this.isOpen && !(host ? host.contains(target) : target.closest('app-date-picker'))) this.close(); }
   @HostListener('document:keydown.escape') onEscape(): void { if (this.isOpen) this.close(); }
 }

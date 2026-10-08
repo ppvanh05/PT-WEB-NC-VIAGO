@@ -189,7 +189,7 @@
                 <span class="trip-time text-base font-black text-[#f96d00]">{{ trip.time }}</span>
                 <div>
                   <div class="trip-vehicle text-xs font-bold text-[#123063]">{{ trip.type }}</div>
-                  <div class="trip-amenities text-[10px] text-gray-500">{{ trip.amenities }}</div>
+                  <app-amenities class="trip-amenities" [items]="trip.amenities" />
                 </div>
               </div>
               <div class="text-right">

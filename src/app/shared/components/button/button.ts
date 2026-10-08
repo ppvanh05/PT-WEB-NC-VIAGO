@@ -14,6 +14,7 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
   imports: [],
   templateUrl: './button.html',
   styleUrl: './button.css',
+  host: { '[class.viago-button-host--full-width]': 'fullWidth()' },
 })
 export class Button {
   variant = input<ButtonVariant>('primary');
@@ -24,6 +25,7 @@ export class Button {
   disabled = input(false);
   loading = input(false);
   iconOnly = input(false);
+  fullWidth = input(false);
 
   ariaLabel = input<string | undefined>(undefined);
 

@@ -499,6 +499,10 @@
     display: none;
   }
 }
-
-
-
+@media (max-width: 600px) {
+  .utility-col-right > .btn-auth { display: none; }
+  .utility-col-right { flex: 0 0 auto; }
+  .utility-col-left { flex: 0 0 auto; }
+  .utility-col-center { flex: 1; }
+  .brand-logo-img { height: var(--space-8); }
+}

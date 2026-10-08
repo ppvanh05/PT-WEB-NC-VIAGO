@@ -23,12 +23,19 @@
     [disabled]="disabled()"
     [readOnly]="readonly()"
     [required]="required()"
+    [attr.maxlength]="maxlength()"
+    [attr.min]="min()"
+    [attr.max]="max()"
+    [attr.autocomplete]="autocomplete()"
+    [attr.inputmode]="inputmode()"
+    (blur)="blurred.emit()"
     [attr.aria-invalid]="error() ? 'true' : null"
+    [attr.aria-describedby]="error() && id() ? id() + '-error' : null"
     (input)="onInput($event)"
   />
 
   @if (error()) {
-    <span class="viago-field__error">
+    <span class="viago-field__error" [id]="id() ? id() + '-error' : null" role="alert">
       {{ error() }}
     </span>
   } @else if (helperText()) {

@@ -7,3 +7,16 @@
 .modal-button { min-height: var(--control-height-md, 40px); padding: 0 var(--control-padding-x-md, 16px); border: 1px solid transparent; border-radius: var(--button-radius, 8px); font: 600 var(--font-size-body, 14px)/1 var(--font-family-base, sans-serif); cursor: pointer; } .modal-button--primary { color: #fff; background: var(--color-primary-600, #00236f); } .modal-button--danger { color: #fff; background: var(--color-danger-500, #ef4444); } .modal-button--secondary { color: var(--color-text-body, #334155); border-color: var(--color-border, #e2e8f0); background: var(--color-surface, #fff); } .modal-button:hover:not(:disabled) { filter: brightness(.96); } .modal-button:focus-visible, .modal-close:focus-visible { outline: none; box-shadow: var(--focus-ring-primary, 0 0 0 3px rgba(0,35,111,.16)); } .modal-button--danger:focus-visible { box-shadow: var(--focus-ring-danger, 0 0 0 3px rgba(239,68,68,.16)); } .modal-button:disabled, .modal-close:disabled { opacity: .55; cursor: not-allowed; }
 .modal-spinner { display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: modal-spin .7s linear infinite; } @keyframes modal-spin { to { transform: rotate(360deg); } }
 @media (max-width: 480px) { .modal-header, .modal-body { padding: var(--space-4, 16px); } .modal-footer { padding: 0 var(--space-4, 16px) var(--space-4, 16px); } .modal-footer .modal-button { flex: 1; } }
+:host { display: contents; }
+.modal-panel { outline: none; scrollbar-width: thin; }
+.modal-panel.modal-panel--fixed { height: min(672px, calc(100dvh - var(--space-8))); display: flex; flex-direction: column; overflow: hidden; }
+.modal-panel.modal-panel--fixed.modal-panel--fit { height: auto; }
+.modal-panel--fixed > .modal-header, .modal-panel--fixed > .modal-footer { flex-shrink: 0; }
+.modal-panel--fixed > .modal-body { min-height: 0; overflow: auto; flex: 1; }
+@media print { .modal-backdrop { position: static; padding: 0; background: none; }.modal-panel { width: 100%; max-height: none; box-shadow: none; border: 0; overflow: visible; }.modal-header, .modal-footer { display: none; }.modal-body { padding: 0; } }
+
+.modal-panel--fixed > .modal-body { scrollbar-width: thin; scrollbar-color: var(--color-neutral-400, #94a3b8) transparent; }
+@media print {
+  .modal-panel.modal-panel--fixed, .modal-panel.modal-panel--fixed.modal-panel--fit { height: auto; max-height: none; display: block; overflow: visible; }
+  .modal-panel--fixed > .modal-body { overflow: visible; }
+}

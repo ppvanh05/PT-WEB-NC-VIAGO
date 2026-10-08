@@ -21,6 +21,16 @@
   gap: var(--space-1-5, 6px);
 }
 
+.viago-badge.viago-badge--soft.amenity-badge {
+  font-weight: var(--font-weight-bold, 700);
+  width: var(--amenity-width, auto);
+  height: var(--amenity-height, 28px);
+  justify-content: var(--amenity-justify, center);
+  color: var(--amenity-color);
+  background-color: var(--amenity-background);
+  border: 1px solid var(--amenity-border);
+}
+
 /* --- Sizes --- */
 .viago-badge--sm {
   height: 20px;

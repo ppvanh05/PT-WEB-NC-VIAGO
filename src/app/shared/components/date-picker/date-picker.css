@@ -22,3 +22,4 @@
 .date-picker-selectors select:focus-visible { outline: none; box-shadow: var(--focus-ring-primary, 0 0 0 3px rgba(0,35,111,.16)); }
 .date-picker-selectors select:hover { background: var(--color-primary-50, #eef2ff); }
 .date-picker-day:hover:not(:disabled), .date-picker-day:focus-visible { background: var(--color-primary-50, #eef2ff); outline: none; box-shadow: var(--focus-ring-primary, 0 0 0 3px rgba(0,35,111,.16)); }
+.date-picker-popover { overflow: visible; max-height: none; }

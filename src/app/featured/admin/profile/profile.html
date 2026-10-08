@@ -1,42 +1,63 @@
-<dialog #dialog aria-labelledby="profile-title" (cancel)="close()" (click)="$event.target === dialog && close()">
-  <form #profileForm="ngForm" (ngSubmit)="save()">
-    <header>
-      <div>
-        <h2 id="profile-title">Thông tin cá nhân</h2>
-        <div class="subtitle"><span>NVQT100001</span><span>·</span><span class="role">Quản trị viên</span><span class="status">Đang hoạt động</span></div>
-      </div>
-      <button type="button" class="close" aria-label="Đóng hồ sơ cá nhân" (click)="close()">×</button>
-    </header>
+<app-modal [open]="profileOpen" size="large" [fixedLayout]="true" [fitContent]="true" title="Thông tin cá nhân" (closed)="close()">
+  <div modal-header-extra class="subtitle"><span>NVQT100001 ·</span><app-badge label="Quản trị viên" variant="primary" /><app-badge label="Đang hoạt động" variant="success" /></div>
+  <form class="profile-form" (submit)="$event.preventDefault(); save()" novalidate>
     <div class="profile-body">
       <aside>
         <div class="avatar">
           @if (draft.avatarUrl) { <img [src]="draft.avatarUrl" alt="Ảnh đại diện" /> }
           @else { <span>{{ draft.displayName.trim().charAt(0).toUpperCase() || 'TV' }}</span> }
         </div>
-        <input type="file" #fileInput hidden accept="image/jpeg,image/png,image/webp" (change)="onFileSelected($event)" />
-        <button type="button" class="change-photo" (click)="fileInput.click()">Đổi ảnh</button>
-        <small>JPG, PNG, WebP · Tối đa 5 MB</small>
-        @if (readingAvatar) { <small role="status">Đang đọc ảnh…</small> }
-        @if (avatarError) { <small class="error" role="alert">{{ avatarError }}</small> }
+        <div class="profile-summary">
+          <input type="file" #fileInput hidden accept="image/jpeg,image/png,image/webp" (change)="onFileSelected($event)" />
+          <div class="profile-tools">
+            <app-button variant="outline" class="change-photo" (clicked)="fileInput.click()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6l2 3h4v13H3V7h4z"/><circle cx="12" cy="13" r="4"/></svg>Đổi ảnh</app-button>
+            <app-button variant="outline" class="change-password" (clicked)="openPassword()">Đổi mật khẩu</app-button>
+          </div>
+          @if (readingAvatar) { <small role="status">Đang đọc ảnh…</small> }
+          @if (avatarError) { <small class="error" role="alert">{{ avatarError }}</small> }
+        </div>
       </aside>
       <div class="fields">
         <div class="row names">
-          <label>Họ và tên đệm<input name="familyName" [(ngModel)]="draft.familyName" required maxlength="100" #familyName="ngModel" autocomplete="family-name" />@if (familyName.invalid && (familyName.touched || profileForm.submitted)) { <small class="error">Vui lòng nhập họ và tên đệm.</small> }</label>
-          <label>Tên<input name="givenName" [(ngModel)]="draft.givenName" required maxlength="50" #givenName="ngModel" autocomplete="given-name" />@if (givenName.invalid && (givenName.touched || profileForm.submitted)) { <small class="error">Vui lòng nhập tên.</small> }</label>
+          <app-input label="Họ và tên đệm" name="familyName" id="profile-family-name" autocomplete="family-name" [required]="true" [maxlength]="100" [value]="draft.familyName" (valueChange)="updateProfileField('familyName', $event)" [error]="profileFieldError('familyName')" />
+          <app-input label="Tên" name="givenName" id="profile-given-name" autocomplete="given-name" [required]="true" [maxlength]="50" [value]="draft.givenName" (valueChange)="updateProfileField('givenName', $event)" [error]="profileFieldError('givenName')" />
         </div>
-        <label>Tên hiển thị<input name="displayName" [(ngModel)]="draft.displayName" required maxlength="100" #displayName="ngModel" autocomplete="nickname" />@if (displayName.invalid && (displayName.touched || profileForm.submitted)) { <small class="error">Vui lòng nhập tên hiển thị.</small> }</label>
+        <app-input label="Tên hiển thị" name="displayName" id="profile-display-name" autocomplete="nickname" [required]="true" [maxlength]="100" [value]="draft.displayName" (valueChange)="updateProfileField('displayName', $event)" [error]="profileFieldError('displayName')" />
         <div class="row">
-          <label>Số điện thoại<input type="tel" name="phone" [(ngModel)]="draft.phone" required pattern="0[0-9]{9}" #phone="ngModel" autocomplete="tel" />@if (phone.invalid && (phone.touched || profileForm.submitted)) { <small class="error">Nhập 10 chữ số, bắt đầu bằng 0.</small> }</label>
-          <label>Email<input type="email" name="email" [(ngModel)]="draft.email" required email pattern="[^\s@]+@[^\s@]+\.[^\s@]+" #email="ngModel" autocomplete="email" />@if (email.invalid && (email.touched || profileForm.submitted)) { <small class="error">Nhập email hợp lệ, ví dụ admin@viago.vn.</small> }</label>
+          <app-input label="Số điện thoại" name="phone" id="profile-phone" type="tel" autocomplete="tel" [required]="true" [maxlength]="20" [value]="draft.phone" (valueChange)="updateProfileField('phone', $event)" [error]="profileFieldError('phone')" />
+          <app-input label="Email" name="email" id="profile-email" type="email" autocomplete="email" [required]="true" [maxlength]="254" [value]="draft.email" (valueChange)="updateProfileField('email', $event)" [error]="profileFieldError('email')" />
         </div>
         <div class="row">
-          <label>Giới tính<select name="gender" [(ngModel)]="draft.gender"><option value="">Chưa cập nhật</option><option>Nam</option><option>Nữ</option><option>Khác</option></select></label>
-          <label>Ngày sinh<input type="date" name="birthday" [(ngModel)]="draft.birthday" [max]="today" autocomplete="bday" /></label>
+          <app-select label="Giới tính" name="gender" id="profile-gender" placeholder="Chưa cập nhật" [options]="genderOptions" [value]="draft.gender" (valueChange)="updateProfileField('gender', $event)" [error]="profileFieldError('gender')" />
+          <div><app-date-picker label="Ngày sinh" name="birthday" [(ngModel)]="draft.birthday" minDate="1900-01-01" [maxDate]="today" [showLunar]="false" (dateChange)="updateProfileField('birthday', $event)" />@if (profileFieldError('birthday')) { <small class="error" role="alert">{{ profileFieldError('birthday') }}</small> }</div>
         </div>
-        <label>Địa chỉ<input name="address" [(ngModel)]="draft.address" maxlength="300" autocomplete="street-address" /></label>
-        <label>Ghi chú<textarea name="notes" [(ngModel)]="draft.notes" rows="2" maxlength="1000" placeholder="Nhập ghi chú…"></textarea></label>
+        <app-input label="Địa chỉ" name="address" id="profile-address" autocomplete="street-address" [maxlength]="300" [value]="draft.address" (valueChange)="updateProfileField('address', $event)" [error]="profileFieldError('address')" />
+        <app-textarea label="Ghi chú" name="notes" id="profile-notes" [rows]="2" [maxlength]="1000" placeholder="Nhập ghi chú…" [value]="draft.notes" (valueChange)="updateProfileField('notes', $event)" [error]="profileFieldError('notes')" />
       </div>
     </div>
-    <footer><button type="button" class="cancel" (click)="close()">Hủy</button><button type="submit" class="save" [disabled]="readingAvatar">Lưu thay đổi</button></footer>
+    <footer><app-button variant="outline" (clicked)="close()">Hủy</app-button><app-button variant="secondary" type="submit" [disabled]="readingAvatar">Lưu thay đổi</app-button></footer>
   </form>
-</dialog>
+</app-modal>
+<app-modal class="password-dialog" [open]="passwordOpen" [size]="passwordSucceeded ? 'small' : 'medium'" [title]="passwordSucceeded ? '' : 'Đổi mật khẩu'" [showCloseButton]="!passwordSucceeded" (closed)="closePassword()">
+  @if (passwordSucceeded) {
+    <div class="password-success" role="status" aria-live="polite">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m7 12 3 3 7-7"/></svg>
+      <h3>Đổi mật khẩu thành công!</h3>
+    </div>
+    <footer class="success-actions"><app-button variant="secondary" (clicked)="closePassword()">Đóng</app-button></footer>
+  } @else {
+    <form (submit)="$event.preventDefault(); changePassword()" novalidate>
+      <div class="password-body">
+        @for (field of passwordFields; track field.key) {
+          <div class="password-input">
+            <app-input [label]="field.label" [id]="'password-' + field.key" [name]="field.key" [type]="passwordVisible[field.key] ? 'text' : 'password'" [value]="passwordDraft[field.key]" [autocomplete]="field.autocomplete" [maxlength]="128" [error]="passwordErrors[field.key] || ''" (valueChange)="onPasswordInput(field.key, $event)" (blurred)="onPasswordBlur(field.key)" />
+            <app-button variant="ghost" [iconOnly]="true" [ariaLabel]="(passwordVisible[field.key] ? 'Ẩn ' : 'Hiện ') + field.label.toLowerCase()" (clicked)="passwordVisible[field.key] = !passwordVisible[field.key]">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>@if (!passwordVisible[field.key]) { <path d="m3 3 18 18"/> }</svg>
+            </app-button>
+          </div>
+        }
+      </div>
+      <footer><app-button variant="outline" (clicked)="closePassword()">Hủy</app-button><app-button variant="secondary" type="submit">Đổi mật khẩu</app-button></footer>
+    </form>
+  }
+</app-modal>

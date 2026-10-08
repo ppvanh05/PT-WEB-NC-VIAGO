@@ -2,7 +2,7 @@
   position: fixed;
   bottom: 32px;
   right: 32px;
-  z-index: 9999;
+  z-index: var(--z-dropdown);
   width: 56px;
   height: 56px;
   background-color: var(--color-accent-600);

@@ -1,0 +1,279 @@
+<div class="home-page" [class.showing-results]="step === 'results'">
+  @if (error) { <div class="floating-notice"><app-toast variant="warning" [message]="error" (closed)="error = ''" /></div> }
+  @if (seatLimitNotice) { @for (notice of [seatLimitNotice]; track notice) { <div class="floating-notice seat-limit-notice"><app-toast variant="warning" message="Đã chọn đủ số ghế." [duration]="3500" (closed)="seatLimitNotice = 0" /></div> } }
+  @if (step === 'home') {
+    <section class="hero" aria-label="VIAGO Express">
+      <img [src]="'/assets/customer/hero_banner_' + (heroIndex + 1) + '.png'" alt="Hành trình cùng VIAGO Express" />
+<div class="hero-arrow hero-prev"><app-button variant="ghost" [iconOnly]="true" ariaLabel="Banner trước" (clicked)="heroIndex = (heroIndex + 2) % 3">‹</app-button></div>
+      <div class="hero-arrow hero-next"><app-button variant="ghost" [iconOnly]="true" ariaLabel="Banner tiếp theo" (clicked)="heroIndex = (heroIndex + 1) % 3">›</app-button></div>
+      <div class="hero-dots">@for (index of [0, 1, 2]; track index) { <button type="button" [class.active]="heroIndex === index" [attr.aria-label]="'Banner ' + (index + 1)" [attr.aria-pressed]="heroIndex === index" (click)="heroIndex = index"></button> }</div>
+    </section>
+  }
+
+  @if (step === 'home' || step === 'results') {
+    <div class="container search-wrapper" [class.search-on-home]="step === 'home'">
+      @if (step === 'results') { <div class="results-intro"><h1>Hành trình sang trọng,<br /><span>Tiện nghi đẳng cấp</span></h1><p>Trải nghiệm dịch vụ vận chuyển hàng đầu với dòng xe Limousine tốt nhất.<br />Cam kết an toàn, đúng giờ và chất lượng phục vụ 5 sao.</p></div> }
+      <section class="search-card" id="booking-search" aria-labelledby="search-title">
+<h2 id="search-title" class="sr-only">Tìm chuyến xe</h2><div class="trip-type"><label><input type="radio" name="trip-type" [checked]="!searchForm.roundTrip" (change)="searchForm.roundTrip = false" />Một chiều</label><label><input type="radio" name="trip-type" [checked]="searchForm.roundTrip" (change)="searchForm.roundTrip = true; searchForm.count = Math.min(searchForm.count, 2)" />Khứ hồi</label></div>
+        <form (submit)="$event.preventDefault(); search()" class="search-form">
+          <div class="locations">
+            <div><app-searchable-dropdown id="departure-city" label="Điểm đi" iconPath="/assets/customer/icon_diem_di.svg" placeholder="Chọn điểm đi" [items]="departureCities" [value]="searchForm.from" (valueChange)="updateSearch('from', $event)" />@if (searchTouched && searchErrors['from']) { <small class="field-error">{{ searchErrors['from'] }}</small> }</div>
+            <app-button variant="outline" [iconOnly]="true" ariaLabel="Đổi điểm đi và điểm đến" (clicked)="swap()"><img class="swap-icon" src="/assets/customer/icon_dao_chieu.svg" alt="" /></app-button>
+            <div><app-searchable-dropdown id="destination-city" label="Điểm đến" iconPath="/assets/customer/icon_diem_den.svg" placeholder="Chọn điểm đến" [items]="destinationCities" [value]="searchForm.to" (valueChange)="updateSearch('to', $event)" />@if (searchTouched && searchErrors['to']) { <small class="field-error">{{ searchErrors['to'] }}</small> }</div>
+          </div>
+          <div><app-date-picker label="Ngày đi" [minDate]="today" [showClear]="false" [ngModel]="searchForm.date" (ngModelChange)="searchForm.date = $event" name="departureDate" [ngModelOptions]="{standalone: true}" />@if (searchTouched && searchErrors['date']) { <small class="field-error">{{ searchErrors['date'] }}</small> }</div>
+          @if (searchForm.roundTrip) { <div><app-date-picker label="Ngày về" [minDate]="searchForm.date || today" [ngModel]="searchForm.returnDate" (ngModelChange)="searchForm.returnDate = $event" name="returnDate" [ngModelOptions]="{standalone: true}" />@if (searchTouched && searchErrors['returnDate']) { <small class="field-error">{{ searchErrors['returnDate'] }}</small> }</div> }
+          <app-select label="Số vé" [options]="countOptions" [value]="'' + searchForm.count" (valueChange)="searchForm.count = +$event" [error]="searchTouched ? searchErrors['count'] || '' : ''" />
+          <app-button variant="secondary" type="submit" [loading]="searching" [fullWidth]="true">Tìm chuyến</app-button>
+</form>@if (recentSearches.length) { <div class="recent-searches"><span>Tìm kiếm gần đây:</span>@for (query of recentSearches; track $index) { <button type="button" (click)="useRecentSearch(query)">{{ query.from }} → {{ query.to }} · {{ date(query.date) }}</button> }</div> }
+        @if (searchError) { <div class="inline-notice"><app-toast variant="error" [message]="searchError" [dismissible]="false" /><app-button variant="outline" (clicked)="load()">Thử lại</app-button></div> }
+        <p class="search-note">Chọn điểm đi và điểm đến theo chiều di chuyển.</p>
+      </section>
+      @if (pendingDraft) {
+        <section class="pending-banner" id="pending-booking" tabindex="-1" aria-label="Đơn đang giữ chỗ"><div><strong>{{ pendingDraft.legs[0]?.seats?.length ? "Đơn đang giữ chỗ · " + pendingCountdown : "Bản nháp đặt vé" }}</strong><p>{{ pendingDraft.legs[0]?.seats?.length ? "Hoàn tất đặt vé trước khi hết giờ giữ ghế." : "Thông tin đã lưu. Chọn ghế để tiếp tục." }}</p></div><div class="actions"><app-button variant="outline" (clicked)="discardPending()">Hủy giữ chỗ</app-button><app-button variant="secondary" (clicked)="resume()">Tiếp tục đặt vé</app-button></div></section>
+      }
+    </div>
+  }
+
+  @if (step === 'home') {
+<div class="marketing">
+      <section class="container utility-section"><div class="amenity-grid">@for (index of [1, 2, 3]; track index) { <img [src]="'/assets/customer/tien_ich_' + index + '.png'" [alt]="'Tiện ích VIAGO ' + index" loading="lazy" /> }</div></section>
+      <section class="promotion-section"><div class="container"><div class="section-heading"><h2>Khuyến mãi nổi bật</h2><div class="promo-pager"><app-button variant="outline" size="sm" [iconOnly]="true" ariaLabel="Ưu đãi trước" [disabled]="promoPage === 1" (clicked)="promoPage = promoPage - 1">‹</app-button><strong>{{ promoPage }} / 2</strong><app-button variant="outline" size="sm" [iconOnly]="true" ariaLabel="Ưu đãi tiếp theo" [disabled]="promoPage === 2" (clicked)="promoPage = promoPage + 1">›</app-button></div></div><div class="promo-grid">@for (voucher of paginatedPromos; track voucher.id) { <app-voucher-card [voucher]="voucher" context="home" [isClaimed]="savedPromos.has(voucher.code)" (onAction)="savePromo($event)" /> }</div></div></section>
+      <section class="container popular-section"><div class="section-heading"><h2>Tuyến xe phổ biến</h2><a routerLink="/customer/lich-trinh">Xem tất cả →</a></div><div class="route-grid">@for (route of featuredRoutes; track route.to) { <article class="route-card"><img [src]="'/assets/customer/' + route.image" [alt]="route.to" loading="lazy" /><div><h3>TP. Hồ Chí Minh → {{ route.to }}</h3><p>{{ route.distance }} km · {{ Math.floor(route.minutes / 60) }} giờ {{ route.minutes % 60 || '' }}</p><div class="section-heading"><strong>{{ money(route.price) }}<small> / vé</small></strong><app-button variant="secondary" size="sm" (clicked)="popular(route.from, route.to)">Đặt vé</app-button></div></div></article> }</div></section>
+      <section class="testimonial-section"><div class="container testimonial-grid"><div class="testimonial-photo"><img src="/assets/customer/xe.png" alt="Hành trình cùng VIAGO" loading="lazy" /><div class="rating-card"><strong>4.9 / 5</strong><span class="stars" aria-label="5 sao">★★★★★</span><small>Khách hàng đánh giá</small></div></div><div><div class="section-heading"><h2>Khách hàng nói gì về VIAGO?</h2></div><article class="review-card"><div class="review-author"><span class="review-avatar">TP</span><div><strong>Đỗ Thanh Phương</strong><div class="stars" aria-label="5 sao">★★★★★</div></div></div><p>“Nhân viên phục vụ nhiệt tình, hướng dẫn chỗ ngồi chu đáo, 5 sao cho nhà xe. Xe chạy rất êm, tài xế lái xe cẩn thận và đón đúng giờ. Sẽ tiếp tục ủng hộ”</p><small>Tuyến: TP. Hồ Chí Minh - Vũng Tàu</small></article><article class="review-card"><div class="review-author"><span class="review-avatar">VA</span><div><strong>Nguyễn Văn An</strong><div class="stars" aria-label="5 sao">★★★★★</div></div></div><p>“Dịch vụ chuyên nghiệp, ghế ngồi rất thoải mái. Wifi trên xe mạnh, sạc điện thoại tiện lợi. Một trải nghiệm đi đường dài tuyệt vời.”</p><small>Tuyến: TP. Hồ Chí Minh - Nha Trang</small></article><a class="reviews-link" routerLink="/customer/danh-gia">Xem tất cả →</a></div></div></section>
+      <section class="container news-section"><div class="section-heading"><h2>Tin tức mới nhất</h2><a routerLink="/customer/tin-tuc">Xem tất cả →</a></div><div class="news-grid">@for (item of homeNews; track item.id) { <article class="news-card"><img [src]="'/assets/customer/' + item.image" [alt]="item.title" loading="lazy" /><div><small>{{ item.date }}</small><h3>{{ item.title }}</h3><p>{{ item.description }}</p><a [routerLink]="['/customer/tin-tuc', item.id]">Chi tiết →</a></div></article> }</div></section>
+    </div>
+  }
+
+  @if (step === 'results' && appliedSearch) {
+    <div class="container results">
+      <div class="results-layout"><aside class="filter-card"><div class="section-heading"><h3>Bộ lọc tìm kiếm</h3><app-button variant="ghost" size="sm" (clicked)="resetFilters()">Xóa lọc</app-button></div>
+  <fieldset><legend>GIỜ ĐI</legend>@for (option of [{value:'early',label:'Sáng sớm (00:00 - 06:00)'},{value:'morning',label:'Buổi sáng (06:00 - 12:00)'},{value:'afternoon',label:'Buổi chiều (12:00 - 18:00)'},{value:'evening',label:'Buổi tối (18:00 - 24:00)'}]; track option.value) { <label><input type="checkbox" [checked]="timeChoices.has(option.value)" (change)="toggleFilter('time', option.value)" />{{ option.label }}</label> }</fieldset>
+  <fieldset><legend>TẦNG</legend><div class="floor-filter"><app-button variant="outline" size="sm" [class.chosen-filter]="floorFilter === 'A'" (clicked)="floorFilter = floorFilter === 'A' ? '' : 'A'; page = 1">Tầng dưới</app-button><app-button variant="outline" size="sm" [class.chosen-filter]="floorFilter === 'B'" (clicked)="floorFilter = floorFilter === 'B' ? '' : 'B'; page = 1">Tầng trên</app-button></div></fieldset>
+  <fieldset><legend>HẠNG GHẾ</legend>@for (option of [{value:'front',label:'Hàng ghế đầu'},{value:'middle',label:'Hàng ghế giữa'}, {value:'back',label:'Hàng ghế cuối'}]; track option.value) { <label><input type="checkbox" [checked]="positionChoices.has(option.value)" (change)="toggleFilter('position', option.value)" />{{ option.label }}</label> }</fieldset>
+  <fieldset><legend>GIÁ VÉ</legend>@for (option of [{value:'under300',label:'Dưới 300.000đ'},{value:'over300',label:'Từ 300.000đ trở lên'}]; track option.value) { <label><input type="checkbox" [checked]="priceChoices.has(option.value)" (change)="toggleFilter('price', option.value)" />{{ option.label }}</label> }</fieldset>
+  <app-select label="Loại xe" placeholder="Tất cả loại xe" [options]="types" [value]="typeFilter" (valueChange)="typeFilter = $event; page = 1" />
+</aside>
+        <section class="trip-list" aria-label="Danh sách chuyến xe" aria-live="polite"><div class="results-heading"><div><h2>{{ resultLeg ? appliedSearch.to : appliedSearch.from }} → {{ resultLeg ? appliedSearch.from : appliedSearch.to }} ({{ filteredTrips.length }} chuyến)</h2><p>Ngày đi: {{ date(resultLeg ? appliedSearch.returnDate : appliedSearch.date) }}</p></div><div class="sort-tabs">@for (option of sortOptions; track option.value) { <app-button variant="ghost" size="sm" [class.active-sort]="sort === option.value" (clicked)="sort = option.value; page = 1">{{ option.label }}</app-button> }</div></div>      @if (appliedSearch.roundTrip) { <div class="journey-tabs"><app-button [variant]="resultLeg === 0 ? 'primary' : 'outline'" (clicked)="resultLeg = 0; page = 1">1. Chuyến đi</app-button><app-button [variant]="resultLeg === 1 ? 'primary' : 'outline'" [disabled]="!selectedOutbound" (clicked)="resultLeg = 1; page = 1">2. Chuyến về</app-button>@if (selectedOutbound) { <span>Đã chọn chuyến đi {{ time(selectedOutbound.departureAt) }} · {{ selectedOutbound.type }}</span> }</div> }
+
+
+          @for (trip of visibleTrips; track trip.id; let tripIndex = $index) {
+<article class="trip-card"><div class="trip-overview"><div class="timeline"><div><strong>{{ time(trip.departureAt) }}</strong><span>{{ trip.pickup[0].name }}</span></div><div class="timeline-line"><span>{{ duration(trip) }}</span><div>● ─────── →</div></div><div><strong>{{ time(trip.arrivalAt) }}</strong><span>{{ trip.dropoff[0].name }}</span></div></div><div class="trip-vehicle"><strong>{{ trip.type }}</strong><small>{{ booking.available(trip, state, draft.owner) }} chỗ trống</small></div><div class="trip-price"><strong>{{ money(trip.price) }}</strong><app-button variant="secondary" size="sm" (clicked)="selectTrip(trip)">{{ appliedSearch.roundTrip ? (resultLeg ? 'Chọn chuyến về' : 'Chọn chuyến đi') : 'Chọn chuyến' }}</app-button></div></div>
+              <div class="trip-bottom"><div class="trip-tabs">@for (tab of [{id:'seats',label:'Chọn ghế'}, {id:'schedule',label:'Lịch trình'}, {id:'points',label:'Đón/Trả'}, {id:'policy',label:'Chính sách'}]; track tab.id) { <app-button variant="ghost" size="sm" [class.tab-selected]="expandedTrip?.id === trip.id && expandedTab === tab.id" (clicked)="toggleTripTab(trip, tab.id)">{{ tab.label }}</app-button> }</div><app-button variant="ghost" size="sm" (clicked)="showDetails(trip)">Chi tiết chuyến</app-button></div>
+              @if (expandedTrip?.id === trip.id) { <div class="trip-expanded">
+@if (expandedTab === 'seats') { <div class="preview-seat-layout"><aside class="preview-legend"><h3>Chú thích</h3><ng-container [ngTemplateOutlet]="seatLegend" /></aside><div class="original-map-card"><app-seat-map [vehicleType]="trip.type" [statuses]="seatStatuses(trip)" [disabledSeats]="disabledSeatIds(trip)" [busy]="seatBusy" (seatSelected)="choosePreviewSeat(trip, $event)" /></div></div>@if (legFor(trip); as leg) { @if (trip.type === 'Cabin 22 chỗ' && leg.seats.length) { <div class="cabin-config-panel preview-room-config"><ng-container [ngTemplateOutlet]="roomConfig" [ngTemplateOutletContext]="{leg:leg,index:draft.legs.indexOf(leg)}" /></div> } }@if (legFor(trip); as leg) { @if (leg.seats.length) { <div class="preview-continue"><span>Ghế đã chọn: <strong>{{ seatLabels(leg.seats) }}</strong></span><span>Giữ chỗ: {{ countdown }}</span><app-button variant="secondary" [disabled]="seatBusy || !leg.seats.length" (clicked)="continuePreview(trip)">{{ appliedSearch.roundTrip && !resultLeg ? 'Tiếp tục chọn chuyến về' : 'Tiếp tục mua vé' }}</app-button></div> } } }
+                @if (expandedTab === 'schedule') { <div class="trip-stops">@for (stop of trip.pickup.concat(trip.dropoff); track stop.id) { <div><strong>{{ time(stop.at) }}</strong><span>{{ stop.name }}<small>{{ stop.address }}</small></span></div> }</div> }
+                @if (expandedTab === 'points') { <div class="form-grid">@for (kind of ['pickup', 'dropoff']; track kind) { <div><h3>{{ kind === 'pickup' ? 'Điểm đón' : 'Điểm trả' }}</h3>@for (stop of kind === 'pickup' ? trip.pickup : trip.dropoff; track stop.id) { <p><strong>{{ time(stop.at) }} · {{ stop.name }}</strong><br /><small>{{ stop.address }}</small></p> }</div> }</div> }
+                @if (expandedTab === 'policy') { <div class="policy-cards"><article class="policy-card policy-hold"><span class="policy-tag">Giữ chỗ</span><h3>Thanh toán trong 10 phút</h3><p>Vé được xác nhận khi thanh toán thành công.</p></article><article class="policy-card policy-arrival"><span class="policy-tag">Trước giờ đi</span><h3>Có mặt trước 15 phút</h3><p>Tuân thủ quy định hành lý của chuyến xe.</p></article><a class="policy-link" routerLink="/customer/chinh-sach" target="_blank">Xem chính sách đầy đủ →</a></div> }
+              </div> }
+            </article>
+            @if (!authService.currentUser() && tripIndex === Math.min(1, visibleTrips.length - 1)) {
+              <aside class="member-login-banner"><div><h3>Đăng nhập để nhận quyền lợi thành viên</h3><p>Quản lý vé dễ dàng và nhận ưu đãi dành riêng cho bạn.</p></div><app-button variant="secondary" (clicked)="openLogin()">Đăng nhập ngay</app-button></aside>
+            }
+          } @empty { <div class="empty-state"><span class="empty-icon">⌕</span><h3>Không có chuyến phù hợp</h3><p>Thử ngày khác hoặc thay đổi bộ lọc.</p><app-button variant="outline" (clicked)="resetFilters()">Xóa bộ lọc</app-button></div> }
+          <app-pagination [totalItems]="filteredTrips.length" [currentPage]="page" [pageSize]="6" (pageChange)="page = $event" />
+        </section>
+      </div>
+    </div>
+  }
+
+  @if (step === 'booking' || step === 'review' || step === 'payment' || step === 'failure' || step === 'success') {
+    <div class="booking-title"><div class="container"><div class="section-heading"><div><span class="eyebrow">ĐẶT VÉ TRỰC TUYẾN</span><h1>{{ step === 'success' ? 'Đặt vé thành công' : step === 'failure' ? 'Thanh toán chưa hoàn tất' : step === 'payment' ? 'Thanh toán vé xe' : step === 'review' ? 'Tổng quan đặt vé' : 'Thông tin đặt vé' }}</h1>@if (appliedSearch) { <p class="booking-subtitle">{{ appliedSearch.from }} → {{ appliedSearch.to }} · {{ date(appliedSearch.date) }}</p> }</div>@if (step !== 'success') { <app-button variant="outline" [disabled]="paymentBusy || submitting || seatBusy" (clicked)="backToResults()">← Quay lại</app-button> }</div><ol class="stepper"><li class="done">Chọn chuyến</li><li [class.active]="step === 'booking'" [class.done]="step !== 'booking'">Thông tin & ghế</li><li [class.active]="step === 'review'" [class.done]="step === 'payment' || step === 'success'">Tổng quan</li><li [class.active]="step === 'payment' || step === 'failure'" [class.done]="step === 'success'">Thanh toán</li></ol></div></div>
+    <div class="container booking-body">
+      @if (expiresAt && step !== 'success') { <div class="hold-banner" [class.urgent]="secondsLeft < 120"><span>Ghế được giữ trong</span><strong role="timer" aria-label="Thời gian giữ ghế còn lại">{{ countdown }}</strong><span>Hoàn tất thanh toán trước khi hết giờ.</span></div> }
+      @if (step === 'booking') {
+        <div class="booking-layout"><div class="booking-main">
+<section class="panel seat-panel"><div class="section-heading"><h2>Chọn ghế</h2>@if (seatBusy) { <span role="status">Đang giữ ghế…</span> }</div><div class="booking-journey-maps" [class.round-trip-maps]="draft.legs.length === 2">@for (leg of draft.legs; track leg.tripId; let index = $index) { @let trip = tripFor(leg); <section class="journey-seat-block"><div class="seat-trip"><strong>{{ index === 0 ? 'Chuyến đi' : 'Chuyến về' }} · {{ trip.from }} → {{ trip.to }}</strong><span>{{ time(trip.departureAt) }} · {{ date(trip.departureAt) }} · {{ trip.type }}</span></div><div class="seat-selection-layout" [class.round-trip-selection]="draft.legs.length === 2">@if (draft.legs.length === 1) { <aside class="booking-seat-legend"><h3>Chú thích</h3><ng-container [ngTemplateOutlet]="seatLegend" /></aside> }<app-seat-map [vehicleType]="trip.type" [statuses]="seatStatuses(trip)" [disabledSeats]="disabledSeatIds(trip)" [busy]="seatBusy" (seatSelected)="toggleLegSeat(index, $event)" /></div></section> }</div>@if (draft.legs.length === 2) { <div class="round-trip-legend"><ng-container [ngTemplateOutlet]="seatLegend" /></div> }</section>@for (leg of draft.legs; track leg.tripId; let index = $index) { @if (tripFor(leg).type === 'Cabin 22 chỗ' && leg.seats.length) { <section class="panel cabin-config-panel"><ng-container [ngTemplateOutlet]="roomConfig" [ngTemplateOutletContext]="{leg:leg,index:index}" /></section> } }
+<section class="panel vehicle-panel"><h2>Thông tin xe</h2>@for (leg of draft.legs; track leg.tripId; let index = $index) { @let trip = tripFor(leg); <div class="vehicle-leg">@if (draft.legs.length === 2) { <app-badge [variant]="index === 0 ? 'success' : 'warning'" size="sm" rounded="md" [label]="index === 0 ? 'Chiều đi' : 'Chiều về'" /> }<div class="vehicle-details"><div><span class="vehicle-field-label">Loại xe</span><h3>{{ trip.type }}</h3></div><div><span class="vehicle-field-label">Tiện ích phục vụ</span><div class="amenity-tags"><app-amenities layout="grid" [items]="vehicleAmenities(trip)" /></div></div></div><span class="vehicle-field-label vehicle-images-label">Hình ảnh nội thất xe</span><div class="vehicle-interiors">@for (image of vehicleImages(trip); track image) { <button type="button" class="vehicle-image" (click)="openInterior(trip, image)" [attr.aria-label]="'Xem ảnh nội thất ' + trip.type"><img [src]="'/assets/customer/' + image" [alt]="'Nội thất ' + trip.type" loading="lazy" /></button> }</div></div> }</section>
+          <section class="panel passenger-panel"><div class="passenger-inputs"><div class="section-heading"><h2>Thông tin khách hàng</h2><small>* Bắt buộc</small></div><div class="passenger-form"><app-input id="passenger-name" label="Họ tên" [required]="true" autocomplete="name" [maxlength]="100" [value]="draft.passenger.name" (valueChange)="updatePassenger('name', $event)" [error]="passengerTouched.name ? errors.name || '' : ''" /><div><app-input id="passenger-phone" label="Số điện thoại" [required]="true" type="tel" inputmode="numeric" autocomplete="tel-national" [maxlength]="13" [value]="draft.passenger.phone" (valueChange)="updatePassenger('phone', $event)" [error]="passengerTouched.phone ? errors.phone || '' : ''" /><div class="phone-lookup-toolbar"><span role="status" aria-live="polite" [class.lookup-found]="!!lookupNote && !!foundCustomer" [class.lookup-missing]="!!lookupNote && !foundCustomer">{{ lookupNote || 'Điền nhanh thông tin đã lưu' }}</span><app-button variant="outline" size="sm" [disabled]="!!errors.phone" (clicked)="lookupCustomer()"><svg class="phone-lookup-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></svg>Tra cứu thông tin</app-button></div></div><app-input id="passenger-email" label="Email nhận vé" type="email" autocomplete="email" [maxlength]="254" [value]="draft.passenger.email" (valueChange)="updatePassenger('email', $event)" [error]="passengerTouched.email ? errors.email || '' : ''" /></div><label class="terms-check"><input type="checkbox" [checked]="draft.terms" (change)="draft.terms = $any($event.target).checked; persistDraft()" /><span>Tôi đồng ý với <a routerLink="/customer/dieu-khoan" target="_blank">điều khoản</a> và <a routerLink="/customer/chinh-sach" target="_blank">chính sách bảo mật thông tin</a> của VIAGO.</span></label></div><aside class="passenger-notes"><h3>Điều khoản & lưu ý</h3><p>Kiểm tra thông tin hành khách để nhận vé điện tử và thông báo chuyến đi.</p><p>Vui lòng có mặt trước giờ xe đón tại điểm đã chọn ít nhất 15 phút. Mang theo vé điện tử và giấy tờ tùy thân.</p><p>Nếu có nhu cầu trung chuyển hoặc cần thay đổi hành trình, liên hệ tổng đài trước khi đặt vé để được hỗ trợ.</p><a href="tel:19001234">Tổng đài 1900 1234</a></aside></section>
+          <section class="panel pickup-panel">
+  <h2>Thông tin đón trả</h2>
+  <div class="point-legs">
+    @for (leg of draft.legs; track leg.tripId; let i = $index) {
+      <div class="point-leg">
+        @if (draft.legs.length === 2) { <h3>{{ i === 0 ? 'Chiều đi' : 'Chiều về' }} · {{ tripFor(leg).from }} → {{ tripFor(leg).to }}</h3> }
+        <div class="form-grid point-selectors">
+          <div class="point-search-field"><label [for]="'pickup-' + i" class="point-label">Điểm đón</label><app-searchable-dropdown placeholder="Chọn điểm đón" [items]="pointOptions(leg, 'pickup')" bindLabel="label" bindValue="value" [value]="leg.pickupId" [id]="'pickup-' + i" (valueChange)="selectPoint(i, 'pickup', $event)" />@if ((pointErrors || leg.pickupId) && pointError(leg, 'pickup')) { <small class="field-error">{{ pointError(leg, 'pickup') }}</small> }</div>
+          <div class="point-search-field"><label [for]="'dropoff-' + i" class="point-label">Điểm trả</label><app-searchable-dropdown placeholder="Chọn điểm trả" [items]="pointOptions(leg, 'dropoff')" bindLabel="label" bindValue="value" [value]="leg.dropoffId" [id]="'dropoff-' + i" (valueChange)="selectPoint(i, 'dropoff', $event)" />@if ((pointErrors || leg.dropoffId) && pointError(leg, 'dropoff')) { <small class="field-error">{{ pointError(leg, 'dropoff') }}</small> }</div>
+        </div>
+        @if (leg.pickupId || leg.dropoffId) {
+          <div class="selected-point-details"><h4>Chi tiết địa điểm đã chọn</h4>
+            @for (kind of pointKinds; track kind) {
+              @if (point(leg, kind); as spot) {
+                <div class="selected-point-row" [class.pickup-row]="kind === 'pickup'">
+                  <span class="point-pin" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg></span>
+                  <div class="selected-point-text"><strong>{{ kind === 'pickup' ? 'Điểm đón:' : 'Điểm trả:' }}</strong><span>{{ time(spot.at) }} - {{ spot.name }}</span><small>{{ spot.address }}</small>@if (kind === 'pickup') { <small class="pickup-arrival">Có mặt trước {{ arrivalBefore(spot) }} · {{ date(spot.at) }}</small> } @else { <small>{{ date(spot.at) }}</small> }</div>
+                  <a [href]="pointMapUrl(spot)" target="_blank" rel="noopener noreferrer">Xem bản đồ <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7m0-7L10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5" /></svg></a>
+                </div>
+              }
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</section>
+
+          <section class="panel voucher-panel">@if (voucherCelebrating) { <div class="voucher-confetti" aria-hidden="true">@for (piece of confettiPieces; track piece.id) { <i [style.left]="piece.left" [style.animation-delay]="piece.delay" [style.--confetti-drift]="piece.drift" [style.--confetti-rotation]="piece.rotation" [style.background]="piece.color"></i> }</div> }<div class="section-heading"><h2>Mã giảm giá</h2><app-button variant="ghost" size="sm" (clicked)="voucherOpen = true">Chọn ưu đãi</app-button></div><div class="voucher-entry"><app-input id="voucher-code" placeholder="Nhập mã giảm giá" [value]="voucherInput" (valueChange)="updateVoucher($event)" [error]="voucherError" /><app-button variant="outline" (clicked)="applyVoucher()">Áp dụng</app-button></div>@if (draft.voucher) { <div class="applied-voucher" role="status" aria-live="polite"><span>{{ draft.voucher }} · Giảm {{ money(discount) }}</span><app-button variant="ghost" size="sm" (clicked)="removeVoucher()">Gỡ mã</app-button></div> }<div class="available-vouchers"><h3>Mã giảm giá có sẵn</h3>@for (voucher of vouchers; track voucher.code) { <article><span class="voucher-symbol">{{ voucher.percent ? '%' : '$' }}</span><div><strong>{{ voucher.code }}</strong><small>{{ voucher.title }}</small></div><app-button variant="ghost" size="sm" (clicked)="applyVoucher(voucher.code)">Dùng ngay</app-button></article> }</div></section>
+        <section class="panel booking-footer"><div><span>TỔNG TIỀN:</span>@if (discount) { <s>{{ money(subtotal) }}</s> }<strong>{{ money(total) }}</strong></div><div class="actions"><app-button variant="outline" [disabled]="seatBusy" (clicked)="backToResults()">Hủy</app-button><app-button variant="secondary" [disabled]="!canReview" (clicked)="review()">Thanh toán</app-button></div></section></div><aside class="booking-sidebar">@for (leg of draft.legs; track leg.tripId; let index = $index) { <section class="panel sidebar-journey"><h3>{{ index === 0 ? 'Thông tin chuyến đi' : 'Thông tin chuyến về' }}</h3><dl><dt>Tuyến xe</dt><dd>{{ tripFor(leg).from }} → {{ tripFor(leg).to }}</dd><dt>Thời gian xuất bến</dt><dd>{{ time(tripFor(leg).departureAt) }} {{ date(tripFor(leg).departureAt) }}</dd><dt>Số lượng ghế</dt><dd>{{ leg.seats.length }} ghế</dd><dt>Số ghế</dt><dd>{{ seatLabels(leg.seats) || 'Chưa chọn' }}</dd>@if (tripFor(leg).type === 'Cabin 22 chỗ' && leg.seats.length) { <dt class="room-breakdown-label">Loại phòng</dt><dd class="room-breakdown">@for (seat of leg.seats; track seat) { <div><app-badge variant="primary" rounded="md" [label]="seatLabel(seat)" /><span>{{ leg.doubleSeats.includes(seat) ? 'Phòng đôi' : 'Phòng đơn' }}</span></div> }</dd> }<dt>Tổng tiền {{ index === 0 ? 'lượt đi' : 'lượt về' }}</dt><dd>{{ money(legSubtotal(leg)) }}</dd></dl></section> }<section class="summary panel"><h2>Chi tiết giá</h2>@for (leg of draft.legs; track leg.tripId; let index = $index) { <div class="amount-row"><span>Giá vé {{ index === 0 ? 'lượt đi' : 'lượt về' }}</span><strong>{{ money(legSubtotal(leg)) }}</strong></div> }@if (discount) { <div class="amount-row"><span>Giảm giá</span><strong>−{{ money(discount) }}</strong></div> }<div class="amount-row"><span>Phí thanh toán</span><strong>0đ</strong></div><div class="amount-row total"><span>Tổng tiền</span><strong>{{ money(total) }}</strong></div><app-button variant="secondary" [fullWidth]="true" [disabled]="!canReview" (clicked)="review()">Tiếp tục</app-button></section><div class="sidebar-banner"><img src="/assets/customer/xe.png" alt="Hành trình cùng VIAGO" /><div><h3>HÀNH TRÌNH ÊM ÁI<br />CÙNG VIAGO</h3><p>Đồng hành trên mọi nẻo đường cùng bạn.</p></div></div></aside></div>
+      }
+      @if (step === 'review') {
+        <div class="review-layout">
+  <section class="panel review-main">
+    <header class="review-heading"><div><h2>Kiểm tra thông tin đặt vé</h2><p>Xác nhận thông tin trước khi thanh toán.</p></div><app-button variant="outline" size="sm" [disabled]="submitting" (clicked)="step = 'booking'">Chỉnh sửa thông tin</app-button></header>
+    <section class="review-passenger"><h3>Thông tin hành khách</h3><dl><div><dt>Họ tên</dt><dd>{{ draft.passenger.name }}</dd></div><div><dt>Số điện thoại</dt><dd>{{ draft.passenger.phone }}</dd></div><div><dt>Email nhận vé</dt><dd>{{ draft.passenger.email || '—' }}</dd></div></dl></section>
+    @for (leg of draft.legs; track leg.tripId; let i = $index) {
+      @let trip = tripFor(leg);
+      <article class="review-leg">
+        <header class="review-trip-heading">
+          <app-badge variant="primary" [label]="i === 0 ? 'Chuyến đi' : 'Chuyến về'" />
+          <h3>{{ trip.from }} <span aria-hidden="true">→</span> {{ trip.to }}</h3>
+          <span class="review-vehicle">{{ trip.type }}</span>
+          <div class="review-journey-times">
+            <div class="review-time"><span>Khởi hành</span><strong>{{ time(trip.departureAt) }}</strong><time [attr.datetime]="trip.departureAt">{{ date(trip.departureAt) }}</time></div>
+            <div class="review-duration"><span>Thời gian di chuyển</span><strong>{{ duration(trip) }}</strong><div class="review-route-line" aria-hidden="true">→</div></div>
+            <div class="review-time"><span>Đến nơi</span><strong>{{ time(trip.arrivalAt) }}</strong><time [attr.datetime]="trip.arrivalAt">{{ date(trip.arrivalAt) }}</time></div>
+          </div>
+        </header>
+        <div class="review-key-facts"><div class="review-selected-seats"><div class="review-seat-heading"><span class="review-field-label">Ghế đã chọn</span><app-badge variant="info" size="sm" [label]="leg.seats.length + ' vé'" /></div><div class="review-seat-tags">@for (seat of leg.seats; track seat) { <app-badge variant="primary" appearance="outline" rounded="md" size="lg" [label]="seatLabel(seat)" /> }</div>@if (leg.doubleSeats.length) { <small>Phòng đôi: {{ seatLabels(leg.doubleSeats) }}</small> }</div></div>
+        <div class="review-points">
+          @if (point(leg, 'pickup'); as pickup) { <div class="review-point"><span class="review-field-label">Điểm đón</span><strong>{{ pickup.name }}</strong><span class="review-point-time">{{ time(pickup.at) }} · {{ date(pickup.at) }}</span><p>{{ pickup.address }}</p></div> }
+          @if (point(leg, 'dropoff'); as dropoff) { <div class="review-point"><span class="review-field-label">Điểm trả</span><strong>{{ dropoff.name }}</strong><span class="review-point-time">{{ time(dropoff.at) }} · {{ date(dropoff.at) }}</span><p>{{ dropoff.address }}</p></div> }
+        </div>
+        @if (point(leg, 'pickup'); as pickup) { <div class="review-arrival"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path stroke-linecap="round" d="M12 7v5l3 2" /></svg><span>Vui lòng có mặt trước <strong>{{ arrivalBefore(pickup) }}</strong> · {{ date(pickup.at) }} tại điểm đón.</span></div> }
+      </article>
+    }
+  </section>
+  <aside class="panel summary review-payment">
+    <h2>Chi tiết thanh toán</h2>
+    <div class="amount-row"><span>Tiền vé <small>{{ seatCount }} vé</small></span><strong>{{ money(subtotal) }}</strong></div>
+    <div class="amount-row review-discount"><span>Giảm giá @if (draft.voucher) { <app-badge variant="success" size="sm" rounded="md" [label]="draft.voucher" /> }</span><strong>−{{ money(discount) }}</strong></div>
+    <div class="review-total"><span>Tổng thanh toán</span><strong>{{ money(total) }}</strong></div>
+    <div class="review-terms"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6" /></svg><span>Đã đồng ý điều khoản và chính sách</span></div>
+    <app-button variant="secondary" [fullWidth]="true" [loading]="submitting" [disabled]="!canReview" (clicked)="createOrder()">Tiến hành thanh toán</app-button>
+
+  </aside>
+</div>
+
+      }
+      @if (step === 'payment' && order) {
+        <div class="payment-layout">
+          <section class="panel payment-methods">
+            <h2>Phương thức thanh toán</h2>
+            @for (item of methods; track item.id) {
+              <button class="method" type="button" [class.chosen]="method === item.id" [disabled]="paymentBusy" [attr.aria-pressed]="method === item.id" (click)="chooseMethod(item.id)">
+                <img [src]="'/assets/customer/' + item.image" [alt]="item.name" />
+                <span>{{ item.id === 'vietqr' ? 'Thanh toán qua VietQR' : item.id === 'momo' ? 'Ví MoMo' : item.id === 'zalopay' ? 'Ví ZaloPay' : item.name }}</span>
+              </button>
+            }
+          </section>
+          <section class="panel payment-content">
+            <h2>Tổng thanh toán</h2>
+            <div class="payment-total">{{ money(order.total) }}</div>
+            <p class="payment-timer">Thời gian để giữ chỗ: <strong>{{ countdown }}</strong></p>
+            <div class="payment-order-code">
+              <div class="payment-qr-frame" [class.qr-vnpay]="method === 'vnpay'" [class.qr-momo]="method === 'momo'" [class.qr-zalopay]="method === 'zalopay'">
+                <app-qr-code [value]="order.id" label="Mã đơn đặt vé" [logo]="'/assets/customer/' + methods[methodIndex].image" [logoLabel]="methodName" />
+              </div>
+            </div>
+            <div class="payment-reference"><small>Mã đơn đặt vé</small><strong>{{ order.id }}</strong></div>
+            <ol class="payment-instructions">
+              <li>Kiểm tra số tiền và mã đơn.</li>
+              <li>Hoàn tất giao dịch bằng phương thức đã chọn.</li>
+              <li>Quay lại trang để xác nhận kết quả thanh toán.</li>
+            </ol>
+            <app-button variant="secondary" [fullWidth]="true" [loading]="paymentBusy" [disabled]="secondsLeft === 0" (clicked)="paymentConfirm = true">Tôi đã thanh toán</app-button>
+          </section>
+          <aside class="panel payment-passenger">
+            <h2>Thông tin hành khách</h2>
+            @for (leg of order.legs; track leg.tripId; let index = $index) {
+              <div class="summary-leg">
+                <div class="payment-summary-row"><strong>{{ order.legs.length === 1 ? 'Tuyến:' : index === 0 ? 'Tuyến đi:' : 'Tuyến về:' }}</strong> {{ tripFor(leg).from }} → {{ tripFor(leg).to }}</div>
+                @if (index === 0) {
+                  <div class="payment-summary-row"><strong>Hành khách:</strong> {{ order.passenger.name }}</div>
+                  <div class="payment-summary-row"><strong>Điện thoại:</strong> {{ order.passenger.phone }}</div>
+                  @if (order.passenger.email) { <div class="payment-summary-row"><strong>Email:</strong> {{ order.passenger.email }}</div> }
+                }
+                <div class="payment-summary-row"><strong>Ngày giờ:</strong> {{ date(tripFor(leg).departureAt) }} · {{ time(tripFor(leg).departureAt) }}</div>
+                <div class="payment-summary-row"><strong>Ghế:</strong> {{ seatLabels(leg.seats) }}</div>
+                @if (tripFor(leg).type === 'Cabin 22 chỗ') { <p class="room-summary">{{ roomSummary(leg) }}</p> }
+              </div>
+            }
+            <div class="payment-price-box"><strong>Tổng tiền</strong><strong>{{ money(order.total) }}</strong></div>
+            <div class="payment-cancel"><app-button variant="outline" [fullWidth]="true" [disabled]="paymentBusy" (clicked)="backToResults()">Hủy giữ chỗ</app-button></div>
+          </aside>
+        </div>
+
+      }
+      @if (step === 'failure') {
+        <section class="result-panel panel"><div class="result-symbol failure">!</div><h2>{{ failureCode === 'expired' ? 'Đã hết thời gian giữ ghế' : 'Thanh toán chưa thành công' }}</h2><p>{{ failureMessage }}</p>@if (order) { <app-badge variant="warning" [label]="'Mã đơn: ' + order.id" /> }<p class="muted">Nếu tài khoản đã bị trừ tiền, hãy liên hệ hỗ trợ và cung cấp mã đơn trước khi thanh toán lại.</p><div class="actions"><app-button variant="outline" (clicked)="backToResults()">Chọn chuyến khác</app-button>@if (secondsLeft > 0 && failureCode !== 'closed' && failureCode !== 'expired') { <app-button variant="secondary" (clicked)="retryPayment()">Thử lại thanh toán</app-button> }<a href="tel:19001234">Liên hệ hỗ trợ</a></div></section>
+      }
+@if (step === 'success' && order) {
+<section class="reference-success"><header class="success-confirmation"><div class="result-symbol success"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m11 24 9 9 18-19" /></svg></div><h2>Đặt vé thành công!</h2><p>Cảm ơn bạn đã lựa chọn dịch vụ VIAGO Express.<br />Chúc quý khách một hành trình an toàn và thuận lợi.</p></header><article class="panel success-ticket"><header><strong>THÔNG TIN VÉ XE</strong><app-badge variant="success" label="Đã thanh toán" /></header><div class="success-passenger compact-passenger"><div><strong>{{ order.passenger.name }}</strong><span>{{ order.passenger.phone }}</span>@if (order.passenger.email) { <span>{{ order.passenger.email }}</span> }</div><div class="compact-order"><small>Mã đơn</small><strong class="ticket-order-id">{{ order.id }}</strong></div></div>
+@for (leg of order.legs; track leg.tripId; let index = $index) {
+  @let trip = tripFor(leg);
+  <section class="success-journey compact-journey">
+    <header class="compact-trip-header"><app-badge variant="primary" [label]="index === 0 ? 'Chuyến đi' : 'Chuyến về'" /><h3>{{ trip.from }} → {{ trip.to }}</h3><span>{{ trip.type }}</span></header>
+    <div class="compact-trip-times"><div><small>Khởi hành</small><strong>{{ time(trip.departureAt) }}</strong><span>{{ date(trip.departureAt) }}</span></div><div class="compact-duration"><strong>{{ duration(trip) }}</strong><span aria-hidden="true">→</span></div><div><small>Đến nơi</small><strong>{{ time(trip.arrivalAt) }}</strong><span>{{ date(trip.arrivalAt) }}</span></div></div>
+    <div class="compact-seats"><span>Ghế</span>@for (seat of leg.seats; track seat) { <app-badge variant="primary" appearance="outline" rounded="md" [label]="seatLabel(seat) + (trip.type === 'Cabin 22 chỗ' ? (leg.doubleSeats.includes(seat) ? ' · Đôi' : ' · Đơn') : '')" /> }<small>{{ leg.seats.length }} vé</small></div>
+    <div class="compact-points">@if (point(leg, 'pickup'); as pickup) { <div><small>Đón</small><strong>{{ pickup.name }}</strong><span>{{ pickup.address }}</span><span class="compact-arrival">Có mặt trước {{ arrivalBefore(pickup) }} · {{ date(pickup.at) }}</span></div> }@if (point(leg, 'dropoff'); as dropoff) { <div><small>Trả</small><strong>{{ dropoff.name }}</strong><span>{{ dropoff.address }}</span><span>{{ time(dropoff.at) }} · {{ date(dropoff.at) }}</span></div> }</div>
+  </section>
+}<div class="success-paid"><span>Tổng tiền đã thanh toán</span><strong>{{ money(order.total) }}</strong></div></article><div class="actions"><app-button variant="outline" (clicked)="showTicket()">Xem vé</app-button><app-button variant="outline" (clicked)="printTicket()">In vé</app-button><app-button variant="secondary" (clicked)="returnHome()">Về trang chủ</app-button></div></section>
+<section class="destination-section"><div class="destination-heading"><img src="/assets/customer/icon_diem_den.svg" alt="" /><div><h2>Tiện ích tại điểm đến</h2><p>Các dịch vụ hỗ trợ hành trình của bạn tại {{ destinationCity }}.</p></div></div><div class="destination-grid"><div class="destination-left"><article class="panel destination-weather"><div><small>THỜI TIẾT {{ destinationCity }}</small>@if (destinationWeather; as weather) { <strong>{{ Math.round(weather.min) }}–{{ Math.round(weather.max) }}°C</strong><span>{{ weatherDescription }}</span><span>Khả năng mưa: {{ weather.rain }}%</span><small>Ngày {{ date(weather.date) }}</small><a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> } @else if (weatherLoading) { <p role="status">Đang tải dự báo…</p> } @else { <p>{{ weatherError || 'Chưa có dữ liệu thời tiết.' }}</p><app-button variant="ghost" size="sm" (clicked)="loadDestinationWeather()">Thử lại</app-button> }</div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" d="M46 36a10 10 0 00-6.88-9.52 12 12 0 00-22.24-2 10 10 0 00-2.88 19.52c.62.13 1.25.2 1.88.2H44a10 10 0 002-20.2z"/><path stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" d="M22 48l-2 6M30 48l-2 6M38 48l-2 6"/></svg></article><article class="panel destination-tips"><h3>Gợi ý từ VIAGO</h3>@for (tip of destinationTips; track tip.title) { <div><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><div><strong>{{ tip.title }}</strong><p>{{ tip.text }}</p></div></div> }</article></div><div class="destination-right"><div class="section-heading"><h3>Lưu trú tại {{ destinationCity }}</h3><a [href]="accommodationUrl()" target="_blank" rel="noopener noreferrer">Xem tất cả →</a></div><div class="destination-hotels">@for (card of accommodationCards; track card.image) { <article><img [src]="'/assets/customer/' + card.image" [alt]="card.label" loading="lazy" /><div><h3>{{ card.label }}</h3><p>Tra cứu giá phòng và vị trí tại điểm đến.</p><a [href]="accommodationUrl()" target="_blank" rel="noopener noreferrer">Tìm phòng Booking.com →</a></div></article> }</div><h3>Phương tiện di chuyển tiếp nối</h3><div class="destination-transit">@for (item of [{title:'Xe trung chuyển VIAGO',detail:'Liên hệ tổng đài để kiểm tra tuyến trung chuyển phù hợp.'},{title:'Taxi tại điểm đến',detail:'Kiểm tra hãng taxi và điểm đón tại bến xe.'},{title:'Thuê xe hợp đồng 7 chỗ',detail:'Liên hệ hỗ trợ để được tư vấn đơn vị và báo giá.'}]; track item.title) { <article><img src="/assets/customer/icon_ve.svg" alt="" /><div><strong>{{ item.title }}</strong><p>{{ item.detail }}</p></div><a href="tel:19001234">Liên hệ</a></article> }</div></div></div></section>
+}
+    </div>
+  }
+</div>
+
+<app-modal [open]="!!details" size="large" [fixedLayout]="true" [fitContent]="true" title="Chi tiết chuyến xe" (closed)="details = null">
+  @if (details; as trip) { <div class="trip-detail"><div class="detail-title"><h2>{{ trip.from }} → {{ trip.to }}</h2><p>{{ time(trip.departureAt) }} · {{ date(trip.departureAt) }} · {{ trip.type }}</p><app-badge variant="success" [label]="booking.available(trip, state) + ' ghế trống'" /></div><div class="tabs">@for (tab of [{id:'amenities',label:'Tiện ích'},{id:'schedule',label:'Lịch trình'},{id:'points',label:'Đón / trả'},{id:'policy',label:'Chính sách'}]; track tab.id) { <app-button size="sm" [variant]="detailTab === tab.id ? 'primary' : 'ghost'" (clicked)="detailTab = tab.id">{{ tab.label }}</app-button> }</div>@if (detailTab === 'amenities') { <img class="detail-image" [src]="trip.type === 'Limousine 9 chỗ' ? '/assets/customer/bus_16_seater.png' : '/assets/customer/bus_sleeper_interior.png'" alt="Không gian xe" /><section class="detail-amenities"><h3>Tiện ích trên xe</h3><app-amenities [items]="trip.amenities" /></section> }@if (detailTab === 'schedule') { <div class="detail-schedule"><article class="schedule-stop"><small>KHỞI HÀNH</small><strong>{{ time(trip.departureAt) }}</strong><span>{{ date(trip.departureAt) }}</span><p>{{ trip.pickup[0].name }}</p></article><div class="schedule-duration"><span>Thời gian di chuyển</span><strong>{{ duration(trip) }}</strong><small>{{ trip.distance }} km</small><span aria-hidden="true">→</span></div><article class="schedule-stop schedule-arrival"><small>ĐẾN NƠI</small><strong>{{ time(trip.arrivalAt) }}</strong><span>{{ date(trip.arrivalAt) }}</span><p>{{ trip.dropoff[0].name }}</p></article></div> }@if (detailTab === 'points') { <div class="form-grid">@for (kind of ['pickup','dropoff']; track kind) { <div><h3>{{ kind === 'pickup' ? 'Điểm đón' : 'Điểm trả' }}</h3>@for (point of kind === 'pickup' ? trip.pickup : trip.dropoff; track point.id) { <article class="point-info"><strong>{{ time(point.at) }} · {{ point.name }}</strong><p>{{ point.address }}</p><small>{{ point.kind === 'shuttle' ? 'Trung chuyển' : 'Tại bến / văn phòng' }}</small></article> }</div> }</div> }@if (detailTab === 'policy') { <div class="policy-text policy-cards"><article class="policy-card policy-arrival"><span class="policy-tag">Trước giờ đi</span><h3>Có mặt trước 15 phút</h3><p>Mang theo mã vé và giấy tờ tùy thân.</p></article><article class="policy-card policy-hold"><span class="policy-tag">Giữ chỗ</span><h3>Hoàn tất trong 10 phút</h3><p>Hết thời gian chưa thanh toán, ghế sẽ được mở lại.</p></article><article class="policy-card policy-change"><span class="policy-tag">Đổi / hủy vé</span><h3>Kiểm tra điều kiện áp dụng</h3><p>Liên hệ hỗ trợ để xác nhận điều kiện và số tiền hoàn theo trạng thái vé, thời gian khởi hành.</p></article><a class="policy-link" routerLink="/customer/chinh-sach" target="_blank">Xem chính sách đầy đủ →</a></div> }<footer class="modal-actions"><app-button variant="outline" (clicked)="details = null">Đóng</app-button><app-button variant="secondary" [disabled]="!booking.isOpen(trip)" (clicked)="selectTrip(trip)">Chọn chuyến</app-button></footer></div> }
+</app-modal>
+<app-modal [open]="leaveOpen" size="small" title="Bạn muốn rời phần đặt vé?" [closeOnBackdrop]="false" (closed)="resolveLeave('stay')"><div class="leave-content">@if (expiresAt) { <div class="leave-countdown"><span><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path stroke-linecap="round" d="M12 7v5l3 2" /></svg>Thời gian giữ ghế còn lại</span><strong>{{ countdown }}</strong></div> }<div class="leave-actions"><app-button class="leave-stay" variant="primary" (clicked)="resolveLeave('stay')">Tiếp tục đặt vé</app-button><app-button variant="danger" (clicked)="resolveLeave('discard')">Hủy giữ chỗ</app-button></div></div></app-modal>
+
+<app-modal [open]="voucherOpen" title="Chọn mã giảm giá" (closed)="voucherOpen = false"><div class="voucher-list">@for (voucher of vouchers; track voucher.code) { <article class="voucher-choice"><div><strong>{{ voucher.code }}</strong><p>{{ voucher.title }}</p><small>Đơn từ {{ money(voucher.minimum) }} · Đến {{ date(voucher.endsAt) }}</small></div><app-button variant="outline" size="sm" (clicked)="applyVoucher(voucher.code)">Áp dụng</app-button></article> }@if (voucherError) { <p class="field-error" role="alert">{{ voucherError }}</p> }</div></app-modal>
+<app-modal [open]="paymentConfirm" size="small" title="Xác nhận thanh toán" [closeOnBackdrop]="!paymentBusy" [loading]="paymentBusy" (closed)="paymentConfirm = false">@if (order) { <p>Bạn đã hoàn tất giao dịch {{ money(order.total) }} cho đơn <strong>{{ order.id }}</strong>?</p><p>Hệ thống sẽ kiểm tra kết quả trước khi xác nhận vé.</p><footer class="modal-actions"><app-button variant="outline" (clicked)="paymentConfirm = false">Quay lại</app-button><app-button variant="secondary" [loading]="paymentBusy" (clicked)="pay()">Kiểm tra thanh toán</app-button></footer> }</app-modal>
+<app-modal [open]="ticketOpen" size="large" [fixedLayout]="true" [fitContent]="true" title="Vé điện tử" (closed)="ticketOpen = false">
+@if (order) {
+  <div class="ticket-document">
+    <header class="ticket-brand-header"><div class="ticket-brand"><img src="/assets/brand/logo.png" alt="VIAGO" /><h2>Vé xe khách</h2><strong>{{ order.id }}</strong><app-badge variant="success" label="Đã thanh toán" /></div>@if (ticketUrl) { <div class="ticket-qr"><app-qr-code [value]="ticketUrl" [size]="120" label="Mã QR mở vé điện tử" /><small>Quét mã xem vé</small></div> }</header>
+    <div class="ticket-passenger"><strong>{{ order.passenger.name }}</strong><span>{{ order.passenger.phone }}</span>@if (order.passenger.email) { <span>{{ order.passenger.email }}</span> }</div>
+    @for (leg of order.legs; track leg.tripId; let li = $index) {
+      @let trip = tripFor(leg);
+      @for (seat of leg.seats; track seat; let si = $index) {
+        <article class="ticket">
+          <header class="ticket-route"><div><small>{{ li === 0 ? 'Chuyến đi' : 'Chuyến về' }} · {{ trip.type }}</small><h3>{{ trip.from }} → {{ trip.to }}</h3></div><div class="ticket-seat"><small>Ghế</small><strong>{{ seatLabel(seat) }}</strong>@if (trip.type === 'Cabin 22 chỗ') { <span>{{ leg.doubleSeats.includes(seat) ? 'Phòng đôi' : 'Phòng đơn' }}</span> }</div></header>
+          <div class="ticket-times"><div><small>Khởi hành</small><strong>{{ time(trip.departureAt) }}</strong><span>{{ date(trip.departureAt) }}</span></div><div><small>Di chuyển</small><strong>{{ duration(trip) }}</strong><span aria-hidden="true">→</span></div><div><small>Đến nơi</small><strong>{{ time(trip.arrivalAt) }}</strong><span>{{ date(trip.arrivalAt) }}</span></div></div>
+          <div class="ticket-grid">@if (point(leg, 'pickup'); as pickup) { <p><small>Điểm đón</small><strong>{{ pickup.name }}</strong><span>{{ pickup.address }}</span><span class="ticket-arrival">Có mặt trước {{ arrivalBefore(pickup) }} · {{ date(pickup.at) }}</span></p> }@if (point(leg, 'dropoff'); as dropoff) { <p><small>Điểm trả</small><strong>{{ dropoff.name }}</strong><span>{{ dropoff.address }}</span><span>{{ time(dropoff.at) }} · {{ date(dropoff.at) }}</span></p> }</div>
+          <footer class="ticket-reference"><small>Mã vé</small><strong>{{ order.id }}-{{ li + 1 }}-{{ si + 1 }}</strong></footer>
+        </article>
+      }
+    }
+    <footer class="ticket-print-actions no-print"><app-button variant="secondary" (clicked)="printTicket()">In vé</app-button></footer>
+  </div>
+}
+</app-modal>
+
+<ng-template #seatLegend><div class="reference-seat-legend"><span><i class="sold">X</i>Đã bán</span><span><i class="available"></i>Còn trống</span><span><i class="selected"></i>Đang chọn</span><span><i class="held"></i>Đang giữ</span></div></ng-template>
+<ng-template #roomConfig let-leg="leg" let-index="index">
+  @if (tripFor(leg).type === 'Cabin 22 chỗ' && leg.seats.length) {
+    <div class="reference-room-config"><h3>Loại phòng cho ghế đã chọn{{ draft.legs.length === 2 ? (index === 0 ? ' · Chuyến đi' : ' · Chuyến về') : '' }}</h3>
+      @for (seat of leg.seats; track seat) {
+        <div class="room-config-card" [class.room-config-active]="focusedRoom === index + ':' + seat"><label class="room-seat-label" [attr.for]="'room-' + index + '-' + seat">Ghế {{ seatLabel(seat) }}</label><app-select [id]="'room-' + index + '-' + seat" [disabled]="seatBusy" [value]="leg.doubleSeats.includes(seat) ? 'double' : 'single'" [options]="[{label:'Phòng đơn',value:'single'},{label:'Phòng đôi',value:'double'}]" (valueChange)="configureLegSeat(index, seat, $event)" /><div class="room-config-price"><small>{{ leg.doubleSeats.includes(seat) ? 'Phòng đôi' : 'Phòng đơn' }}</small><strong>{{ money(tripFor(leg).price * (leg.doubleSeats.includes(seat) ? 2 : 1)) }}</strong></div></div>
+      }
+    </div>
+  }
+</ng-template>
+
+<app-modal [open]="holdExpiredOpen" size="small" title="Hết thời gian giữ ghế" [closeOnBackdrop]="false" (closed)="holdExpiredOpen = false">
+  <div class="hold-expired-content"><div class="hold-expired-status"><span class="hold-expired-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path stroke-linecap="round" d="M12 7v5l3 2" /></svg></span><strong>00:00</strong><app-badge variant="warning" rounded="md" label="Đã hết giờ" /></div><p>Thời gian giữ ghế <strong>10 phút đã kết thúc.</strong><br />Vui lòng chọn lại ghế để tiếp tục đặt vé.</p><app-button variant="secondary" [fullWidth]="true" (clicked)="holdExpiredOpen = false">Chọn lại ghế</app-button></div>
+</app-modal>
+
+<app-modal [open]="!!interiorGallery" size="large" [title]="interiorGallery?.title || 'Hình ảnh nội thất xe'" (closed)="interiorGallery = null">
+  @if (interiorGallery; as gallery) {
+    <div class="interior-viewer">
+      <img class="interior-full-image" [src]="'/assets/customer/' + gallery.images[gallery.index]" [alt]="gallery.title + ' - ảnh ' + (gallery.index + 1)" />
+      <div class="interior-controls"><app-button variant="outline" size="sm" (clicked)="moveInterior(-1)">← Ảnh trước</app-button><span aria-live="polite">{{ gallery.index + 1 }} / {{ gallery.images.length }}</span><app-button variant="outline" size="sm" (clicked)="moveInterior(1)">Ảnh sau →</app-button></div>
+      <div class="interior-thumbnails">@for (image of gallery.images; track image; let index = $index) { <button type="button" [class.active]="gallery.index === index" [attr.aria-label]="'Xem ảnh ' + (index + 1)" [attr.aria-pressed]="gallery.index === index" (click)="gallery.index = index"><img [src]="'/assets/customer/' + image" alt="" /></button> }</div>
+    </div>
+  }
+</app-modal>

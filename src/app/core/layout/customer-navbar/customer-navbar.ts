@@ -2,6 +2,7 @@ import { Component, HostListener, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { CustomerNavigationService } from '../../services/customer-navigation.service';
 
 @Component({
   selector: 'app-customer-navbar',
@@ -23,8 +24,14 @@ export class CustomerNavbar {
 
   constructor(
     public authService: AuthService,
-    public router: Router
+    public router: Router,
+    private readonly customerNavigation: CustomerNavigationService
   ) {}
+
+  isHomeRouteActive(): boolean {
+    const url = this.router.url.split('?')[0];
+    return url === '/customer' || url === '/customer/' || url === '/';
+  }
 
   isAboutRouteActive(): boolean {
     const activeRoutes = ['/customer/ve-chung-toi', '/customer/gioi-thieu', '/customer/chinh-sach', '/customer/dieu-khoan', '/customer/faq', '/customer/lien-he', '/customer/tuyen-dung'];
@@ -91,9 +98,12 @@ export class CustomerNavbar {
   }
 
   onHomeClick(event: Event) {
-    event.preventDefault();
     this.closeMobileMenu();
-    this.router.navigate(['/customer'], { queryParams: { reset: Date.now() } });
+    if (event instanceof MouseEvent && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0)) return;
+    if (this.isHomeRouteActive()) {
+      event?.preventDefault();
+      this.customerNavigation.showHome();
+    }
   }
 }
 
