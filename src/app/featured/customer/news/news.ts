@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -42,16 +42,48 @@ export class News implements OnInit {
   constructor(
     private newsService: NewsService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
   ) {}
 
+  @HostListener('window:resize')
+  onResize() {
+    this.updatePageSize();
+  }
+
+  updatePageSize() {
+    const width = window.innerWidth;
+    let newPageSize = 12;
+    
+    if (width <= 640) {
+      newPageSize = 4; // Mobile: 4 items (4 rows)
+    } else if (width <= 1024) {
+      newPageSize = 8; // Tablet: 8 items (4 rows x 2 cols)
+    } else {
+      newPageSize = 12; // Desktop: 12 items (4 rows x 3 cols)
+    }
+
+    if (this.pageSize !== newPageSize) {
+      this.pageSize = newPageSize;
+      if (this.currentPage > this.totalPages) {
+        this.currentPage = Math.max(1, this.totalPages);
+      }
+      this.cdr.detectChanges(); // Force UI update immediately
+    }
+  }
+
   ngOnInit(): void {
+    this.updatePageSize();
     this.route.queryParams.subscribe(params => {
       const catParam = params['category'];
       if (catParam && this.categories.some(c => c.id === catParam)) {
         this.selectedCategory = catParam;
       } else {
         this.selectedCategory = 'all';
+      }
+      const searchParam = params['search'] || params['q'];
+      if (searchParam) {
+        this.searchTerm = searchParam;
       }
       this.featuredData = this.newsService.getFeaturedNews(this.selectedCategory);
       this.loadArticles();
@@ -84,6 +116,11 @@ export class News implements OnInit {
   onFilterChange(): void {
     this.currentPage = 1;
     this.loadArticles();
+  }
+
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.onFilterChange();
   }
 
   loadArticles(): void {
@@ -131,9 +168,12 @@ export class News implements OnInit {
   }
 
   get sectionTitle(): string {
+    if (this.searchTerm.trim()) {
+      return `KẾT QUẢ TÌM KIẾM CHO "${this.searchTerm.trim().toUpperCase()}"`;
+    }
     const cat = this.categories.find(c => c.id === this.selectedCategory);
-    if (this.selectedCategory === 'all') return 'TẤT CẢ TIN TỨC';
-    return (cat ? cat.label : 'DANH SÁCH TIN TỨC').toUpperCase();
+    if (this.selectedCategory === 'all') return 'DANH SÁCH BÀI VIẾT';
+    return (cat ? cat.label : 'DANH SÁCH BÀI VIẾT').toUpperCase();
   }
 
   setPage(page: number | string): void {

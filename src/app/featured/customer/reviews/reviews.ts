@@ -70,6 +70,9 @@ export class Reviews {
   selectedCategory: string = 'all';
   selectedSort: string = 'newest';
 
+  // Mobile filter toggle
+  isFilterExpanded: boolean = false;
+
   // Modal Image Preview
   activeImageModal: string | null = null;
 
@@ -146,19 +149,15 @@ export class Reviews {
       ]
     };
 
-    // Ratings breakdown for 152 items: 125 five-star, 24 four-star, 3 three-star -> Sum 730 / 152 = 4.8026 -> 4.8
-    const ratingsArray: number[] = [];
-    for (let i = 0; i < 125; i++) ratingsArray.push(5);
-    for (let i = 0; i < 24; i++) ratingsArray.push(4);
-    for (let i = 0; i < 3; i++) ratingsArray.push(3);
-
     const items: ReviewItem[] = [];
+
+    const ratingPattern = [5, 4, 3, 5, 5, 2, 5, 4, 1, 5];
 
     for (let i = 1; i <= 152; i++) {
       const name = names[(i - 1) % names.length];
       const initials = name.split(' ').map(n => n[0]).join('').slice(-2).toUpperCase();
       const color = colors[(i - 1) % colors.length];
-      const rating = ratingsArray[i - 1];
+      const rating = ratingPattern[(i - 1) % ratingPattern.length];
 
       const busType = this.busTypeOptions[(i - 1) % this.busTypeOptions.length];
       const route = this.routeOptions[(i - 1) % this.routeOptions.length];

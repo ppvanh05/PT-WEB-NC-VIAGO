@@ -1738,6 +1738,16 @@ export class NewsService {
     };
   }
 
+  private removeVietnameseTones(str: string): string {
+    if (!str) return '';
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase();
+  }
+
   getNewsListFiltered(
     category: string = 'all',
     searchTerm: string = '',
@@ -1751,14 +1761,14 @@ export class NewsService {
       result = result.filter(item => item.category === category);
     }
 
-    // Filter by Search term
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase().trim();
-      result = result.filter(item =>
-        item.title.toLowerCase().includes(term) ||
-        item.summary.toLowerCase().includes(term) ||
-        item.tags.some(t => t.toLowerCase().includes(term))
-      );
+    // Filter by Search term (supports accent-insensitive search, search only by title)
+    if (searchTerm && searchTerm.trim()) {
+      const termNorm = this.removeVietnameseTones(searchTerm.trim());
+      result = result.filter(item => {
+        const titleNorm = this.removeVietnameseTones(item.title);
+
+        return titleNorm.includes(termNorm);
+      });
     }
 
     // Sort

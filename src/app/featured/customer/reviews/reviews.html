@@ -93,8 +93,12 @@
     <!-- 3. MAIN CONTENT GRID (Sidebar + Reviews List) -->
     <div class="main-reviews-layout">
 
+      <button class="mobile-filter-toggle" (click)="isFilterExpanded = !isFilterExpanded">
+        <span class="filter-toggle-icon">▼</span> {{ isFilterExpanded ? 'Ẩn bộ lọc' : 'Hiển thị bộ lọc (' + (selectedCategory !== 'all' || searchKeyword ? 'Đang lọc' : 'Tất cả') + ')' }}
+      </button>
+
       <!-- LEFT SIDEBAR -->
-      <aside class="reviews-sidebar">
+      <aside class="reviews-sidebar" [class.expanded]="isFilterExpanded">
         <!-- Search Card -->
         <div class="sidebar-card search-card">
           <h4 class="sidebar-card-title">TÌM KIẾM NHẬN XÉT</h4>

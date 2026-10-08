@@ -47,12 +47,11 @@ export class LostAndFound implements OnInit {
   statuses = [
     { value: 'Tất cả trạng thái', label: 'Tất cả trạng thái' },
     { value: 'stored', label: 'Đang lưu trữ' },
-    { value: 'processing', label: 'Đang xử lý' },
-    { value: 'returned', label: 'Đã trao trả' }
+    { value: 'processing', label: 'Đang xử lý' }
   ];
 
   currentPage = 1;
-  pageSize = 20;
+  pageSize = 8;
   totalPages = 1;
 
   get pagesArray(): number[] {
@@ -101,6 +100,9 @@ export class LostAndFound implements OnInit {
 
   filterItems() {
     this.filteredItems = this.allItems.filter(item => {
+      // Hide returned items from customers
+      if (item.status === 'returned') return false;
+      
       const matchSearch = item.name.toLowerCase().includes(this.searchQuery.toLowerCase());
       const matchRoute = this.selectedRoute === 'Tất cả các tuyến' || item.route === this.selectedRoute;
       const matchStatus = this.selectedStatus === 'Tất cả trạng thái' || item.status === this.selectedStatus;
@@ -156,6 +158,14 @@ export class LostAndFound implements OnInit {
       this.reportForm.fullName = ticket.fullName;
       this.reportForm.phone = ticket.phone;
       this.reportForm.email = ticket.email;
+    }
+  }
+
+  openDatePicker(event: Event) {
+    try {
+      (event.target as any).showPicker();
+    } catch (e) {
+      // Fallback for older browsers
     }
   }
 

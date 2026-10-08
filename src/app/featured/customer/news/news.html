@@ -16,21 +16,27 @@
 
       <!-- SEARCH PILL -->
       <div class="news-search-pill">
-        <i class="bi bi-search search-icon"></i>
+        <i class="bi bi-search search-icon" (click)="onFilterChange()"></i>
         <input 
           type="text" 
           class="search-input-pill" 
           placeholder="Tìm kiếm tin tức..." 
           [(ngModel)]="searchTerm" 
-          (input)="onFilterChange()">
+          (input)="onFilterChange()"
+          (keyup.enter)="onFilterChange()">
+        <i 
+          class="bi bi-x-circle-fill clear-icon" 
+          *ngIf="searchTerm" 
+          (click)="clearSearch()" 
+          title="Xóa tìm kiếm"></i>
       </div>
     </div>
 
     <!-- WRAPPER WITH FADE IN ANIMATION FOR SMOOTH TRANSITION -->
     <div class="news-content-wrapper fade-in-animation">
 
-      <!-- 3. FEATURED NEWS SECTION (SHOWN FOR EVERY CATEGORY IF FEATURED DATA EXISTS) -->
-      <section class="featured-section" *ngIf="featuredData && featuredData.main">
+      <!-- 3. FEATURED NEWS SECTION (HIDDEN WHEN SEARCHING) -->
+      <section class="featured-section" *ngIf="!searchTerm && featuredData && featuredData.main">
         <div class="section-heading">
           <span class="heading-accent"></span>
           <h2>TIN NỔI BẬT</h2>
@@ -100,15 +106,19 @@
         <div class="section-heading-bar">
           <div class="section-heading">
             <span class="heading-accent"></span>
-            <h2>DANH SÁCH BÀI VIẾT</h2>
+            <h2>{{ sectionTitle }}</h2>
           </div>
           <span class="total-count-badge">{{ filteredArticles.length }} tin tức</span>
         </div>
 
         <!-- EMPTY STATE IF NO ARTICLES MATCH FILTER -->
         <div class="empty-state" *ngIf="filteredArticles.length === 0">
-          <i class="bi bi-newspaper empty-icon"></i>
-          <p>Không tìm thấy bài viết nào phù hợp với từ khóa tìm kiếm.</p>
+          <i class="bi bi-search empty-icon"></i>
+          <p *ngIf="searchTerm">Không tìm thấy bài viết nào phù hợp với từ khóa "<strong>{{ searchTerm }}</strong>".</p>
+          <p *ngIf="!searchTerm">Không có bài viết nào trong danh mục này.</p>
+          <button class="btn-reset-search" (click)="clearSearch()" *ngIf="searchTerm">
+            <i class="bi bi-arrow-counterclockwise"></i> Xóa từ khóa tìm kiếm
+          </button>
         </div>
 
         <!-- ARTICLES GRID (3 COLUMNS) -->

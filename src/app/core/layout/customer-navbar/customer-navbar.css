@@ -498,6 +498,13 @@
   .user-name-label {
     display: none;
   }
+  .utility-col-right .btn-auth span {
+    display: none;
+  }
+  .utility-col-right .btn-auth {
+    padding: 10px;
+    border-radius: 50%;
+  }
 }
 
 

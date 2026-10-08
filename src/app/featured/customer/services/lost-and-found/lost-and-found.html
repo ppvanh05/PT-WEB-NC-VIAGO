@@ -9,7 +9,78 @@
   </div>
 
   <div class="lf-layout" id="items-list-top">
-    <!-- Left Column: Items List -->
+    <!-- Top Section: Form -->
+    <div class="lf-right-col">
+      <div class="lf-form-card">
+        <h2 class="lf-form-title">Khai báo thất lạc</h2>
+        <p class="lf-form-desc">
+          Hãy điền chi tiết biểu mẫu khai báo dưới đây để bộ phận đối soát trích xuất camera hành trình hỗ trợ bạn tìm kiếm.
+        </p>
+
+        <div class="lf-form-body">
+          <div class="lf-form-group">
+            <label>MÃ SỐ VÉ CHUYẾN ĐI (Tùy chọn)</label>
+            <input type="text" [(ngModel)]="reportForm.ticketCode" class="lf-input" placeholder="Ví dụ: VG123456 (Nhập để tự động điền)" (blur)="onTicketCodeChange()" />
+          </div>
+
+          <div class="lf-form-group">
+            <label>MÔ TẢ VẬT PHẨM THẤT LẠC <span class="lf-req">*</span></label>
+            <input type="text" [(ngModel)]="reportForm.description" class="lf-input" placeholder="Ví dụ: Ví da cá sấu đen, iPhone 14 Pro màu tím..." />
+          </div>
+
+          <div class="lf-form-row">
+            <div class="lf-form-group">
+              <label>TUYẾN XE <span class="lf-req">*</span></label>
+              <div class="lf-select-wrap">
+                <select [(ngModel)]="reportForm.route" class="lf-input lf-select">
+                  <option value="">Chọn tuyến</option>
+                  <option *ngFor="let route of routes" [value]="route" [disabled]="route === 'Tất cả các tuyến'">{{ route }}</option>
+                </select>
+                <i class="fas fa-chevron-down lf-select-icon"></i>
+              </div>
+            </div>
+            <div class="lf-form-group">
+              <label>NGÀY DI CHUYỂN <span class="lf-req">*</span></label>
+              <input type="date" [(ngModel)]="reportForm.date" class="lf-input" (keydown)="$event.preventDefault()" (click)="openDatePicker($event)" />
+            </div>
+          </div>
+
+          <div class="lf-form-group">
+            <label>SỐ GHẾ / VỊ TRÍ PHÒNG (NẾU NHỚ)</label>
+            <input type="text" [(ngModel)]="reportForm.seat" class="lf-input" placeholder="Ví dụ: Phòng A12, số ghế 5..." />
+          </div>
+
+          <div class="lf-form-group">
+            <label>HỌ TÊN HÀNH KHÁCH <span class="lf-req">*</span></label>
+            <input type="text" [(ngModel)]="reportForm.fullName" class="lf-input" placeholder="Nguyễn Văn A" />
+          </div>
+
+          <div class="lf-form-row">
+            <div class="lf-form-group">
+              <label>SỐ ĐIỆN THOẠI <span class="lf-req">*</span></label>
+              <input type="text" [(ngModel)]="reportForm.phone" class="lf-input" placeholder="0987xxxxxx" />
+            </div>
+            <div class="lf-form-group">
+              <label>ĐỊA CHỈ EMAIL <span class="lf-req">*</span></label>
+              <input type="email" [(ngModel)]="reportForm.email" class="lf-input" placeholder="name@example.com" />
+            </div>
+          </div>
+
+          <div class="lf-form-group">
+            <label>HÌNH ẢNH VẬT PHẨM (NẾU CÓ)</label>
+            <div class="lf-upload-zone">
+              <span>Tải ảnh vật phẩm lên (.jpg, .png)</span>
+            </div>
+          </div>
+
+          <button class="lf-btn-submit" (click)="submitReport()">
+            GỬI YÊU CẦU ĐỐI SOÁT
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Section: Items List -->
     <div class="lf-left-col">
       <div class="lf-header">
         <h1 class="lf-title">
@@ -57,7 +128,7 @@
               </div>
             </div>
             
-            <button class="lf-btn-claim" (click)="openClaimModal(item)" [disabled]="item.status === 'returned'">
+            <button class="lf-btn-claim" (click)="openClaimModal(item)" [disabled]="item.status !== 'stored'">
               Báo nhận sở hữu
             </button>
           </div>
@@ -81,77 +152,6 @@
           [showSummary]="false"
           (pageChange)="setPage($event)">
         </app-pagination>
-      </div>
-    </div>
-
-    <!-- Right Column: Form -->
-    <div class="lf-right-col">
-      <div class="lf-form-card">
-        <h2 class="lf-form-title">Khai báo thất lạc</h2>
-        <p class="lf-form-desc">
-          Hãy điền chi tiết biểu mẫu khai báo dưới đây để bộ phận đối soát trích xuất camera hành trình hỗ trợ bạn tìm kiếm.
-        </p>
-
-        <div class="lf-form-body">
-          <div class="lf-form-group">
-            <label>MÃ SỐ VÉ CHUYẾN ĐI (Tùy chọn)</label>
-            <input type="text" [(ngModel)]="reportForm.ticketCode" class="lf-input" placeholder="Ví dụ: VG123456 (Nhập để tự động điền)" (blur)="onTicketCodeChange()" />
-          </div>
-
-          <div class="lf-form-group">
-            <label>MÔ TẢ VẬT PHẨM THẤT LẠC <span class="lf-req">*</span></label>
-            <input type="text" [(ngModel)]="reportForm.description" class="lf-input" placeholder="Ví dụ: Ví da cá sấu đen, iPhone 14 Pro màu tím..." />
-          </div>
-
-          <div class="lf-form-row">
-            <div class="lf-form-group">
-              <label>TUYẾN XE <span class="lf-req">*</span></label>
-              <div class="lf-select-wrap">
-                <select [(ngModel)]="reportForm.route" class="lf-input lf-select">
-                  <option value="">Chọn tuyến</option>
-                  <option *ngFor="let route of routes" [value]="route" [disabled]="route === 'Tất cả các tuyến'">{{ route }}</option>
-                </select>
-                <i class="fas fa-chevron-down lf-select-icon"></i>
-              </div>
-            </div>
-            <div class="lf-form-group">
-              <label>NGÀY DI CHUYỂN <span class="lf-req">*</span></label>
-              <input type="date" [(ngModel)]="reportForm.date" class="lf-input" />
-            </div>
-          </div>
-
-          <div class="lf-form-group">
-            <label>SỐ GHẾ / VỊ TRÍ PHÒNG (NẾU NHỚ)</label>
-            <input type="text" [(ngModel)]="reportForm.seat" class="lf-input" placeholder="Ví dụ: Phòng A12, số ghế 5..." />
-          </div>
-
-          <div class="lf-form-group">
-            <label>HỌ TÊN HÀNH KHÁCH <span class="lf-req">*</span></label>
-            <input type="text" [(ngModel)]="reportForm.fullName" class="lf-input" placeholder="Nguyễn Văn A" />
-          </div>
-
-          <div class="lf-form-row">
-            <div class="lf-form-group">
-              <label>SỐ ĐIỆN THOẠI <span class="lf-req">*</span></label>
-              <input type="text" [(ngModel)]="reportForm.phone" class="lf-input" placeholder="0987xxxxxx" />
-            </div>
-            <div class="lf-form-group">
-              <label>ĐỊA CHỈ EMAIL <span class="lf-req">*</span></label>
-              <input type="email" [(ngModel)]="reportForm.email" class="lf-input" placeholder="name@example.com" />
-            </div>
-          </div>
-
-          <div class="lf-form-group">
-            <label>HÌNH ẢNH VẬT PHẨM (NẾU CÓ)</label>
-            <div class="lf-upload-zone">
-              <span>Tải ảnh vật phẩm lên (.jpg, .png)</span>
-            </div>
-          </div>
-
-          <button class="lf-btn-submit" (click)="submitReport()">
-            GỬI YÊU CẦU ĐỐI SOÁT
-          </button>
-        </div>
       </div>
     </div>
   </div>
