@@ -1,1 +1,128 @@
-<p>security-settings-modal works!</p>
+<app-modal
+  [open]="true"
+  size="small"
+  [title]="modalTitle"
+  [showCloseButton]="step !== 3"
+  [closeOnBackdrop]="step !== 3"
+  (closed)="requestClose()"
+>
+  <!-- BƯỚC 1: NHẬP MẬT KHẨU -->
+  <form *ngIf="step === 1" [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()" class="security-form" autocomplete="off" novalidate>
+    <!-- Mật khẩu hiện tại: không autofill, không hiển thị plain-text -->
+    <div class="security-field">
+      <label class="security-label" for="current-password">Mật khẩu hiện tại</label>
+      <div class="security-input-wrap">
+        <svg class="security-input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+        <input id="current-password" type="password" formControlName="currentPassword" appNoAutofill
+          placeholder="Nhập mật khẩu hiện tại" class="security-input"
+          [class.security-input--error]="showError('currentPassword') || currentPasswordServerError"
+          [attr.data-invalid]="currentPasswordServerError ? 'true' : null" />
+      </div>
+      <p *ngIf="showError('currentPassword') && !currentPasswordServerError" class="security-error">Vui lòng nhập mật khẩu hiện tại.</p>
+      <p *ngIf="currentPasswordServerError" class="security-error" role="alert">{{ currentPasswordServerError }}</p>
+    </div>
+
+    <!-- Mật khẩu mới + Checklist -->
+    <div class="security-field">
+      <label class="security-label" for="new-password">Mật khẩu mới</label>
+      <div class="security-input-wrap">
+        <svg class="security-input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+        <input id="new-password" type="password" formControlName="newPassword" appNoAutofill
+          placeholder="Nhập mật khẩu mới" class="security-input"
+          [class.security-input--error]="showError('newPassword')" />
+      </div>
+      <p *ngIf="showError('newPassword') && hasError('newPassword', 'required')" class="security-error">Vui lòng nhập mật khẩu mới.</p>
+      <p *ngIf="hasError('newPassword', 'samePassword') && passwordForm.get('newPassword')?.touched" class="security-error">Mật khẩu mới không được trùng với mật khẩu hiện tại.</p>
+      <app-password-checklist
+        *ngIf="passwordForm.get('newPassword')?.value || submitted"
+        [value]="passwordForm.get('newPassword')?.value"
+        [highlightFailed]="showError('newPassword')"
+      ></app-password-checklist>
+    </div>
+
+    <!-- Xác nhận mật khẩu mới -->
+    <div class="security-field">
+      <label class="security-label" for="confirm-password">Nhập lại mật khẩu mới</label>
+      <div class="security-input-wrap">
+        <svg class="security-input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+        <input id="confirm-password" type="password" formControlName="confirmPassword" appNoAutofill
+          placeholder="Nhập lại mật khẩu mới" class="security-input"
+          [class.security-input--error]="showMismatch || (showError('confirmPassword') && hasError('confirmPassword', 'required'))" />
+      </div>
+      <p *ngIf="showError('confirmPassword') && hasError('confirmPassword', 'required')" class="security-error">Vui lòng xác nhận mật khẩu mới.</p>
+      <p *ngIf="showMismatch" class="security-error">Mật khẩu xác nhận không khớp.</p>
+      <p *ngIf="!passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.value" class="security-success">✓ Mật khẩu đã trùng khớp</p>
+    </div>
+
+    <button type="submit" class="security-submit" [disabled]="loading">{{ loading ? 'Đang xử lý...' : 'Tiếp tục' }}</button>
+  </form>
+
+  <!-- BƯỚC 2: XÁC THỰC OTP -->
+  <form *ngIf="step === 2" class="security-form security-form--center" (ngSubmit)="verifyOtp()" autocomplete="off" novalidate>
+    <p class="security-subtitle">
+      Mã xác thực đã được gửi về số <strong>{{ phoneNumber }}</strong>
+    </p>
+
+    <div *ngIf="generatedOtp" class="security-info">
+      Mã OTP vừa được tạo là: <strong>{{ generatedOtp }}</strong>
+    </div>
+
+    <div class="security-field">
+      <div class="otp-group">
+        <input
+          #otpInput
+          type="text"
+          maxlength="6"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          aria-label="Mã OTP gồm 6 chữ số"
+          [value]="otpString"
+          (input)="onOtpInput($event)"
+          (focus)="isOtpFocused = true"
+          (blur)="isOtpFocused = false"
+          (paste)="onOtpPaste($event)"
+          class="otp-hidden-input"
+        />
+        <div
+          *ngFor="let box of [0, 1, 2, 3, 4, 5]; let i = index"
+          class="otp-box"
+          [class.otp-box--active]="isOtpFocused && otpString.length === i"
+          [class.otp-box--error]="!!otpErrorMessage"
+        >
+          {{ otpString.charAt(i) }}
+        </div>
+      </div>
+      <p *ngIf="otpErrorMessage" class="security-error security-error--center" role="alert">{{ otpErrorMessage }}</p>
+    </div>
+
+    <div class="otp-meta">
+      <span>Thời gian còn lại: <span class="otp-meta__timer">{{ getFormattedTime() }}</span></span>
+      <button type="button" (click)="resendOtp()" [disabled]="otpTimer > 0" class="security-link">Gửi lại mã</button>
+    </div>
+
+    <button type="submit" class="security-submit">Xác nhận</button>
+
+    <button type="button" (click)="backToPasswordForm()" class="security-back">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+      </svg>
+      <span>Quay lại</span>
+    </button>
+  </form>
+
+  <!-- BƯỚC 3: THÀNH CÔNG -->
+  <div *ngIf="step === 3" class="security-success-state">
+    <div class="security-success-state__icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3.5" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+      </svg>
+    </div>
+    <h2 class="security-success-state__title">Đổi mật khẩu thành công</h2>
+  </div>
+</app-modal>

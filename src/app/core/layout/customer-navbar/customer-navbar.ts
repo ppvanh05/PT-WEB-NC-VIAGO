@@ -107,6 +107,10 @@ export class CustomerNavbar {
 
   onHomeClick(event?: Event) {
     this.closeMobileMenu();
+    // Đang ở Trang chủ thì router bỏ qua điều hướng cùng URL -> tự cuộn về đầu trang
+    if (this.isHomeRouteActive()) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 }
 

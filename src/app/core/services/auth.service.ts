@@ -62,7 +62,7 @@ const DEFAULT_CONFIG: AuthConfig = {
   sessionTimeoutMinutes: 30
 };
 
-const DEFAULT_USER_AVATAR = '/asset/images/customer/user.png';
+const DEFAULT_USER_AVATAR = '/assets/customer/user.png';
 
 const SEED_USERS: User[] = [
   {
@@ -86,7 +86,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -111,7 +111,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -136,7 +136,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -161,7 +161,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -186,7 +186,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -211,7 +211,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -236,7 +236,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -261,7 +261,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -286,7 +286,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -311,7 +311,7 @@ const SEED_USERS: User[] = [
     status: 'Đã khóa',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -336,7 +336,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -361,7 +361,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -386,7 +386,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -411,7 +411,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -436,7 +436,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -461,7 +461,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -486,7 +486,7 @@ const SEED_USERS: User[] = [
     status: 'Đã khóa',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -511,7 +511,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -536,7 +536,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   },
@@ -561,7 +561,7 @@ const SEED_USERS: User[] = [
     status: 'Đang hoạt động',
     twoFA: false,
     role: 'customer',
-    avatar: '/asset/images/customer/user.png',
+    avatar: '/assets/customer/user.png',
     failedLoginAttempts: 0,
     lockoutUntil: null
   }
@@ -571,6 +571,8 @@ const SEED_USERS: User[] = [
   providedIn: 'root'
 })
 export class AuthService {
+  static readonly INVALID_CREDENTIALS_MESSAGE = 'Số điện thoại hoặc mật khẩu không đúng.';
+
   auth!: Auth;
   isFirebaseMode = false;
 
@@ -648,7 +650,7 @@ export class AuthService {
 
   private normalizeUserAvatar(user: User): User {
     let avatar = user.avatar && user.avatar.trim() ? user.avatar : DEFAULT_USER_AVATAR;
-    if (avatar === '/asset/images/customer/icon_user.svg') {
+    if (avatar === '/assets/customer/icon_user.svg') {
       avatar = DEFAULT_USER_AVATAR;
     }
     return {
@@ -811,7 +813,8 @@ export class AuthService {
     return { success: true, message: 'Chế độ giả lập.' };
   }
 
-  // Login
+  // Login bằng số điện thoại. Sai thông tin chỉ trả về một thông báo chung,
+  // không chỉ rõ sai ở ô nào vì lý do bảo mật.
   async login(phoneNumber: string, password: string): Promise<{ success: boolean; message: string }> {
     if (!this.isBrowser()) return { success: false, message: 'Yêu cầu môi trường trình duyệt.' };
 
@@ -821,7 +824,7 @@ export class AuthService {
 
     if (userIndex === -1) {
       this.logActivity(phoneTrimmed, 'LOGIN_FAILED', 'Số điện thoại không tồn tại.');
-      return { success: false, message: 'Số điện thoại hoặc mật khẩu không chính xác.' };
+      return { success: false, message: AuthService.INVALID_CREDENTIALS_MESSAGE };
     }
 
     const user = users[userIndex];
@@ -857,7 +860,7 @@ export class AuthService {
         
         // Log failure in Firebase
         user.failedLoginAttempts++;
-        let msg = 'Số điện thoại hoặc mật khẩu không chính xác.';
+        let msg = AuthService.INVALID_CREDENTIALS_MESSAGE;
         
         if (user.failedLoginAttempts >= this.config().maxFailedAttempts) {
           user.status = 'locked';
@@ -866,8 +869,6 @@ export class AuthService {
           msg = `Tài khoản bị khóa tạm thời trong ${this.config().lockoutDurationMinutes} phút do nhập sai mật khẩu quá ${this.config().maxFailedAttempts} lần liên tiếp.`;
           this.logActivity(phoneTrimmed, 'LOCKOUT', `Tài khoản bị khóa do nhập sai mật khẩu ${user.failedLoginAttempts} lần liên tiếp.`);
         } else {
-          const attemptsLeft = this.config().maxFailedAttempts - user.failedLoginAttempts;
-          msg = `Mật khẩu không chính xác. Bạn còn ${attemptsLeft} lần thử lại trước khi tài khoản bị khóa.`;
           this.logActivity(phoneTrimmed, 'LOGIN_FAILED', `Nhập sai mật khẩu (Lần ${user.failedLoginAttempts}).`);
         }
         
@@ -880,7 +881,7 @@ export class AuthService {
       const hashed = await this.hashPassword(password);
       if (user.passwordHash !== hashed && user.password !== password) {
         user.failedLoginAttempts++;
-        let msg = 'Số điện thoại hoặc mật khẩu không chính xác.';
+        let msg = AuthService.INVALID_CREDENTIALS_MESSAGE;
         if (user.failedLoginAttempts >= this.config().maxFailedAttempts) {
           user.status = 'locked';
           const durationMs = this.config().lockoutDurationMinutes * 60 * 1000;
@@ -888,8 +889,6 @@ export class AuthService {
           msg = `Tài khoản bị khóa tạm thời trong ${this.config().lockoutDurationMinutes} phút do nhập sai mật khẩu quá ${this.config().maxFailedAttempts} lần liên tiếp.`;
           this.logActivity(phoneTrimmed, 'LOCKOUT', `Tài khoản bị khóa do nhập sai mật khẩu ${user.failedLoginAttempts} lần liên tiếp.`);
         } else {
-          const attemptsLeft = this.config().maxFailedAttempts - user.failedLoginAttempts;
-          msg = `Mật khẩu không chính xác. Bạn còn ${attemptsLeft} lần thử lại trước khi tài khoản bị khóa.`;
           this.logActivity(phoneTrimmed, 'LOGIN_FAILED', `Nhập sai mật khẩu (Lần ${user.failedLoginAttempts}).`);
         }
         users[userIndex] = user;
@@ -1174,8 +1173,23 @@ export class AuthService {
       signOut(this.auth).catch((err: any) => console.error('[VIAGO AUTH] Firebase SignOut Error:', err));
     }
 
+    this.clearSession();
+  }
+
+  /** Xóa sạch phiên đăng nhập: LocalStorage, SessionStorage và trạng thái xác thực trong bộ nhớ. */
+  private clearSession(): void {
     localStorage.removeItem('viago_current_user');
     localStorage.removeItem('viago_session_expiry');
+    try {
+      Object.keys(sessionStorage)
+        .filter(key => key.startsWith('viago_'))
+        .forEach(key => sessionStorage.removeItem(key));
+    } catch {
+      // SessionStorage có thể bị chặn (chế độ riêng tư) - bỏ qua.
+    }
+    this.confirmationResult = null;
+    this.activeOTPs.clear();
+    this.failedOtpAttempts.clear();
     this.currentUser.set(null);
   }
 

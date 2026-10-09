@@ -1,1 +1,429 @@
-<!-- Auth Modal Placeholder -->
+<!-- Auth Modal Backdrop -->
+<div class="auth-backdrop" (click)="$event.stopPropagation(); handleClose()">
+
+  <!-- Main Modal Card (Bước hoàn thiện hồ sơ cần layout rộng 2 cột) -->
+  <div class="auth-card" [class.auth-card--wide]="currentStep === 'register-profile'" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+
+    <!-- Close Button -->
+    <button *ngIf="currentStep !== 'success-status' && currentStep !== 'register-profile'" type="button" (click)="handleClose()" class="auth-close" aria-label="Đóng">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+
+    <div *ngIf="currentStep !== 'success-status'">
+
+    <!-- Recaptcha container for Firebase Phone Auth (Off-screen) -->
+    <div id="recaptcha-container" class="auth-recaptcha"></div>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 1: ĐĂNG NHẬP -->
+    <!-- ========================================================================= -->
+    <div *ngIf="currentStep === 'login'" class="auth-step">
+      <h2 class="auth-title">Đăng nhập</h2>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onLoginSubmit()" class="auth-form" autocomplete="off" novalidate>
+        <!-- Lỗi chung trên Form: không chỉ rõ sai ở ô nào vì lý do bảo mật -->
+        <div *ngIf="loginErrorMessage" class="auth-alert" role="alert">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="auth-alert__icon">
+            <path fill-rule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clip-rule="evenodd" />
+          </svg>
+          <span>{{ loginErrorMessage }}</span>
+        </div>
+
+        <!-- Số điện thoại -->
+        <div class="auth-field">
+          <div class="auth-input-wrap">
+            <img src="/assets/customer/icon_sdt.svg" class="auth-input-icon" alt="" aria-hidden="true" />
+            <input formControlName="phoneNumber" appPhoneInput placeholder="Nhập số điện thoại"
+              class="auth-input" [class.auth-input--error]="showError(loginForm, 'phoneNumber')" />
+          </div>
+          <p *ngIf="showError(loginForm, 'phoneNumber')" class="auth-field-error">
+            <ng-container *ngIf="hasError(loginForm, 'phoneNumber', 'required')">Vui lòng nhập số điện thoại.</ng-container>
+            <ng-container *ngIf="hasError(loginForm, 'phoneNumber', 'vnPhone')">Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0.</ng-container>
+          </p>
+        </div>
+
+        <!-- Mật khẩu -->
+        <div class="auth-field">
+          <div class="auth-input-wrap">
+            <img src="/assets/customer/icon_mat_khau.svg" class="auth-input-icon" alt="" aria-hidden="true" />
+            <input type="password" formControlName="password" appNoAutofill placeholder="Mật khẩu"
+              class="auth-input" [class.auth-input--error]="showError(loginForm, 'password')" />
+          </div>
+          <p *ngIf="showError(loginForm, 'password')" class="auth-field-error">Vui lòng nhập mật khẩu.</p>
+        </div>
+
+        <div class="auth-row-end">
+          <button type="button" (click)="setStep('forgot')" class="auth-link">Quên mật khẩu?</button>
+        </div>
+
+        <button type="submit" class="auth-submit">Đăng nhập</button>
+      </form>
+
+      <p class="auth-footer-text">
+        Bạn chưa có tài khoản?
+        <button type="button" (click)="setStep('register-phone')" class="auth-link auth-link--strong">Đăng ký ngay</button>
+      </p>
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- QUÊN MẬT KHẨU -->
+    <!-- ========================================================================= -->
+
+    <!-- BƯỚC 1: NHẬP SĐT -->
+    <div *ngIf="currentStep === 'forgot'" class="auth-step">
+      <h2 class="auth-title auth-title--compact">Quên mật khẩu</h2>
+      <p class="auth-subtitle">Nhập số điện thoại đã đăng ký để nhận mã xác thực OTP khôi phục mật khẩu.</p>
+
+      <form [formGroup]="forgotForm" (ngSubmit)="onForgotSubmit()" class="auth-form" autocomplete="off" novalidate>
+        <div class="auth-field">
+          <div class="auth-input-wrap">
+            <img src="/assets/customer/icon_sdt.svg" class="auth-input-icon" alt="" aria-hidden="true" />
+            <input formControlName="phoneNumber" appPhoneInput placeholder="Nhập số điện thoại"
+              class="auth-input" [class.auth-input--error]="showError(forgotForm, 'phoneNumber') || phoneServerError"
+              [attr.data-invalid]="phoneServerError ? 'true' : null" />
+          </div>
+          <p *ngIf="showError(forgotForm, 'phoneNumber')" class="auth-field-error">
+            <ng-container *ngIf="hasError(forgotForm, 'phoneNumber', 'required')">Vui lòng nhập số điện thoại.</ng-container>
+            <ng-container *ngIf="hasError(forgotForm, 'phoneNumber', 'vnPhone')">Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0.</ng-container>
+          </p>
+          <p *ngIf="phoneServerError && !showError(forgotForm, 'phoneNumber')" class="auth-field-error">{{ phoneServerError }}</p>
+        </div>
+
+        <button type="submit" class="auth-submit">Gửi mã xác thực</button>
+      </form>
+
+      <button type="button" (click)="setStep('login')" class="auth-back">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        <span>Quay lại đăng nhập</span>
+      </button>
+    </div>
+
+    <!-- BƯỚC 2 (QUÊN MK) & ĐĂNG KÝ BƯỚC 2: NHẬP OTP -->
+    <div *ngIf="currentStep === 'forgot-otp' || currentStep === 'register-otp'" class="auth-step">
+      <h2 class="auth-title auth-title--compact">Nhập mã xác thực</h2>
+      <p class="auth-subtitle">
+        Mã xác thực đã được gửi về số
+        <strong class="auth-highlight">{{ currentStep === 'forgot-otp' ? resetPhoneNumber : registerPhoneNumber }}</strong>
+      </p>
+
+      <!-- Hộp thông báo mã OTP (môi trường thử nghiệm) -->
+      <div *ngIf="generatedOtp" class="auth-alert auth-alert--info">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="auth-alert__icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 111.063.852l-.708 2.836a.75.75 0 001.063.852l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+        </svg>
+        <span>Mã OTP vừa được tạo là: <strong class="auth-otp-code">{{ generatedOtp }}</strong></span>
+      </div>
+
+      <form class="auth-form" (ngSubmit)="currentStep === 'forgot-otp' ? onForgotOtpSubmit() : onRegisterOtpSubmit()" autocomplete="off" novalidate>
+        <div class="auth-field">
+          <!-- Ô nhập ẩn phủ toàn vùng + 6 ô hiển thị -->
+          <div class="otp-group">
+            <input
+              #otpInput
+              type="text"
+              maxlength="6"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              aria-label="Mã OTP gồm 6 chữ số"
+              [value]="otpString"
+              (input)="onOtpInput($event)"
+              (focus)="isOtpFocused = true"
+              (blur)="isOtpFocused = false"
+              (paste)="onOtpPaste($event)"
+              class="otp-hidden-input"
+            />
+            <div
+              *ngFor="let box of [0, 1, 2, 3, 4, 5]; let i = index"
+              class="otp-box"
+              [class.otp-box--active]="isOtpFocused && otpString.length === i"
+              [class.otp-box--error]="!!otpErrorMessage"
+            >
+              {{ otpString.charAt(i) }}
+            </div>
+          </div>
+          <!-- Lỗi OTP hiển thị inline ngay dưới ô nhập -->
+          <p *ngIf="otpErrorMessage" class="auth-field-error auth-field-error--center" role="alert">{{ otpErrorMessage }}</p>
+        </div>
+
+        <div class="otp-meta">
+          <span>
+            Thời gian còn lại:
+            <span class="otp-meta__timer">{{ getFormattedTime() }}</span>
+          </span>
+          <button
+            type="button"
+            (click)="currentStep === 'forgot-otp' ? resendForgotOtp() : resendRegisterOtp()"
+            [disabled]="otpTimer > 0"
+            class="auth-link auth-link--primary"
+          >
+            Gửi lại mã
+          </button>
+        </div>
+
+        <button type="submit" class="auth-submit">Tiếp tục</button>
+      </form>
+
+      <button type="button" (click)="setStep(currentStep === 'forgot-otp' ? 'forgot' : 'register-phone')" class="auth-back">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        <span>Quay lại</span>
+      </button>
+    </div>
+
+    <!-- BƯỚC 3 (QUÊN MK): ĐẶT LẠI MẬT KHẨU  &  ĐĂNG KÝ BƯỚC 3: THIẾT LẬP MẬT KHẨU -->
+    <ng-container *ngIf="currentStep === 'forgot-reset' || currentStep === 'register-password'">
+      <ng-container *ngIf="(currentStep === 'forgot-reset' ? resetForm : registerPasswordForm) as pwForm">
+        <div class="auth-step">
+          <h2 class="auth-title">{{ currentStep === 'forgot-reset' ? 'Đặt lại mật khẩu' : 'Thiết lập mật khẩu' }}</h2>
+
+          <form [formGroup]="pwForm" (ngSubmit)="currentStep === 'forgot-reset' ? onResetSubmit() : onRegisterPasswordSubmit()" class="auth-form" autocomplete="off" novalidate>
+            <!-- Mật khẩu mới -->
+            <div class="auth-field">
+              <div class="auth-input-wrap">
+                <img src="/assets/customer/icon_mat_khau.svg" class="auth-input-icon" alt="" aria-hidden="true" />
+                <input type="password" formControlName="password" appNoAutofill
+                  [placeholder]="currentStep === 'forgot-reset' ? 'Nhập mật khẩu mới' : 'Nhập mật khẩu'"
+                  class="auth-input" [class.auth-input--error]="showError(pwForm, 'password')" />
+              </div>
+              <p *ngIf="showError(pwForm, 'password') && hasError(pwForm, 'password', 'required')" class="auth-field-error">Vui lòng nhập mật khẩu.</p>
+              <!-- Checklist điều kiện mật khẩu (xám ○ -> xanh ✓) -->
+              <app-password-checklist
+                *ngIf="pwForm.get('password')?.value || submitted"
+                [value]="pwForm.get('password')?.value"
+                [highlightFailed]="showError(pwForm, 'password')"
+              ></app-password-checklist>
+            </div>
+
+            <!-- Xác nhận mật khẩu: chỉ so khớp khi blur hoặc đã gõ đủ độ dài -->
+            <div class="auth-field">
+              <div class="auth-input-wrap">
+                <img src="/assets/customer/icon_mat_khau.svg" class="auth-input-icon" alt="" aria-hidden="true" />
+                <input type="password" formControlName="confirmPassword" appNoAutofill
+                  [placeholder]="currentStep === 'forgot-reset' ? 'Nhập lại mật khẩu mới' : 'Nhập lại mật khẩu'"
+                  class="auth-input" [class.auth-input--error]="showMismatch(pwForm) || (showError(pwForm, 'confirmPassword') && hasError(pwForm, 'confirmPassword', 'required'))" />
+              </div>
+              <p *ngIf="showError(pwForm, 'confirmPassword') && hasError(pwForm, 'confirmPassword', 'required')" class="auth-field-error">Vui lòng nhập lại mật khẩu.</p>
+              <p *ngIf="showMismatch(pwForm)" class="auth-field-error">Mật khẩu nhập lại không trùng khớp.</p>
+              <p *ngIf="!pwForm.get('confirmPassword')?.invalid && pwForm.get('confirmPassword')?.value" class="auth-field-success">✓ Mật khẩu đã trùng khớp</p>
+            </div>
+
+            <div *ngIf="formErrorMessage" class="auth-alert" role="alert">
+              <span>{{ formErrorMessage }}</span>
+            </div>
+
+            <button type="submit" class="auth-submit">Xác nhận</button>
+          </form>
+
+          <button type="button" (click)="setStep(currentStep === 'forgot-reset' ? 'forgot-otp' : 'register-otp')" class="auth-back">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            <span>Quay lại</span>
+          </button>
+        </div>
+      </ng-container>
+    </ng-container>
+
+
+    <!-- ========================================================================= -->
+    <!-- ĐĂNG KÝ BƯỚC 1: NHẬP SĐT -->
+    <!-- ========================================================================= -->
+    <div *ngIf="currentStep === 'register-phone'" class="auth-step">
+      <h2 class="auth-title">Đăng ký</h2>
+
+      <form [formGroup]="registerPhoneForm" (ngSubmit)="onRegisterPhoneSubmit()" class="auth-form" autocomplete="off" novalidate>
+        <div class="auth-field">
+          <div class="auth-input-wrap">
+            <img src="/assets/customer/icon_sdt.svg" class="auth-input-icon" alt="" aria-hidden="true" />
+            <input formControlName="phoneNumber" appPhoneInput placeholder="Nhập số điện thoại"
+              class="auth-input" [class.auth-input--error]="showError(registerPhoneForm, 'phoneNumber') || phoneServerError"
+              [attr.data-invalid]="phoneServerError ? 'true' : null" />
+          </div>
+          <p *ngIf="showError(registerPhoneForm, 'phoneNumber')" class="auth-field-error">
+            <ng-container *ngIf="hasError(registerPhoneForm, 'phoneNumber', 'required')">Vui lòng nhập số điện thoại.</ng-container>
+            <ng-container *ngIf="hasError(registerPhoneForm, 'phoneNumber', 'vnPhone')">Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0.</ng-container>
+          </p>
+          <!-- Lỗi từ server gắn với ô (VD: SĐT đã tồn tại) -->
+          <p *ngIf="phoneServerError && !showError(registerPhoneForm, 'phoneNumber')" class="auth-field-error">{{ phoneServerError }}</p>
+        </div>
+
+        <button type="submit" class="auth-submit">Đăng ký</button>
+      </form>
+
+      <p class="auth-footer-text">
+        Bạn đã có tài khoản?
+        <button type="button" (click)="setStep('login')" class="auth-link auth-link--strong">Đăng nhập</button>
+      </p>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- ĐĂNG KÝ BƯỚC 4: THIẾT LẬP HỒ SƠ -->
+    <!-- ========================================================================= -->
+    <div *ngIf="currentStep === 'register-profile'" class="auth-step auth-step--stretch">
+      <h2 class="auth-title auth-title--tight">Thiết lập hồ sơ của bạn</h2>
+
+      <div class="auth-alert auth-alert--info auth-alert--left">
+        <img src="/assets/customer/icon_inf.svg" class="auth-alert__icon" alt="" aria-hidden="true" />
+        <span>Cập nhật hồ sơ để nhận hỗ trợ tốt nhất khi đặt vé, hoặc bổ sung sau tại trang Thông tin cá nhân</span>
+      </div>
+
+      <!-- Thanh mức độ hoàn thiện hồ sơ -->
+      <div class="auth-progress">
+        <div class="auth-progress__label">
+          <span>Mức độ hoàn thiện hồ sơ</span>
+          <span class="auth-progress__value">{{ profileCompleteness }}%</span>
+        </div>
+        <div class="auth-progress__track">
+          <div class="auth-progress__bar" [style.width.%]="profileCompleteness"></div>
+        </div>
+      </div>
+
+      <form [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()" class="auth-form" autocomplete="off" novalidate>
+        <div class="profile-setup">
+
+          <!-- Cột 1: Ảnh đại diện -->
+          <div class="avatar-uploader">
+            <button type="button" (click)="photoFileInput.click()" class="avatar-uploader__frame" aria-label="Chọn ảnh đại diện">
+              <img *ngIf="avatarPreview" [src]="avatarPreview" alt="Ảnh đại diện" class="avatar-uploader__image" />
+              <svg *ngIf="!avatarPreview" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="avatar-uploader__placeholder">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+              </svg>
+              <span class="avatar-uploader__badge">
+                <img src="/assets/customer/icon_but_chinh_sua.svg" alt="" aria-hidden="true" />
+              </span>
+            </button>
+            <input type="file" #photoFileInput (change)="onPhotoSelected($event)" accept="image/png,image/jpeg" hidden />
+            <p class="avatar-uploader__hint">Định dạng: .JPG, .PNG<br>Dung lượng tối đa: 5MB</p>
+            <p *ngIf="avatarError" class="auth-field-error auth-field-error--center">{{ avatarError }}</p>
+          </div>
+
+          <!-- Cột 2-3: Thông tin -->
+          <div class="profile-setup__fields">
+
+            <!-- Họ và tên -->
+            <div class="auth-field">
+              <label class="auth-label" for="register-name">
+                <img src="/assets/customer/icon_personal.svg" alt="" aria-hidden="true" />
+                Họ và tên <span class="auth-required">*</span>
+              </label>
+              <input id="register-name" type="text" formControlName="name" autocomplete="off" maxlength="50" placeholder="Nhập họ và tên"
+                class="auth-input auth-input--plain" [class.auth-input--error]="showError(profileForm, 'name')" />
+              <p *ngIf="showError(profileForm, 'name')" class="auth-field-error">
+                <ng-container *ngIf="hasError(profileForm, 'name', 'required')">Nhập Họ và tên để tiếp tục.</ng-container>
+                <ng-container *ngIf="hasError(profileForm, 'name', 'personName')">Họ và tên chỉ gồm chữ cái và khoảng trắng.</ng-container>
+                <ng-container *ngIf="hasError(profileForm, 'name', 'minlength')">Họ và tên phải có ít nhất 2 ký tự.</ng-container>
+                <ng-container *ngIf="hasError(profileForm, 'name', 'maxlength')">Họ và tên tối đa 50 ký tự.</ng-container>
+              </p>
+            </div>
+
+            <!-- Số điện thoại (khóa) -->
+            <div class="auth-field">
+              <label class="auth-label">
+                <img src="/assets/customer/icon_sdt.svg" alt="" aria-hidden="true" />
+                Số điện thoại
+              </label>
+              <div class="auth-input-wrap">
+                <input type="text" [value]="registerPhoneNumber" disabled class="auth-input auth-input--plain auth-input--locked" />
+                <img src="/assets/customer/icon_mat_khau.svg" class="auth-input-trailing" alt="" aria-hidden="true" />
+              </div>
+            </div>
+
+            <!-- Giới tính -->
+            <div class="auth-field">
+              <label class="auth-label" for="register-gender">
+                <img src="/assets/customer/icon_gioi_tinh.svg" alt="" aria-hidden="true" />
+                Giới tính
+              </label>
+              <select id="register-gender" formControlName="gender" class="auth-input auth-input--plain auth-select">
+                <option value="" disabled>Chọn giới tính</option>
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+                <option value="Khác">Khác</option>
+              </select>
+            </div>
+
+            <!-- Email -->
+            <div class="auth-field">
+              <label class="auth-label" for="register-email">
+                <img src="/assets/customer/icon_email.svg" alt="" aria-hidden="true" />
+                Email
+              </label>
+              <input id="register-email" type="email" formControlName="email" autocomplete="off" placeholder="example@gmail.com"
+                class="auth-input auth-input--plain" [class.auth-input--error]="showError(profileForm, 'email')" />
+              <p *ngIf="showError(profileForm, 'email')" class="auth-field-error">
+                <ng-container *ngIf="hasError(profileForm, 'email', 'emailFormat')">Email không đúng định dạng.</ng-container>
+                <ng-container *ngIf="hasError(profileForm, 'email', 'emailDomain')">
+                  Tên miền email không hợp lệ.
+                </ng-container>
+              </p>
+            </div>
+
+            <!-- Ngày sinh: chọn trên lịch dd/mm/yyyy, chặn ngày tương lai -->
+            <div class="auth-field">
+              <label class="auth-label">
+                <img src="/assets/customer/icon_lich.svg" alt="" aria-hidden="true" />
+                Ngày sinh
+              </label>
+              <app-date-picker formControlName="birthday" placeholder="dd/mm/yyyy" [maxDate]="today" minDate="1900-01-01"
+                [class.auth-date--error]="showError(profileForm, 'birthday')"></app-date-picker>
+              <p *ngIf="showError(profileForm, 'birthday')" class="auth-field-error">
+                <ng-container *ngIf="hasError(profileForm, 'birthday', 'invalidDate')">Ngày sinh không tồn tại, vui lòng chọn lại.</ng-container>
+                <ng-container *ngIf="hasError(profileForm, 'birthday', 'futureDate')">Ngày sinh không được ở tương lai.</ng-container>
+              </p>
+            </div>
+
+            <!-- Nghề nghiệp -->
+            <div class="auth-field">
+              <label class="auth-label" for="register-occupation">
+                <img src="/assets/customer/icon_nghe_nghiep.svg" alt="" aria-hidden="true" />
+                Nghề nghiệp
+              </label>
+              <select id="register-occupation" formControlName="occupation" class="auth-input auth-input--plain auth-select">
+                <option value="" disabled>Bạn đang là...</option>
+                <option value="Học sinh / Sinh viên">Học sinh / Sinh viên</option>
+                <option value="Nhân viên văn phòng">Nhân viên văn phòng</option>
+                <option value="Kinh doanh tự do">Kinh doanh tự do</option>
+                <option value="Khác">Khác</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Banner ưu đãi sinh nhật -->
+        <div class="auth-alert auth-alert--promo auth-alert--left">
+          <img src="/assets/customer/icon_qua.svg" class="auth-alert__icon" alt="" aria-hidden="true" />
+          <span>Thêm ngày sinh để nhận ngay ưu đãi tháng sinh nhật</span>
+        </div>
+
+        <div *ngIf="formErrorMessage" class="auth-alert" role="alert">
+          <span>{{ formErrorMessage }}</span>
+        </div>
+
+        <div class="auth-actions">
+          <button type="submit" class="auth-submit auth-submit--inline">Lưu thông tin</button>
+        </div>
+      </form>
+    </div>
+    </div>
+
+    <!-- Trạng thái thành công -->
+    <div *ngIf="currentStep === 'success-status'" class="auth-success">
+      <div class="auth-success__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+        </svg>
+      </div>
+      <h3 class="auth-success__title">{{ successTitle }}</h3>
+      <p *ngIf="successSub" class="auth-success__sub">{{ successSub }}</p>
+    </div>
+
+  </div>
+</div>

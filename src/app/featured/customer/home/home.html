@@ -1,0 +1,233 @@
+<main class="home-page">
+
+  <!-- Banner trình chiếu -->
+  <section class="hero" aria-label="Banner VIAGO">
+    <div *ngFor="let img of heroImages; let i = index" class="hero__slide" [class.hero__slide--active]="i === currentHeroIndex()">
+      <img [src]="img" alt="VIAGO Hero Banner" />
+    </div>
+
+    <button type="button" (click)="previousHeroIndex()" class="hero__arrow hero__arrow--left" aria-label="Ảnh trước">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+    </button>
+    <button type="button" (click)="nextHeroIndex()" class="hero__arrow hero__arrow--right" aria-label="Ảnh tiếp theo">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+    </button>
+
+    <div class="hero__dots">
+      <button *ngFor="let img of heroImages; let i = index" type="button" (click)="setHeroIndex(i)"
+        class="hero__dot" [class.hero__dot--active]="i === currentHeroIndex()" [attr.aria-label]="'Ảnh ' + (i + 1)"></button>
+    </div>
+  </section>
+
+  <!-- Form tìm chuyến -->
+  <div class="search-wrap">
+    <form class="search-card" id="searchPanel" #searchPanel (ngSubmit)="onSubmitSearch()" novalidate>
+      <div class="search-card__types" role="radiogroup" aria-label="Loại vé">
+        <label class="radio">
+          <input type="radio" name="tripType" value="one-way" [(ngModel)]="tripType" (ngModelChange)="onTripTypeChange()" />
+          <span class="radio__mark"></span>
+          <span>Một chiều</span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="tripType" value="round-trip" [(ngModel)]="tripType" (ngModelChange)="onTripTypeChange()" />
+          <span class="radio__mark"></span>
+          <span>Khứ hồi</span>
+        </label>
+      </div>
+
+      <div class="search-card__fields">
+        <div class="search-field search-field--grow" data-search-field="departure">
+          <app-searchable-dropdown id="departure" label="Điểm đi" placeholder="Nhập điểm đi"
+            iconPath="/assets/customer/icon_diem_di.svg" [items]="departureCities" [value]="departure"
+            (valueChange)="onDepartureChange($event)"></app-searchable-dropdown>
+          <p *ngIf="showSearchError('departure')" class="search-field__error">{{ getSearchError('departure') }}</p>
+        </div>
+
+        <div class="search-swap">
+          <button type="button" (click)="swapLocations()" class="search-swap__btn" title="Đảo chiều điểm đi và điểm đến" aria-label="Đảo chiều điểm đi và điểm đến">
+            <img src="/assets/customer/icon_dao_chieu.svg" alt="" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div class="search-field search-field--grow" data-search-field="destination">
+          <app-searchable-dropdown id="destination" label="Điểm đến" placeholder="Nhập điểm đến"
+            iconPath="/assets/customer/icon_diem_den.svg" [items]="destinationCities" [value]="destination"
+            (valueChange)="onDestinationChange($event)"></app-searchable-dropdown>
+          <p *ngIf="showSearchError('destination')" class="search-field__error">{{ getSearchError('destination') }}</p>
+        </div>
+
+        <div class="search-field search-field--date" data-search-field="departureDate">
+          <span class="search-field__label"><img src="/assets/customer/icon_lich.svg" alt="" aria-hidden="true" />Ngày đi</span>
+          <app-date-picker name="departureDate" [(ngModel)]="departureDate" placeholder="dd/mm/yyyy" [minDate]="todayDate" [showLunar]="true"></app-date-picker>
+          <p *ngIf="showSearchError('departureDate')" class="search-field__error">{{ getSearchError('departureDate') }}</p>
+        </div>
+
+        <div *ngIf="tripType === 'round-trip'" class="search-field search-field--date" data-search-field="returnDate">
+          <span class="search-field__label"><img src="/assets/customer/icon_lich.svg" alt="" aria-hidden="true" />Ngày về</span>
+          <app-date-picker name="returnDate" [(ngModel)]="returnDate" placeholder="dd/mm/yyyy" [minDate]="departureDate || todayDate" [showLunar]="true"></app-date-picker>
+          <p *ngIf="showSearchError('returnDate')" class="search-field__error">{{ getSearchError('returnDate') }}</p>
+        </div>
+
+        <div class="search-field search-field--count">
+          <label class="search-field__label" for="ticketCount"><img src="/assets/customer/icon_ve.svg" alt="" aria-hidden="true" />Số vé</label>
+          <select id="ticketCount" name="ticketCount" [(ngModel)]="ticketCount" class="search-select">
+            <option [ngValue]="1">1 vé</option>
+            <option [ngValue]="2">2 vé</option>
+            <option [ngValue]="3">3 vé</option>
+            <option [ngValue]="4">4 vé</option>
+            <option [ngValue]="5">5 vé</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="search-card__submit">
+        <button type="submit" class="btn-search">TÌM KIẾM</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tiện ích -->
+  <section class="home-section">
+    <div class="feature-grid">
+      <div class="feature-grid__item"><img src="/assets/customer/tien_ich_1.png" alt="Tiện ích 1" /></div>
+      <div class="feature-grid__item"><img src="/assets/customer/tien_ich_2.png" alt="Tiện ích 2" /></div>
+      <div class="feature-grid__item"><img src="/assets/customer/tien_ich_3.png" alt="Tiện ích 3" /></div>
+    </div>
+  </section>
+
+  <!-- Khuyến mãi nổi bật -->
+  <section class="home-band">
+    <div class="home-section home-section--flush">
+      <div class="section-head">
+        <div class="section-head__title">
+          <h2>Khuyến mãi nổi bật</h2>
+          <span class="section-head__bar"></span>
+        </div>
+        <div class="promo-pager">
+          <button type="button" (click)="prevPromoPage()" [disabled]="currentPromoPage === 1" class="promo-pager__btn" aria-label="Trang trước">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+          </button>
+          <span class="promo-pager__label">{{ currentPromoPage }} / {{ totalPromoPages }}</span>
+          <button type="button" (click)="nextPromoPage()" [disabled]="currentPromoPage === totalPromoPages" class="promo-pager__btn" aria-label="Trang sau">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-grid">
+        <app-voucher-card *ngFor="let voucher of paginatedPromos" [voucher]="voucher" context="home"></app-voucher-card>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tuyến xe phổ biến -->
+  <section class="home-section">
+    <div class="section-head">
+      <div class="section-head__title">
+        <h2>Tuyến xe phổ biến</h2>
+        <span class="section-head__bar"></span>
+      </div>
+      <a routerLink="/customer/lich-trinh" class="section-head__link">
+        <span>Xem tất cả</span>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+      </a>
+    </div>
+
+    <div class="card-grid">
+      <article *ngFor="let r of popularRoutes" class="route-card">
+        <div class="route-card__media"><img [src]="r.image" [alt]="r.from + ' - ' + r.to" /></div>
+        <div class="route-card__body">
+          <h3 class="route-card__title">{{ r.from }} &rarr; {{ r.to }}</h3>
+          <div class="route-card__meta">
+            <span><img src="/assets/customer/icon_diem_di.svg" alt="" aria-hidden="true" />{{ r.distance }}</span>
+            <span>&bull;</span>
+            <span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" /></svg>
+              {{ r.duration }}
+            </span>
+          </div>
+          <div class="route-card__footer">
+            <div>
+              <span class="route-card__price-label">Giá vé</span>
+              <span class="route-card__price">{{ r.price }}</span>
+            </div>
+            <button type="button" (click)="bookRoute(r.from, r.to)" class="btn-accent">Đặt vé ngay</button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Khách hàng nói gì -->
+  <section class="home-band home-band--primary">
+    <div class="home-section home-section--flush testimonial">
+      <div class="testimonial__media">
+        <img src="/assets/customer/xe.png" alt="Xe VIAGO trên đường" />
+        <div class="testimonial__badge">
+          <div class="testimonial__badge-head">
+            <span class="testimonial__score">9.8</span>
+            <div>
+              <h4>Đánh giá chung</h4>
+              <p>Cho hơn 200k lượt đi</p>
+            </div>
+          </div>
+          <div class="stars" aria-label="5 sao"><span *ngFor="let s of stars">★</span></div>
+        </div>
+      </div>
+
+      <div class="testimonial__content">
+        <div class="section-head__title">
+          <h2>Khách hàng nói gì về VIAGO?</h2>
+          <span class="section-head__bar"></span>
+        </div>
+
+        <div class="testimonial__list">
+          <div *ngFor="let t of testimonials" class="quote-card">
+            <div class="quote-card__head">
+              <span class="quote-card__avatar" [ngClass]="'quote-card__avatar--' + t.color">{{ t.initials }}</span>
+              <div>
+                <h4>{{ t.name }}</h4>
+                <div class="stars stars--sm"><span *ngFor="let s of stars">★</span></div>
+              </div>
+            </div>
+            <p class="quote-card__text">"{{ t.content }}"</p>
+            <div class="quote-card__route">Tuyến: {{ t.route }}</div>
+          </div>
+        </div>
+
+        <a routerLink="/customer/danh-gia" class="section-head__link section-head__link--end">
+          <span>Xem tất cả</span>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tin tức mới nhất -->
+  <section class="home-section">
+    <div class="section-head">
+      <div class="section-head__title">
+        <h2>Tin tức mới nhất</h2>
+        <span class="section-head__bar"></span>
+      </div>
+      <a routerLink="/customer/tin-tuc" class="section-head__link">
+        <span>Xem tất cả</span>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+      </a>
+    </div>
+
+    <div class="card-grid">
+      <article *ngFor="let n of latestNews" class="news-card">
+        <div class="news-card__media"><img [src]="n.image" [alt]="n.title" /></div>
+        <div class="news-card__body">
+          <span class="news-card__date">{{ n.date }}</span>
+          <h3 class="news-card__title"><a [routerLink]="['/customer/tin-tuc', n.id]">{{ n.title }}</a></h3>
+          <p class="news-card__summary">{{ n.summary }}</p>
+        </div>
+        <div class="news-card__footer">
+          <a [routerLink]="['/customer/tin-tuc', n.id]" class="news-card__link">Chi tiết &rarr;</a>
+        </div>
+      </article>
+    </div>
+  </section>
+</main>

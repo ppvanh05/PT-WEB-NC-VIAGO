@@ -16,6 +16,15 @@
 
   <!-- Fixed Overlays -->
   <app-chatbot></app-chatbot>
-  <app-auth-modal></app-auth-modal>
+  @if (authModal.isOpen()) {
+    <app-auth-modal (close)="authModal.close()"></app-auth-modal>
+  }
+
+  <!-- Toast thông báo (hành động phụ, góc trên bên phải) -->
+  <div class="viago-customer-toasts" aria-live="polite">
+    @for (toast of toastService.toasts$ | async; track toast.id) {
+      <app-toast [variant]="toast.type" [message]="toast.message" (closed)="toastService.dismissToast(toast.id)"></app-toast>
+    }
+  </div>
 
 </div>

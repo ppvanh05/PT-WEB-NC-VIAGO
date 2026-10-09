@@ -22,3 +22,27 @@
   width: 100%;
   margin-top: auto;
 }
+
+.viago-customer-toasts {
+  position: fixed;
+  top: var(--space-6);
+  right: var(--space-6);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-3);
+  width: min(420px, calc(100vw - var(--space-8)));
+  pointer-events: none;
+}
+
+.viago-customer-toasts app-toast {
+  pointer-events: auto;
+}
+
+@media (max-width: 640px) {
+  .viago-customer-toasts {
+    top: var(--space-4);
+    right: var(--space-4);
+  }
+}
