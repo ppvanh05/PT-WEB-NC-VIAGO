@@ -1,1 +1,581 @@
-<p>driver-assistant-report works!</p>
+<div class="report-container">
+  <!-- Page Header Title Card (Top Card, no print) -->
+  <div class="header-card no-print">
+    <div class="header-left">
+      <span class="header-subtitle">BÁO CÁO QUẢN TRỊ</span>
+      <h1 class="header-title">Báo cáo tài xế và phụ xe</h1>
+    </div>
+    
+    <div class="header-right">
+      <!-- Tab switcher buttons right-aligned in header card -->
+      <div class="tab-buttons">
+        <button class="tab-btn" [class.active]="activeTab === 'bieu-do'" (click)="setActiveTab('bieu-do')">Xem biểu đồ</button>
+        <button class="tab-btn" [class.active]="activeTab === 'danh-sach'" (click)="setActiveTab('danh-sach')">Xem danh sách</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Dashboard Cards -->
+  <div class="stats-row">
+    <!-- Card 1: Tổng số nhân sự -->
+    <div class="stats-card purple-card">
+      <span class="stats-card-value">{{ totalOperating }}</span>
+      <span class="stats-card-label">Tổng số nhân sự</span>
+    </div>
+
+    <!-- Card 2: Tổng số tài xế -->
+    <div class="stats-card blue-card">
+      <span class="stats-card-value">{{ totalDrivers }}</span>
+      <span class="stats-card-label">Tổng số tài xế</span>
+    </div>
+
+    <!-- Card 3: Tổng số phụ xe -->
+    <div class="stats-card green-card">
+      <span class="stats-card-value">{{ totalAssistants }}</span>
+      <span class="stats-card-label">Tổng số phụ xe</span>
+    </div>
+
+    <!-- Card 4: Bằng lái sắp/đã hết hạn -->
+    <div class="stats-card red-card">
+      <span class="stats-card-value">{{ expiringLicensesCount }}</span>
+      <span class="stats-card-label">Bằng lái sắp/đã hết hạn (< 30 ngày)</span>
+    </div>
+  </div>
+
+  <!-- Filter Panel -->
+  <div class="filter-panel no-print">
+    <div class="filter-grid">
+      <!-- Tìm kiếm -->
+      <div class="filter-group">
+        <label for="search-input">TÌM KIẾM</label>
+        <input 
+          id="search-input"
+          type="text" 
+          placeholder="Mã, họ tên, số điện thoại, CCCD..." 
+          [(ngModel)]="filterSearchQuery"
+          (ngModelChange)="onApplyFilters()"
+        />
+      </div>
+
+      <!-- Vai trò -->
+      <div class="filter-group">
+        <label for="role-select">VAI TRÒ</label>
+        <select id="role-select" [(ngModel)]="filterRole" (ngModelChange)="onApplyFilters()" class="styled-select">
+          <option value="Tất cả nhân sự">Tất cả nhân sự</option>
+          <option value="Tài xế">Tài xế</option>
+          <option value="Phụ xe">Phụ xe</option>
+        </select>
+      </div>
+
+      <!-- Hạng bằng lái -->
+      <div class="filter-group">
+        <label for="license-class-select">HẠNG BẰNG LÁI</label>
+        <select id="license-class-select" [(ngModel)]="filterLicenseClass" (ngModelChange)="onApplyFilters()" class="styled-select">
+          <option value="Tất cả hạng bằng">Tất cả hạng bằng</option>
+          <option value="E">Hạng E (Xe giường nằm, 45 chỗ)</option>
+          <option value="D">Hạng D (Xe nhỏ 16 - 29 chỗ)</option>
+          <option value="Không yêu cầu bằng lái">Không yêu cầu bằng lái</option>
+        </select>
+      </div>
+
+      <!-- Trạng thái -->
+      <div class="filter-group">
+        <label for="status-select">TRẠNG THÁI</label>
+        <select id="status-select" [(ngModel)]="filterStatus" (ngModelChange)="onApplyFilters()" class="styled-select">
+          <option value="Tất cả trạng thái">Tất cả trạng thái</option>
+          <option value="Đang hoạt động">Đang hoạt động</option>
+          <option value="Đã khóa">Đã khóa</option>
+          <option value="Bằng lái sắp hết hạn (< 30 ngày)">Bằng lái sắp hết hạn (< 30 ngày)</option>
+        </select>
+      </div>
+
+      <!-- Reset Filter Button -->
+      <div class="filter-group filter-btn-group">
+        <label class="btn-label-hidden">&nbsp;</label>
+        <button class="btn-reset-rounded" (click)="onResetFilters()">
+          Xóa bộ lọc
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UNIFIED MAIN CONTAINER CARD -->
+  <div class="main-dashboard-card">
+    
+    <!-- Container Header -->
+    <div class="dashboard-card-header no-print">
+      <div class="header-left-title">
+        <h2 class="main-card-title">
+          {{ activeTab === 'bieu-do' ? 'Báo cáo dạng biểu đồ' : 'Danh sách tài xế và phụ xe chi tiết' }}
+        </h2>
+        <span class="main-card-subtitle">{{ filteredPersonnel.length }} bản ghi theo bộ lọc hiện tại</span>
+      </div>
+      
+      <div class="header-right-actions">
+        <!-- Print & PDF Action Buttons -->
+        <div class="action-buttons-group" *ngIf="activeTab === 'bieu-do'">
+          <button class="btn-rounded-outline" (click)="printReport()">In báo cáo</button>
+          <button class="btn-action-primary" (click)="exportPDF()">Xuất PDF</button>
+        </div>
+
+        <!-- Orange Excel button for Table view -->
+        <div class="action-buttons-group" *ngIf="activeTab === 'danh-sach'">
+          <button class="btn btn-excel btn-orange" (click)="onExportExcel()">
+            Xuất Excel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Divider Line with Gaps at Both Ends -->
+    <div class="container-divider"></div>
+
+    <!-- Container Content Area -->
+    <div class="main-card-content">
+      
+      <!-- VIEW A: CHARTS GRID -->
+      <div class="charts-grid-wrapper" *ngIf="activeTab === 'bieu-do'">
+        <div class="analytics-grid">
+          
+          <!-- === ROW 1 === -->
+          
+          <!-- CARD 1: CƠ CẤU NHÂN SỰ VẬN HÀNH -->
+          <div class="chart-card">
+            <div class="card-header-row">
+              <h3 class="chart-title">CƠ CẤU NHÂN SỰ VẬN HÀNH</h3>
+            </div>
+            <div class="card-divider"></div>
+            <div class="chart-body" style="padding: 20px 24px;">
+              <div class="split-layout-row" style="align-items: center; justify-content: space-between;">
+                <!-- Left: Donut Chart -->
+                <div class="donut-chart-centered-wrapper" style="margin: 0;">
+                  <svg width="280" height="240" viewBox="0 0 280 240" class="donut-svg-centered">
+                    <!-- Rotated Circles Group -->
+                    <g transform="translate(140, 120) rotate(-90)">
+                      <circle cx="0" cy="0" r="60" fill="none" stroke="#f1f5f9" stroke-width="26"></circle>
+                      <circle cx="0" cy="0" r="60" fill="none" stroke="#002664" stroke-width="26" [attr.stroke-dasharray]="driversStrokeDashArray" stroke-dashoffset="0"></circle>
+                      <circle cx="0" cy="0" r="60" fill="none" stroke="#f97316" stroke-width="26" [attr.stroke-dasharray]="assistantsStrokeDashArray" [attr.stroke-dashoffset]="assistantsStrokeDashOffset"></circle>
+                    </g>
+                    <!-- Unrotated Text Group -->
+                    <g transform="translate(140, 120)">
+                      <text x="0" y="6" class="donut-center-number-erp-large" text-anchor="middle">{{ filteredOperatingCount }}</text>
+                      <text x="0" y="24" class="donut-center-label-erp-large" text-anchor="middle">Nhân sự</text>
+                    </g>
+                    <!-- Label Pointer Lines & Texts -->
+                    <g>
+                      <!-- Assistants (Phụ xe) pointer line -->
+                      <circle cx="110" cy="68" r="2.5" fill="#f97316"></circle>
+                      <polyline points="110,68 80,40 15,40" fill="none" stroke="#f97316" stroke-width="1.2" opacity="0.6"></polyline>
+                      <text x="15" y="32" class="chart-label-text text-orange-color" text-anchor="start">{{ filteredAssistantsCount }} ({{ filteredAssistantsPercent }}%)</text>
+
+                      <!-- Drivers (Tài xế) pointer line -->
+                      <circle cx="182" cy="162" r="2.5" fill="#002664"></circle>
+                      <polyline points="182,162 212,192 265,192" fill="none" stroke="#002664" stroke-width="1.2" opacity="0.6"></polyline>
+                      <text x="265" y="184" class="chart-label-text text-blue-color" text-anchor="end">{{ filteredDriversCount }} ({{ filteredDriversPercent }}%)</text>
+                    </g>
+                  </svg>
+                </div>
+                
+                <!-- Right: Legends -->
+                <div class="chart-right-legends-simple" style="padding-left: 10px; max-width: 160px;">
+                  <div class="legend-row-simple" style="margin-bottom: 12px;">
+                    <span class="legend-square bg-blue-sq"></span>
+                    <span class="legend-label-simple">Tài xế</span>
+                  </div>
+                  <div class="legend-row-simple">
+                    <span class="legend-square bg-orange-sq"></span>
+                    <span class="legend-label-simple">Phụ xe</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 2: TỶ LỆ TRẠNG THÁI HỒ SƠ -->
+          <div class="chart-card">
+            <div class="card-header-row">
+              <h3 class="chart-title">TỶ LỆ TRẠNG THÁI HỒ SƠ</h3>
+            </div>
+            <div class="card-divider"></div>
+            <div class="chart-body" style="padding: 20px 24px;">
+              <div class="split-layout-row" style="align-items: center; justify-content: space-between;">
+                <!-- Left: Pie/Donut Chart -->
+                <div class="donut-chart-centered-wrapper" style="margin: 0;">
+                  <svg width="280" height="240" viewBox="0 0 280 240" class="pie-svg-centered">
+                    <!-- Rotated Circles Group -->
+                    <g transform="translate(140, 120) rotate(-90)">
+                      <circle cx="0" cy="0" r="60" fill="none" stroke="#f1f5f9" stroke-width="26"></circle>
+                      <circle cx="0" cy="0" r="60" fill="none" stroke="#10b981" stroke-width="26" [attr.stroke-dasharray]="activeStrokeDashArray" stroke-dashoffset="0"></circle>
+                      <circle cx="0" cy="0" r="60" fill="none" stroke="#ef4444" stroke-width="26" [attr.stroke-dasharray]="lockedStrokeDashArray" [attr.stroke-dashoffset]="lockedStrokeDashOffset"></circle>
+                    </g>
+                    <!-- Unrotated Text Group -->
+                    <g transform="translate(140, 120)">
+                      <text x="0" y="6" class="donut-center-number-erp-large" text-anchor="middle">{{ filteredOperatingCount }}</text>
+                      <text x="0" y="24" class="donut-center-label-erp-large" text-anchor="middle">Nhân sự</text>
+                    </g>
+                    <!-- Label Pointer Lines & Texts -->
+                    <g>
+                      <!-- Locked pointer line -->
+                      <circle cx="110" cy="68" r="2.5" fill="#ef4444"></circle>
+                      <polyline points="110,68 80,40 15,40" fill="none" stroke="#ef4444" stroke-width="1.2" opacity="0.6"></polyline>
+                      <text x="15" y="32" class="chart-label-text text-red-color" text-anchor="start">{{ filteredLockedCount }} ({{ filteredLockedPercent }}%)</text>
+
+                      <!-- Active pointer line -->
+                      <circle cx="182" cy="162" r="2.5" fill="#10b981"></circle>
+                      <polyline points="182,162 212,192 265,192" fill="none" stroke="#10b981" stroke-width="1.2" opacity="0.6"></polyline>
+                      <text x="265" y="184" class="chart-label-text text-green-color" text-anchor="end">{{ filteredActiveCount }} ({{ filteredActivePercent }}%)</text>
+                    </g>
+                  </svg>
+                </div>
+                
+                <!-- Right: Legends -->
+                <div class="chart-right-legends-simple" style="padding-left: 10px; max-width: 160px;">
+                  <div class="legend-row-simple" style="margin-bottom: 12px;">
+                    <span class="legend-square bg-green-sq"></span>
+                    <span class="legend-label-simple">Đang hoạt động</span>
+                  </div>
+                  <div class="legend-row-simple">
+                    <span class="legend-square bg-red-sq"></span>
+                    <span class="legend-label-simple">Đã khóa</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- === ROW 2 === -->
+
+          <!-- CARD 3: TÌNH TRẠNG HẠNG BẰNG LÁI TÀI XẾ -->
+          <div class="chart-card">
+            <div class="card-header-row">
+              <h3 class="chart-title">TÌNH TRẠNG HẠNG BẰNG LÁI TÀI XẾ</h3>
+            </div>
+            <div class="card-divider"></div>
+            <div class="chart-body flex-center-vertical">
+              <div class="grade-bar-list">
+                <!-- Hạng E -->
+                <div class="grade-bar-item">
+                  <div class="grade-bar-meta">
+                    <span class="grade-label font-bold">Hạng E</span>
+                    <span class="grade-desc-right font-bold">{{ filteredGradeECount }} tài xế - {{ filteredGradeEPercent | number:'1.0-1' }}%</span>
+                  </div>
+                  <div class="grade-bar-wrapper">
+                    <div class="grade-bar-fill bg-blue-deep" [style.width.%]="filteredGradeEPercent"></div>
+                  </div>
+                  <span class="grade-subtext">Xe lớn (Giường nằm, 45 chỗ)</span>
+                </div>
+                
+                <!-- Hạng D -->
+                <div class="grade-bar-item">
+                  <div class="grade-bar-meta">
+                    <span class="grade-label font-bold">Hạng D</span>
+                    <span class="grade-desc-right font-bold">{{ filteredGradeDCount }} tài xế - {{ filteredGradeDPercent | number:'1.0-1' }}%</span>
+                  </div>
+                  <div class="grade-bar-wrapper">
+                    <div class="grade-bar-fill bg-mint" [style.width.%]="filteredGradeDPercent"></div>
+                  </div>
+                  <span class="grade-subtext">Xe nhỏ (16 - 29 chỗ)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 4: DỰ BÁO VÀ RÀ SOÁT THỜI HẠN BẰNG LÁI -->
+          <div class="chart-card">
+            <div class="card-header-row">
+              <h3 class="chart-title">DỰ BÁO VÀ RÀ SOÁT THỜI HẠN BẰNG LÁI</h3>
+            </div>
+            <div class="card-divider"></div>
+            <div class="chart-body flex-center-vertical">
+              <div class="vertical-chart-container">
+                <!-- Bar 1: Trong 30 ngày -->
+                <div class="vertical-bar-col">
+                  <span class="v-bar-value text-red font-bold">{{ expiring30DaysCount }}</span>
+                  <div class="v-bar-track">
+                    <div class="v-bar-fill bg-red" [style.height.%]="expiring30DaysCount * 25"></div>
+                  </div>
+                  <span class="v-bar-label font-bold">Trong 30 ngày</span>
+                </div>
+                
+                <!-- Bar 2: Trong 3 tháng -->
+                <div class="vertical-bar-col">
+                  <span class="v-bar-value text-orange font-bold">{{ expiring90DaysCount }}</span>
+                  <div class="v-bar-track">
+                    <div class="v-bar-fill bg-orange" [style.height.%]="expiring90DaysCount * 25"></div>
+                  </div>
+                  <span class="v-bar-label font-bold">Trong 3 tháng</span>
+                </div>
+                
+                <!-- Bar 3: Trong 6 tháng -->
+                <div class="vertical-bar-col">
+                  <span class="v-bar-value text-yellow font-bold">{{ expiring180DaysCount }}</span>
+                  <div class="v-bar-track">
+                    <div class="v-bar-fill bg-yellow" [style.height.%]="expiring180DaysCount * 25"></div>
+                  </div>
+                  <span class="v-bar-label font-bold">Trong 6 tháng</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- === ROW 3 === -->
+
+          <!-- CARD 5: HIỆU SUẤT VẬN HÀNH TRONG THÁNG (Lịch Tiếng Việt mm/yyyy) -->
+          <div class="chart-card grid-col-span-2 chart-card-height-380">
+            <div class="card-header-row">
+              <h3 class="chart-title">HIỆU SUẤT VẬN HÀNH TRONG THÁNG</h3>
+              <div class="month-selector-wrapper">
+                <input 
+                  type="month" 
+                  class="styled-month-input" 
+                  [(ngModel)]="selectedMonthYear"
+                  title="Chọn tháng và năm"
+                />
+              </div>
+            </div>
+            <div class="card-divider"></div>
+            <div class="chart-body split-layout-row no-padding" style="flex-direction: row !important; align-items: stretch !important; height: 320px;">
+              <!-- Left Half: Drivers Performance list -->
+              <div class="perf-column-half border-right-light">
+                <div class="column-header-title">TÀI XẾ — {{ displaySelectedMonthYear }}</div>
+                <div class="perf-scroll-container">
+                  <div class="perf-row-item-unified" *ngFor="let item of driverPerformanceList">
+                    <div class="perf-item-info">
+                      <span class="perf-item-name font-bold">{{ item.ten }}</span>
+                      <span class="perf-item-code">{{ item.ma }}</span>
+                    </div>
+                    <div class="perf-item-bar-wrapper">
+                      <div class="perf-item-bar" [ngClass]="item.colorClass" [style.width.%]="(item.trips / 30) * 100"></div>
+                    </div>
+                    <div class="perf-item-value-badge">
+                      <span class="perf-trips-num font-bold">{{ item.trips }} chuyến ({{ (item.trips / 30) * 100 | number:'1.0-0' }}%)</span>
+                      <span class="perf-status-badge-lbl" [ngClass]="{
+                        'lbl-orange-bg': item.trips > 25,
+                        'lbl-green-bg': item.trips >= 15 && item.trips <= 25,
+                        'lbl-blue-bg': item.trips < 15
+                      }">
+                        {{ item.label }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Half: Assistants Performance list -->
+              <div class="perf-column-half border-left-light">
+                <div class="column-header-title">PHỤ XE — {{ displaySelectedMonthYear }}</div>
+                <div class="perf-scroll-container">
+                  <div class="perf-row-item-unified" *ngFor="let item of assistantPerformanceList">
+                    <div class="perf-item-info">
+                      <span class="perf-item-name font-bold">{{ item.ten }}</span>
+                      <span class="perf-item-code">{{ item.ma }}</span>
+                    </div>
+                    <div class="perf-item-bar-wrapper">
+                      <div class="perf-item-bar" [ngClass]="item.colorClass" [style.width.%]="(item.trips / 30) * 100"></div>
+                    </div>
+                    <div class="perf-item-value-badge">
+                      <span class="perf-trips-num font-bold">{{ item.trips }} chuyến ({{ (item.trips / 30) * 100 | number:'1.0-0' }}%)</span>
+                      <span class="perf-status-badge-lbl" [ngClass]="{
+                        'lbl-orange-bg': item.trips > 22,
+                        'lbl-green-bg': item.trips >= 12 && item.trips <= 22,
+                        'lbl-blue-bg': item.trips < 12
+                      }">
+                        {{ item.label }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- VIEW B: DETAILED LIST TABLE -->
+      <div class="list-wrapper" *ngIf="activeTab === 'danh-sach'">
+        <div class="table-responsive">
+          <table class="personnel-table">
+            <thead>
+              <tr>
+                <th>Mã nhân sự</th>
+                <th>Họ và tên</th>
+                <th>Ngày sinh</th>
+                <th>Số điện thoại / CCCD</th>
+                <th>Vai trò</th>
+                <th>Bằng lái & Thời hạn</th>
+                <th>Trạng thái</th>
+                <th class="text-center no-print">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Empty State -->
+              <tr *ngIf="paginatedPersonnel.length === 0">
+                <td colspan="8" class="empty-row">
+                  Không tìm thấy nhân sự nào khớp với bộ lọc hiện tại.
+                </td>
+              </tr>
+              
+              <!-- Data Row -->
+              <tr *ngFor="let p of paginatedPersonnel" [class.warning-row]="isLicenseExpiringSoon(p)">
+                <td class="bold-text">
+                  <div class="id-wrapper">
+                    {{ p.maNhanSu }}
+                    <span class="warning-dot" *ngIf="isLicenseExpiringSoon(p)" title="Bằng lái sắp hết hạn (< 30 ngày)">!</span>
+                  </div>
+                </td>
+                <td class="name-cell">{{ p.hoTen }}</td>
+                <td class="nowrap-cell">{{ p.ngaySinh }}</td>
+                <td class="contact-cell">
+                  <div class="phone">{{ p.soDienThoai }}</div>
+                  <div class="cccd">CCCD: {{ p.cccd }}</div>
+                </td>
+                <td>{{ p.vaiTro }}</td>
+                <td class="license-cell">
+                  <ng-container *ngIf="p.vaiTro === 'Tài xế'; else assistantLicense">
+                    <div class="license-rank font-bold">
+                      Hạng: <strong class="rank-badge" [ngClass]="{
+                        'rank-e': p.hangBangLai === 'E',
+                        'rank-d': p.hangBangLai === 'D'
+                      }">{{ p.hangBangLai }}</strong>
+                    </div>
+                    <div class="license-exp" [class.text-danger-bold]="isLicenseExpiringSoon(p)">Hạn: {{ p.thoiHanBangLai }}</div>
+                    
+                    <!-- Hiển thị lịch sử nhắc SMS nếu có -->
+                    <div class="sms-sent-history" *ngIf="p.smsSentCount">
+                      <span class="sms-badge-tag">✓ Đã nhắc SMS ({{ p.smsSentCount }} lần)</span>
+                    </div>
+                  </ng-container>
+                  <ng-template #assistantLicense>
+                    <span class="assistant-license-text">{{ p.hangBangLai }}</span>
+                  </ng-template>
+                </td>
+                <td>
+                  <span class="status-badge" [ngClass]="{
+                    'status-active': p.trangThai === 'Đang hoạt động',
+                    'status-locked': p.trangThai === 'Đã khóa'
+                  }">
+                    {{ p.trangThai }}
+                  </span>
+                </td>
+                <!-- Action Column with SMS button & Feedback -->
+                <td class="action-cell text-center no-print">
+                  <button 
+                    *ngIf="isLicenseExpiringSoon(p)"
+                    class="btn-sms-remind"
+                    [class.btn-sms-again]="(p.smsSentCount || 0) > 0"
+                    (click)="openSmsModal(p)"
+                    [title]="(p.smsSentCount || 0) > 0 ? 'Đã nhắc ' + p.smsSentCount + ' lần (Gần nhất: ' + p.lastSmsSentAt + '). Bấm để gửi lại SMS' : 'Gửi SMS nhắc đổi bằng lái'"
+                  >
+                    {{ (p.smsSentCount || 0) > 0 ? '📲 Gửi lại SMS (' + p.smsSentCount + ')' : '📲 Gửi SMS nhắc bằng' }}
+                  </button>
+                  <span *ngIf="!isLicenseExpiringSoon(p)" class="text-muted-dash">-</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Footer -->
+        <div class="pagination-footer no-print">
+          <div class="pagination-info">
+            Hiển thị {{ filteredPersonnel.length === 0 ? 0 : startIndex + 1 }} - {{ endIndex }} của {{ filteredPersonnel.length }} nhân sự
+          </div>
+          <div class="pagination-controls" *ngIf="totalPages > 1">
+            <!-- Prev Button -->
+            <button 
+              class="page-btn prev-btn" 
+              (click)="prevPage()" 
+              [disabled]="currentPage === 1"
+              aria-label="Trang trước"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="pagination-arrow">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+
+            <!-- Page Numbers -->
+            <button 
+              *ngFor="let page of [].constructor(totalPages); let i = index" 
+              class="page-btn number-btn"
+              [class.active-page]="currentPage === (i + 1)"
+              (click)="goToPage(i + 1)"
+            >
+              {{ i + 1 }}
+            </button>
+
+            <!-- Next Button -->
+            <button 
+              class="page-btn next-btn" 
+              (click)="nextPage()" 
+              [disabled]="currentPage === totalPages"
+              aria-label="Trang sau"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="pagination-arrow">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Form Modal SMS với Tiêu đề Căn giữa và Nút Cam như Xuất Excel -->
+  <app-modal
+    [open]="showSmsModal"
+    [title]="'📲 Xác nhận gửi SMS nhắc nhở đổi bằng lái'"
+    [confirmMode]="true"
+    [confirmText]="'Gửi SMS ngay'"
+    [cancelText]="'Hủy bỏ'"
+    (closed)="closeSmsModal()"
+    (confirmed)="confirmSendSms()"
+    class="custom-sms-modal-wrapper"
+  >
+    <div class="sms-modal-body" *ngIf="selectedDriverForSms">
+      <p class="sms-intro-text">
+        Hệ thống sẽ gửi tin nhắn SMS thông báo nhắc nhở gia hạn bằng lái xe đến số điện thoại của tài xế:
+      </p>
+      <div class="sms-driver-card">
+        <div class="sms-info-row">
+          <span class="sms-info-label">Mã nhân sự:</span>
+          <span class="sms-info-val font-bold">{{ selectedDriverForSms.maNhanSu }}</span>
+        </div>
+        <div class="sms-info-row">
+          <span class="sms-info-label">Họ và tên tài xế:</span>
+          <span class="sms-info-val font-bold text-navy">{{ selectedDriverForSms.hoTen }}</span>
+        </div>
+        <div class="sms-info-row">
+          <span class="sms-info-label">Số điện thoại nhận SMS:</span>
+          <span class="sms-info-val font-bold text-phone">{{ selectedDriverForSms.soDienThoai }}</span>
+        </div>
+        <div class="sms-info-row">
+          <span class="sms-info-label">Bằng lái & Thời hạn:</span>
+          <span class="sms-info-val font-bold text-danger">
+            Hạng {{ selectedDriverForSms.hangBangLai }} — Hạn: {{ selectedDriverForSms.thoiHanBangLai }}
+            (Còn {{ getDaysUntilExpiration(selectedDriverForSms) }} ngày)
+          </span>
+        </div>
+        <div class="sms-info-row" *ngIf="selectedDriverForSms.smsSentCount">
+          <span class="sms-info-label">Lịch sử nhắc nhở:</span>
+          <span class="sms-info-val font-bold text-orange-dark">
+            Đã gửi {{ selectedDriverForSms.smsSentCount }} lần (Lần cuối: {{ selectedDriverForSms.lastSmsSentAt }})
+          </span>
+        </div>
+      </div>
+    </div>
+  </app-modal>
+
+  <!-- Toast Notification Overlay (Right Toast trượt sát lề phải) -->
+  <div class="toast-container-overlay" *ngIf="showToast">
+    <app-toast
+      [variant]="toastVariant"
+      [title]="toastTitle"
+      [message]="toastMessage"
+      [duration]="4000"
+      (closed)="onToastClosed()"
+    ></app-toast>
+  </div>
+
+</div>

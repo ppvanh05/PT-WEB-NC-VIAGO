@@ -1,1 +1,516 @@
-<p>policies works!</p>
+<div class="news-page-container">
+  <!-- Premium Header Card Container -->
+  <div class="header-card-container">
+    <div class="header-titles">
+      <span class="category-tag">QUẢN LÝ NỘI DUNG</span>
+      <h1 class="main-title">Chính sách nhà xe</h1>
+    </div>
+    
+    <!-- Info Banner & Create Button Box -->
+    <div class="header-action-banner" (click)="openCreateModal()" title="Nhấp để thêm chính sách mới">
+      <div class="action-icon-circle">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+      </div>
+      <div class="action-banner-text">
+        <h3>Tạo chính sách mới</h3>
+        <p>Thêm điều khoản dịch vụ và chính sách nhà xe mới vào hệ thống.</p>
+      </div>
+    </div>
+
+    <!-- Statistics Dashboard Cards -->
+    <div class="stats-row" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+      <div class="stats-card purple-card">
+        <span class="stats-card-value">{{ totalPoliciesCount }}</span>
+        <span class="stats-card-label">Tổng số chính sách</span>
+      </div>
+      <div class="stats-card green-card">
+        <span class="stats-card-value">{{ countDatVe }}</span>
+        <span class="stats-card-label">Chính sách đặt vé</span>
+      </div>
+      <div class="stats-card red-card">
+        <span class="stats-card-value">{{ countChinhSuaVe }}</span>
+        <span class="stats-card-label">Chính sách chỉnh sửa vé</span>
+      </div>
+      <div class="stats-card orange-card">
+        <span class="stats-card-value">{{ countHoanHuy }}</span>
+        <span class="stats-card-label">Chính sách hoàn hủy</span>
+      </div>
+      <div class="stats-card blue-card">
+        <span class="stats-card-value">{{ countDieuKhoan }}</span>
+        <span class="stats-card-label">Điều khoản dịch vụ</span>
+      </div>
+      <div class="stats-card navy-card">
+        <span class="stats-card-value">{{ countBaoMat }}</span>
+        <span class="stats-card-label">Chính sách bảo mật</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Dashboard Card -->
+  <div class="dashboard-card" style="margin-top: 24px;">
+    <!-- Main Content Card with Data Table -->
+    <div class="news-content-card">
+      <!-- Search & Filters Container (Unified container with 2 rows inside) -->
+      <div class="unified-controls-container">
+        <!-- Top Row: TÌM KIẾM | LOẠI CHÍNH SÁCH | SẮP XẾP | XÓA BỘ LỌC -->
+        <div class="controls-top-row">
+          <!-- Search Box -->
+          <div class="filter-field-group search-field">
+            <label class="control-label-uppercase">TÌM KIẾM</label>
+            <div class="search-box-wrapper">
+              <input 
+                type="text" 
+                [(ngModel)]="searchText" 
+                (ngModelChange)="filterData()" 
+                placeholder="Tìm kiếm theo tên hoặc mã số chính sách..." 
+                class="search-input" />
+            </div>
+          </div>
+
+          <!-- Policy Type Dropdown -->
+          <div class="filter-field-group">
+            <label class="control-label-uppercase">LOẠI CHÍNH SÁCH</label>
+            <div class="filter-box-wrapper">
+              <select [(ngModel)]="filterLoai" (ngModelChange)="filterData()" class="filter-select">
+                <option value="Tất cả loại chính sách">Tất cả loại chính sách</option>
+                <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Sort Dropdown -->
+          <div class="filter-field-group">
+            <label class="control-label-uppercase">SẮP XẾP</label>
+            <div class="filter-box-wrapper">
+              <select [(ngModel)]="filterSort" (ngModelChange)="filterData()" class="filter-select">
+                <option value="Mới nhất">Mới nhất</option>
+                <option value="Cũ nhất">Cũ nhất</option>
+                <option value="Theo tiêu đề A-Z">Theo tiêu đề A-Z</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Clear Filter Button -->
+          <div class="filter-field-group btn-clear-group">
+            <label class="control-label-uppercase" style="visibility: hidden;">ACTION</label>
+            <button type="button" class="btn-reset-filters" (click)="clearFilters()">
+              Xóa bộ lọc
+            </button>
+          </div>
+        </div>
+
+        <!-- Bottom Row: Status Pill Tabs in same container without divider line -->
+        <div class="controls-bottom-row">
+          <div class="pill-tabs">
+            <button 
+              *ngFor="let tab of statusTabs" 
+              class="pill-tab-item" 
+              [class.active]="currentTab === tab" 
+              (click)="selectTab(tab)">
+              {{ tab }} ({{ countByStatus(tab) }})
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="table-outer-wrapper">
+        <table class="news-table">
+          <thead>
+            <tr>
+              <th width="12%">MÃ CS</th>
+              <th width="32%">TÊN CHÍNH SÁCH</th>
+              <th width="18%" class="text-center">LOẠI CHÍNH SÁCH</th>
+              <th width="12%" class="status-cell text-center">TRẠNG THÁI</th>
+              <th width="14%" class="text-center">CẬP NHẬT CUỐI</th>
+              <th width="12%" class="text-center">NGƯỜI TẠO</th>
+              <th width="6%" class="text-center">CHỨC NẢNG</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of paginatedPolicies">
+              <td class="font-medium text-slate-700">{{ p.maCS }}</td>
+              <td>
+                <span class="font-bold text-slate-800">{{ p.tenChinhSach }}</span>
+              </td>
+              <td class="text-center"><span class="category-badge">{{ p.loaiChinhSach }}</span></td>
+              <td class="status-cell text-center">
+                <div class="status-pill" [ngClass]="p.trangThai === 'Đang áp dụng' ? 'status-active' : 'status-inactive'">
+                  <span>{{ p.trangThai }}</span>
+                </div>
+              </td>
+              <td class="text-slate-600 table-cell-nowrap text-center">{{ formatDateVN(p.capNhatCuoi) }}</td>
+              <td class="text-center">
+                <div class="actor-cell justify-center">
+                  <span class="text-slate-700 font-medium">{{ p.nguoiThucHien }}</span>
+                </div>
+              </td>
+              <td class="text-center">
+                <button class="btn-action-edit" (click)="openEditModal(p)" title="Chỉnh sửa chi tiết">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9"></path>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                  </svg>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="paginatedPolicies.length === 0">
+              <td colspan="7" class="empty-row-text">
+                <div class="empty-state-content">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  <p>Không tìm thấy chính sách nào phù hợp với bộ lọc hiện tại.</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div class="pagination-footer">
+        <div class="pagination-info">
+          Hiển thị {{ filteredPolicies.length === 0 ? 0 : startIndex + 1 }} - {{ endIndex }} của {{ filteredPolicies.length }} chính sách
+        </div>
+        <div class="pagination-controls" *ngIf="totalPages > 1">
+          <button class="page-btn prev-btn" [disabled]="currentPage === 1" (click)="prevPage()" aria-label="Trang trước">
+            <svg class="pagination-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <button class="page-btn number-btn" *ngFor="let p of getPages()" [class.active-page]="p === currentPage" (click)="setPage(p)">
+            {{ p }}
+          </button>
+          <button class="page-btn next-btn" [disabled]="currentPage === totalPages" (click)="nextPage()" aria-label="Trang sau">
+            <svg class="pagination-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     CREATE POLICY MODAL
+     ========================================== -->
+<div class="modal-backdrop-overlay" *ngIf="showCreateModal">
+  <div class="modal-main-container modal-md">
+    <div class="modal-header-panel">
+      <h2 class="modal-title-txt">Thêm chính sách mới</h2>
+      <button class="btn-close-modal" (click)="closeCreateModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    
+    <div class="modal-body-content" style="max-height: calc(85vh - 140px); overflow-y: auto;">
+      <!-- Tên chính sách -->
+      <div class="form-group-unified">
+        <label class="field-label-lbl">Tên chính sách <span class="required">*</span></label>
+        <input 
+          type="text" 
+          [(ngModel)]="newPolicy.tenChinhSach" 
+          placeholder="Nhập tên chính sách" 
+          class="form-input-control" 
+          [class.border-red]="createFormSubmitted && !newPolicy.tenChinhSach" />
+      </div>
+
+      <!-- Loại chính sách (Dropdown placeholder option) -->
+      <div class="form-group-unified" style="margin-top: 20px;">
+        <label class="field-label-lbl">Loại chính sách <span class="required">*</span></label>
+        <select 
+          [(ngModel)]="newPolicy.loaiChinhSach" 
+          (ngModelChange)="onTypeChange(newPolicy)"
+          class="form-input-control"
+          [class.border-red]="createFormSubmitted && !newPolicy.loaiChinhSach">
+          <option value="" disabled selected>-- Chọn loại chính sách --</option>
+          <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+        </select>
+      </div>
+
+      <!-- Ngày áp dụng (DatePicker Component dd/mm/yyyy) -->
+      <div class="form-group-unified" style="margin-top: 20px;">
+        <label class="field-label-lbl">Ngày áp dụng <span class="required">*</span></label>
+        <app-date-picker
+          [(ngModel)]="newPolicy.ngayApDung"
+          [placeholder]="'dd/mm/yyyy'"
+          [format]="'dd/MM/yyyy'">
+        </app-date-picker>
+      </div>
+
+      <!-- Khung mốc thời gian hủy vé -->
+      <div class="timeline-rules-container" *ngIf="newPolicy.loaiChinhSach === 'Chính sách hoàn hủy'">
+        <div class="timeline-rules-header">Mốc thời gian hủy vé & hoàn tiền <span class="required">*</span></div>
+        <div class="timeline-rules-body">
+          <div class="rule-row-grid" *ngFor="let rule of newPolicy.mocThoiGianHuyVe; let i = index">
+            <div class="rule-field">
+              <label class="field-label-lbl">Trước giờ khởi hành <span class="required">*</span></label>
+              <div class="input-with-unit">
+                <input type="number" [(ngModel)]="rule.truocGio" class="form-input-control input-unit-field" />
+                <span class="unit-text">Giờ</span>
+              </div>
+            </div>
+            <div class="rule-field">
+              <label class="field-label-lbl">Phí hủy <span class="required">*</span></label>
+              <div class="input-with-unit">
+                <input type="number" [(ngModel)]="rule.phiHuy" class="form-input-control input-unit-field" />
+                <span class="unit-text">%</span>
+              </div>
+            </div>
+            <div class="rule-action">
+              <button type="button" class="btn-remove-rule" (click)="removeRule(newPolicy, i)" title="Xóa mốc thời gian">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+          </div>
+          <button type="button" class="btn-add-rule" (click)="addRule(newPolicy)">
+            Thêm mốc thời gian +
+          </button>
+        </div>
+      </div>
+
+      <!-- Nội dung chính sách Editor Toolbar -->
+      <div class="form-group-unified" style="margin-top: 20px; display: flex; flex-direction: column;">
+        <label class="field-label-lbl">Nội dung chính sách <span class="required">*</span></label>
+        <div class="quill-wrapper-box" [class.border-red]="createFormSubmitted && !newPolicy.noiDungChinhSach">
+          <div class="editor-toolbar" style="display: flex; flex-direction: column; gap: 0; padding: 0; background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+            <div class="editor-toolbar-row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 12px;">
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('create', 'bold')" title="Chữ đậm"><b>B</b></button>
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('create', 'italic')" title="Chữ nghiêng"><i>I</i></button>
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('create', 'underline')" title="Gạch chân"><u>U</u></button>
+              <div style="width: 1px; height: 18px; background-color: #cbd5e1; margin: 0 4px;"></div>
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('create', 'h2')" title="Tiêu đề H2">H2</button>
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('create', 'ol')" title="Đánh số STT (1,2,3)">1. STT</button>
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('create', 'ul')" title="Mục tròn">• Ý chính</button>
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('create', 'blockquote')" title="Trích dẫn">“ ”</button>
+              <div style="flex: 1;"></div>
+              <button type="button" class="toolbar-btn-item text-red-500" (click)="applyFormatting('create', 'clear')" title="Xóa định dạng" style="color: #ef4444; border: none; background: none; cursor: pointer;">Xóa định dạng</button>
+            </div>
+          </div>
+          <textarea
+            [(ngModel)]="newPolicy.noiDungChinhSach"
+            placeholder="Nhập nội dung điều khoản, chính sách chi tiết tại đây (hỗ trợ HTML và thẻ định dạng)..."
+            class="form-textarea-control custom-editor-textarea"
+            rows="8"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="modal-footer-panel modal-footer-actions" style="justify-content: flex-end; gap: 12px; padding: 20px 24px; border-top: 1px solid #f1f5f9; background-color: #f8fafc;">
+      <button class="btn-footer-secondary" (click)="closeCreateModal()">Hủy bỏ</button>
+      <button class="btn-footer-primary" (click)="saveNewPolicy()">Lưu thông tin</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     EDIT / DETAIL POLICY MODAL
+     ========================================== -->
+<div class="modal-backdrop-overlay" *ngIf="showEditModal && editingPolicy">
+  <div class="modal-main-container modal-md">
+    <div class="modal-header-panel">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h2 class="modal-title-txt">Chi tiết thông tin chính sách</h2>
+        <div class="status-pill" [ngClass]="editingPolicy.trangThai === 'Đang áp dụng' ? 'status-active' : 'status-inactive'">
+          <span>{{ editingPolicy.trangThai }}</span>
+        </div>
+      </div>
+      <button class="btn-close-modal" (click)="closeEditModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    
+    <div class="modal-body-content" style="max-height: calc(85vh - 140px); overflow-y: auto;">
+      <!-- Mã chính sách & Cập nhật cuối -->
+      <div class="grid-col-2-fields" style="margin-bottom: 16px;">
+        <div class="form-group-unified">
+          <label class="field-label-lbl">Mã chính sách</label>
+          <input type="text" [value]="editingPolicy.maCS" readonly class="form-input-control input-readonly-grey" />
+        </div>
+        <div class="form-group-unified">
+          <label class="field-label-lbl">Cập nhật cuối</label>
+          <input type="text" [value]="formatDateVN(editingPolicy.capNhatCuoi)" readonly class="form-input-control input-readonly-grey" />
+        </div>
+      </div>
+
+      <!-- Tên chính sách -->
+      <div class="form-group-unified">
+        <label class="field-label-lbl">Tên chính sách <span class="required">*</span></label>
+        <input 
+          type="text" 
+          [(ngModel)]="editingPolicy.tenChinhSach" 
+          placeholder="Nhập tên chính sách" 
+          class="form-input-control" 
+          [class.border-red]="editFormSubmitted && !editingPolicy.tenChinhSach" />
+      </div>
+
+      <!-- Loại chính sách (Dropdown placeholder option) -->
+      <div class="form-group-unified" style="margin-top: 20px;">
+        <label class="field-label-lbl">Loại chính sách <span class="required">*</span></label>
+        <select 
+          [(ngModel)]="editingPolicy.loaiChinhSach" 
+          (ngModelChange)="onTypeChange(editingPolicy)"
+          class="form-input-control">
+          <option value="" disabled>-- Chọn loại chính sách --</option>
+          <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+        </select>
+      </div>
+
+      <!-- Ngày áp dụng (DatePicker Component dd/mm/yyyy) -->
+      <div class="form-group-unified" style="margin-top: 20px;">
+        <label class="field-label-lbl">Ngày áp dụng <span class="required">*</span></label>
+        <app-date-picker
+          [(ngModel)]="editingPolicy.ngayApDung"
+          [placeholder]="'dd/mm/yyyy'"
+          [format]="'dd/MM/yyyy'">
+        </app-date-picker>
+      </div>
+
+      <!-- Khung mốc thời gian hủy vé -->
+      <div class="timeline-rules-container" *ngIf="editingPolicy.loaiChinhSach === 'Chính sách hoàn hủy'">
+        <div class="timeline-rules-header">Mốc thời gian hủy vé & hoàn tiền <span class="required">*</span></div>
+        <div class="timeline-rules-body">
+          <div class="rule-row-grid" *ngFor="let rule of editingPolicy.mocThoiGianHuyVe; let i = index">
+            <div class="rule-field">
+              <label class="field-label-lbl">Trước giờ khởi hành <span class="required">*</span></label>
+              <div class="input-with-unit">
+                <input type="number" [(ngModel)]="rule.truocGio" class="form-input-control input-unit-field" />
+                <span class="unit-text">Giờ</span>
+              </div>
+            </div>
+            <div class="rule-field">
+              <label class="field-label-lbl">Phí hủy <span class="required">*</span></label>
+              <div class="input-with-unit">
+                <input type="number" [(ngModel)]="rule.phiHuy" class="form-input-control input-unit-field" />
+                <span class="unit-text">%</span>
+              </div>
+            </div>
+            <div class="rule-action">
+              <button type="button" class="btn-remove-rule" (click)="removeRule(editingPolicy, i)" title="Xóa mốc thời gian">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+          </div>
+          <button type="button" class="btn-add-rule" (click)="addRule(editingPolicy)">
+            Thêm mốc thời gian +
+          </button>
+        </div>
+      </div>
+
+      <!-- Nội dung chính sách Editor Toolbar -->
+      <div class="form-group-unified" style="margin-top: 20px; display: flex; flex-direction: column;">
+        <label class="field-label-lbl">Nội dung chính sách <span class="required">*</span></label>
+        <div class="quill-wrapper-box" [class.border-red]="editFormSubmitted && !editingPolicy.noiDungChinhSach">
+          <div class="editor-toolbar" style="display: flex; flex-direction: column; gap: 0; padding: 0; background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+            <div class="editor-toolbar-row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 12px;">
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('edit', 'bold')" title="Chữ đậm"><b>B</b></button>
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('edit', 'italic')" title="Chữ nghiêng"><i>I</i></button>
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('edit', 'underline')" title="Gạch chân"><u>U</u></button>
+              <div style="width: 1px; height: 18px; background-color: #cbd5e1; margin: 0 4px;"></div>
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('edit', 'h2')" title="Tiêu đề H2">H2</button>
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('edit', 'ol')" title="Đánh số STT (1,2,3)">1. STT</button>
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('edit', 'ul')" title="Mục tròn">• Ý chính</button>
+              <button type="button" class="toolbar-btn-item" (click)="applyFormatting('edit', 'blockquote')" title="Trích dẫn">“ ”</button>
+              <div style="flex: 1;"></div>
+              <button type="button" class="toolbar-btn-item text-red-500" (click)="applyFormatting('edit', 'clear')" title="Xóa định dạng" style="color: #ef4444; border: none; background: none; cursor: pointer;">Xóa định dạng</button>
+            </div>
+          </div>
+          <textarea
+            [(ngModel)]="editingPolicy.noiDungChinhSach"
+            placeholder="Nhập nội dung điều khoản, chính sách chi tiết tại đây (hỗ trợ HTML và thẻ định dạng)..."
+            class="form-textarea-control custom-editor-textarea"
+            rows="8"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="modal-footer-panel modal-footer-actions" style="display: flex; justify-content: space-between; padding: 20px 24px; border-top: 1px solid #f1f5f9; background-color: #f8fafc;">
+      <!-- Khóa/Mở khóa chính sách bên trái với modal xác nhận -->
+      <button 
+        type="button" 
+        [class]="editingPolicy.trangThai === 'Đang áp dụng' ? 'btn-footer-lock-red' : 'btn-footer-unlock-green'" 
+        (click)="openLockConfirmModal()" 
+        [title]="editingPolicy.trangThai === 'Đang áp dụng' ? 'Nhấp để khóa chính sách' : 'Nhấp để mở khóa chính sách'">
+        <!-- Closed lock icon for 'Đang áp dụng' -->
+        <svg *ngIf="editingPolicy.trangThai === 'Đang áp dụng'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 6px; vertical-align: middle;">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <!-- Open lock icon for 'Đã khóa' -->
+        <svg *ngIf="editingPolicy.trangThai === 'Đã khóa'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 6px; vertical-align: middle;">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+        </svg>
+        <span>{{ editingPolicy.trangThai === 'Đang áp dụng' ? 'Khóa chính sách' : 'Mở khóa chính sách' }}</span>
+      </button>
+
+      <!-- Hủy & Lưu bên phải -->
+      <div style="display: flex; gap: 12px;">
+        <button class="btn-footer-secondary" (click)="closeEditModal()">Hủy bỏ</button>
+        <button class="btn-footer-primary" (click)="saveEditPolicy()">Lưu thông tin</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     LOCK / UNLOCK CONFIRMATION MODAL
+     ========================================== -->
+<div class="modal-backdrop-overlay flex-centered z-index-200" *ngIf="showLockConfirmModal && editingPolicy">
+  <div class="confirm-modal-card" style="background: #ffffff; padding: 28px; border-radius: 12px; max-width: 440px; width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+    <div class="confirm-icon-ring" [style.backgroundColor]="editingPolicy.trangThai === 'Đang áp dụng' ? '#fef2f2' : '#ecfdf5'" [style.borderColor]="editingPolicy.trangThai === 'Đang áp dụng' ? '#fca5a5' : '#a7f3d0'" style="width: 56px; height: 56px; border-radius: 50%; border-width: 4px; border-style: solid; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+      <!-- Closed lock icon for 'Đang áp dụng' -->
+      <svg *ngIf="editingPolicy.trangThai === 'Đang áp dụng'" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      <!-- Open lock icon for 'Đã khóa' -->
+      <svg *ngIf="editingPolicy.trangThai === 'Đã khóa'" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+      </svg>
+    </div>
+
+    <h3 style="font-size: 19px; font-weight: 800; color: #0f172a; margin: 0 0 10px 0;">
+      {{ editingPolicy.trangThai === 'Đang áp dụng' ? 'Xác nhận khóa chính sách' : 'Xác nhận mở khóa chính sách' }}
+    </h3>
+
+    <p style="font-size: 13.5px; color: #475569; line-height: 1.5; margin: 0 0 24px 0;">
+      Bạn có chắc chắn muốn {{ editingPolicy.trangThai === 'Đang áp dụng' ? 'khóa' : 'mở khóa' }} chính sách
+      <strong>{{ editingPolicy.maCS }} - {{ editingPolicy.tenChinhSach }}</strong>?
+      {{ editingPolicy.trangThai === 'Đang áp dụng' ? 'Chính sách này sẽ tạm ngưng áp dụng trên hệ thống.' : 'Chính sách này sẽ được áp dụng trở lại trên hệ thống.' }}
+    </p>
+
+    <div style="display: flex; gap: 12px; width: 100%; justify-content: flex-end;">
+      <button class="btn-footer-secondary" style="flex: 1;" (click)="closeLockConfirmModal()">Hủy bỏ</button>
+      <button 
+        [style.backgroundColor]="editingPolicy.trangThai === 'Đang áp dụng' ? '#dc2626' : '#059669'" 
+        style="flex: 1; color: #ffffff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 700; cursor: pointer;"
+        (click)="confirmTogglePolicyStatus()">
+        {{ editingPolicy.trangThai === 'Đang áp dụng' ? 'Xác nhận khóa' : 'Xác nhận mở khóa' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     SUCCESS OVERLAY ALERT DIALOG
+     ========================================== -->
+<div class="modal-backdrop-overlay flex-centered z-index-200" *ngIf="showSuccessModal">
+  <div class="success-alert-card" style="position: relative;">
+    <button (click)="closeSuccessModal()" style="position: absolute; top: 12px; right: 12px; background: none; border: none; cursor: pointer; color: #64748b;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
+    <div class="success-icon-ring">
+      <svg class="check-success-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <h3 class="success-alert-title font-bold">{{ successMessageTitle }}</h3>
+    <p class="success-alert-body font-medium">
+      {{ successMessageBody }}
+    </p>
+  </div>
+</div>
