@@ -17,8 +17,15 @@ import { Contact } from './featured/customer/about/contact/contact';
 import { Faq } from './featured/customer/about/faq/faq';
 import { Guide } from './featured/customer/about/guide/guide';
 import { GuideDetail } from './featured/customer/about/guide/guide-detail';
+import { GuideHotline } from './featured/customer/about/guide/guide-hotline/guide-hotline';
+import { GuidePickup } from './featured/customer/about/guide/guide-pickup/guide-pickup';
 import { Policies } from './featured/customer/about/policies/policies';
 import { Terms } from './featured/customer/about/terms/terms';
+import { PickupDropoffComponent } from './featured/admin/dispatch/pickup-dropoff/pickup-dropoff';
+import { VehiclesComponent } from './featured/admin/dispatch/vehicles/vehicles';
+import { DriversAssistantsComponent } from './featured/admin/dispatch/drivers-assistants/drivers-assistants';
+import { ContractRentalsComponent } from './featured/admin/contract-rentals/contract-rentals';
+import { CustomerReportComponent } from './featured/admin/reports/customer-report/customer-report';
 
 export const routes: Routes = [
   {
@@ -27,6 +34,11 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: AdminHome },
+      { path: 'dispatch/pickup', component: PickupDropoffComponent },
+      { path: 'dispatch/vehicles', component: VehiclesComponent },
+      { path: 'dispatch/drivers-assistants', component: DriversAssistantsComponent },
+      { path: 'contract-rentals', component: ContractRentalsComponent },
+      { path: 'reports/customer-report', component: CustomerReportComponent },
       { path: '**', redirectTo: 'home' },
     ],
   },
@@ -50,6 +62,8 @@ export const routes: Routes = [
       { path: 'faq', component: Faq },
       { path: 'huong-dan-mua-ve', component: Guide },
       { path: 'huong-dan-mua-ve/dat-ve-online', component: GuideDetail },
+      { path: 'huong-dan-mua-ve/dat-ve-hotline', component: GuideHotline },
+      { path: 'huong-dan-mua-ve/nhan-ve-tai-ben', component: GuidePickup },
       { path: 'chinh-sach', component: Policies },
       { path: 'dieu-khoan', component: Terms },
       { path: '**', redirectTo: '' },

@@ -14,11 +14,6 @@
 
 /* --- Hero Section --- */
 .recruitment-hero {
-  background-color: var(--color-primary-500);
-  background-image: radial-gradient(circle at 2px 2px, color-mix(in srgb, var(--color-surface) 5%, transparent) 1px, transparent 0);
-  background-size: 32px 32px;
-  padding: var(--space-20) 0;
-  color: var(--color-surface);
   text-align: center;
 }
 
@@ -44,41 +39,105 @@
 
 /* --- Filter Bar --- */
 .recruitment-filter {
-  background: color-mix(in srgb, var(--color-surface) 95%, transparent);
-  backdrop-filter: blur(8px);
-  padding: var(--space-3);
-  border-radius: var(--radius-xl);
   display: flex;
   gap: var(--space-3);
-  box-shadow: var(--shadow-md);
   max-width: 900px;
   margin: 0 auto;
+  margin-bottom: var(--space-8);
 }
 
 .filter-item {
   flex: 1;
+  min-width: 0;
+  min-height: 48px;
   display: flex;
   align-items: center;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-primary-600);
+  border-radius: 9px;
   padding: 0 var(--space-4);
   color: var(--color-text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.filter-item span {
-  color: var(--color-text-secondary);
-  margin-right: var(--space-2);
+.filter-item:focus-within {
+  border-color: var(--color-primary-600);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-600) 14%, transparent);
+}
+
+.filter-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin-right: var(--space-3);
+  stroke: var(--color-primary-600);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
 }
 
 .filter-item input,
 .filter-item select {
-  width: 100%;
-  border: none;
   padding: var(--space-3-5) 0;
-  font-size: var(--font-size-body);
-  outline: none;
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+  font: inherit;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-primary);
   background: transparent;
+  appearance: none;
+}
+
+:host .recruitment-filter .filter-item input,
+:host .recruitment-filter .filter-item select {
+  min-height: 0;
+  padding: var(--space-3-5) 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:host .recruitment-filter .filter-item input:focus,
+:host .recruitment-filter .filter-item select:focus {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+.filter-item input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.location-filter {
+  position: relative;
+  padding-right: var(--space-8);
+}
+
+.location-filter::after {
+  content: "";
+  position: absolute;
+  right: var(--space-4);
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--color-text-secondary);
+  border-bottom: 1.5px solid var(--color-text-secondary);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.filter-item select {
+  cursor: pointer;
+}
+
+.filter-btn {
+  min-height: 48px;
 }
 
 .filter-btn {

@@ -2,27 +2,10 @@
 
   <!-- 1. TRANG DANH SÁCH TUYỂN DỤNG -->
   <div *ngIf="currentView === 'list'" class="recruitment-list-view">
-    <section class="recruitment-hero">
+    <section class="page-hero recruitment-hero">
       <div class="hero-container">
         <h1 class="hero-title">Cơ hội nghề nghiệp tại VIAGO</h1>
         <p class="hero-subtitle">Gia nhập đội ngũ của chúng tôi để cùng xây dựng dịch vụ vận chuyển hiện đại, an toàn và thân thiện.</p>
-        
-        <div class="recruitment-filter">
-          <div class="filter-item">
-            <span class="page-icon">⌕</span>
-            <input type="text" [(ngModel)]="filters.keyword" (input)="filterJobs()" placeholder="Vị trí công việc (ví dụ: Tài xế, CSKH...)">
-          </div>
-          <div class="filter-item">
-            <span class="page-icon">⌖</span>
-            <select [(ngModel)]="filters.location" (change)="filterJobs()">
-              <option value="">Tất cả địa điểm</option>
-              <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
-              <option value="Hà Nội">Hà Nội</option>
-              <option value="Đà Nẵng">Đà Nẵng</option>
-            </select>
-          </div>
-          <button class="filter-btn" (click)="filterJobs()">Tìm kiếm</button>
-        </div>
       </div>
     </section>
 
@@ -50,6 +33,29 @@
     </section>
 
     <section class="job-list-section container">
+      <div class="recruitment-filter">
+        <div class="filter-item">
+          <svg class="filter-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="10.8" cy="10.8" r="6.8"></circle>
+            <path d="m16 16 4.2 4.2"></path>
+          </svg>
+          <input type="text" [(ngModel)]="filters.keyword" (input)="filterJobs()" placeholder="Vị trí công việc (ví dụ: Tài xế, CSKH...)">
+        </div>
+        <div class="filter-item location-filter">
+          <svg class="filter-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"></path>
+            <circle cx="12" cy="10" r="2.2"></circle>
+          </svg>
+          <select [(ngModel)]="filters.location" (change)="filterJobs()">
+            <option value="">Tất cả địa điểm</option>
+            <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+            <option value="Hà Nội">Hà Nội</option>
+            <option value="Đà Nẵng">Đà Nẵng</option>
+          </select>
+        </div>
+        <button class="filter-btn" (click)="filterJobs()">Tìm kiếm</button>
+      </div>
+
       <div class="section-header">
         <h2 class="section-title">Vị trí ứng tuyển</h2>
         <div class="filter-tabs">

@@ -76,6 +76,16 @@
     </div>
   </section>
 
+  <!-- Interior Gallery Section -->
+  <section class="about-us-section interior-gallery-section">
+    <div class="container">
+      <div class="section-header text-center"><span class="section-tag">Nội thất VIAGO</span><h2 class="headline-lg">Khám phá không gian VIAGO</h2><p class="body-md section-desc">Từ ghế ngồi êm ái đến từng tiện nghi, tận hưởng hành trình theo cách của bạn.</p></div>
+      <div class="vehicle-tabs" role="tablist"><button *ngFor="let vehicle of vehicleGalleries | keyvalue" class="vehicle-tab" [class.active]="selectedVehicle === vehicle.key" (click)="selectVehicle(vehicle.key)" role="tab" [attr.aria-selected]="selectedVehicle === vehicle.key">{{ vehicle.value.label }}</button></div>
+      <div class="interior-gallery" [ngClass]="currentPage === 0 ? 'gallery-page-one' : 'gallery-page-two'"><article *ngFor="let image of currentGalleryPage.items; let i = index" class="gallery-card" [class.gallery-featured]="i === 0"><button class="gallery-image-button" (click)="openLightbox(i)" [attr.aria-label]="'Mở ảnh ' + image[1]"><img [src]="image[0]" [alt]="image[1]" /></button><div class="gallery-caption"><span>{{ (currentPage * 4 + i + 1).toString().padStart(2, '0') }}</span><div><strong>{{ image[1] }}</strong><small>{{ image[2] }}</small></div></div></article></div>
+      <div class="gallery-navigation"><button class="gallery-nav-button" [disabled]="currentPage === 0" (click)="setPage(0)" aria-label="Trang trước">←</button><div><strong>{{ currentGalleryPage.title }}</strong><span>{{ (currentPage + 1).toString().padStart(2, '0') }} / 02</span></div><button class="gallery-nav-button" [disabled]="currentPage === 1" (click)="setPage(1)" aria-label="Trang sau">→</button></div>
+      <div class="lightbox" *ngIf="lightboxIndex !== null" role="dialog" aria-modal="true" (click)="closeLightbox()"><button class="lightbox-close" (click)="closeLightbox()" aria-label="Đóng">×</button><button class="lightbox-arrow left" (click)="$event.stopPropagation(); previousLightbox()" aria-label="Ảnh trước">←</button><img [src]="currentGalleryPage.items[lightboxIndex][0]" [alt]="currentGalleryPage.items[lightboxIndex][1]" (click)="$event.stopPropagation()" /><button class="lightbox-arrow right" (click)="$event.stopPropagation(); nextLightbox()" aria-label="Ảnh sau">→</button></div>
+    </div>
+  </section>
   <!-- Limousine Interior Carousel Section -->
   <section class="about-us-section limo-carousel-section">
     <div class="container">

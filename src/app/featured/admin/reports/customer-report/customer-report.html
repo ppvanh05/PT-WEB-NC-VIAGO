@@ -1,1 +1,440 @@
-<p>customer-report works!</p>
+<div class="ticket-list-page">
+  <section class="lookup-panel">
+    <div class="lookup-heading">
+      <div>
+        <span class="eyebrow">Báo cáo quản trị</span>
+        <h1>Báo cáo khách hàng</h1>
+      </div>
+      <div class="header-actions">
+        <button
+          type="button"
+          class="view-toggle-btn"
+          [class.active]="cheDoXem === 'bieu-do'"
+          (click)="ChuyenCheDoXem('bieu-do')"
+        >
+          Xem biểu đồ
+        </button>
+        <button
+          type="button"
+          class="view-toggle-btn"
+          [class.active]="cheDoXem === 'danh-sach'"
+          (click)="ChuyenCheDoXem('danh-sach')"
+        >
+          Xem danh sách
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Summary Strip -->
+    <div class="summary-strip management-summary">
+      <div class="summary-item revenue">
+        <span>{{ stats.total }}</span>
+        <small>Tổng số khách hàng</small>
+      </div>
+      <div class="summary-item paid">
+        <span>{{ stats.active }}</span>
+        <small>Đang hoạt động</small>
+      </div>
+      <div class="summary-item cancelled">
+        <span>{{ stats.locked }}</span>
+        <small>Đã khóa</small>
+      </div>
+      <div class="summary-item rate">
+        <span>{{ stats.totalTickets }}</span>
+        <small>Tổng số vé đã đặt</small>
+      </div>
+      <div class="summary-item held">
+        <span>{{ stats.totalMembers }}</span>
+        <small>Tổng số hội viên</small>
+      </div>
+      <div class="summary-item pending">
+        <span>{{ formatCurrency(stats.totalSpending) }}</span>
+        <small>Tổng chi tiêu</small>
+      </div>
+    </div>
+
+    <!-- Filters Grid -->
+    <div class="filters-grid report-filter-grid">
+      <div class="field search-field">
+        <label>Tìm kiếm</label>
+        <input
+          type="text"
+          placeholder="Mã KH, tên, SĐT, email..."
+          [(ngModel)]="filters.searchTerm"
+          (input)="onViewReport()"
+        />
+      </div>
+
+      <div class="field">
+        <label>Trạng thái tài khoản</label>
+        <select [(ngModel)]="filters.status" (change)="onViewReport()">
+          <option value="Tất cả">Tất cả trạng thái</option>
+          <option value="Đang hoạt động">Đang hoạt động</option>
+          <option value="Đã khóa">Đã khóa</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Loại khách hàng</label>
+        <select [(ngModel)]="filters.loaiKH" (change)="onViewReport()">
+          <option value="Tất cả">Tất cả loại khách</option>
+          <option value="Hội viên">Hội viên</option>
+          <option value="Khách vãng lai">Khách vãng lai</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Hạng thành viên</label>
+        <select [(ngModel)]="filters.hangTV" (change)="onViewReport()">
+          <option value="Tất cả">Tất cả hạng</option>
+          <option value="Bạc">Bạc</option>
+          <option value="Vàng">Vàng</option>
+          <option value="Kim cương">Kim cương</option>
+          <option value="Không có">Không có</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Từ ngày đăng ký</label>
+        <input type="date" [(ngModel)]="filters.fromDate" (change)="onViewReport()" />
+      </div>
+
+      <div class="field">
+        <label>Đến ngày đăng ký</label>
+        <input type="date" [(ngModel)]="filters.toDate" (change)="onViewReport()" />
+      </div>
+
+      <div class="field filter-action-field">
+        <button type="button" class="secondary-button clear-filter-btn" (click)="onResetFilters()">Xóa bộ lọc</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD VIEW -->
+  <section class="report-panel chart-report" *ngIf="cheDoXem === 'bieu-do'">
+    <div class="report-toolbar">
+      <div>
+        <strong>Phân tích dữ liệu khách hàng</strong>
+        <span>Dữ liệu tổng hợp dựa trên {{ filteredCustomers.length }} khách hàng</span>
+      </div>
+      <div class="report-actions">
+        <button type="button" class="primary-button report-action-btn" (click)="onExportExcel()">
+          Xuất báo cáo
+        </button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD ROWS -->
+    <div class="dashboard-rows">
+      <!-- ROW 1: 2 CARDS -->
+      <div class="dashboard-grid-row row-2-cols">
+        <!-- Cơ cấu khách hàng (Doughnut) -->
+        <div class="chart-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Cơ cấu khách hàng</h3>
+            <span>Tỷ lệ Hội viên vs Khách vãng lai</span>
+          </div>
+          <div class="chart-content flex-center">
+            <div class="donut-chart-mini interactive-donut-mini">
+              <svg viewBox="0 0 100 100">
+                <circle class="donut-track" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke-width="12" transform="rotate(-90 50 50)"></circle>
+                <circle class="donut-segment warning donut-segment-mini" tabindex="0" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke="var(--viago-warning)" stroke-width="12" stroke-dasharray="25 75" stroke-dashoffset="-75" transform="rotate(-90 50 50)"></circle>
+                <circle class="donut-segment primary donut-segment-mini" tabindex="0" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke="var(--viago-primary)" stroke-width="12" stroke-dasharray="75 25" stroke-dashoffset="0" transform="rotate(-90 50 50)"></circle>
+              </svg>
+              <div class="donut-label">
+                <strong>75%</strong>
+                <small>Hội viên</small>
+              </div>
+              <div class="donut-tooltip-mini primary">
+                <strong>Hội viên</strong>
+                <span>75% khách hàng</span>
+              </div>
+              <div class="donut-tooltip-mini warning">
+                <strong>Khách vãng lai</strong>
+                <span>25% khách hàng</span>
+              </div>
+            </div>
+            <div class="chart-legend-v">
+              <div class="legend-item interactive-tip" *ngFor="let item of dashboard.coCauKH" tabindex="0" [attr.data-tip]="item.label + ': ' + item.pct + '%'">
+                <span class="dot" [style.background]="item.tone === 'primary' ? 'var(--viago-primary)' : 'var(--viago-warning)'"></span>
+                <span class="label">{{item.label}}</span>
+                <span class="val">{{item.pct}}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Khách hàng đăng ký theo tháng (Line) -->
+        <div class="chart-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Khách hàng đăng ký theo tháng</h3>
+            <span>Xu hướng 6 tháng gần nhất</span>
+          </div>
+          <div class="chart-content">
+            <div class="line-chart-simple">
+              <svg viewBox="0 0 600 100">
+                <path d="M50,80 L150,60 L250,70 L350,30 L450,10 L550,20" fill="none" stroke="var(--viago-primary)" stroke-width="3"></path>
+                <g class="line-point-group" *ngFor="let p of dashboard.dangKyTheoThang" tabindex="0">
+                  <line class="line-hover-guide" [attr.x1]="p.x * 5 + 50" [attr.x2]="p.x * 5 + 50" y1="8" y2="88"></line>
+                  <circle class="line-point-hit" [attr.cx]="p.x * 5 + 50" [attr.cy]="p.y" r="12"></circle>
+                  <circle class="line-point" [attr.cx]="p.x * 5 + 50" [attr.cy]="p.y" r="4"></circle>
+                  <g class="line-tooltip" [attr.transform]="'translate(' + (p.x * 5 + 50) + ',' + (p.y > 35 ? p.y - 26 : p.y + 30) + ')'">
+                    <rect x="-45" y="-18" width="90" height="32" rx="7"></rect>
+                    <text y="-6">{{p.month}}</text>
+                    <text y="8">{{p.count}} khách</text>
+                  </g>
+                </g>
+              </svg>
+              <div class="line-labels">
+                <span *ngFor="let p of dashboard.dangKyTheoThang">{{p.month}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 2: 3 CARDS -->
+      <div class="dashboard-grid-row row-3-cols">
+        <!-- Phân bố hạng thành viên (Bar) -->
+        <div class="chart-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Phân bố hạng thành viên</h3>
+            <span>Số lượng khách theo từng hạng</span>
+          </div>
+          <div class="chart-content membership-bars">
+            <div class="membership-bar-row interactive-tip" *ngFor="let item of dashboard.phanBoHangTV" tabindex="0" [attr.data-tip]="item.label + ': ' + item.count + ' khách · ' + item.pct + '%'">
+              <div class="membership-bar-head">
+                <span class="membership-label">{{item.label}}</span>
+                <strong class="membership-val">{{item.count}}</strong>
+              </div>
+              <div class="membership-bar-track">
+                <div class="membership-bar-fill" [style.width.%]="item.pct" [class]="item.tone"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tổng chi tiêu theo hạng thành viên (Bar) -->
+        <div class="chart-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Chi tiêu theo hạng</h3>
+            <span>Tổng giá trị giao dịch (VNĐ)</span>
+          </div>
+          <div class="chart-content compact-bars">
+            <div class="chart-row interactive-tip" *ngFor="let item of dashboard.chiTieuTheoHangTV" tabindex="0" [attr.data-tip]="item.label + ': ' + formatCurrency(item.value)">
+              <div class="chart-label-row">
+                <span class="chart-row-label">{{item.label}}</span>
+                <strong class="chart-row-val">{{formatCurrency(item.value)}}</strong>
+              </div>
+              <div class="chart-bar-track">
+                <div class="chart-bar-fill primary" [style.width.%]="item.pct"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top 5 khách hàng chi tiêu cao nhất (Horizontal Bar) -->
+        <div class="chart-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Top 5 chi tiêu</h3>
+            <span>Khách hàng thân thiết nhất</span>
+          </div>
+          <div class="chart-content compact-bars">
+            <div class="chart-row interactive-tip" *ngFor="let item of dashboard.topKhachHang" tabindex="0" [attr.data-tip]="item.name + ': ' + formatCurrency(item.spending)">
+              <div class="chart-label-row">
+                <span class="chart-row-label">{{item.name}}</span>
+                <strong class="chart-row-val">{{formatCurrency(item.spending)}}</strong>
+              </div>
+              <div class="chart-bar-track">
+                <div class="chart-bar-fill secondary" [style.width.%]="item.pct"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 3: 3 CARDS -->
+      <div class="dashboard-grid-row row-3-cols">
+        <!-- Khách hàng mới đăng ký gần đây (List) -->
+        <div class="chart-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Đăng ký mới nhất</h3>
+            <span>5 khách hàng vừa gia nhập</span>
+          </div>
+          <div class="recent-list-mini">
+            <div class="recent-item-mini interactive-tip" *ngFor="let item of dashboard.khachHangMoi" tabindex="0" [attr.data-tip]="item.name + ' Â· ' + item.type + ' Â· ' + item.date">
+              <div class="item-info">
+                <strong>{{item.name}}</strong>
+                <small>{{item.type}}</small>
+              </div>
+              <span class="item-date">{{item.date}}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Thống kê trạng thái khách hàng (Doughnut) -->
+        <div class="chart-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Trạng thái tài khoản</h3>
+            <span>Đang hoạt động vs Đã khóa</span>
+          </div>
+          <div class="chart-content flex-center">
+            <div class="donut-chart-mini interactive-donut-mini">
+              <svg viewBox="0 0 100 100">
+                <circle class="donut-track" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke-width="12" transform="rotate(-90 50 50)"></circle>
+                <circle class="donut-segment danger donut-segment-mini" tabindex="0" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke="var(--viago-error)" stroke-width="12" stroke-dasharray="10 90" stroke-dashoffset="-90" transform="rotate(-90 50 50)"></circle>
+                <circle class="donut-segment success donut-segment-mini" tabindex="0" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke="var(--viago-success)" stroke-width="12" stroke-dasharray="90 10" stroke-dashoffset="0" transform="rotate(-90 50 50)"></circle>
+              </svg>
+              <div class="donut-label">
+                <strong>90%</strong>
+                <small>Hoạt động</small>
+              </div>
+              <div class="donut-tooltip-mini success">
+                <strong>Đang hoạt động</strong>
+                <span>18 khách · 90%</span>
+              </div>
+              <div class="donut-tooltip-mini danger">
+                <strong>Đã khóa</strong>
+                <span>2 khách · 10%</span>
+              </div>
+            </div>
+            <div class="chart-legend-v">
+              <div class="legend-item interactive-tip" *ngFor="let item of dashboard.trangThaiKH" tabindex="0" [attr.data-tip]="item.label + ': ' + item.count + ' khách · ' + item.pct + '%'">
+                <span class="dot" [style.background]="item.tone === 'success' ? 'var(--viago-success)' : 'var(--viago-error)'"></span>
+                <span class="label">{{item.label}}</span>
+                <span class="val">{{item.count}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Insight Card -->
+        <div class="chart-card insight-highlight-card">
+          <div class="chart-title-row">
+            <h3 class="chart-title">Thông tin nổi bật</h3>
+            <span>Điểm tin quản trị nhanh</span>
+          </div>
+          <div class="insight-content">
+            <div class="insight-row">
+              <div class="insight-icon"><i class="material-symbols-outlined">Military_tech</i></div>
+              <div class="insight-text">
+                <small>Hạng TV phổ biến nhất</small>
+                <strong>{{dashboard.insights.hangNhieuNhat}}</strong>
+              </div>
+            </div>
+            <div class="insight-row">
+              <div class="insight-icon"><i class="material-symbols-outlined">Calendar_month</i></div>
+              <div class="insight-text">
+                <small>Tháng có nhiều khách nhất</small>
+                <strong>{{dashboard.insights.thangNhieuNhat}}</strong>
+              </div>
+            </div>
+            <div class="insight-row">
+              <div class="insight-icon"><i class="material-symbols-outlined">Payments</i></div>
+              <div class="insight-text">
+                <small>Khách hàng chi tiêu cao nhất</small>
+                <strong>{{dashboard.insights.khachChiTieuCao}}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIST VIEW -->
+  <section class="report-panel table-report" *ngIf="cheDoXem === 'danh-sach'">
+    <div class="report-toolbar">
+      <div>
+        <strong>Chi tiết báo cáo khách hàng</strong>
+        <span>{{ filteredCustomers.length }} kết quả theo bộ lọc hiện tại</span>
+      </div>
+      <div class="report-actions">
+        <button type="button" class="primary-button report-action-btn" (click)="onExportExcel()">
+          Xuất Excel
+        </button>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Mã KH</th>
+            <th>Họ tên khách hàng</th>
+            <th>Số điện thoại</th>
+            <th>Email</th>
+            <th>Ngày đăng ký</th>
+            <th>Loại KH</th>
+            <th>Hạng TV</th>
+            <th>Tổng chi tiêu</th>
+            <th class="text-center">Số vé</th>
+            <th>Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of paginatedCustomers">
+            <td class="text-bold">{{ item.maKH }}</td>
+            <td class="text-bold">{{ item.hoTen }}</td>
+            <td>{{ item.sdt }}</td>
+            <td>{{ item.email }}</td>
+            <td>{{ item.ngayDangKy }}</td>
+            <td>
+              <span class="badge" [class.badge-primary]="item.loaiKH === 'Hội viên'" [class.badge-secondary]="item.loaiKH === 'Khách vãng lai'">
+                {{ item.loaiKH }}
+              </span>
+            </td>
+            <td>
+              <span class="badge" *ngIf="item.hangThanhVien !== 'Không có'" [ngClass]="{
+                'badge-silver': item.hangThanhVien === 'Bạc',
+                'badge-gold': item.hangThanhVien === 'Vàng',
+                'badge-diamond': item.hangThanhVien === 'Kim cương'
+              }">
+                {{ item.hangThanhVien }}
+              </span>
+              <span class="text-muted" *ngIf="item.hangThanhVien === 'Không có'">-</span>
+            </td>
+            <td class="text-secondary text-bold">{{ formatCurrency(item.tongChiTieu) }}</td>
+            <td class="text-center text-bold">{{ item.tongVeDat }}</td>
+            <td>
+              <span class="badge-pill" [class.badge-success]="item.trangThai === 'Đang hoạt động'" [class.badge-danger]="item.trangThai === 'Đã khóa'">
+                {{ item.trangThai }}
+              </span>
+            </td>
+          </tr>
+          <tr *ngIf="filteredCustomers.length === 0">
+            <td colspan="10" class="empty-state">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <p>Không tìm thấy dữ liệu phù hợp với bộ lọc hiện tại</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-footer">
+      <div class="pagination-summary">
+        Hiển thị {{ filteredCustomers.length > 0 ? (currentPage - 1) * pageSize + 1 : 0 }} -
+        {{ currentPage * pageSize > filteredCustomers.length ? filteredCustomers.length : currentPage * pageSize }}
+        của {{ filteredCustomers.length }} khách hàng
+      </div>
+      <div class="pagination-controls">
+        <button class="pagination-btn" type="button" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1" aria-label="Trang trước">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <button
+          class="pagination-btn"
+          type="button"
+          *ngFor="let page of getVisiblePages()"
+          [class.active]="currentPage === page"
+          (click)="setPage(page)"
+        >
+          {{ page }}
+        </button>
+        <button class="pagination-btn" type="button" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages" aria-label="Trang sau">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  </section>
+</div>

@@ -78,6 +78,36 @@
   }
 }
 
+/* VIAGO interior gallery */
+.interior-gallery-section { background: var(--color-background); }
+.vehicle-tabs { display:flex; justify-content:center; gap:10px; margin:0 auto var(--space-10); }
+.vehicle-tab { border:1px solid var(--color-border); background:var(--color-surface-muted); color:var(--color-text-body); padding:12px 26px; border-radius:10px; cursor:pointer; font:inherit; font-weight:600; transition:.2s ease; }
+.vehicle-tab:hover,.vehicle-tab:focus-visible { border-color:var(--color-accent-600); outline:3px solid color-mix(in srgb,var(--color-accent-600) 22%,transparent); }
+.vehicle-tab.active { background:var(--color-accent-50); color:var(--color-primary-700); border-color:var(--color-accent-300); }
+.gallery-subtabs { display:flex; gap:8px; margin:0 0 14px; }.gallery-subtabs button { border:0; border-radius:999px; padding:5px 11px; background:#f0f0f0; color:#252525; font:inherit; font-size:13px; cursor:pointer; }.gallery-subtabs button.active { background:#dceeff; color:#1670d2; font-weight:600; }
+.interior-gallery { display:grid; gap:16px; height:580px; }
+.gallery-page-one { grid-template-columns:2fr 1fr; grid-template-rows:repeat(2,minmax(0,1fr)); align-items:stretch; }
+.gallery-page-one .gallery-featured { grid-row:1 / span 2; }
+.gallery-page-one .gallery-featured { grid-column:1; }
+.gallery-page-one .gallery-card:nth-child(2) { grid-column:2; grid-row:1; }
+.gallery-page-one .gallery-card:nth-child(3) { grid-column:2; grid-row:2; }
+.gallery-page-one .gallery-card:nth-child(4) { display:none !important; }
+.gallery-page-two { grid-template-columns:repeat(2,1fr); grid-template-rows:repeat(2,1fr); }
+.gallery-card { min-width:0; }
+.gallery-image-button { display:block; width:100%; height:calc(100% - 62px); min-height:115px; padding:0; border:0; overflow:hidden; border-radius:10px; cursor:zoom-in; background:var(--color-surface-muted); }
+.gallery-page-one .gallery-image-button { height:100%; min-height:150px; aspect-ratio:auto; }.gallery-page-one .gallery-featured .gallery-image-button { height:auto; min-height:0; aspect-ratio:1.55 / 1; }.gallery-page-one .gallery-card:not(.gallery-featured) { display:flex; flex-direction:column; }.gallery-page-one .gallery-card:not(.gallery-featured) .gallery-image-button { flex:1; aspect-ratio:1.7 / 1; }.gallery-page-one .gallery-caption { padding-top:7px; font-size:16px; }.gallery-page-one .gallery-caption > span { color:var(--color-text-body); font-weight:400; }.gallery-page-one .gallery-caption > span::after { content:' —'; }.gallery-page-one .gallery-caption > div { display:inline; }.gallery-page-one .gallery-caption small { display:none; }.gallery-page-one .gallery-caption strong { display:inline; font-weight:500; }.gallery-page-two .gallery-image-button { height:auto; aspect-ratio:4 / 3; }
+.gallery-image-button img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .45s ease; }.gallery-image-button:hover img { transform:scale(1.045); }
+.gallery-caption { display:flex; gap:12px; padding:10px 2px 0; color:var(--color-primary-700); }.gallery-caption>span { color:var(--color-accent-600); font-weight:700; }.gallery-caption strong,.gallery-caption small { display:block; }.gallery-caption small { color:var(--color-text-muted); margin-top:3px; }
+.gallery-navigation { display:flex; justify-content:flex-end; align-items:center; gap:10px; text-align:right; margin-top:28px; }.gallery-navigation > div { order:-1; margin-right:auto; text-align:left; }.gallery-navigation strong { display:none; }.gallery-navigation span { color:var(--color-text-muted); }.gallery-nav-button { width:auto; height:auto; padding:0 3px; border:0; background:transparent; color:var(--color-text-body); cursor:pointer; font-size:18px; }.gallery-nav-button:disabled { opacity:.35; cursor:not-allowed; }.gallery-nav-button:not(:disabled):last-child { color:#ff6b00; }
+.lightbox { position:fixed; inset:0; z-index:20; background:rgba(8,20,35,.9); display:flex; align-items:center; justify-content:center; }.lightbox img { max-width:86vw; max-height:82vh; object-fit:contain; border-radius:10px; }.lightbox-close,.lightbox-arrow { position:absolute; border:0; color:white; background:rgba(255,255,255,.14); cursor:pointer; border-radius:50%; width:44px; height:44px; font-size:25px; }.lightbox-close { top:24px; right:24px; }.lightbox-arrow.left { left:28px; }.lightbox-arrow.right { right:28px; }
+/* Keep the legacy carousel markup inert; the gallery above is the only interior UI. */
+.about-us-page > .limo-carousel-section { display:none; }
+@media (max-width:700px) { .vehicle-tabs { gap:6px; }.vehicle-tab { padding:10px 12px; font-size:14px; }.gallery-page-one,.gallery-page-two { grid-template-columns:1fr 1fr; grid-template-rows:auto; }.gallery-page-one .gallery-featured { grid-column:1 / -1; grid-row:auto; }.gallery-page-one .gallery-image-button,.gallery-page-two .gallery-image-button { height:120px; }.gallery-page-one .gallery-featured .gallery-image-button { height:240px; } }
+.gallery-page-two { grid-template-rows:repeat(2, 1fr); min-height:0; }
+.gallery-page-two .gallery-card { display:flex; flex-direction:column; min-height:0; }
+.gallery-page-two .gallery-image-button { height:245px; aspect-ratio:auto; flex:none; }
+@media (max-width:700px) { .interior-gallery { height:auto; } .gallery-page-two .gallery-image-button { height:120px; flex:none; } }
+
 /* Typography Classes */
 .display-lg {
   font-size: var(--font-size-display);

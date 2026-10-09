@@ -1,5 +1,6 @@
 import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { SidebarStateService } from '../../services/sidebar-state.service';
 
 interface SubItem {
@@ -23,6 +24,7 @@ interface SidebarItem {
 })
 export class AdminSidebar {
   private sidebarState = inject(SidebarStateService);
+  private router = inject(Router);
 
   readonly isCollapsed = this.sidebarState.isCollapsed;
   readonly activeRoute = signal('/admin');
@@ -44,7 +46,7 @@ export class AdminSidebar {
         { label: 'Lịch trình', route: '/admin/dispatch/schedules' },
         { label: 'Đón trả', route: '/admin/dispatch/pickup' },
         { label: 'Phương tiện', route: '/admin/dispatch/vehicles' },
-        { label: 'Tài xế & Phụ xe', route: '/admin/dispatch/drivers' },
+        { label: 'Tài xế & Phụ xe', route: '/admin/dispatch/drivers-assistants' },
       ]
     },
     {
@@ -69,12 +71,12 @@ export class AdminSidebar {
         { label: 'Khuyến mãi', route: '/admin/content/promotions' },
       ]
     },
-    { label: 'Thuê xe hợp đồng', icon: 'contract', route: '/admin/contract' },
+    { label: 'Thuê xe hợp đồng', icon: 'contract', route: '/admin/contract-rentals' },
     {
       label: 'Báo cáo', icon: 'chart', expandable: true,
       children: [
         { label: 'Doanh thu', route: '/admin/reports/revenue' },
-        { label: 'Khách hàng', route: '/admin/reports/customers' },
+        { label: 'Khách hàng', route: '/admin/reports/customer-report' },
         { label: 'Tài xế & Phụ xe', route: '/admin/reports/drivers' },
         { label: 'Tuyến xe', route: '/admin/reports/routes' },
         { label: 'Hoàn hủy', route: '/admin/reports/cancellations' },
@@ -105,12 +107,14 @@ export class AdminSidebar {
       this.toggleExpand(item.label);
     } else {
       this.activeRoute.set(item.route || '');
+      if (item.route) this.router.navigateByUrl(item.route);
     }
   }
 
   selectSubItem(route: string | undefined): void {
     if (route) {
       this.activeRoute.set(route);
+      this.router.navigateByUrl(route);
     }
   }
 }

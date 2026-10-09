@@ -1,1 +1,332 @@
-<p>vehicles works!</p>
+<div class="management-container">
+  <!-- Premium Header Container -->
+  <div class="header-card-container">
+    <div class="header-titles">
+      <span class="category-tag">QUẢN LÝ ĐIỀU PHỐI</span>
+      <h1 class="main-title">Phương tiện</h1>
+    </div>
+    
+    <!-- Action Banner & Create Button Box -->
+    <div class="header-action-banner" (click)="openAddModal()" title="Nhấp để thêm phương tiện mới">
+      <div class="action-icon-circle">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+      </div>
+      <div class="action-banner-text">
+        <h3>Thêm phương tiện</h3>
+        <p>Thiết lập thông tin xe, biển số, loại xe và các tiện ích đi kèm.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Dashboard Card -->
+  <div class="dashboard-card">
+    <!-- Tabs matching Lịch trình style -->
+    <div class="dashboard-control-panel">
+      <div class="pill-tabs">
+        <button class="pill-tab-item" [class.active]="activeTab === 'Tất cả'" (click)="setTab('Tất cả')">
+          Tất cả phương tiện ({{ getTotalCount() }})
+        </button>
+        <button class="pill-tab-item" [class.active]="activeTab === 'Đang hoạt động'" (click)="setTab('Đang hoạt động')">
+          Đang hoạt động ({{ getCountByStatus('Đang hoạt động') }})
+        </button>
+        <button class="pill-tab-item" [class.active]="activeTab === 'Bảo trì'" (click)="setTab('Bảo trì')">
+          Bảo trì ({{ getCountByStatus('Bảo trì') }})
+        </button>
+        <button class="pill-tab-item" [class.active]="activeTab === 'Đã khóa'" (click)="setTab('Đã khóa')">
+          Đã khóa ({{ getCountByStatus('Đã khóa') }})
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Bar & View Options -->
+    <div class="search-filters-row">
+      <!-- Search Input -->
+      <div class="filter-input-wrapper col-search">
+        <label class="input-mini-label">Tìm kiếm thông tin</label>
+        <div class="search-input-container">
+          <input type="text" [(ngModel)]="searchQuery" placeholder="Tìm theo tên xe hoặc biển số..." (input)="filterVehicles()">
+        </div>
+      </div>
+
+      <!-- Type Dropdown -->
+      <div class="filter-input-wrapper col-type">
+        <label class="input-mini-label">Loại xe</label>
+        <div class="custom-select-container">
+          <select [(ngModel)]="selectedType" (change)="filterVehicles()">
+            <option *ngFor="let type of vehicleTypes" [value]="type">{{ type }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Status Dropdown (only for All tab) -->
+      <div class="filter-input-wrapper col-status" *ngIf="activeTab === 'Tất cả'">
+        <label class="input-mini-label">Trạng thái</label>
+        <div class="custom-select-container">
+          <select [(ngModel)]="selectedStatus" (change)="filterVehicles()">
+            <option *ngFor="let status of statusOptions" [value]="status">{{ status }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-actions-col">
+        <button class="btn-clear-filters" (click)="clearFilters()" title="Xóa bộ lọc">
+          Xóa lọc
+        </button>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="col-stt">STT</th>
+            <th class="col-name">Tên xe</th>
+            <th class="col-plate">Biển số</th>
+            <th class="col-type">Loại xe</th>
+            <th class="col-seats">Số chỗ</th>
+            <th class="col-expiry">Hạn đăng kiểm</th>
+            <th class="col-amenities">Tiện ích</th>
+            <th class="col-actions">Chức năng</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Empty State -->
+          <tr *ngIf="filteredVehicles.length === 0">
+            <td colspan="8" class="empty-state">
+              <div class="empty-content">
+                <svg xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 -960 960 960" width="48" fill="currentColor">
+                  <path d="M480-312q9 0 16.5-4.5T507-329l118-208q7-12 1-24.5t-19-12.5H520v-226q0-17-11.5-28.5T480-816q-17 0-28.5 11.5T440-776v226H354q-13 0-19 12.5t1 24.5l118 208q8 8 15.5 12.5t16.5 4.5Zm0 232q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
+                </svg>
+                <span>Không tìm thấy phương tiện phù hợp.</span>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Data Rows -->
+          <tr *ngFor="let vehicle of paginatedVehicles; let i = index">
+            <td class="col-stt text-center">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+            <td class="col-name">
+              <div class="name-with-status">
+                <span class="status-indicator" 
+                  [class.active]="vehicle.status === 'Đang hoạt động'"
+                  [class.maintenance]="vehicle.status === 'Bảo trì'"
+                  [class.locked]="vehicle.status === 'Đã khóa'"></span>
+                <span class="text-semibold">{{ vehicle.name }}</span>
+              </div>
+            </td>
+            <td class="col-plate">{{ vehicle.licensePlate }}</td>
+            <td class="col-type">
+              <span class="type-badge">{{ vehicle.type }}</span>
+            </td>
+            <td class="col-seats text-center">{{ vehicle.seats }}</td>
+            <td class="col-expiry text-center">{{ vehicle.registrationExpiry }}</td>
+            <td class="col-amenities">
+              <div class="amenity-icons-row">
+                <ng-container *ngFor="let amen of amenitiesList">
+                  <div class="amenity-icon-box" *ngIf="vehicle.amenities.includes(amen.label)" [title]="amen.label">
+                    <span class="material-symbols-outlined">{{ amen.icon }}</span>
+                  </div>
+                </ng-container>
+              </div>
+            </td>
+            <td class="col-actions text-center">
+              <button class="admin-action-btn edit" title="Chỉnh sửa chi tiết" aria-label="Chỉnh sửa chi tiết" (click)="openEditModal(vehicle)">
+                <span class="material-symbols-outlined">edit_note</span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-footer">
+      <div>
+        Hiển thị {{ filteredVehicles.length > 0 ? (currentPage - 1) * pageSize + 1 : 0 }} -
+        {{ currentPage * pageSize > filteredVehicles.length ? filteredVehicles.length : currentPage * pageSize }}
+        của {{ filteredVehicles.length }} phương tiện
+      </div>
+      <div class="pagination-controls">
+        <button class="pagination-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1" aria-label="Trang trước">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <ng-container *ngFor="let page of getPaginationItems()">
+          <button
+            class="pagination-btn"
+            [class.active]="currentPage === page"
+            (click)="setPage(page)"
+          >
+            {{ page }}
+          </button>
+        </ng-container>
+        <button class="pagination-btn" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages" aria-label="Trang sau">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModal()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">{{ isEditMode ? 'Chi tiết phương tiện' : 'Tạo phương tiện mới' }}</h2>
+        <button class="btn-close" (click)="closeModal()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body custom-scrollbar">
+        <div class="form-grid-3">
+          <div class="form-item" [class.has-error]="errors.name">
+            <label>Tên xe <span class="required">*</span></label>
+            <input type="text" [(ngModel)]="currentVehicle.name" placeholder="Nhập Tên xe">
+          </div>
+          <div class="form-item" [class.has-error]="errors.licensePlate">
+            <label>Biển số xe <span class="required">*</span></label>
+            <input type="text" [(ngModel)]="currentVehicle.licensePlate" placeholder="Nhập biển số xe">
+          </div>
+          <div class="form-item" [class.has-error]="errors.registrationExpiry">
+            <label>Hạn đăng kiểm <span class="required">*</span></label>
+            <div class="input-with-icon">
+              <input type="text" [(ngModel)]="currentVehicle.registrationExpiry" placeholder="dd/mm/yyyy">
+              <svg class="field-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
+          </div>
+          
+          <div class="form-item" [class.has-error]="errors.insuranceExpiry">
+            <label>Hạn bảo hiểm xe <span class="required">*</span></label>
+            <div class="input-with-icon">
+              <input type="text" [(ngModel)]="currentVehicle.insuranceExpiry" placeholder="dd/mm/yyyy">
+              <svg class="field-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
+          </div>
+          <div class="form-item" [class.has-error]="errors.type">
+            <label>Loại xe <span class="required">*</span></label>
+            <select [(ngModel)]="currentVehicle.type" (change)="onVehicleTypeChange()">
+              <option value="">Chọn loại xe</option>
+              <option value="Limousine">Limousine</option>
+              <option value="Giường nằm">Giường nằm</option>
+              <option value="Cabin đôi">Cabin đôi</option>
+            </select>
+          </div>
+          <div class="form-item" [class.has-error]="errors.floors">
+            <label>Số tầng <span class="required">*</span></label>
+            <input type="number" [(ngModel)]="currentVehicle.floors" placeholder="Nhập số tầng">
+          </div>
+
+          <div class="form-item" [class.has-error]="errors.rows">
+            <label>Số dãy <span class="required">*</span></label>
+            <input type="number" [(ngModel)]="currentVehicle.rows" placeholder="Nhập số dãy">
+          </div>
+          <div class="form-item" [class.has-error]="errors.seats">
+            <label>Số ghế <span class="required">*</span></label>
+            <input type="number" [(ngModel)]="currentVehicle.seats" placeholder="Nhập số ghế">
+          </div>
+        </div>
+
+        <div class="amenities-section">
+          <label class="section-label">Tiện ích xe <span class="required">*</span></label>
+          <div class="amenities-grid-3">
+            <label class="amenity-checkbox">
+              <input type="checkbox" [checked]="hasAmenity('Tivi')" (change)="toggleAmenity('Tivi')">
+              <div class="checkbox-box"></div>
+              <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+              <span>Tivi</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" [checked]="hasAmenity('Ổ sạc, USB')" (change)="toggleAmenity('Ổ sạc, USB')">
+              <div class="checkbox-box"></div>
+              <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3z"></path><path d="M13 18h-2a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2"></path><path d="M7 12H3"></path></svg>
+              <span>Ổ sạc, USB</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" [checked]="hasAmenity('Wifi')" (change)="toggleAmenity('Wifi')">
+              <div class="checkbox-box"></div>
+              <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+              <span>Wifi</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" [checked]="hasAmenity('Nước, khăn ướt')" (change)="toggleAmenity('Nước, khăn ướt')">
+              <div class="checkbox-box"></div>
+              <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+              <span>Nước, khăn ướt</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" [checked]="hasAmenity('GPS')" (change)="toggleAmenity('GPS')">
+              <div class="checkbox-box"></div>
+              <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line></svg>
+              <span>GPS</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" [checked]="hasAmenity('Điều hòa')" (change)="toggleAmenity('Điều hòa')">
+              <div class="checkbox-box"></div>
+              <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+              <span>Điều hòa</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="file-upload-section">
+          <div class="upload-row">
+            <div class="upload-field">
+              <label>Giấy đăng kiểm xe <span class="required">*</span></label>
+              <div class="upload-dropzone" (click)="regInput.click()">
+                <input type="file" #regInput hidden (change)="onImageUpload($event, 'registrationImage')">
+                <div class="upload-placeholder" *ngIf="!currentVehicle.registrationImage">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span>Tải ảnh lên</span>
+                </div>
+                <img *ngIf="currentVehicle.registrationImage" [src]="currentVehicle.registrationImage" class="preview-img">
+              </div>
+            </div>
+            <div class="upload-field">
+              <label>Bảo hiểm xe <span class="required">*</span></label>
+              <div class="upload-dropzone" (click)="insInput.click()">
+                <input type="file" #insInput hidden (change)="onImageUpload($event, 'insuranceImage')">
+                <div class="upload-placeholder" *ngIf="!currentVehicle.insuranceImage">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span>Tải ảnh lên</span>
+                </div>
+                <img *ngIf="currentVehicle.insuranceImage" [src]="currentVehicle.insuranceImage" class="preview-img">
+              </div>
+            </div>
+          </div>
+          <div class="upload-field full-width">
+            <label>Ảnh xe <span class="required">*</span></label>
+            <div class="upload-dropzone-large" (click)="vehInput.click()">
+              <input type="file" #vehInput hidden (change)="onImageUpload($event, 'vehicleImage')">
+              <div class="upload-placeholder" *ngIf="!currentVehicle.vehicleImage">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <span>Tải ảnh lên</span>
+              </div>
+              <img *ngIf="currentVehicle.vehicleImage" [src]="currentVehicle.vehicleImage" class="preview-img">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel-new" (click)="closeModal()">Hủy</button>
+        <button class="btn-save-new" (click)="saveVehicle()">Lưu</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container">
+    <div class="toast-card" *ngFor="let toast of toasts" [class.toast-success]="toast.type === 'success'" [class.toast-error]="toast.type === 'error'">
+      <div class="toast-content-wrapper">
+        <span class="toast-icon material-symbols-outlined">{{ toast.type === 'success' ? 'check_circle' : 'error' }}</span>
+        <span class="toast-text">{{ toast.message }}</span>
+      </div>
+      <button class="toast-close-btn" (click)="removeToast(toast.id)">×</button>
+    </div>
+  </div>
+</div>
