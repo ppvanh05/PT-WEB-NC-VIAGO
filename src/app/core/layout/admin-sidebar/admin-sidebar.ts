@@ -1,6 +1,8 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { SidebarStateService } from '../../services/sidebar-state.service';
 
 interface SubItem {
@@ -17,17 +19,19 @@ interface SidebarItem {
 }
 
 @Component({
-  imports: [CommonModule],
   selector: 'app-admin-sidebar',
+  standalone: true,
+  imports: [CommonModule],
   styleUrl: './admin-sidebar.css',
   templateUrl: './admin-sidebar.html',
 })
-export class AdminSidebar {
+export class AdminSidebar implements OnInit {
   private sidebarState = inject(SidebarStateService);
   private router = inject(Router);
 
   readonly isCollapsed = this.sidebarState.isCollapsed;
   readonly activeRoute = signal(this.router.url);
+  readonly activeRoute = signal('/admin/home');
   readonly expandedItem = signal<string | null>(null);
 
   readonly menuItems: SidebarItem[] = [
@@ -46,7 +50,7 @@ export class AdminSidebar {
         { label: 'Lịch trình', route: '/admin/dispatch/schedules' },
         { label: 'Đón trả', route: '/admin/dispatch/pickup' },
         { label: 'Phương tiện', route: '/admin/dispatch/vehicles' },
-        { label: 'Tài xế & Phụ xe', route: '/admin/dispatch/drivers' },
+        { label: 'Tài xế & Phụ xe', route: '/admin/dispatch/drivers-assistants' },
       ]
     },
     {
@@ -71,12 +75,12 @@ export class AdminSidebar {
         { label: 'Khuyến mãi', route: '/admin/content/promotions' },
       ]
     },
-    { label: 'Thuê xe hợp đồng', icon: 'contract', route: '/admin/contract' },
+    { label: 'Thuê xe hợp đồng', icon: 'contract', route: '/admin/contract-rentals' },
     {
       label: 'Báo cáo', icon: 'chart', expandable: true,
       children: [
         { label: 'Doanh thu', route: '/admin/reports/revenue' },
-        { label: 'Khách hàng', route: '/admin/reports/customers' },
+        { label: 'Khách hàng', route: '/admin/reports/customer-report' },
         { label: 'Tài xế & Phụ xe', route: '/admin/reports/drivers' },
         { label: 'Tuyến xe', route: '/admin/reports/routes' },
         { label: 'Hoàn hủy', route: '/admin/reports/cancellations' },
@@ -92,6 +96,30 @@ export class AdminSidebar {
     });
   }
 
+  ngOnInit(): void {
+    this.updateActiveFromUrl(this.router.url);
+
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd)
+    ).subscribe((event: NavigationEnd) => {
+      this.updateActiveFromUrl(event.urlAfterRedirects || event.url);
+    });
+  }
+
+  private updateActiveFromUrl(url: string): void {
+    const cleanUrl = url.split('?')[0].split('#')[0];
+    this.activeRoute.set(cleanUrl);
+
+    for (const item of this.menuItems) {
+      if (item.expandable && item.children) {
+        if (item.children.some(child => child.route === cleanUrl)) {
+          this.expandedItem.set(item.label);
+          break;
+        }
+      }
+    }
+  }
+
   toggleCollapse(): void {
     this.sidebarState.toggle();
   }
@@ -105,7 +133,10 @@ export class AdminSidebar {
   }
 
   isParentActive(item: SidebarItem): boolean {
-    if (!item.expandable) return this.activeRoute() === item.route;
+    if (!item.expandable) {
+      const current = this.activeRoute();
+      return current === item.route || ((item.route === '/admin/home' || item.route === '/admin') && (current === '/admin' || current === '/admin/home'));
+    }
     return !!(item.children?.some(c => c.route === this.activeRoute()));
   }
 
@@ -114,14 +145,17 @@ export class AdminSidebar {
       this.toggleExpand(item.label);
     } else {
       this.activeRoute.set(item.route || '');
-      if (item.route) this.router.navigate([item.route]);
+      if (item.route) this.router.navigateByUrl(item.route);
+    } else if (item.route) {
+      this.activeRoute.set(item.route);
+      this.router.navigateByUrl(item.route);
     }
   }
 
   selectSubItem(route: string | undefined): void {
     if (route) {
       this.activeRoute.set(route);
-      this.router.navigate([route]);
+      this.router.navigateByUrl(route);
     }
   }
 }

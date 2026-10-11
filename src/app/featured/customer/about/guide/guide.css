@@ -1,0 +1,79 @@
+:host { display: block; }
+
+.guide-page {
+  color: var(--color-text-body);
+  background: var(--color-background);
+  min-height: 100%;
+}
+
+.container {
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  padding: 0 var(--page-padding-desktop);
+}
+
+.guide-hero {
+  background: var(--color-primary-600);
+  color: var(--color-text-inverse);
+  padding: var(--space-16) 0;
+}
+
+.hero-content { max-width: 760px; }
+.guide-hero .display-lg { color: inherit; margin-bottom: var(--space-4); text-transform: none; }
+.guide-hero .body-lg { color: inherit; opacity: .9; margin: 0; }
+
+.guide-content { padding-top: var(--space-16); padding-bottom: var(--space-20); }
+.guide-section { margin-bottom: var(--space-12); }
+.headline-md { color: var(--color-primary-600); margin-bottom: var(--space-8); }
+
+.guide-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-6); }
+.guide-card {
+  display: flex; flex-direction: column; align-items: flex-start;
+  min-height: 285px; padding: var(--space-8);
+  color: var(--color-text-body); text-decoration: none;
+  background: #fff; border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl); box-shadow: var(--shadow-sm);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.guide-card:hover { transform: translateY(-4px); border-color: var(--color-primary-300); box-shadow: var(--shadow-lg); }
+.guide-card-icon { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: var(--space-5); color: var(--color-primary-600); background: var(--color-primary-50); border-radius: var(--radius-lg); }
+.guide-card-icon svg { width: 27px; height: 27px; }
+.guide-card h3 { margin: 0 0 var(--space-3); color: var(--color-primary-700); font-size: var(--font-size-title); }
+.guide-card p { margin: 0; line-height: var(--line-height-body-lg); }
+.guide-card-link { margin-top: auto; padding-top: var(--space-6); color: var(--color-primary-600); font-weight: var(--font-weight-semibold); }
+.guide-card-link span { margin-left: var(--space-2); transition: margin .2s ease; }
+.guide-card:hover .guide-card-link span { margin-left: var(--space-3); }
+
+.guide-detail {
+  scroll-margin-top: 140px;
+  margin-bottom: var(--space-12);
+  padding: var(--space-10);
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  animation: guide-detail-in .35s ease both;
+}
+
+.guide-detail:not(.guide-detail-visible) { display: none; }
+
+@keyframes guide-detail-in {
+  from { opacity: .35; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.guide-detail .headline-md { margin-bottom: var(--space-3); }
+.guide-detail-intro { margin: 0 0 var(--space-8); }
+.guide-steps { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-5) var(--space-8); }
+.guide-step { display: flex; align-items: flex-start; gap: var(--space-4); }
+.guide-step-number { display: grid; place-items: center; flex: 0 0 32px; height: 32px; color: #fff; background: var(--color-primary-600); border-radius: 50%; font-weight: var(--font-weight-bold); }
+.guide-step h3 { margin: 0 0 var(--space-2); color: var(--color-primary-700); font-size: var(--font-size-title); }
+.guide-step p { margin: 0; line-height: var(--line-height-body-lg); }
+.guide-note { margin-top: var(--space-8); padding: var(--space-4) var(--space-5); color: var(--color-text-body); background: var(--color-primary-50); border-left: 3px solid var(--color-primary-600); line-height: var(--line-height-body-lg); }
+
+.guide-help { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); padding: var(--space-8); background: var(--color-primary-50); border: 1px solid var(--color-primary-100); border-radius: var(--radius-xl); }
+.guide-help h2 { margin: 0 0 var(--space-2); color: var(--color-primary-700); font-size: var(--font-size-h3); }
+.guide-help p { margin: 0; }
+.guide-help-actions { display: flex; align-items: center; gap: var(--space-5); white-space: nowrap; }
+.guide-hotline { color: var(--color-primary-700); font-size: var(--font-size-title); font-weight: var(--font-weight-bold); text-decoration: none; }
+
+@media (max-width: 1024px) { .container { padding: 0 var(--page-padding-tablet); } .guide-grid { gap: var(--space-4); } .guide-card { padding: var(--space-6); } }
+@media (max-width: 700px) { .container { padding: 0 var(--page-padding-mobile); } .guide-hero { padding: var(--space-12) 0; } .guide-content { padding-top: var(--space-10); } .guide-grid, .guide-steps { grid-template-columns: 1fr; } .guide-card { min-height: 0; } .guide-detail { padding: var(--space-6); } .guide-help { align-items: flex-start; flex-direction: column; } .guide-help-actions { width: 100%; justify-content: space-between; } }

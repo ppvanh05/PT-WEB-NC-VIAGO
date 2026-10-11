@@ -1,9 +1,18 @@
+import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-
-@Component({
-  imports: [],
-  selector: 'app-invoice',
-  styleUrl: './invoice.css',
-  templateUrl: './invoice.html',
-})
-export class Invoice {}
+import { FormsModule } from '@angular/forms';
+import { Badge } from '../../../shared/components/badge/badge';
+import { Button } from '../../../shared/components/button/button';
+import { Card } from '../../../shared/components/card/card';
+type InvoiceTab = 'search' | 'verify'; type ViewState = 'form' | 'loading' | 'result'; type ModalType = 'success' | 'fail' | null;
+interface Invoice { lookupCode: string; invoiceNumber: string; symbol: string; issueDate: string; company: string; customer: string; route: string; totalAmount: number; status: 'valid' | 'invalid'; imageUrl: string; }
+@Component({ selector: 'app-invoice', standalone: true, imports: [CommonModule, FormsModule, Button, Card, Badge], templateUrl: './invoice.html', styleUrl: './invoice.css' })
+export class InvoicePage {
+ activeTab: InvoiceTab = 'search'; viewState: ViewState = 'form'; modalType: ModalType = null; searchCode = ''; captchaInput = ''; verifyFile: File | null = null; currentCaptcha = '46097'; error = ''; foundInvoice: Invoice | null = null;
+ readonly invoices: Invoice[] = [{lookupCode:'VIAGO12345',invoiceNumber:'0000001',symbol:'AA/2024',issueDate:'25/06/2024',company:'Công ty TNHH ViAGO',customer:'Nguyễn Văn A',route:'TP.HCM - Đà Lạt',totalAmount:300000,status:'valid',imageUrl:'/assets/customer/hoadon.png'},{lookupCode:'VIAGO67890',invoiceNumber:'0000002',symbol:'BB/2024',issueDate:'26/06/2024',company:'Công ty TNHH ViAGO',customer:'Trần Thị B',route:'Hà Nội - Sapa',totalAmount:500000,status:'valid',imageUrl:'/assets/customer/hoadon.png'},{lookupCode:'VIAGOINVALID',invoiceNumber:'0000003',symbol:'CC/2024',issueDate:'27/06/2024',company:'Công ty TNHH ViAGO',customer:'Lê Văn C',route:'Đà Nẵng - Huế',totalAmount:150000,status:'invalid',imageUrl:'/assets/customer/hoadon.png'}];
+ setActiveTab(t:InvoiceTab){this.activeTab=t;this.reset()} reset(){this.viewState='form';this.foundInvoice=null;this.error='';this.captchaInput='';this.verifyFile=null;this.refreshCaptcha()} refreshCaptcha(){this.currentCaptcha=Array.from({length:5},()=>Math.floor(Math.random()*10)).join('')} canSubmit(){return !!this.captchaInput.trim()&&(this.activeTab==='search'?!!this.searchCode.trim():!!this.verifyFile)}
+ submit(){this.error='';if(this.captchaInput.trim()!==this.currentCaptcha){this.error='Mã xác thực không chính xác. Vui lòng thử lại.';return}if(this.activeTab==='verify'&&!this.verifyFile){this.error='Vui lòng tải lên tệp hóa đơn PDF.';return}if(this.activeTab==='search'){this.foundInvoice=this.invoices.find(i=>i.lookupCode===this.searchCode.trim())??null;if(!this.foundInvoice){this.modalType='fail';this.viewState='form';return}this.viewState='result'}else{this.modalType='success';this.viewState='result'}}
+ onFileChange(e:Event){const f=(e.target as HTMLInputElement).files?.[0];if(f)this.validateFile(f)} onFileDrop(e:DragEvent){e.preventDefault();const f=e.dataTransfer?.files[0];if(f)this.validateFile(f)} validateFile(f:File){this.error=f.type!=='application/pdf'&&!f.name.toLowerCase().endsWith('.pdf')?'Chỉ chấp nhận tệp định dạng PDF.':f.size>5242880?'Dung lượng tệp vượt quá 5MB.':'';this.verifyFile=this.error?null:f} clearVerifyFile(input:HTMLInputElement){this.verifyFile=null;this.error='';input.value=''}
+ downloadXml(){if(!this.foundInvoice)return;const i=this.foundInvoice;const xml=`<?xml version="1.0" encoding="UTF-8"?><Invoice><LookupCode>${i.lookupCode}</LookupCode><InvoiceNumber>${i.invoiceNumber}</InvoiceNumber><Symbol>${i.symbol}</Symbol><IssueDate>${i.issueDate}</IssueDate><Company>${i.company}</Company><Customer>${i.customer}</Customer><Route>${i.route}</Route><TotalAmount>${i.totalAmount}</TotalAmount></Invoice>`;const u=URL.createObjectURL(new Blob([xml],{type:'application/xml'}));const a=document.createElement('a');a.href=u;a.download=`HD_${i.invoiceNumber}.xml`;a.click();URL.revokeObjectURL(u)} printInvoice(){window.print()}
+}
+export { InvoicePage as Invoice };

@@ -1,85 +1,256 @@
-﻿:host { display: block; }
+:host {
+  display: block;
+  width: 100%;
+}
+
 .customer-footer {
   width: 100%;
-  background: var(--color-primary-600);
-  color: var(--color-neutral-300);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-body-lg);
+  background-color: #062a78;
+  color: #cbd5e1;
+  font-family: var(--font-family-base, 'Inter', sans-serif);
+  font-size: 14px;
+  line-height: 1.6;
 }
+
 .footer-container {
-  max-width: var(--container-max-width);
+  max-width: 1240px;
   margin-inline: auto;
-  padding-inline: var(--page-padding-desktop);
+  padding-inline: 24px;
 }
+
 .footer-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
-  gap: var(--space-8);
-  padding-block: var(--section-spacing-md) var(--space-12);
+  grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+  gap: 32px 48px;
+  padding-top: 48px;
+  padding-bottom: 40px;
+  align-items: start;
 }
-.footer-grid > * { min-width: 0; }
-.customer-footer p { margin: 0; }
-.customer-footer a { color: inherit; text-decoration: none; overflow-wrap: anywhere; }
-.customer-footer a:hover { color: var(--color-accent-500); }
-.customer-footer .footer-link-active {
-  color: var(--color-accent-500);
-  text-decoration: underline;
-  text-underline-offset: var(--space-1);
+
+/* Cột 1: Thương hiệu */
+.footer-brand {
+  display: flex;
+  flex-direction: column;
 }
-.customer-footer a:focus-visible {
-  outline: 2px solid var(--color-accent-500);
-  outline-offset: var(--space-1);
-  border-radius: var(--radius-sm);
+
+.footer-logo {
+  display: inline-block;
+  margin-bottom: 16px;
 }
-.footer-logo { display: inline-block; }
-.footer-logo img { display: block; object-fit: contain; max-width: 100%; }
+
+.footer-logo img {
+  display: block;
+  max-width: 190px;
+  height: auto;
+  object-fit: contain;
+}
+
 .footer-brand h2 {
-  margin: var(--space-4) 0;
-  color: var(--color-text-inverse);
-  font-family: var(--font-family-marketing);
-  font-size: var(--font-size-h3);
-  line-height: var(--line-height-h3);
-  font-weight: var(--font-weight-semibold);
+  margin: 0 0 16px;
+  color: #ffffff;
+  font-family: var(--font-family-marketing, 'Be Vietnam Pro', sans-serif);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
-.footer-brand address { display: flex; flex-direction: column; gap: var(--space-2); font-style: normal; }
-.footer-heading, .footer-contact-label {
-  margin: 0 0 var(--space-5);
-  color: var(--color-primary-100);
-  font-size: var(--font-size-title);
-  line-height: var(--line-height-title);
-  font-weight: var(--font-weight-semibold);
+
+.footer-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-style: normal;
 }
-.footer-heading { text-transform: uppercase; }
-.footer-links { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #cbd5e1;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.contact-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: #60a5fa;
+}
+
+.contact-phones {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.contact-phones a,
+.contact-email {
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.contact-phones a:hover,
+.contact-email:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.phone-separator {
+  color: #94a3b8;
+}
+
+/* Headings chung cho các cột */
+.footer-heading {
+  margin: 0 0 16px;
+  color: #38bdf8;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.footer-heading--connect {
+  margin-top: 24px;
+}
+
+/* Links cột Hỗ trợ & Giới thiệu */
+.footer-links {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .footer-links a {
   display: inline-block;
-  padding-block: var(--space-1);
-  font-weight: var(--font-weight-medium);
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
-.customer-footer .footer-hotline {
+
+.footer-links a:hover {
+  color: #ffffff;
+  transform: translateX(2px);
+}
+
+.customer-footer .footer-link-active {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Cột 4: Hotline & Mạng xã hội */
+.footer-contact-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-hotline {
   display: inline-block;
-  color: var(--color-accent-600);
-  font-size: var(--font-size-h2);
-  line-height: var(--line-height-h2);
-  font-weight: var(--font-weight-bold);
+  color: #ff6a00;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
 }
-.customer-footer .footer-contact-label { margin-block: var(--space-6) var(--space-2); }
-.footer-certification { display: block; max-width: 100%; object-fit: contain; margin-top: var(--space-6); }
+
+.footer-hotline:hover {
+  opacity: 0.9;
+}
+
+.footer-socials {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.social-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 17px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.social-circle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.social-circle--fb {
+  background-color: #1877f2;
+}
+
+.social-circle--tiktok {
+  background-color: #000000;
+}
+
+.social-circle--ig {
+  background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
+}
+
+.footer-certification-wrapper {
+  margin-top: 24px;
+}
+
+.footer-certification {
+  display: block;
+  max-width: 170px;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Bottom Bar */
 .footer-bottom {
-  padding-block: var(--space-4);
-  border-top: 1px solid var(--color-white-alpha-10);
-  background: var(--color-primary-700);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: #031b4e;
+  padding-block: 14px;
   text-align: center;
-  font-size: var(--font-size-caption);
-  line-height: var(--line-height-caption);
 }
+
+.footer-copyright {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 13.5px;
+  letter-spacing: 0.2px;
+}
+
+/* Responsive */
 @media (max-width: 1024px) {
-  .footer-container { padding-inline: var(--page-padding-tablet); }
-  .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-10); }
+  .footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 36px 32px;
+  }
 }
-@media (max-width: 560px) {
-  .footer-container { padding-inline: var(--page-padding-mobile); }
-  .footer-grid { grid-template-columns: minmax(0, 1fr); padding-block: var(--section-spacing-sm) var(--space-8); gap: var(--space-8); }
+
+@media (max-width: 640px) {
+  .footer-container {
+    padding-inline: 16px;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    padding-top: 36px;
+    padding-bottom: 28px;
+    gap: 32px;
+  }
+
+  .footer-brand h2 {
+    font-size: 16px;
+  }
+
+  .footer-hotline {
+    font-size: 24px;
+  }
 }
-/* Customer Footer Component Styles */
