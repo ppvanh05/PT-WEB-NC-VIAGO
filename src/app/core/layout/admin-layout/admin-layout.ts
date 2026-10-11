@@ -1,4 +1,6 @@
 import { Component, inject, ViewChild } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { AdminTopbar } from '../admin-topbar/admin-topbar';
@@ -7,6 +9,11 @@ import { AdminProfile, AdminProfileData } from '../../../featured/admin/profile/
 
 @Component({
   imports: [AdminSidebar, AdminTopbar, RouterOutlet, AdminProfile],
+import { ToastService } from '../../services/toast.service';
+import { Toast } from '../../../shared/components/toast/toast';
+
+@Component({
+  imports: [CommonModule, AdminSidebar, AdminTopbar, RouterOutlet, Toast],
   selector: 'app-admin-layout',
   styleUrl: './admin-layout.css',
   templateUrl: './admin-layout.html',
@@ -31,4 +38,6 @@ export class AdminLayout {
     this.profile = profile;
     this.profileSaved = true;
   }
+  readonly toastService = inject(ToastService);
 }
+

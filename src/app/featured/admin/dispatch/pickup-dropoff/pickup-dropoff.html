@@ -1,1 +1,315 @@
-<p>pickup-dropoff works!</p>
+<div class="management-container">
+  <!-- Premium Header Container -->
+  <div class="header-card-container">
+    <div class="header-titles">
+      <span class="category-tag">QUẢN LÝ ĐIỀU PHỐI</span>
+      <h1 class="main-title">Điểm đón, trả, dừng</h1>
+    </div>
+    
+    <!-- Info Banner & Create Button Box -->
+    <div class="header-action-banner" (click)="openAddModal()" title="Nhấp để thêm địa điểm mới">
+      <div class="action-icon-circle">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+      </div>
+      <div class="action-banner-text">
+        <h3 *ngIf="activeTab === 'don-tra' || activeTab === 'locked'">Thêm điểm đón trả</h3>
+        <h3 *ngIf="activeTab === 'dung'">Thêm điểm dừng chân</h3>
+        <p>Thiết lập thông tin địa điểm, địa chỉ và liên kết bản đồ.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Dashboard Card -->
+  <div class="dashboard-card">
+    <!-- Tabs matching Lịch trình style -->
+    <div class="dashboard-control-panel">
+      <div class="pill-tabs">
+        <button class="pill-tab-item" [class.active]="activeTab === 'don-tra'" (click)='setTab("don-tra")'>
+          Điểm đón trả ({{ getCountByType('don-tra') }})
+        </button>
+        <button class="pill-tab-item" [class.active]="activeTab === 'dung'" (click)='setTab("dung")'>
+          Điểm dừng chân ({{ getCountByType('dung') }})
+        </button>
+        <button class="pill-tab-item" [class.active]="activeTab === 'locked'" (click)='setTab("locked")'>
+          Đã khóa ({{ getLockedCount() }})
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Bar & View Options -->
+    <div class="search-filters-row">
+      <!-- Search Input -->
+      <div class="filter-input-wrapper col-6">
+        <label class="input-mini-label">Tìm kiếm thông tin</label>
+        <div class="search-input-container">
+          <input type="text" [(ngModel)]="searchQueries[activeTab]" placeholder="Tìm theo tên hoặc địa chỉ..." (input)="applyFilter()">
+        </div>
+      </div>
+
+      <!-- City Dropdown -->
+      <div class="filter-input-wrapper col-3">
+        <label class="input-mini-label">Tỉnh / Thành phố</label>
+        <div class="custom-select-container">
+          <select [(ngModel)]="cityFilters[activeTab]" (change)="applyFilter()">
+            <option value="all">Tất cả tỉnh thành</option>
+            <option *ngFor="let city of citiesList" [value]="city">{{ city }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Type Dropdown (only for locked tab) -->
+      <div class="filter-input-wrapper col-3" *ngIf="activeTab === 'locked'">
+        <label class="input-mini-label">Loại địa điểm</label>
+        <div class="custom-select-container">
+          <select [(ngModel)]="typeFilters['locked']" (change)="applyFilter()">
+            <option value="all">Tất cả loại</option>
+            <option value="don-tra">Điểm đón trả</option>
+            <option value="dung">Điểm dừng chân</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-actions-col">
+        <button class="btn-clear-filters" (click)="clearFilter()" title="Xóa bộ lọc">
+          Xóa lọc
+        </button>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="col-stt">STT</th>
+            <th class="col-name">
+              <span *ngIf="activeTab === 'don-tra'">Tên điểm đón trả</span>
+              <span *ngIf="activeTab === 'dung'">Tên điểm dừng chân</span>
+              <span *ngIf="activeTab === 'locked'">Tên địa điểm</span>
+            </th>
+            <th class="col-address">Địa chỉ</th>
+            <th class="col-city">Tỉnh / Thành phố</th>
+            <th class="col-type" *ngIf="activeTab === 'locked'">Loại điểm</th>
+            <th class="col-actions">Chức năng</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Empty State -->
+          <tr *ngIf="filteredPoints.length === 0">
+            <td [attr.colspan]="activeTab === 'locked' ? 6 : 5" class="empty-state">
+              <div class="empty-content">
+                <svg xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 -960 960 960" width="48" fill="currentColor">
+                  <path d="M480-312q9 0 16.5-4.5T507-329l118-208q7-12 1-24.5t-19-12.5H520v-226q0-17-11.5-28.5T480-816q-17 0-28.5 11.5T440-776v226H354q-13 0-19 12.5t1 24.5l118 208q8 8 15.5 12.5t16.5 4.5Zm0 232q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
+                </svg>
+                <span>Không tìm thấy dữ liệu phù hợp.</span>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Data Rows -->
+          <tr *ngFor="let point of paginatedPoints; let i = index">
+            <td class="col-stt text-center">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+            <td class="col-name">
+              <div class="name-with-status">
+                <span class="status-indicator" [class.active]="point.status === 'active'" [class.locked]="point.status === 'locked'"></span>
+                <span class="text-semibold status-text-gap">{{ point.name }}</span>
+              </div>
+            </td>
+            <td class="col-address">{{ point.address }}</td>
+            <td class="col-city">
+              <span class="city-badge">{{ point.city }}</span>
+            </td>
+            <td *ngIf="activeTab === 'locked'" class="col-type text-center">
+              <span class="badge" 
+                [class.badge-info]="point.type === 'don-tra'" 
+                [class.badge-success]="point.type === 'dung'">
+                {{ point.type === 'don-tra' ? 'Đón trả' : 'Dừng chân' }}
+              </span>
+            </td>
+            <td class="col-actions text-center">
+              <button class="admin-action-btn edit" title="Chỉnh sửa chi tiết" aria-label="Chỉnh sửa chi tiết" (click)="openEditModal(point)">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" />
+                </svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-footer">
+      <div>
+        Hiển thị {{ filteredPoints.length > 0 ? (currentPage - 1) * pageSize + 1 : 0 }} -
+        {{ currentPage * pageSize > filteredPoints.length ? filteredPoints.length : currentPage * pageSize }}
+        của {{ filteredPoints.length }} địa điểm
+      </div>
+      <div class="pagination-controls">
+        <button class="pagination-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1" aria-label="Trang trước">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
+        <ng-container *ngFor="let page of getPaginationItems()">
+          <button
+            class="pagination-btn"
+            [class.active]="currentPage === page"
+            (click)="setPage(page)"
+          >
+            {{ page }}
+          </button>
+        </ng-container>
+        <button class="pagination-btn" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages" aria-label="Trang sau">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModal()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          {{ isEditMode ? 'Cập nhật' : 'Thêm mới' }} 
+          <span *ngIf="currentPoint.type === 'don-tra'">điểm đón trả</span>
+          <span *ngIf="currentPoint.type === 'dung'">điểm dừng chân</span>
+        </h2>
+        <button class="btn-close" (click)="closeModal()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-item col-8" [class.has-error]="errors.name">
+            <label>
+              <span *ngIf="currentPoint.type === 'don-tra'">Tên điểm đón trả</span>
+              <span *ngIf="currentPoint.type === 'dung'">Tên điểm dừng chân</span>
+              <span class="required">*</span>
+            </label>
+            <input type="text" [(ngModel)]="currentPoint.name" placeholder="Nhập tên địa điểm">
+            <span class="error-msg" *ngIf="errors.name">Vui lòng nhập tên địa điểm</span>
+          </div>
+          <div class="form-item col-4" [class.has-error]="errors.city">
+            <label>Tỉnh / Thành phố <span class="required">*</span></label>
+            <select [(ngModel)]="currentPoint.city">
+              <option value="">Chọn tỉnh/thành</option>
+              <option *ngFor="let city of citiesList" [value]="city">{{ city }}</option>
+            </select>
+            <span class="error-msg" *ngIf="errors.city">Vui lòng chọn tỉnh/thành</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-item col-12" [class.has-error]="errors.address">
+            <label>Địa chỉ cụ thể <span class="required">*</span></label>
+            <input type="text" [(ngModel)]="currentPoint.address" placeholder="Số nhà, tên đường, phường/xã...">
+            <span class="error-msg" *ngIf="errors.address">Vui lòng nhập địa chỉ</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-item col-12">
+            <div class="label-with-link">
+              <label>Liên kết Google Maps</label>
+              <a href="https://www.google.com/maps" target="_blank" class="link-external">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                  <line x1="8" y1="2" x2="8" y2="18"></line>
+                  <line x1="16" y1="6" x2="16" y2="22"></line>
+                </svg>
+                Tìm trên bản đồ
+              </a>
+            </div>
+            <input type="text" [(ngModel)]="currentPoint.mapLink" placeholder="Dán liên kết từ Google Maps">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-item col-12">
+            <label>
+              Hình ảnh 
+              <span *ngIf="currentPoint.type === 'don-tra'">điểm đón trả</span>
+              <span *ngIf="currentPoint.type === 'dung'">điểm dừng chân</span>
+            </label>
+            <div class="upload-area" (click)="fileInput.click()">
+              <input type="file" #fileInput hidden (change)="onImageUpload($event)" accept="image/*">
+              <div class="upload-placeholder" *ngIf="!currentPoint.image && !isUploadingImage">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p>Nhấp để tải ảnh lên</p>
+              </div>
+              <div class="upload-loading" *ngIf="isUploadingImage">
+                <svg class="spin" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="2" x2="12" y2="6"></line>
+                  <line x1="12" y1="18" x2="12" y2="22"></line>
+                  <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                  <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                  <line x1="2" y1="12" x2="6" y2="12"></line>
+                  <line x1="18" y1="12" x2="22" y2="12"></line>
+                  <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                  <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                </svg>
+              </div>
+              <div class="preview-container" *ngIf="currentPoint.image && !isUploadingImage">
+                <img [src]="currentPoint.image" alt="Preview">
+                <button class="btn-remove-img" (click)="removeImage(); $event.stopPropagation()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div class="footer-left">
+          <button class="btn-status-toggle" *ngIf="isEditMode" (click)="toggleStatus()">
+            <svg *ngIf="currentPoint.status === 'active'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <svg *ngIf="currentPoint.status !== 'active'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+            </svg>
+            {{ currentPoint.status === 'active' ? 'Khóa địa điểm' : 'Mở khóa' }}
+          </button>
+        </div>
+        <div class="footer-right">
+          <button class="btn-cancel" (click)="closeModal()">Hủy bỏ</button>
+          <button class="btn-save" (click)="savePoint()">Lưu thông tin</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container">
+    <div class="toast-card" *ngFor="let toast of toasts" [class.toast-success]="toast.type === 'success'" [class.toast-error]="toast.type === 'error'">
+      <div class="toast-content-wrapper">
+        <span class="toast-icon material-symbols-outlined">{{ toast.type === 'success' ? 'check_circle' : 'error' }}</span>
+        <span class="toast-text">{{ toast.message }}</span>
+      </div>
+      <button class="toast-close-btn" (click)="removeToast(toast.id)">×</button>
+    </div>
+  </div>
+</div>

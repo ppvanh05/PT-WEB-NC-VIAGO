@@ -38,7 +38,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnChanges, Aft
   @Input() minDate = '';
   @Input() maxDate = '';
   @Input() disabledDates: string[] = [];
-  @Input() showLunar = true;
+  @Input() showLunar = false;
   @Input() showClear = true;
   @Output() dateChange = new EventEmitter<string>();
   @Output() monthChange = new EventEmitter<{ month: number; year: number }>();
@@ -121,6 +121,12 @@ export class DatePickerComponent implements ControlValueAccessor, OnChanges, Aft
     if (!match) return null;
     const date = new Date(+match[1], +match[2] - 1, +match[3]);
     return date.getFullYear() === +match[1] && date.getMonth() === +match[2] - 1 && date.getDate() === +match[3] ? date : null;
+    if (!value) return null;
+    const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+    if (isoMatch) return new Date(+isoMatch[1], +isoMatch[2] - 1, +isoMatch[3]);
+    const vnMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
+    if (vnMatch) return new Date(+vnMatch[3], +vnMatch[2] - 1, +vnMatch[1]);
+    return null;
   }
   private monthStart(offset = 0): string { return this.toIso(new Date(this.viewDate.getFullYear(), this.viewDate.getMonth() + offset, 1)); }
   private monthEnd(offset = 0): string { return this.toIso(new Date(this.viewDate.getFullYear(), this.viewDate.getMonth() + offset + 1, 0)); }
@@ -129,7 +135,16 @@ export class DatePickerComponent implements ControlValueAccessor, OnChanges, Aft
   isMonthDisabled(month: number): boolean { return this.isMonthOutsideRange(new Date(this.viewDate.getFullYear(), month, 1)); }
   get previousMonthDisabled(): boolean { return !!this.minDate && this.monthEnd(-1) < this.minDate; }
   get nextMonthDisabled(): boolean { return !!this.maxDate && this.monthStart(1) > this.maxDate; }
-  get displayValue(): string { const date = this.parseDate(this.value); if (!date) return ''; const dd = String(date.getDate()).padStart(2, '0'); const mm = String(date.getMonth() + 1).padStart(2, '0'); const yyyy = date.getFullYear(); if (this.format === 'MM/dd/yyyy') return `${mm}/${dd}/${yyyy}`; if (this.format === 'yyyy-MM-dd') return `${yyyy}-${mm}-${dd}`; return `${dd}/${mm}/${yyyy}`; }
+  get displayValue(): string {
+    const date = this.parseDate(this.value);
+    if (!date) return this.value || '';
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    if (this.format === 'MM/dd/yyyy') return `${mm}/${dd}/${yyyy}`;
+    if (this.format === 'yyyy-MM-dd') return `${yyyy}-${mm}-${dd}`;
+    return `${dd}/${mm}/${yyyy}`;
+  }
   get monthLabel(): string { return this.viewDate.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' }); }
   @HostListener('document:click', ['$event']) onDocumentClick(event: MouseEvent): void { const target = event.target as HTMLElement; const host = this.control?.nativeElement.closest('app-date-picker'); if (this.isOpen && !(host ? host.contains(target) : target.closest('app-date-picker'))) this.close(); }
   @HostListener('document:keydown.escape') onEscape(): void { if (this.isOpen) this.close(); }

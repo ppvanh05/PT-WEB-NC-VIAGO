@@ -34,12 +34,22 @@ export class CustomerNavbar {
   }
 
   isAboutRouteActive(): boolean {
-    const activeRoutes = ['/customer/ve-chung-toi', '/customer/gioi-thieu', '/customer/chinh-sach', '/customer/dieu-khoan', '/customer/faq', '/customer/lien-he', '/customer/tuyen-dung'];
+    const activeRoutes = [
+      '/customer/ve-chung-toi',
+      '/customer/gioi-thieu',
+      '/customer/chinh-sach',
+      '/customer/huong-dan-mua-ve',
+      '/customer/faq',
+      '/customer/dieu-khoan',
+      '/customer/tuyen-dung',
+      '/customer/lien-he'
+    ];
     return activeRoutes.some(route => this.router.url.includes(route));
   }
 
   isServicesRouteActive(): boolean {
-    return this.router.url.includes('/customer/dich-vu');
+    const activeRoutes = ['/customer/dich-vu', '/customer/do-that-lac'];
+    return activeRoutes.some(route => this.router.url.includes(route));
   }
 
   toggleServices(event: Event) {
@@ -103,6 +113,11 @@ export class CustomerNavbar {
     if (this.isHomeRouteActive()) {
       event?.preventDefault();
       this.customerNavigation.showHome();
+  onHomeClick(event?: Event) {
+    this.closeMobileMenu();
+    // Đang ở Trang chủ thì router bỏ qua điều hướng cùng URL -> tự cuộn về đầu trang
+    if (this.isHomeRouteActive()) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 }

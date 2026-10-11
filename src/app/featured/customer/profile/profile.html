@@ -1,1 +1,1007 @@
-<p>profile works!</p>
+<div class="profile-page">
+
+  <!-- Sidebar điều hướng -->
+  <aside class="profile-sidebar">
+    <nav class="profile-nav" aria-label="Tài khoản">
+      <button type="button" (click)="selectTab('personal')" class="profile-nav__item" [class.profile-nav__item--active]="activeTab === 'personal'">
+        <img src="/assets/customer/icon_personal.svg" alt="" aria-hidden="true" />
+        <span>Thông tin cá nhân</span>
+      </button>
+      <button type="button" (click)="selectTab('security')" class="profile-nav__item" [class.profile-nav__item--active]="activeTab === 'security'">
+        <img src="/assets/customer/icon_bao_mat.svg" alt="" aria-hidden="true" />
+        <span>Bảo mật tài khoản</span>
+      </button>
+      <button type="button" (click)="selectTab('tickets')" class="profile-nav__item" [class.profile-nav__item--active]="activeTab === 'tickets'">
+        <img src="/assets/customer/icon_lich_su_ve.svg" alt="" aria-hidden="true" />
+        <span>Lịch sử mua vé</span>
+      </button>
+      <button type="button" (click)="selectTab('privileges')" class="profile-nav__item" [class.profile-nav__item--active]="activeTab === 'privileges'">
+        <img src="/assets/customer/icon_dac_quyen.svg" alt="" aria-hidden="true" />
+        <span>Đặc quyền thành viên</span>
+      </button>
+
+      <div class="profile-nav__divider"></div>
+
+      <button type="button" (click)="logout()" class="profile-nav__item profile-nav__item--logout">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+        </svg>
+        <span>Đăng xuất</span>
+      </button>
+    </nav>
+  </aside>
+
+  <!-- Nội dung tab -->
+  <section class="profile-content" #contentTop>
+
+    <!-- ================================================================= -->
+    <!-- TAB 1: THÔNG TIN CÁ NHÂN -->
+    <!-- ================================================================= -->
+    <div *ngIf="activeTab === 'personal'" class="profile-card">
+      <h2 class="profile-card__title">Thông tin cá nhân</h2>
+
+      <!-- Mức độ hoàn thiện hồ sơ (ẩn khi đạt 100%) -->
+      <div *ngIf="profileCompleteness < 100" class="profile-progress">
+        <div class="profile-progress__label">
+          <span>Mức độ hoàn thiện hồ sơ</span>
+          <span>{{ profileCompleteness }}%</span>
+        </div>
+        <div class="profile-progress__track">
+          <div class="profile-progress__bar" [style.width.%]="profileCompleteness"></div>
+        </div>
+      </div>
+
+      <div class="personal-layout">
+        <!-- Ảnh đại diện -->
+        <div class="personal-avatar">
+          <div class="personal-avatar__frame">
+            <img [src]="avatarPreview || '/assets/customer/user.png'" alt="Ảnh đại diện" class="personal-avatar__image" />
+            <button *ngIf="isEditing" type="button" (click)="photoFileInput.click()" class="personal-avatar__edit" aria-label="Đổi ảnh đại diện">
+              <img src="/assets/customer/icon_but_chinh_sua.svg" alt="" aria-hidden="true" />
+            </button>
+          </div>
+          <input type="file" #photoFileInput (change)="onPhotoSelected($event)" accept="image/png,image/jpeg" hidden />
+          <p *ngIf="isEditing" class="personal-avatar__hint">Định dạng: .JPG, .PNG<br>Dung lượng tối đa: 5MB</p>
+          <p *ngIf="avatarError" class="field-error field-error--center">{{ avatarError }}</p>
+        </div>
+
+        <div class="personal-fields">
+          <!-- CHẾ ĐỘ XEM -->
+          <div *ngIf="!isEditing" class="info-grid">
+            <div class="info-item">
+              <span class="info-item__label"><img src="/assets/customer/icon_personal.svg" alt="" aria-hidden="true" /> Họ và tên</span>
+              <span class="info-item__value" [class.info-item__value--empty]="!authService.currentUser()?.name">
+                {{ authService.currentUser()?.name || 'Chưa thiết lập' }}
+              </span>
+            </div>
+
+            <div class="info-item">
+              <span class="info-item__label"><img src="/assets/customer/icon_sdt.svg" alt="" aria-hidden="true" /> Số điện thoại</span>
+              <span class="info-item__value">{{ authService.currentUser()?.phoneNumber }}</span>
+            </div>
+
+            <div class="info-item">
+              <span class="info-item__label"><img src="/assets/customer/icon_gioi_tinh.svg" alt="" aria-hidden="true" /> Giới tính</span>
+              <span class="info-item__value" [class.info-item__value--empty]="!authService.currentUser()?.gender">
+                {{ authService.currentUser()?.gender || 'Chưa thiết lập' }}
+              </span>
+            </div>
+
+            <div class="info-item">
+              <span class="info-item__label"><img src="/assets/customer/icon_email.svg" alt="" aria-hidden="true" /> Email</span>
+              <span class="info-item__value" [class.info-item__value--empty]="!authService.currentUser()?.email">
+                {{ authService.currentUser()?.email || 'Chưa thiết lập' }}
+              </span>
+            </div>
+
+            <div class="info-item">
+              <span class="info-item__label"><img src="/assets/customer/icon_lich.svg" alt="" aria-hidden="true" /> Ngày sinh</span>
+              <span class="info-item__value" [class.info-item__value--empty]="!birthdayLabel">
+                {{ birthdayLabel || 'Chưa thiết lập' }}
+              </span>
+              <span *ngIf="lunarBirthdayLabel" class="info-item__sub">Âm lịch: {{ lunarBirthdayLabel }}</span>
+            </div>
+
+            <div class="info-item">
+              <span class="info-item__label"><img src="/assets/customer/icon_nghe_nghiep.svg" alt="" aria-hidden="true" /> Nghề nghiệp</span>
+              <span class="info-item__value" [class.info-item__value--empty]="!authService.currentUser()?.occupation">
+                {{ authService.currentUser()?.occupation || 'Chưa thiết lập' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- CHẾ ĐỘ CHỈNH SỬA -->
+          <form *ngIf="isEditing" [formGroup]="profileForm" (ngSubmit)="saveEdit()" class="info-grid" autocomplete="off" novalidate>
+            <!-- Họ và tên: bắt buộc, khóa (read-only) khi đã đăng ký -->
+            <div class="form-field">
+              <label class="form-label" for="profile-name">
+                <img src="/assets/customer/icon_personal.svg" alt="" aria-hidden="true" />
+                Họ và tên <span class="form-required">*</span>
+              </label>
+              <div class="input-wrap">
+                <input id="profile-name" type="text" formControlName="name" maxlength="50" placeholder="Nhập họ và tên"
+                  [readonly]="isNameLocked" class="form-input" [class.form-input--locked]="isNameLocked"
+                  [class.form-input--error]="showError('name')" />
+                <img *ngIf="isNameLocked" src="/assets/customer/icon_mat_khau.svg" class="input-wrap__trailing" alt="" aria-hidden="true" />
+              </div>
+              <p *ngIf="isNameLocked" class="field-hint">Họ tên đã đăng ký, không thể thay đổi.</p>
+              <p *ngIf="showError('name')" class="field-error">
+                <ng-container *ngIf="hasError('name', 'required')">Họ và tên không được để trống.</ng-container>
+                <ng-container *ngIf="hasError('name', 'personName')">Họ và tên chỉ gồm chữ cái và khoảng trắng.</ng-container>
+                <ng-container *ngIf="hasError('name', 'minlength')">Họ và tên phải có ít nhất 2 ký tự.</ng-container>
+                <ng-container *ngIf="hasError('name', 'maxlength')">Họ và tên tối đa 50 ký tự.</ng-container>
+              </p>
+            </div>
+
+            <!-- Số điện thoại (khóa) -->
+            <div class="form-field">
+              <label class="form-label">
+                <img src="/assets/customer/icon_sdt.svg" alt="" aria-hidden="true" />
+                Số điện thoại
+              </label>
+              <div class="input-wrap">
+                <input type="tel" [value]="authService.currentUser()?.phoneNumber" disabled class="form-input form-input--locked" />
+                <img src="/assets/customer/icon_mat_khau.svg" class="input-wrap__trailing" alt="" aria-hidden="true" />
+              </div>
+            </div>
+
+            <!-- Giới tính -->
+            <div class="form-field">
+              <label class="form-label" for="profile-gender">
+                <img src="/assets/customer/icon_gioi_tinh.svg" alt="" aria-hidden="true" />
+                Giới tính
+              </label>
+              <select id="profile-gender" formControlName="gender" class="form-input form-select">
+                <option value="" disabled>Chọn giới tính</option>
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+                <option value="Khác">Khác</option>
+              </select>
+            </div>
+
+            <!-- Email -->
+            <div class="form-field">
+              <label class="form-label" for="profile-email">
+                <img src="/assets/customer/icon_email.svg" alt="" aria-hidden="true" />
+                Email
+              </label>
+              <input id="profile-email" type="email" formControlName="email" autocomplete="off" placeholder="example@gmail.com"
+                class="form-input" [class.form-input--error]="showError('email')" />
+              <p *ngIf="showError('email')" class="field-error">
+                <ng-container *ngIf="hasError('email', 'emailFormat')">Email không đúng định dạng.</ng-container>
+                <ng-container *ngIf="hasError('email', 'emailDomain')">
+                  Tên miền email không hợp lệ.
+                </ng-container>
+              </p>
+            </div>
+
+            <!-- Ngày sinh: chọn trên lịch, dd/mm/yyyy, chặn ngày tương lai -->
+            <div class="form-field">
+              <label class="form-label">
+                <img src="/assets/customer/icon_lich.svg" alt="" aria-hidden="true" />
+                Ngày sinh
+              </label>
+              <app-date-picker formControlName="birthday" placeholder="dd/mm/yyyy" [maxDate]="today" minDate="1900-01-01"
+                [showLunar]="true" [class.date-error]="showError('birthday')"></app-date-picker>
+              <p *ngIf="showError('birthday')" class="field-error">
+                <ng-container *ngIf="hasError('birthday', 'invalidDate')">Ngày sinh không tồn tại, vui lòng chọn lại.</ng-container>
+                <ng-container *ngIf="hasError('birthday', 'futureDate')">Ngày sinh không được ở tương lai.</ng-container>
+              </p>
+            </div>
+
+            <!-- Nghề nghiệp -->
+            <div class="form-field">
+              <label class="form-label" for="profile-occupation">
+                <img src="/assets/customer/icon_nghe_nghiep.svg" alt="" aria-hidden="true" />
+                Nghề nghiệp
+              </label>
+              <select id="profile-occupation" formControlName="occupation" class="form-input form-select">
+                <option value="" disabled>Bạn đang là...</option>
+                <option value="Học sinh / Sinh viên">Học sinh / Sinh viên</option>
+                <option value="Nhân viên văn phòng">Nhân viên văn phòng</option>
+                <option value="Kinh doanh tự do">Kinh doanh tự do</option>
+                <option value="Khác">Khác</option>
+              </select>
+            </div>
+
+            <!-- Nhấn Enter để lưu -->
+            <button type="submit" hidden aria-hidden="true" tabindex="-1"></button>
+          </form>
+        </div>
+      </div>
+
+      <div class="profile-card__actions">
+        <button *ngIf="!isEditing" type="button" (click)="startEdit()" class="btn btn--accent">Chỉnh sửa hồ sơ</button>
+        <button *ngIf="isEditing" type="button" (click)="cancelEdit()" class="btn btn--outline">Hủy bỏ</button>
+        <button *ngIf="isEditing" type="button" (click)="saveEdit()" class="btn btn--accent">Lưu thay đổi</button>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- TAB 2: BẢO MẬT TÀI KHOẢN -->
+    <!-- ================================================================= -->
+    <div *ngIf="activeTab === 'security'" class="profile-card">
+      <h2 class="profile-card__title">Bảo mật tài khoản</h2>
+
+      <div class="security-section">
+        <h3 class="security-section__title">Xác thực cơ bản</h3>
+        <div class="security-row">
+          <div class="security-row__info">
+            <span class="security-row__icon security-row__icon--primary">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+            </span>
+            <div>
+              <h4 class="security-row__name">Đổi mật khẩu</h4>
+              <p class="security-row__desc">Thay đổi mật khẩu định kỳ để bảo vệ tài khoản</p>
+            </div>
+          </div>
+          <button type="button" (click)="openChangePassword()" class="link-btn">Đổi mật khẩu</button>
+        </div>
+      </div>
+
+      <div class="security-section">
+        <h3 class="security-section__title">Bảo mật nâng cao</h3>
+        <div class="security-row">
+          <div class="security-row__info">
+            <span class="security-row__icon security-row__icon--accent">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+              </svg>
+            </span>
+            <div>
+              <h4 class="security-row__name">Xác thực 2 lớp (2FA)</h4>
+              <p class="security-row__desc">Bảo vệ tài khoản bằng mã OTP gửi về SĐT/Email khi đăng nhập ở thiết bị lạ</p>
+              <div class="security-row__state" [class.security-row__state--on]="is2FAEnabled">{{ is2FAEnabled ? 'Đang bật' : 'Đang tắt' }}</div>
+            </div>
+          </div>
+          <button type="button" role="switch" [attr.aria-checked]="is2FAEnabled" aria-label="Bật/tắt xác thực 2 lớp"
+            (click)="onToggle2FAClick($event)" class="toggle" [class.toggle--on]="is2FAEnabled">
+            <span class="toggle__thumb"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="security-section">
+        <h3 class="security-section__title">Quyền riêng tư &amp; Quản trị tài khoản</h3>
+
+        <div class="security-row security-row--stack">
+          <div class="security-row__head">
+            <div class="security-row__info">
+              <span class="security-row__icon security-row__icon--primary">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25M19.5 5.25L12 11.25m0 0l-7.5-6M12 11.25v7.5" />
+                </svg>
+              </span>
+              <div>
+                <h4 class="security-row__name">Quản lý thiết bị đăng nhập</h4>
+                <p class="security-row__desc">Danh sách các thiết bị đang đăng nhập tài khoản của bạn</p>
+              </div>
+            </div>
+            <button *ngIf="devicesList.length > 1" type="button" (click)="confirmLogoutAllOtherDevices()" class="link-btn">Đăng xuất tất cả thiết bị khác</button>
+          </div>
+
+          <div class="device-list">
+            <div *ngFor="let device of devicesList" class="device-item">
+              <div class="device-item__info">
+                <span class="device-item__icon">
+                  <svg *ngIf="device.id === 'chrome'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25M19.5 5.25L12 11.25m0 0l-7.5-6M12 11.25v7.5" />
+                  </svg>
+                  <svg *ngIf="device.id !== 'chrome'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                  </svg>
+                </span>
+                <div>
+                  <div class="device-item__name">
+                    {{ device.name }}
+                    <span *ngIf="device.status" class="device-item__badge">{{ device.status }}</span>
+                  </div>
+                  <span class="device-item__time">{{ device.time }}</span>
+                </div>
+              </div>
+              <button *ngIf="!device.isCurrent" type="button" (click)="removeDevice(device.id)" class="link-btn">Đăng xuất</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="security-row">
+          <div class="security-row__info">
+            <span class="security-row__icon security-row__icon--danger">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M22 10.5h-6m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
+              </svg>
+            </span>
+            <div>
+              <h4 class="security-row__name">Khóa tài khoản</h4>
+              <p class="security-row__desc">Tài khoản và mọi dữ liệu liên quan sẽ bị khóa vĩnh viễn. Hành động này không thể hoàn tác.</p>
+            </div>
+          </div>
+          <button type="button" (click)="openLockAccount()" class="link-btn link-btn--danger">Khóa tài khoản</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- TAB 3: LỊCH SỬ MUA VÉ -->
+    <!-- ================================================================= -->
+    <div *ngIf="activeTab === 'tickets'" class="profile-card">
+      <h2 class="profile-card__title">Lịch sử mua vé</h2>
+
+      <!-- Bộ lọc: tìm kiếm, tuyến xe, thời gian, sắp xếp + thanh trạng thái (cùng 1 container) -->
+      <div class="ticket-filters" #ticketListTop>
+        <!-- Hàng 1: Tìm kiếm (full chiều rộng) -->
+        <div class="ticket-filters__row">
+          <div class="filter-field filter-field--search">
+            <label class="filter-field__label" for="ticket-search">TÌM KIẾM</label>
+            <input id="ticket-search" type="search" [(ngModel)]="searchQuery" (ngModelChange)="onFiltersChanged()"
+              placeholder="Tìm mã đơn hàng, mã vé, tuyến..." class="form-input" />
+          </div>
+        </div>
+
+        <!-- Hàng 2: Tuyến xe + Thời gian + Sắp xếp + Xóa bộ lọc (căn thẳng lề với ô tìm kiếm) -->
+        <div class="ticket-filters__row">
+          <div class="filter-field">
+            <label class="filter-field__label" for="ticket-route">TUYẾN XE</label>
+            <select id="ticket-route" [(ngModel)]="routeFilter" (ngModelChange)="onFiltersChanged()" class="form-input form-select">
+              <option value="Tất cả tuyến xe">Tất cả tuyến xe</option>
+              <option *ngFor="let route of routesList" [value]="route">{{ route }}</option>
+            </select>
+          </div>
+
+          <div class="filter-field">
+            <span class="filter-field__label">THỜI GIAN</span>
+            <app-date-picker [(ngModel)]="dateFilter" (dateChange)="onFiltersChanged()" placeholder="dd/mm/yyyy"></app-date-picker>
+          </div>
+
+          <div class="filter-field">
+            <label class="filter-field__label" for="ticket-sort">SẮP XẾP</label>
+            <select id="ticket-sort" [(ngModel)]="sortOption" (ngModelChange)="onFiltersChanged()" class="form-input form-select">
+              <option *ngFor="let option of sortOptions" [value]="option">{{ option }}</option>
+            </select>
+          </div>
+
+          <div class="filter-field filter-field--action">
+            <span class="filter-field__label filter-field__label--hidden" aria-hidden="true">ACTION</span>
+            <button type="button" (click)="clearFilters()" class="btn-reset-filters">Xóa bộ lọc</button>
+          </div>
+        </div>
+
+        <div class="status-tabs" role="tablist" aria-label="Lọc theo trạng thái vé">
+          <button *ngFor="let tab of statusTabs" type="button" role="tab" class="status-tabs__item"
+            [class.status-tabs__item--active]="statusFilter === tab.value" [attr.aria-selected]="statusFilter === tab.value"
+            (click)="selectStatus(tab.value)">
+            {{ tab.label }} ({{ countByStatus(tab.value) }})
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="filteredTickets.length > 0; else noTickets" class="ticket-list">
+        <article *ngFor="let ticket of paginatedTickets" class="ticket-card" [ngClass]="'ticket-card--' + getStatusModifier(getEffectiveStatus(ticket))">
+          <div class="ticket-card__main">
+            <div class="ticket-card__head">
+              <span class="status-pill" [ngClass]="'status-pill--' + getStatusModifier(getEffectiveStatus(ticket))">{{ getStatusLabel(getEffectiveStatus(ticket)) }}</span>
+              <span class="ticket-card__code">Mã ĐH: <strong>{{ ticket.orderId }}</strong></span>
+              <span class="ticket-card__sep">|</span>
+              <span class="ticket-card__code">Mã vé: <strong class="ticket-card__code--dark">{{ ticket.id }}</strong></span>
+            </div>
+
+            <div class="ticket-card__body">
+              <div class="trip-timeline">
+                <div class="trip-timeline__point">
+                  <span class="trip-timeline__time">{{ ticket.depTime }}</span>
+                  <span class="trip-timeline__place">{{ ticket.depLoc }}</span>
+                </div>
+                <div class="trip-timeline__line">
+                  <div class="trip-timeline__track">
+                    <span class="trip-timeline__dot"></span>
+                    <span class="trip-timeline__dash"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="trip-timeline__bus" aria-hidden="true">
+                      <rect x="3" y="4" width="18" height="12" rx="2" /><path d="M3 11h18" /><path d="M12 4v7" /><circle cx="7" cy="19" r="2" /><circle cx="17" cy="19" r="2" />
+                    </svg>
+                    <span class="trip-timeline__dash"></span>
+                    <span class="trip-timeline__dot trip-timeline__dot--end"></span>
+                  </div>
+                  <span class="trip-timeline__duration">{{ ticket.duration }}</span>
+                </div>
+                <div class="trip-timeline__point">
+                  <span class="trip-timeline__time">{{ ticket.arrTime }}</span>
+                  <span class="trip-timeline__place">{{ ticket.arrLoc }}</span>
+                </div>
+              </div>
+
+              <div class="ticket-card__meta">
+                <div><span>Ghế:</span> <strong class="ticket-card__seat">{{ ticket.seat }}</strong></div>
+                <div><span>Loại:</span> <strong>{{ ticket.type }}</strong></div>
+              </div>
+            </div>
+
+            <div class="ticket-card__dates">
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+                Ngày khởi hành: <strong>{{ ticket.dateLabel }}</strong>
+              </span>
+              <span>Ngày mua: <strong>{{ ticket.bookedAt }}</strong></span>
+            </div>
+
+            <!-- Thanh tiến trình trạng thái vé -->
+            <ol *ngIf="getStepIndex(getEffectiveStatus(ticket)) >= 0; else canceledStepper" class="status-stepper" aria-label="Tiến trình trạng thái vé">
+              <li *ngFor="let step of ticketSteps; let i = index" class="status-stepper__step"
+                [class.status-stepper__step--done]="i < getStepIndex(getEffectiveStatus(ticket)) || (i === 4 && getEffectiveStatus(ticket) === 'ĐÃ ĐÁNH GIÁ')"
+                [class.status-stepper__step--current]="i === getStepIndex(getEffectiveStatus(ticket)) && getEffectiveStatus(ticket) !== 'ĐÃ ĐÁNH GIÁ'">
+                <span class="status-stepper__dot">{{ i < getStepIndex(getEffectiveStatus(ticket)) || (i === 4 && getEffectiveStatus(ticket) === 'ĐÃ ĐÁNH GIÁ') ? '✓' : i + 1 }}</span>
+                <span class="status-stepper__label">{{ step }}</span>
+              </li>
+            </ol>
+            <ng-template #canceledStepper>
+              <div class="status-stepper-canceled">Vé đã hủy - hành trình đã dừng, không thực hiện chuyến đi.</div>
+            </ng-template>
+          </div>
+
+          <div class="ticket-card__side">
+            <div class="ticket-card__price">
+              <span>Tổng cộng</span>
+              <strong>{{ ticket.priceLabel }}</strong>
+            </div>
+            <div class="ticket-card__actions">
+              <button *ngIf="getEffectiveStatus(ticket) === 'ĐÃ HOÀN THÀNH' || getEffectiveStatus(ticket) === 'ĐÃ HỦY' || getEffectiveStatus(ticket) === 'ĐÃ ĐÁNH GIÁ'"
+                type="button" (click)="rebookTicket(ticket.id)" class="btn btn--ghost btn--sm">Đặt lại chuyến</button>
+              <button type="button" (click)="viewTicketDetail(ticket)" class="btn btn--accent btn--sm">Chi tiết</button>
+            </div>
+          </div>
+        </article>
+
+        <app-pagination
+          class="ticket-pagination"
+          [currentPage]="currentPage"
+          [totalItems]="filteredTickets.length"
+          [pageSize]="pageSize"
+          (pageChange)="goToPage($event)"
+        ></app-pagination>
+      </div>
+
+      <ng-template #noTickets>
+        <!-- Chưa có lịch sử vé -->
+        <div *ngIf="userTickets.length === 0" class="empty-state">
+          <div class="empty-state__icon empty-state__icon--lg">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.2" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-3.75-5.25h-.008v.008h.008v-.008zm-3.75 0h-.008v.008h.008v-.008zm-3.75 0h-.008v.008h.008v-.008zm-.75-5.25h.008v.008H5.25v-.008zm0 2.25h.008v.008H5.25v-.008zm0 2.25h.008v.008H5.25v-.008zm0 2.25h.008v.008H5.25v-.008zM18 6.75A2.25 2.25 0 0015.75 4.5H8.25A2.25 2.25 0 006 6.75v10.5A2.25 2.25 0 008.25 19.5h7.5A2.25 2.25 0 0018 17.25V6.75z" />
+            </svg>
+          </div>
+          <h3 class="empty-state__title">Bạn chưa có lịch sử đặt vé nào</h3>
+          <p class="empty-state__desc">Dường như bạn chưa thực hiện bất kỳ chuyến đi nào cùng VIAGO. Hãy bắt đầu hành trình của bạn ngay!</p>
+          <a routerLink="/customer" class="btn btn--accent">
+            <img src="/assets/customer/icon_ve.svg" class="btn__icon btn__icon--invert" alt="" aria-hidden="true" />
+            <span>Đặt vé ngay</span>
+          </a>
+        </div>
+
+        <!-- Không có kết quả phù hợp bộ lọc -->
+        <div *ngIf="userTickets.length > 0" class="empty-state">
+          <div class="empty-state__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.637 10.637z" />
+            </svg>
+          </div>
+          <h3 class="empty-state__title">Không tìm thấy kết quả phù hợp</h3>
+          <p class="empty-state__desc">Vui lòng thử lại với từ khóa tìm kiếm hoặc bộ lọc khác.</p>
+        </div>
+      </ng-template>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- TAB 4: ĐẶC QUYỀN THÀNH VIÊN -->
+    <!-- ================================================================= -->
+    <div *ngIf="activeTab === 'privileges'" class="profile-card">
+      <div class="privileges">
+        <h2 class="profile-card__title profile-card__title--tight">Hạng thành viên của bạn</h2>
+
+        <!-- Tóm tắt hạng & điểm tích lũy đồng bộ từ hồ sơ -->
+        <div class="rank-summary">
+          <div class="rank-summary__item">
+            <span class="rank-summary__label">Hạng hiện tại</span>
+            <strong class="rank-summary__value">{{ currentRankLabel }}</strong>
+          </div>
+          <div class="rank-summary__item">
+            <span class="rank-summary__label">Điểm tích lũy</span>
+            <strong class="rank-summary__value rank-summary__value--accent">{{ loyaltyPoints.toLocaleString('vi-VN') }} điểm</strong>
+          </div>
+          <div class="rank-summary__item">
+            <span class="rank-summary__label">Số chuyến đã đi</span>
+            <strong class="rank-summary__value">{{ authService.currentUser()?.tickets || 0 }} chuyến</strong>
+          </div>
+        </div>
+
+        <!-- Carousel thẻ hạng: Bạc, Vàng, Kim cương -->
+        <div class="card-carousel">
+          <button type="button" (click)="prevCard()" class="round-btn" aria-label="Thẻ trước">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+          </button>
+
+          <div class="card-carousel__stage">
+            <div *ngFor="let tier of tiers; let i = index" class="member-card"
+              [ngClass]="['member-card--' + tier.modifier, 'member-card--' + getCardPosition(i)]"
+              (click)="activeCardIndex = i">
+              <div *ngIf="isCardLocked(i)" class="member-card__lock">
+                <span class="member-card__lock-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+                </span>
+                <span>Hạng {{ tier.label }}</span>
+              </div>
+              <div class="member-card__row">
+                <span class="member-card__brand">VIAGO</span>
+                <span class="member-card__code">{{ tier.code }}</span>
+              </div>
+              <div class="member-card__name">{{ authService.currentUser()?.name || 'Khách hàng VIAGO' }}</div>
+              <div class="member-card__row member-card__row--end">
+                <span class="member-card__id">VG-{{ authService.currentUser()?.id }}</span>
+                <span class="member-card__tag">{{ tier.short }}</span>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" (click)="nextCard()" class="round-btn" aria-label="Thẻ tiếp theo">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+          </button>
+        </div>
+
+        <!-- Tiến trình thăng hạng -->
+        <div class="rank-progress">
+          <div class="rank-progress__head">
+            <span class="rank-progress__title">Tiến trình thăng hạng</span>
+            <button type="button" (click)="selectTab('tickets')" class="link-btn link-btn--sm">
+              Chi tiết
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+            </button>
+          </div>
+          <p class="rank-progress__note">
+            <ng-container *ngIf="membershipProgress.nextRankName; else maxRank">
+              Còn <strong>{{ membershipProgress.remainingTickets }} vé</strong> hoặc <strong>{{ membershipProgress.remainingSpent.toLocaleString('vi-VN') }}đ</strong> chi tiêu để lên hạng <strong>{{ membershipProgress.nextRankName }}</strong>.
+            </ng-container>
+            <ng-template #maxRank>Bạn đang ở hạng cao nhất của VIAGO.</ng-template>
+          </p>
+
+          <div class="rank-progress__grid">
+            <div>
+              <div class="rank-progress__label">
+                <span class="rank-progress__label-text"><span class="rank-progress__badge"><img src="/assets/customer/icon_ve.svg" alt="" aria-hidden="true" /></span>Tổng số vé</span>
+                <span class="rank-progress__count">{{ membershipProgress.currentTickets }}/{{ membershipProgress.targetTickets }}</span>
+              </div>
+              <div class="rank-progress__track">
+                <div class="rank-progress__bar" [style.width.%]="membershipProgress.ticketPercent"></div>
+                <div class="rank-progress__pin" [style.left.%]="membershipProgress.ticketPinPercent"><img src="/assets/customer/icon_ve.svg" alt="" aria-hidden="true" /></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="rank-progress__label">
+                <span class="rank-progress__label-text"><span class="rank-progress__badge">$</span>Tổng chi tiêu</span>
+                <span class="rank-progress__count">{{ membershipProgress.currentSpent.toLocaleString('vi-VN') }}đ/{{ formatMoneyShort(membershipProgress.targetSpent) }}</span>
+              </div>
+              <div class="rank-progress__track">
+                <div class="rank-progress__bar" [style.width.%]="membershipProgress.spentPercent"></div>
+                <div class="rank-progress__pin" [style.left.%]="membershipProgress.spentPinPercent">$</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Đặc quyền theo hạng -->
+        <div class="privileges__section">
+          <h3 class="privileges__heading">
+            Đặc quyền hạng thành viên<ng-container *ngIf="rankIndex >= 0"> {{ tiers[rankIndex].label }}</ng-container>
+          </h3>
+
+          <div *ngIf="rankIndex >= 0; else unranked" class="benefit-grid">
+            <div *ngFor="let b of tierBenefits; let i = index" class="benefit-item">
+              <span class="benefit-item__icon">
+                <svg *ngIf="i === 0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" /></svg>
+                <svg *ngIf="i === 1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l3 3 6-6M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /></svg>
+                <svg *ngIf="i === 2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h17.25" /></svg>
+                <svg *ngIf="i === 3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9.75L16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" /></svg>
+              </span>
+              <div>
+                <h4 class="benefit-item__title">{{ b.title }}</h4>
+                <p class="benefit-item__desc">{{ b.desc }}</p>
+              </div>
+            </div>
+          </div>
+          <ng-template #unranked>
+            <div class="empty-note">Hãy mua vé và tích lũy chi tiêu để thăng hạng Bạc, Vàng, hoặc Kim Cương và nhận các đặc quyền tương ứng!</div>
+          </ng-template>
+
+          <!-- Bảng quyền lợi tương ứng từng hạng (cột hạng hiện tại được làm nổi bật) -->
+          <div class="benefit-table-wrap">
+            <table class="benefit-table">
+              <thead>
+                <tr>
+                  <th scope="col">Quyền lợi</th>
+                  <th *ngFor="let tier of tiers; let i = index" scope="col" [class.benefit-table__current]="i === rankIndex">
+                    {{ tier.label }}<span *ngIf="i === rankIndex" class="benefit-table__mine">Hạng của bạn</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Điều kiện</th>
+                  <td *ngFor="let tier of tiers; let i = index" [class.benefit-table__current]="i === rankIndex">{{ tier.minTickets }} vé / {{ formatMoneyShort(tier.minSpent) }}</td>
+                </tr>
+                <tr *ngFor="let row of benefitMatrix">
+                  <th scope="row">{{ row.label }}</th>
+                  <td *ngFor="let value of row.values; let i = index" [class.benefit-table__current]="i === rankIndex">{{ value }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Ví voucher -->
+        <div *ngIf="authService.currentUser()" class="privileges__section">
+          <div class="voucher-head">
+            <h3 class="privileges__heading privileges__heading--flush">Ví voucher của bạn</h3>
+            <div class="segmented">
+              <button type="button" (click)="activeVoucherTab = 'active'" class="segmented__btn" [class.segmented__btn--active]="activeVoucherTab === 'active'">
+                Còn hạn ({{ activeVouchers.length }})
+              </button>
+              <button type="button" (click)="activeVoucherTab = 'expired'" class="segmented__btn" [class.segmented__btn--active]="activeVoucherTab === 'expired'">
+                Hết hạn / Đã dùng ({{ expiredVouchers.length }})
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="activeVoucherTab === 'active'">
+            <div *ngIf="activeVouchers.length > 0; else noActiveVouchers" class="voucher-scroller">
+              <button type="button" (click)="scrollVouchers('voucher-scroll-container', 'left')" class="voucher-scroller__nav voucher-scroller__nav--left" aria-label="Cuộn trái">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+              </button>
+              <button type="button" (click)="scrollVouchers('voucher-scroll-container', 'right')" class="voucher-scroller__nav voucher-scroller__nav--right" aria-label="Cuộn phải">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+              </button>
+              <div id="voucher-scroll-container" class="voucher-scroller__track">
+                <div *ngFor="let v of activeVouchers" class="voucher-scroller__item">
+                  <app-voucher-card [voucher]="v" context="wallet"></app-voucher-card>
+                </div>
+              </div>
+            </div>
+            <ng-template #noActiveVouchers>
+              <div class="empty-note empty-note--plain">Bạn không có voucher nào còn hạn.</div>
+            </ng-template>
+          </div>
+
+          <div *ngIf="activeVoucherTab === 'expired'">
+            <div *ngIf="expiredVouchers.length > 0; else noExpiredVouchers" class="voucher-scroller">
+              <div id="voucher-scroll-container-expired" class="voucher-scroller__track">
+                <div *ngFor="let v of expiredVouchers" class="voucher-scroller__item expired-voucher">
+                  <div class="expired-voucher__main">
+                    <div>
+                      <div class="expired-voucher__discount">{{ v.discount }}</div>
+                      <div class="expired-voucher__title">{{ v.title }}</div>
+                      <div class="expired-voucher__desc">{{ v.description }}</div>
+                    </div>
+                    <div class="expired-voucher__date">
+                      <span *ngIf="v.status === 'used'">Dùng lúc: {{ v.usedAt }}</span>
+                      <span *ngIf="v.status === 'expired'">Hạn dùng: {{ v.expiry }}</span>
+                    </div>
+                  </div>
+                  <div class="expired-voucher__side">
+                    <span class="expired-voucher__state">{{ v.status === 'used' ? 'ĐÃ DÙNG' : 'HẾT HẠN' }}</span>
+                    <span class="expired-voucher__code">{{ v.code }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <ng-template #noExpiredVouchers>
+              <div class="empty-note empty-note--plain">Không có lịch sử voucher hết hạn hoặc đã dùng.</div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</div>
+
+<!-- ========================================== -->
+<!-- MODALS -->
+<!-- ========================================== -->
+
+<!-- Đổi mật khẩu (Bảo mật tài khoản) -->
+<app-security-settings-modal *ngIf="showChangePasswordModal" (close)="closeChangePassword()"></app-security-settings-modal>
+
+<!-- Vé điện tử (Lịch sử mua vé > Chi tiết) -->
+<app-modal [open]="showTicketDetail" size="large" title="Vé điện tử" (closed)="closeTicketDetail()">
+  <div *ngIf="selectedTicket as t" class="eticket">
+    <div class="eticket__head">
+      <span class="status-pill" [ngClass]="'status-pill--' + getStatusModifier(getEffectiveStatus(t))">{{ getStatusLabel(getEffectiveStatus(t)) }}</span>
+      <span class="ticket-card__code">Mã ĐH: <strong>{{ t.orderId }}</strong></span>
+      <span class="ticket-card__code">Mã vé: <strong class="ticket-card__code--dark">{{ t.id }}</strong></span>
+    </div>
+
+    <!-- Thanh tiến trình trạng thái -->
+    <ol *ngIf="getStepIndex(getEffectiveStatus(t)) >= 0; else detailCanceled" class="status-stepper status-stepper--plain">
+      <li *ngFor="let step of ticketSteps; let i = index" class="status-stepper__step"
+        [class.status-stepper__step--done]="i < getStepIndex(getEffectiveStatus(t)) || (i === 4 && getEffectiveStatus(t) === 'ĐÃ ĐÁNH GIÁ')"
+        [class.status-stepper__step--current]="i === getStepIndex(getEffectiveStatus(t)) && getEffectiveStatus(t) !== 'ĐÃ ĐÁNH GIÁ'">
+        <span class="status-stepper__dot">{{ i < getStepIndex(getEffectiveStatus(t)) || (i === 4 && getEffectiveStatus(t) === 'ĐÃ ĐÁNH GIÁ') ? '✓' : i + 1 }}</span>
+        <span class="status-stepper__label">{{ step }}</span>
+      </li>
+    </ol>
+    <ng-template #detailCanceled>
+      <div class="status-stepper-canceled">Vé đã hủy - hành trình đã dừng, không thực hiện chuyến đi.</div>
+    </ng-template>
+
+    <div class="eticket__body">
+      <div class="eticket__info">
+        <dl class="eticket__grid">
+          <div><dt>Tuyến xe</dt><dd>{{ normalizeCityName(t.depLoc) }} → {{ normalizeCityName(t.arrLoc) }}</dd></div>
+          <div><dt>Ngày khởi hành</dt><dd>{{ t.depTime }} - {{ t.dateLabel }}</dd></div>
+          <div><dt>Điểm đón</dt><dd>{{ getPickupPoint(t) }}</dd></div>
+          <div><dt>Điểm trả</dt><dd>{{ getDropoffPoint(t) }} ({{ t.arrTime }})</dd></div>
+          <div><dt>Số ghế</dt><dd class="eticket__seat">{{ t.seat }}</dd></div>
+          <div><dt>Loại xe</dt><dd>{{ t.type }}</dd></div>
+          <div><dt>Ngày mua</dt><dd>{{ t.bookedAt }}</dd></div>
+          <div><dt>Giá vé</dt><dd class="eticket__price">{{ t.priceLabel }}</dd></div>
+        </dl>
+
+        <!-- Lời khuyên khởi hành (cỡ chữ lớn, nổi bật) -->
+        <div *ngIf="getEffectiveStatus(t) === 'CHỜ KHỞI HÀNH'" class="departure-tip">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <strong>Có mặt tại điểm đón lúc {{ getPresenceTime(t) }} ngày {{ t.dateLabel }}</strong>
+            <p>Vui lòng đến trước 15 phút để làm thủ tục lên xe và mang theo CCCD.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="eticket__qr">
+        <img [src]="getQrCodeUrl(t)" alt="Mã QR vé" [class.eticket__qr--disabled]="!canPrintTicket(t)" />
+        <span>Quét mã QR tại cổng soát vé</span>
+      </div>
+    </div>
+
+    <div class="eticket__actions">
+      <button type="button" class="btn btn--ghost btn--sm" [disabled]="!canPrintTicket(t)" (click)="printTicket(t)">In vé</button>
+      <button type="button" class="btn btn--ghost btn--sm" [disabled]="!canPrintTicket(t)" (click)="printTicket(t)">Tải vé (PDF)</button>
+      <button type="button" class="btn btn--ghost btn--sm" [disabled]="!canPrintTicket(t)" (click)="downloadTicketImage(t)">Tải vé (Ảnh)</button>
+      <button *ngIf="getEffectiveStatus(t) === 'ĐÃ HOÀN THÀNH'" type="button" class="btn btn--accent btn--sm" (click)="openReview(t)">Đánh giá chuyến đi</button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Đánh giá chuyến đi -->
+<app-modal [open]="showReviewModal" size="medium" [title]="reviewSubmitted ? '' : 'Đánh giá chuyến đi'" (closed)="closeReview()">
+  <form *ngIf="!reviewSubmitted && reviewTicket" class="review-form" (ngSubmit)="submitReview()" novalidate>
+    <p class="review-form__intro">
+      Chuyến <strong>{{ normalizeCityName(reviewTicket.depLoc) }} → {{ normalizeCityName(reviewTicket.arrLoc) }}</strong> ngày {{ reviewTicket.dateLabel }}.
+      Gửi đánh giá để nhận ngay <strong class="review-form__gift">{{ reviewReward.title }}</strong>!
+    </p>
+
+    <div class="review-criteria">
+      <div *ngFor="let c of ratingCriteria; let i = index" class="review-criteria__item">
+        <span class="review-criteria__label">{{ c.label }}</span>
+        <div class="review-stars" role="radiogroup" [attr.aria-label]="c.label">
+          <button *ngFor="let star of [1,2,3,4,5]" type="button" class="review-stars__star" [class.review-stars__star--on]="c.score >= star"
+            [attr.aria-label]="star + ' sao'" (click)="setRating(i, star)">★</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="review-tags">
+      <button *ngFor="let tag of quickReviewTags" type="button" class="review-tags__tag" [class.review-tags__tag--on]="hasReviewTag(tag)" (click)="toggleReviewTag(tag)">{{ tag }}</button>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="review-comment">Nhận xét thêm</label>
+      <textarea id="review-comment" name="reviewComment" [(ngModel)]="reviewComment" rows="3" maxlength="500"
+        placeholder="Chia sẻ thêm trải nghiệm của bạn..." class="form-input review-form__textarea"></textarea>
+      <span class="field-hint">{{ reviewComment.length }}/500 ký tự</span>
+    </div>
+
+    <!-- Tải ảnh/video: hiển thị thumbnail xem trước -->
+    <div class="form-field">
+      <span class="form-label">Hình ảnh/video đính kèm (tối đa {{ maxReviewFiles }})</span>
+      <div class="upload-grid">
+        <div *ngFor="let item of reviewAttachments; let i = index" class="upload-thumb">
+          <img *ngIf="!item.isVideo" [src]="item.url" [alt]="item.file.name" />
+          <video *ngIf="item.isVideo" [src]="item.url" muted></video>
+          <button type="button" class="upload-thumb__remove" (click)="removeReviewFile(i)" [attr.aria-label]="'Xóa ' + item.file.name">×</button>
+        </div>
+        <label *ngIf="reviewAttachments.length < maxReviewFiles" class="upload-add">
+          <input type="file" accept="image/*,video/*" multiple (change)="onReviewFilesSelected($event)" hidden />
+          <span class="upload-add__plus">+</span>
+          <span>Thêm ảnh/video</span>
+        </label>
+      </div>
+      <p *ngIf="reviewFileError" class="field-error">{{ reviewFileError }}</p>
+    </div>
+
+    <p *ngIf="reviewError" class="field-error" role="alert">{{ reviewError }}</p>
+
+    <div class="review-form__actions">
+      <button type="button" class="btn btn--outline btn--sm" (click)="closeReview()">Hủy bỏ</button>
+      <button type="submit" class="btn btn--accent btn--sm">Gửi đánh giá</button>
+    </div>
+  </form>
+
+  <!-- Gửi thành công + quà tặng -->
+  <div *ngIf="reviewSubmitted" class="review-success">
+    <div class="center-toast__icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+    </div>
+    <h3 class="review-success__title">Cảm ơn bạn đã đánh giá!</h3>
+    <div class="review-gift">
+      <img src="/assets/customer/icon_qua.svg" alt="" aria-hidden="true" />
+      <div>
+        <strong>{{ reviewReward.title }}</strong>
+        <p>{{ reviewReward.desc }}</p>
+        <span class="review-gift__code">{{ reviewReward.code }}</span>
+      </div>
+    </div>
+    <div class="review-form__actions">
+      <button type="button" class="btn btn--outline btn--sm" (click)="copyRewardCode()">Sao chép mã</button>
+      <button type="button" class="btn btn--accent btn--sm" (click)="closeReview()">Đóng</button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Đăng xuất tất cả thiết bị khác -->
+<app-modal
+  [open]="showLogoutAllModal"
+  size="small"
+  title="Đăng xuất tất cả thiết bị khác?"
+  description="Bạn sẽ cần đăng nhập lại trên các thiết bị đó để tiếp tục sử dụng dịch vụ."
+  [confirmMode]="true"
+  confirmText="Đăng xuất"
+  cancelText="Hủy bỏ"
+  (closed)="showLogoutAllModal = false"
+  (confirmed)="logoutAllOtherDevices()"
+></app-modal>
+
+<!-- Đăng xuất khỏi một thiết bị -->
+<app-modal
+  [open]="showDeviceLogoutConfirm"
+  size="small"
+  title="Đăng xuất khỏi thiết bị này?"
+  description="Bạn sẽ cần đăng nhập lại để tiếp tục sử dụng dịch vụ trên thiết bị này."
+  [confirmMode]="true"
+  confirmText="Đăng xuất"
+  cancelText="Hủy bỏ"
+  (closed)="showDeviceLogoutConfirm = false"
+  (confirmed)="confirmDeviceLogout()"
+></app-modal>
+
+<!-- Khóa tài khoản -->
+<app-modal
+  [open]="showLockAccountModal"
+  size="small"
+  [title]="isLockingProcess ? '' : 'Xác nhận khóa tài khoản'"
+  [danger]="true"
+  [confirmMode]="!isLockingProcess"
+  [disableConfirm]="!isLockPasswordCorrect"
+  [showCloseButton]="!isLockingProcess"
+  [closeOnBackdrop]="!isLockingProcess"
+  confirmText="Xác nhận khóa"
+  cancelText="Hủy bỏ"
+  (closed)="closeLockAccount()"
+  (confirmed)="confirmLockAccount()"
+>
+  <div *ngIf="!isLockingProcess" class="lock-form">
+    <p class="lock-form__text">
+      Hành động này không thể hoàn tác. Toàn bộ lịch sử mua vé và thông tin cá nhân của bạn sẽ bị <strong>xóa vĩnh viễn</strong>.
+      Nếu bạn chắc chắn muốn khóa tài khoản, hãy nhập lại mật khẩu hiện tại của bạn tại đây:
+    </p>
+    <div class="input-wrap">
+      <svg class="input-wrap__leading" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+      </svg>
+      <input type="password" appNoAutofill [(ngModel)]="lockConfirmPassword" (ngModelChange)="checkLockPassword()" (blur)="onLockPasswordBlur()"
+        (keydown.enter)="isLockPasswordCorrect && confirmLockAccount()"
+        placeholder="Nhập mật khẩu hiện tại" class="form-input form-input--with-icon" [class.form-input--error]="!!lockPasswordError" />
+    </div>
+    <p *ngIf="lockPasswordError" class="field-error" role="alert">{{ lockPasswordError }}</p>
+  </div>
+
+  <div *ngIf="isLockingProcess" class="status-modal status-modal--danger">
+    <div class="status-modal__icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+      </svg>
+    </div>
+    <h2 class="status-modal__title">Khóa tài khoản thành công</h2>
+    <p class="status-modal__desc">Hệ thống đang đăng xuất và quay trở lại trang chủ...</p>
+  </div>
+</app-modal>
+
+<!-- 2FA Bước 1: Chọn phương thức -->
+<app-modal
+  [open]="show2FAPopup1"
+  size="small"
+  title="Kích hoạt xác thực 2 lớp"
+  description="Vui lòng chọn phương thức nhận mã xác thực"
+  (closed)="close2FAPopup1()"
+>
+  <div class="method-list">
+    <button type="button" (click)="twoFactorMethod = 'phone'" class="method-option" [class.method-option--active]="twoFactorMethod === 'phone'">
+      <span class="method-option__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg>
+      </span>
+      <span class="method-option__text">
+        <strong>Gửi qua Số điện thoại</strong>
+        <span>{{ getMaskedPhone() }}</span>
+      </span>
+      <span class="method-option__radio"></span>
+    </button>
+    <button type="button" (click)="twoFactorMethod = 'email'" class="method-option" [class.method-option--active]="twoFactorMethod === 'email'">
+      <span class="method-option__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+      </span>
+      <span class="method-option__text">
+        <strong>Gửi qua địa chỉ Email</strong>
+        <span>{{ getMaskedEmail() }}</span>
+      </span>
+      <span class="method-option__radio"></span>
+    </button>
+  </div>
+  <button type="button" (click)="submit2FAMethod()" class="btn btn--accent btn--block">Tiếp tục</button>
+</app-modal>
+
+<!-- 2FA Bước 2: Nhập mã -->
+<app-modal
+  [open]="show2FAPopup2"
+  size="small"
+  title="Nhập mã xác thực"
+  description="Mã xác thực đã được gửi đến SMS/Email của bạn. Vui lòng kiểm tra và nhập mã để xác nhận."
+  (closed)="close2FAPopup2()"
+>
+  <form (ngSubmit)="verify2FA()" class="otp-form" autocomplete="off" novalidate>
+    <div *ngIf="generatedOtp" class="info-note">Mã OTP vừa được tạo là: <strong>{{ generatedOtp }}</strong></div>
+
+    <div class="otp-group">
+      <input
+        type="text"
+        maxlength="6"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        aria-label="Mã OTP gồm 6 chữ số"
+        [value]="twoFactorOtpVal"
+        (input)="on2FAOtpInput($event)"
+        (focus)="is2FAOtpFocused = true"
+        (blur)="is2FAOtpFocused = false"
+        (paste)="on2FAOtpPaste($event)"
+        class="otp-hidden-input"
+      />
+      <div *ngFor="let box of [0,1,2,3,4,5]; let i = index" class="otp-box"
+        [class.otp-box--active]="is2FAOtpFocused && twoFactorOtpVal.length === i" [class.otp-box--error]="!!twoFactorOtpError">
+        {{ twoFactorOtpVal.charAt(i) }}
+      </div>
+    </div>
+    <p *ngIf="twoFactorOtpError" class="field-error field-error--center" role="alert">{{ twoFactorOtpError }}</p>
+
+    <div class="otp-meta">
+      <span>Thời gian còn lại: <span class="otp-meta__timer">{{ getFormatted2FATime() }}</span></span>
+      <button type="button" (click)="resend2FAOtp()" [disabled]="twoFactorTimer > 0" class="link-btn link-btn--primary">Gửi lại mã</button>
+    </div>
+
+    <button type="submit" class="btn btn--accent btn--block">Xác nhận</button>
+    <button type="button" (click)="goBackTo2FAPopup1()" class="back-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
+      <span>Quay lại</span>
+    </button>
+  </form>
+</app-modal>
+
+<!-- 2FA: yêu cầu cập nhật email -->
+<app-modal
+  [open]="show2FAEmailErrorPopup"
+  size="small"
+  title="Yêu cầu cập nhật Email"
+  (closed)="show2FAEmailErrorPopup = false"
+>
+  <p class="lock-form__text">Vui lòng cập nhật địa chỉ Email tại trang Thông tin cá nhân trước khi kích hoạt Xác thực 2 lớp.</p>
+  <button type="button" (click)="show2FAEmailErrorPopup = false" class="btn btn--accent btn--block">Đóng</button>
+</app-modal>
