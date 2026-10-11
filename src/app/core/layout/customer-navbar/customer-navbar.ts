@@ -2,6 +2,7 @@ import { Component, HostListener, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { CustomerNavigationService } from '../../services/customer-navigation.service';
 
 @Component({
   selector: 'app-customer-navbar',
@@ -23,7 +24,8 @@ export class CustomerNavbar {
 
   constructor(
     public authService: AuthService,
-    public router: Router
+    public router: Router,
+    private readonly customerNavigation: CustomerNavigationService
   ) {}
 
   isHomeRouteActive(): boolean {
@@ -105,6 +107,12 @@ export class CustomerNavbar {
     this.isDropdownOpen = false;
   }
 
+  onHomeClick(event: Event) {
+    this.closeMobileMenu();
+    if (event instanceof MouseEvent && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0)) return;
+    if (this.isHomeRouteActive()) {
+      event?.preventDefault();
+      this.customerNavigation.showHome();
   onHomeClick(event?: Event) {
     this.closeMobileMenu();
     // Đang ở Trang chủ thì router bỏ qua điều hướng cùng URL -> tự cuộn về đầu trang

@@ -15,6 +15,7 @@
       [id]="id"
       type="text"
       [(ngModel)]="searchText"
+      [ngModelOptions]="{ standalone: true }"
       [disabled]="disabled"
       (focus)="onFocus()"
       (input)="onInput()"

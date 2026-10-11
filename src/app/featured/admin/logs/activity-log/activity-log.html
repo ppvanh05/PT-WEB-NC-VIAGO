@@ -1,0 +1,33 @@
+<div class="log-page">
+  @if (error) { <app-toast variant="warning" [message]="error" [dismissible]="false" /> }
+  @if (notice) { <div class="notice-popup" [class.notice-popup--leaving]="noticeLeaving"><app-toast [variant]="noticeKind" [message]="notice" (closed)="clearNotice()" /></div> }
+  <section class="panel overview"><div class="heading"><div><span class="eyebrow">Hệ thống</span><h1>Quản lý nhật ký hoạt động</h1></div><app-button variant="outline" (clicked)="refresh()">Làm mới</app-button></div><div class="summary">@for (stat of stats; track stat.label) { <div><strong>{{ stat.count }}</strong><span>{{ stat.label }}</span></div> }</div></section>
+  <section class="panel">
+    <form class="filters" (submit)="$event.preventDefault(); applyFilters()">
+      <app-input label="Tìm kiếm nhanh" id="log-search" [value]="searchQuery" (valueChange)="searchQuery = $event; applyFilters()" placeholder="Mã nhật ký, người thực hiện, tài khoản, nội dung…" />
+      <app-select label="Vai trò người thực hiện" id="log-role" [options]="roleOptions" [value]="selectedRole" (valueChange)="selectedRole = $event; applyFilters()" />
+      <app-select label="Thao tác" id="log-action" [options]="actionOptions" [value]="selectedAction" (valueChange)="selectedAction = $event; applyFilters()" />
+      <app-select label="Trạng thái" id="log-status" [options]="statusOptions" [value]="selectedStatus" (valueChange)="selectedStatus = $event; applyFilters()" />
+      <app-date-picker label="Từ ngày" name="startDate" [(ngModel)]="startDate" [showLunar]="false" (dateChange)="applyFilters()" />
+      <div class="date-field"><app-date-picker label="Đến ngày" name="endDate" [(ngModel)]="endDate" [showLunar]="false" (dateChange)="applyFilters()" />@if (dateError) { <small class="error" role="alert">{{ dateError }}</small> }</div>
+      <div class="actions"><app-button type="submit" variant="outline">Tìm kiếm</app-button><app-button variant="ghost" (clicked)="reset()">Xóa bộ lọc</app-button></div>
+    </form>
+    <div class="table-heading"><strong>Danh sách nhật ký ({{ filteredLogs.length }})</strong><div class="table-actions"><app-select class="page-size" label="Số hàng hiển thị" id="log-page-size" [options]="pageSizeOptions" [value]="'' + pageSize" (valueChange)="setPageSize($event)" /><app-button variant="secondary" [disabled]="!filteredLogs.length || !!dateError || exporting" [loading]="exporting" (clicked)="exportCsv()">Xuất CSV</app-button></div></div>
+    <div class="table-scroll"><table><thead><tr><th>Mã nhật ký</th><th>Người thực hiện</th><th>Vai trò</th><th>Thao tác</th><th>Trạng thái</th><th>Thời gian</th><th>IP</th><th>Chi tiết</th></tr></thead><tbody>
+      @for (log of paginatedLogs; track log.id) { <tr><td class="code" [title]="log.id">{{ log.id.slice(-12) }}</td><td><strong>{{ log.actor.name }}</strong><small>{{ log.actor.username || '—' }}</small></td><td><app-badge variant="primary" size="sm" [label]="log.actor.role" /></td><td>{{ log.action }}<small>{{ log.target.name || log.target.code || '—' }}</small></td><td><app-badge size="sm" [dot]="true" [variant]="log.status === 'Thành công' ? 'success' : 'danger'" [label]="log.status" /></td><td>{{ formatTime(log.timestamp) }}</td><td class="code">{{ log.ip }}</td><td><app-button size="sm" variant="ghost" [ariaLabel]="'Xem nhật ký ' + log.id" (clicked)="open(log)">Xem</app-button></td></tr> }
+      @empty { <tr><td colspan="8" class="empty">Không có nhật ký phù hợp với bộ lọc.</td></tr> }
+    </tbody></table></div>
+    <app-pagination class="log-pagination" [currentPage]="validCurrentPage" [totalItems]="filteredLogs.length" [pageSize]="pageSize" (pageChange)="currentPage = $event" />
+  </section>
+</div>
+<app-modal [open]="!!selectedLog" size="large" title="Chi tiết nhật ký hoạt động" (closed)="selectedLog = null">
+  @if (selectedLog; as log) {
+    <div class="detail"><dl class="metadata"><div class="full"><dt>Mã nhật ký</dt><dd class="code">{{ log.id }}</dd></div><div><dt>Thời gian thực hiện</dt><dd>{{ formatTime(log.timestamp) }}</dd></div><div><dt>Trạng thái</dt><dd><app-badge [variant]="log.status === 'Thành công' ? 'success' : 'danger'" [label]="log.status" /></dd></div><div><dt>Địa chỉ IP</dt><dd>{{ log.ip }}</dd></div><div><dt>Thao tác</dt><dd>{{ log.action }}</dd></div></dl>
+      <section class="detail-section"><h3>Người thực hiện</h3><strong>{{ log.actor.name }}</strong><p>Mã tài khoản: {{ log.actor.code || 'Chưa ghi nhận' }} · Tài khoản: {{ log.actor.username || 'Chưa ghi nhận' }}</p><p>Số điện thoại: {{ log.actor.phone || 'Chưa ghi nhận' }}</p><app-badge variant="primary" [label]="log.actor.role" /></section>
+      <section class="detail-section"><h3>Tài khoản được tác động</h3><p>{{ log.target.type }} · {{ log.target.name || 'Chưa ghi nhận' }} · {{ log.target.code || 'Chưa ghi nhận' }}</p></section>
+      <section><h3>Nội dung chi tiết</h3><p class="description">{{ log.details || 'Chưa ghi nhận nội dung chi tiết.' }}</p></section>
+      @if (log.changes.length) { <section><h3>Biến động dữ liệu</h3><div class="table-scroll"><table class="changes"><thead><tr><th>Trường thay đổi</th><th>Trước</th><th>Sau</th></tr></thead><tbody>@for (change of log.changes; track $index) { <tr><td>{{ change.field }}</td><td>{{ change.before }}</td><td>{{ change.after }}</td></tr> }</tbody></table></div></section> }
+      <section><h3>Thiết bị / Trình duyệt</h3><p class="device">{{ log.userAgent }}</p></section><div class="actions close-actions"><app-button variant="outline" (clicked)="selectedLog = null">Đóng</app-button></div>
+    </div>
+  }
+</app-modal>
