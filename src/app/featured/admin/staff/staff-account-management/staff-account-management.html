@@ -1,0 +1,91 @@
+<div class="staff-page">
+  @if (feedback && feedbackError) { <app-toast [variant]="feedbackError ? 'error' : 'success'" [message]="feedback" (closed)="feedback = ''" /> }
+  <section class="panel overview">
+    <div class="heading"><div><span class="eyebrow">Quản lý hệ thống</span><h1>Quản lý tài khoản nhân viên</h1></div><app-button (clicked)="open()">＋ Thêm tài khoản mới</app-button></div>
+    <div class="summary"><div><strong>{{ employees.length }}</strong><span>Tất cả tài khoản</span></div><div class="active"><strong>{{ activeCount }}</strong><span>Đang hoạt động</span></div><div class="locked"><strong>{{ lockedCount }}</strong><span>Đã khóa</span></div></div>
+  </section>
+  <section class="panel">
+    <nav class="tabs" aria-label="Trạng thái tài khoản">
+      @for (item of [{ key: 'all', label: 'Tất cả', count: employees.length }, { key: 'active', label: 'Đang hoạt động', count: activeCount }, { key: 'locked', label: 'Đã khóa', count: lockedCount }]; track item.key) { <app-button size="sm" [variant]="activeTab === item.key ? 'primary' : 'ghost'" (clicked)="setTab(item.key)">{{ item.label }} ({{ item.count }})</app-button> }
+    </nav>
+    <form class="filters" (submit)="$event.preventDefault(); applyFilter()">
+      <app-input label="Tìm kiếm" id="staff-search" [value]="searchQuery" (valueChange)="searchQuery = $event; applyFilter()" placeholder="Mã NV / Tên truy cập / Họ tên / Email…" />
+      <app-select label="Chức vụ mặc định" id="staff-role-filter" [options]="filterRoleOptions" [value]="searchRole" (valueChange)="searchRole = $event; applyFilter()" />
+      <div class="actions"><app-button type="submit" variant="outline">Tìm kiếm</app-button><app-button variant="ghost" (clicked)="clearFilters()">Xóa bộ lọc</app-button></div>
+    </form>
+    <div class="table-heading"><strong>Danh sách tài khoản nhân viên</strong><span>{{ filteredEmployees.length }} bản ghi</span></div>
+    <div class="table-scroll"><table><thead><tr><th>Mã NV</th><th>Tên truy cập</th><th>Họ tên</th><th>Chức vụ / Quyền hạn</th><th>Ngày bắt đầu làm việc</th><th>Chức năng</th></tr></thead><tbody>
+      @for (employee of paginatedEmployees; track employee.code) {
+        <tr><td><strong>{{ employee.code }}</strong><app-badge class="status-badge" size="sm" [dot]="true" [variant]="employee.status === 'Đã khóa' ? 'danger' : 'success'" [label]="employee.status" /></td><td>{{ employee.username }}</td><td><div class="employee-name"><span class="avatar">@if (employee.avatarUrl) { <img [src]="employee.avatarUrl" alt="" /> } @else { {{ employee.initials }} }</span><div><strong>{{ employee.name }}</strong><small>{{ employee.email }}</small></div></div></td><td>{{ employee.defaultRole }}<small>{{ employee.permissions.length }} quyền</small></td><td>{{ formatDate(employee.startDate) }}</td><td><app-button variant="ghost" size="sm" [ariaLabel]="'Chỉnh sửa ' + employee.name" (clicked)="open(employee)">Chỉnh sửa</app-button></td></tr>
+      } @empty { <tr><td colspan="6" class="empty">Không tìm thấy tài khoản nhân viên phù hợp.</td></tr> }
+    </tbody></table></div>
+    <app-pagination class="staff-pagination" [currentPage]="validCurrentPage" [totalItems]="filteredEmployees.length" [pageSize]="10" (pageChange)="currentPage = $event" />
+  </section>
+</div>
+
+<app-modal [open]="!!draft" size="large" [fixedLayout]="true" [fitContent]="true" [title]="creating ? 'Tạo tài khoản nhân viên' : 'Chỉnh sửa thông tin – ' + (draft?.code || '')" (closed)="close()">
+  @if (draft; as employee) {
+    <form novalidate (submit)="$event.preventDefault(); save()" class="edit-form">
+      <nav class="tabs detail-tabs" aria-label="Thông tin nhân viên">
+        @for (item of [{ key: 'profile', label: 'Thông tin cơ bản' }, { key: 'rbac', label: 'Phân quyền' }, { key: 'contact', label: 'Thông tin liên hệ' }]; track item.key) { <app-button size="sm" [variant]="tab === item.key ? 'primary' : 'ghost'" (clicked)="tab = item.key">{{ item.label }}</app-button> }
+        @if (!creating) { <app-button size="sm" [variant]="tab === 'logs' ? 'primary' : 'ghost'" (clicked)="tab = 'logs'">Nhật ký hoạt động</app-button> }
+      </nav>
+      <div class="edit-content">
+      @if (modalError) { <app-toast variant="error" [message]="modalError" [dismissible]="false" /> }
+      @if (feedback && feedbackError && !creating) { <app-toast [variant]="feedbackError ? 'error' : 'success'" [message]="feedback" (closed)="feedback = ''" /> }
+      @if (tab === 'profile' || tab === 'contact') {
+        <div class="form-grid">
+          @for (field of fields; track field.key) {
+            @if (field.tab === tab) { <app-input [class.contact-address]="field.key === 'address'" [label]="field.label" [id]="'staff-' + field.key" [name]="field.key" [readonly]="!creating && field.key === 'username'" [type]="field.type" [maxlength]="field.max" [required]="field.key !== 'address'" [value]="employee[field.key]" (valueChange)="update(field.key, $event)" (blurred)="touched[field.key] = true" [error]="visibleError(field.key)" /> }
+          }
+          @if (tab === 'profile') {
+            @if (creating) {
+              <div class="password-field full-width">
+                <app-input label="Mật khẩu tài khoản" id="staff-password" name="password" [required]="true" [type]="showPassword ? 'text' : 'password'" [value]="password" [maxlength]="128" (valueChange)="password = $event; touched['password'] = true" [error]="visibleError('password')" helperText="Tối thiểu 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt." />
+                <app-button class="password-toggle" variant="ghost" [iconOnly]="true" [ariaLabel]="showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'" (clicked)="showPassword = !showPassword">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>@if (!showPassword) { <path d="m3 3 18 18"/> }</svg>
+                </app-button>
+              </div>
+            }
+            <div class="profile-meta full-width">
+            <div class="field"><span>Trạng thái hoạt động</span><app-badge [variant]="employee.status === 'Đã khóa' ? 'danger' : 'success'" [dot]="true" [label]="employee.status" /></div>
+            <app-select label="Chức vụ mặc định" id="staff-default-role" [required]="true" [options]="roleOptions" [value]="employee.defaultRole" (valueChange)="employee.defaultRole = $event" [error]="visibleError('defaultRole')" />
+            <app-select label="Giới tính" id="staff-gender" [options]="genderOptions" [value]="employee.gender" (valueChange)="employee.gender = $event" />
+            <div class="field"><app-date-picker label="Ngày sinh *" name="birthDate" [(ngModel)]="employee.birthDate" minDate="1900-01-01" [maxDate]="today" [showLunar]="false" (dateChange)="touched['birthDate'] = true" (closed)="touched['birthDate'] = true" />@if (visibleError('birthDate')) { <small class="error" role="alert">{{ visibleError('birthDate') }}</small> }</div>
+            </div>
+            <div class="profile-media full-width">
+              <div class="photo-field">
+                <span>Ảnh đại diện</span>
+                <input type="file" #avatarInput hidden accept="image/jpeg,image/png,image/webp" (change)="upload($event)" />
+                <div class="photo-layout">
+                  <div class="photo-preview"><span class="avatar avatar-large">@if (employee.avatarUrl) { <img [src]="employee.avatarUrl" alt="Ảnh đại diện nhân viên" /> } @else { {{ employee.initials }} }</span>@if (employee.avatarUrl) { <app-button class="remove-avatar" size="sm" variant="danger" [iconOnly]="true" ariaLabel="Gỡ ảnh đại diện" (clicked)="removeAvatar()">×</app-button> }</div>
+                  <div class="photo-tools"><app-button size="sm" variant="outline" (clicked)="avatarInput.click()">{{ employee.avatarUrl ? 'Đổi ảnh' : 'Tải ảnh lên' }}</app-button><small>JPG, PNG, WebP<br />Tối đa 5 MB</small></div>
+                </div>
+                @if (avatarError) { <small class="error" role="alert">{{ avatarError }}</small> }@if (readingAvatar) { <small role="status">Đang đọc ảnh…</small> }
+              </div>
+              <app-textarea label="Ghi chú" id="staff-notes" [rows]="4" [value]="employee.notes" (valueChange)="employee.notes = $event; touched['notes'] = true" [error]="visibleError('notes')" />
+            </div>
+          } @else {
+            <div class="field"><app-date-picker label="Ngày bắt đầu làm việc *" name="startDate" [(ngModel)]="employee.startDate" [minDate]="validDate(employee.birthDate) ? employee.birthDate : '1900-01-01'" [showLunar]="false" (dateChange)="touched['startDate'] = true" (closed)="touched['startDate'] = true" />@if (visibleError('startDate')) { <small class="error" role="alert">{{ visibleError('startDate') }}</small> }</div>
+            <app-select label="Loại hợp đồng lao động" id="staff-contract" [options]="contractOptions" [value]="employee.contractType" (valueChange)="employee.contractType = $event" />
+          }
+        </div>
+      } @else if (tab === 'rbac') {
+        <h3>Phân quyền chức năng</h3><p class="description">Chọn mẫu vai trò hoặc chọn từng quyền phù hợp với công việc.</p>
+        <div class="role-templates">@for (role of roles; track role) { <app-button size="sm" variant="outline" (clicked)="applyRole(role)">{{ role }}</app-button> }</div>
+        <div class="permission-toolbar"><app-input label="Tìm kiếm quyền hạn" id="permission-search" [value]="permissionQuery" (valueChange)="permissionQuery = $event" /><label class="checkbox"><input type="checkbox" [checked]="allChecked" (change)="toggleAll()" />Chọn tất cả</label><app-badge variant="primary" [label]="employee.permissions.length + ' / ' + permissionModules.length + ' quyền'" /></div>
+        <div class="permissions">@for (module of visiblePermissions; track module.key) { <details class="permission" [open]="module.expanded"><summary><label class="checkbox" (click)="$event.stopPropagation()"><input type="checkbox" [checked]="employee.permissions.includes(module.key)" (change)="togglePermission(module.key)" />{{ module.title }}</label></summary><p>{{ module.desc }}</p></details> } @empty { <p class="empty">Không tìm thấy quyền phù hợp.</p> }</div>
+      } @else {
+        <div class="table-scroll"><table><thead><tr><th>Thời gian</th><th>Thao tác</th><th>Chi tiết</th><th>Mã nhật ký</th></tr></thead><tbody>@for (log of paginatedEmployeeLogs; track $index) { <tr><td>{{ log.time }}</td><td>{{ log.title }}</td><td>{{ log.desc }}</td><td>{{ log.code }}</td></tr> } @empty { <tr><td colspan="4" class="empty">Chưa có nhật ký hoạt động.</td></tr> }</tbody></table></div>
+        <app-pagination [currentPage]="validLogPage" [totalItems]="employee.logs.length" [pageSize]="logPageSize" (pageChange)="logPage = $event" />
+      }
+      @if (employee.lockInfo) { <p class="lock-info">Lý do khóa: {{ employee.lockInfo.reason }}</p> }
+      </div>
+      <div class="modal-actions">@if (!creating) { <app-button variant="danger" (clicked)="changeStatus()">{{ employee.status === 'Đã khóa' ? 'Mở khóa tài khoản' : 'Khóa tài khoản' }}</app-button> }<div class="actions"><app-button variant="outline" (clicked)="close()">Hủy</app-button><app-button type="submit" variant="secondary" [disabled]="readingAvatar">{{ creating ? 'Tạo tài khoản' : 'Lưu thay đổi' }}</app-button></div></div>
+    </form>
+  }
+</app-modal>
+<app-modal [open]="lockOpen" size="small" title="Xác nhận khóa tài khoản?" [confirmMode]="true" [danger]="true" confirmText="Khóa tài khoản" (closed)="lockOpen = false" (confirmed)="commitStatus(true)">
+  <p>Tài khoản {{ draft?.name }} sẽ chuyển sang trạng thái đã khóa.</p><app-textarea label="Lý do khóa" id="staff-lock-reason" [value]="lockReason" (valueChange)="lockReason = $event" />@if (modalError) { <p class="error" role="alert">{{ modalError }}</p> }
+</app-modal>
+@if (successOpen) { <app-toast-popup [message]="successMessage" (closed)="successOpen = false" /> }

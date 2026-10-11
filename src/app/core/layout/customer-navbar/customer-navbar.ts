@@ -2,6 +2,7 @@ import { Component, HostListener, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { CustomerNavigationService } from '../../services/customer-navigation.service';
 
 @Component({
   selector: 'app-customer-navbar',
@@ -23,16 +24,32 @@ export class CustomerNavbar {
 
   constructor(
     public authService: AuthService,
-    public router: Router
+    public router: Router,
+    private readonly customerNavigation: CustomerNavigationService
   ) {}
 
+  isHomeRouteActive(): boolean {
+    const url = this.router.url.split('?')[0];
+    return url === '/customer' || url === '/customer/' || url === '/';
+  }
+
   isAboutRouteActive(): boolean {
-    const activeRoutes = ['/customer/ve-chung-toi', '/customer/gioi-thieu', '/customer/chinh-sach', '/customer/dieu-khoan', '/customer/faq', '/customer/lien-he', '/customer/tuyen-dung'];
+    const activeRoutes = [
+      '/customer/ve-chung-toi',
+      '/customer/gioi-thieu',
+      '/customer/chinh-sach',
+      '/customer/huong-dan-mua-ve',
+      '/customer/faq',
+      '/customer/dieu-khoan',
+      '/customer/tuyen-dung',
+      '/customer/lien-he'
+    ];
     return activeRoutes.some(route => this.router.url.includes(route));
   }
 
   isServicesRouteActive(): boolean {
-    return this.router.url.includes('/customer/dich-vu');
+    const activeRoutes = ['/customer/dich-vu', '/customer/do-that-lac'];
+    return activeRoutes.some(route => this.router.url.includes(route));
   }
 
   toggleServices(event: Event) {
@@ -91,9 +108,17 @@ export class CustomerNavbar {
   }
 
   onHomeClick(event: Event) {
-    event.preventDefault();
     this.closeMobileMenu();
-    this.router.navigate(['/customer'], { queryParams: { reset: Date.now() } });
+    if (event instanceof MouseEvent && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0)) return;
+    if (this.isHomeRouteActive()) {
+      event?.preventDefault();
+      this.customerNavigation.showHome();
+  onHomeClick(event?: Event) {
+    this.closeMobileMenu();
+    // Đang ở Trang chủ thì router bỏ qua điều hướng cùng URL -> tự cuộn về đầu trang
+    if (this.isHomeRouteActive()) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 }
 

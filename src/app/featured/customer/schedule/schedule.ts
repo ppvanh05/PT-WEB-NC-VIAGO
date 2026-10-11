@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Amenities } from '../../../shared/components/amenities/amenities';
 
 interface Route {
   id: number;
@@ -21,7 +22,7 @@ interface Route {
 @Component({
   selector: 'app-schedule',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, Amenities],
   templateUrl: './schedule.html',
   styleUrls: ['../customer-pages.css', './schedule.css', '../customer-page-theme.css'],
 })
@@ -201,7 +202,7 @@ allRoutes: Route[] = [
   }
 
   onSearch() {
-    let term = this.searchTerm.toLowerCase().trim();
+    let term = this.normalizeSearchTerm(this.searchTerm);
     if (!term) {
       this.filteredRoutes = [...this.allRoutes];
       return;
@@ -214,10 +215,33 @@ allRoutes: Route[] = [
       term = 'tp.hcm';
     }
     
-    this.filteredRoutes = this.allRoutes.filter(route => 
-      route.from.toLowerCase().includes(term) || 
-      route.to.toLowerCase().includes(term)
-    );
+    term = this.normalizeSearchTerm(term);
+
+    const aliases: Record<string, string> = {
+      // "thành phố" is a common way users refer to TP.HCM.
+      thanh: 'tphcm',
+      thanhpho: 'tphcm',
+      thanhphohochiminh: 'tphcm',
+      saigon: 'tphcm',
+      sgon: 'tphcm',
+      sg: 'tphcm',
+      lamdong: 'dalat',
+    };
+    term = aliases[term] ?? (term.startsWith('thanh') ? 'tphcm' : term);
+
+    this.filteredRoutes = this.allRoutes.filter(route => {
+      const from = this.normalizeSearchTerm(route.from);
+      const to = this.normalizeSearchTerm(route.to);
+      return from.includes(term) || to.includes(term);
+    });
+  }
+
+  private normalizeSearchTerm(value: string): string {
+    return value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
   }
 
   viewSchedule(route: Route) {

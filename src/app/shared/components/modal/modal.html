@@ -1,9 +1,10 @@
-<div *ngIf="open" class="modal-backdrop" role="presentation" (click)="onBackdropClick()" (keydown.escape)="onEscape()">
-  <section class="modal-panel" [class.modal-panel--small]="size === 'small'" [class.modal-panel--large]="size === 'large'" [class.modal-panel--danger]="danger" role="dialog" aria-modal="true" [attr.aria-label]="title || null" (click)="$event.stopPropagation()">
-    <header class="modal-header">
+<div *ngIf="open" class="modal-backdrop" role="presentation" (pointerdown)="onBackdropPointerDown($event)" (pointermove)="onBackdropPointerMove($event)" (pointerup)="onBackdropPointerUp($event)" (pointercancel)="cancelPress()" (keydown)="onKeyDown($event)">
+  <section #panel tabindex="-1" class="modal-panel" [class.modal-panel--fixed]="fixedLayout" [class.modal-panel--fit]="fitContent" [class.modal-panel--small]="size === 'small'" [class.modal-panel--large]="size === 'large'" [class.modal-panel--danger]="danger" role="dialog" aria-modal="true" [attr.aria-label]="title || null" (click)="$event.stopPropagation()">
+    <header *ngIf="title || description || showCloseButton" class="modal-header">
       <div>
         <h2 *ngIf="title" class="modal-title">{{ title }}</h2>
         <p *ngIf="description" class="modal-description">{{ description }}</p>
+        <ng-content select="[modal-header-extra]"></ng-content>
       </div>
       <button *ngIf="showCloseButton" type="button" class="modal-close" aria-label="Đóng" [disabled]="loading" (click)="closed.emit()"><span aria-hidden="true">×</span></button>
     </header>

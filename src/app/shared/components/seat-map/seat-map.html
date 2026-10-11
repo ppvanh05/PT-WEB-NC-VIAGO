@@ -1,0 +1,17 @@
+<div class="original-seat-map" [class.cabin-map]="cabin" [class.limousine-map]="floors.length === 1">
+  @for (floor of floors; track floor.level) {
+    <div class="seat-floor" [attr.data-floor]="floor.level">
+      <h3>{{ floors.length === 1 ? 'Sơ đồ ghế (9 chỗ)' : floor.level === 'A' ? 'Tầng dưới' : 'Tầng trên' }}</h3>
+      @if (cabin) {
+        <div class="steering-space">@if (floor.level === 'A') { <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-label="Vô lăng"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="2.5" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 2v10M2 12h20M12 12l5.65 5.65M12 12L6.35 17.65" /></svg> }</div>
+        <div class="seat-column-labels"><span>Dãy Trái</span><span>Dãy Phải</span></div>
+      }
+      <div class="original-seat-grid" [style.grid-template-columns]="'repeat(' + floor.columns + ', minmax(0, 1fr))'">
+        @for (seat of floor.cells; track $index) {
+          @if (!seat) { <div class="seat-aisle" aria-hidden="true"></div> }
+          @else { <button type="button" [class]="'seat original-seat ' + status(seat)" [attr.data-seat]="seat" [attr.aria-label]="'Ghế ' + label(seat) + ': ' + (status(seat) === 'sold' ? 'đã bán' : status(seat) === 'held' ? 'đang giữ' : status(seat) === 'selected' ? 'đang chọn' : 'trống')" [attr.aria-pressed]="status(seat) === 'selected'" [disabled]="disabled(seat)" (click)="seatSelected.emit(seat)">{{ label(seat) }}</button> }
+        }
+      </div>
+    </div>
+  }
+</div>

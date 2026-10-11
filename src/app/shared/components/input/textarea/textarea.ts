@@ -22,6 +22,7 @@ export class Textarea {
 
   id = input('');
   name = input('');
+  maxlength = input<number | null>(null);
 
   valueChange = output<string>();
 

@@ -44,3 +44,6 @@ PT-WEB-VIAGO-main/
 # System files
 .DS_Store
 Thumbs.db
+
+# Local browser verification captures
+/artifacts/
