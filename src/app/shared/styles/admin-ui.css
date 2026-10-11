@@ -1,0 +1,8 @@
+/* Shared Admin UI styles */
+:root {
+  --admin-font-family: 'Inter', sans-serif;
+}
+
+@media (max-width: 767px) {
+  .admin-layout:has(app-cancellation-report) { padding-left: 0 !important; }
+}

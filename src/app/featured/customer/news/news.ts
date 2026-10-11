@@ -1,3 +1,5 @@
+import { Toast, ToastVariant } from '../../../shared/components/toast/toast';
+import { Component, OnInit, signal } from '@angular/core';
 import { Component, OnInit, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,11 +10,27 @@ import { Pagination } from '../../../shared/components/pagination/pagination';
 @Component({
   selector: 'app-news',
   standalone: true,
+  imports: [Toast, CommonModule, FormsModule, RouterLink],
   imports: [CommonModule, FormsModule, Pagination],
   templateUrl: './news.html',
   styleUrl: './news.css',
 })
 export class News implements OnInit {
+  toast = signal<{ message: string; variant: ToastVariant } | null>(null);
+  activeCategory: ArticleCategory | 'all' = 'all';
+  searchTerm = '';
+  timeFilter: TimeFilter = 'all';
+  sortOrder: SortOrder = 'newest';
+  selectedRoute = 'all';
+  jobType: JobType | 'all' = 'all';
+  useFavoriteRoute = false;
+  favoriteRoute = 'TP.HCM - Đà Lạt';
+  email = '';
+
+  // Share modal state
+  showShareModal = false;
+  shareUrl = '';
+
   categories = [
     { id: 'all', label: 'Tin tức tổng hợp', icon: 'bi bi-grid-fill' },
     { id: 'news', label: 'Tin tức nhà xe', icon: 'bi bi-bus-front-fill' },
@@ -132,6 +150,13 @@ export class News implements OnInit {
     );
   }
 
+  copyLink() {
+    Promise.resolve().then(() => navigator.clipboard.writeText(this.shareUrl)).then(() => {
+      this.toast.set({ message: 'Đã sao chép liên kết.', variant: 'success' });
+      this.showShareModal = false;
+    }).catch(() => {
+      this.toast.set({ message: 'Không thể sao chép liên kết. Vui lòng thử lại.', variant: 'error' });
+    });
   get paginatedArticles(): NewsItem[] {
     const start = (this.currentPage - 1) * this.pageSize;
     return this.filteredArticles.slice(start, start + this.pageSize);

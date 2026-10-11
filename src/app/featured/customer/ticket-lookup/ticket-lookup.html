@@ -1,1 +1,874 @@
-<p>ticket-lookup works!</p>
+<div class="bg-background font-body text-on-surface min-h-screen flex flex-col">
+  <main class="pt-8 flex-grow pb-16">
+    <div class="max-w-7xl mx-auto px-6">
+      <!-- ====== 1. SEARCH INTERFACE ====== -->
+      <div *ngIf="currentStep === 'search'" class="flex justify-center items-center lookup-u-1 py-8">
+        <div class="bg-white rounded-2xl shadow-md border border-border-divider p-8 md:p-12 w-full lookup-u-2 transition-all hover:shadow-lg">
+          <div class="flex flex-col items-center mb-8">
+            <div class="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
+              <span class="material-symbols-outlined text-primary text-3xl">confirmation_number</span>
+            </div>
+            <h2 class="text-center text-2xl font-bold text-primary">Tra cứu đơn hàng</h2>
+            <p class="text-text-secondary text-sm mt-2">Tra cứu đơn hàng bằng số điện thoại đặt vé.</p>
+          </div>
+
+          <form (ngSubmit)="searchTickets()" class="lookup-search-form">
+            <app-input label="Số điện thoại đặt vé" type="tel" [id]="'phone-input'"
+              name="phoneNumber" placeholder="VD: 0900234567" [required]="true"
+              [value]="phoneNumber" (valueChange)="onLookupPhoneChange($event)" [error]="phoneError" [disabled]="isLoading" />
+            <app-button id="search-btn" class="full-width" type="submit" [loading]="isLoading">
+              <span class="material-symbols-outlined" aria-hidden="true">search</span>
+              Nhận mã OTP
+            </app-button>
+          </form>
+
+          <div *ngIf="searchError" class="mt-6 flex items-start gap-3 bg-error/10 border border-error/30 p-4 rounded-xl">
+            <span class="material-symbols-outlined text-error">warning</span>
+            <p class="text-error text-xs font-semibold leading-relaxed">{{ searchError }}</p>
+          </div>
+
+          <!-- Sample data hint -->
+        </div>
+      </div>
+
+      <section *ngIf="currentStep === 'otp'" class="lookup-otp-card" aria-labelledby="otp-title">
+        <span class="material-symbols-outlined lookup-step-icon" aria-hidden="true">verified_user</span>
+        <h2 id="otp-title">Xác thực số điện thoại</h2>
+        <p>Nhập mã OTP cho số <strong>{{ phoneNumber }}</strong> để xem đơn hàng.</p>
+        <form (ngSubmit)="verifyOtp()" class="lookup-search-form">
+          <app-input label="Mã OTP" type="tel" [id]="'lookup-otp'" name="otp"
+            placeholder="Nhập 6 chữ số" [required]="true" [value]="otpCode"
+            (valueChange)="onOtpChange($event)" [error]="otpError" [disabled]="isLoading" />
+          <p class="lookup-otp-time" role="status">
+            {{ otpSecondsLeft > 0 ? 'Mã còn hiệu lực ' + otpSecondsLeft + ' giây.' : 'Mã OTP đã hết hạn. Vui lòng gửi lại mã.' }}
+          </p>
+          <app-button type="submit" class="full-width" [loading]="isLoading"
+            [disabled]="otpCode.length !== 6 || otpSecondsLeft === 0">Xác thực và tra cứu</app-button>
+        </form>
+        <div class="lookup-otp-actions">
+          <app-button variant="ghost" [disabled]="isLoading" (clicked)="changeLookupPhone()">Đổi số điện thoại</app-button>
+          <app-button variant="outline" [disabled]="isLoading || resendSecondsLeft > 0" (clicked)="requestOtp(true)">
+            {{ resendSecondsLeft > 0 ? 'Gửi lại sau ' + resendSecondsLeft + 's' : 'Gửi lại mã OTP' }}
+          </app-button>
+        </div>
+      </section>
+
+      <section *ngIf="currentStep === 'orders'" class="lookup-orders" aria-labelledby="orders-title">
+        <header class="lookup-orders-header">
+          <app-button variant="ghost" [iconOnly]="true" ariaLabel="Quay lại tra cứu" (clicked)="resetLookup()">
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+          </app-button>
+          <div>
+            <p class="lookup-eyebrow"><span class="material-symbols-outlined" aria-hidden="true">verified_user</span> Số điện thoại đã xác thực</p>
+            <h2 id="orders-title">Đơn hàng của bạn</h2>
+            <p>{{ verifiedPhone }} · {{ orders.length }} đơn hàng</p>
+          </div>
+        </header>
+        <div class="lookup-order-filter">
+          <app-input label="Tìm mã đơn hàng" [id]="'lookup-order-code'" placeholder="VD: DH10000018"
+            [value]="bookingCode" (valueChange)="bookingCode = $event" />
+          <app-button *ngIf="bookingCode" variant="ghost" (clicked)="bookingCode = ''">Xem tất cả đơn</app-button>
+        </div>
+        <p class="lookup-list-count" role="status">{{ filteredOrders.length }} đơn hàng phù hợp</p>
+        <div *ngIf="filteredOrders.length; else noLookupOrders" class="lookup-order-list">
+          <article *ngFor="let order of filteredOrders" class="lookup-order-card">
+            <div class="lookup-order-card-header">
+              <strong>{{ order.MaDonHang }}</strong>
+              <app-badge [variant]="statusVariant(order.TrangThaiDonHang)">{{ order.TrangThaiDonHang }}</app-badge>
+            </div>
+            <h3>{{ order.TenTuyen }}</h3>
+            <dl class="lookup-order-facts">
+              <div><dt>Khởi hành</dt><dd>{{ formatTimeStr(order.GioKhoiHanh) }} · {{ formatDisplayDate(order.DepartureDate) }}</dd></div>
+              <div><dt>Số lượng vé</dt><dd>{{ order.Tickets.length }} vé · Ghế {{ orderSeats(order) }}</dd></div>
+              <div><dt>Tổng tiền đã đặt</dt><dd>{{ formatPrice(order.TongGiaVe) }}</dd></div>
+            </dl>
+            <app-button class="full-width" variant="outline" (clicked)="openOrder(order)" [ariaLabel]="'Xem đơn ' + order.MaDonHang">Xem đơn và các vé</app-button>
+          </article>
+        </div>
+        <ng-template #noLookupOrders>
+          <div class="lookup-orders-empty" role="status">
+            <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+            <h3>{{ orders.length ? 'Không tìm thấy mã đơn này' : 'Chưa có đơn hàng' }}</h3>
+            <p>{{ orders.length ? 'Mã đơn không khớp với đơn hàng của số điện thoại đã xác thực. Kiểm tra lại mã hoặc xem tất cả đơn.' : 'Không tìm thấy đơn hàng của số điện thoại này.' }}</p>
+            <app-button *ngIf="bookingCode && orders.length" variant="outline" (clicked)="bookingCode = ''">Xem tất cả đơn</app-button>
+          </div>
+        </ng-template>
+      </section>
+
+      <!-- ====== 2. RESULTS INTERFACE ====== -->
+      <div *ngIf="currentStep === 'results' && currentOrder" class="lookup-results space-y-8 animate-fade-in">
+
+        <!-- Back button + Actions bar -->
+        <app-button variant="outline" class="lookup-action"
+          (clicked)="backToSearch()"
+         >
+          <span class="material-symbols-outlined lookup-u-6">arrow_back</span>
+          Quay lại danh sách đơn
+        </app-button>
+
+        <!-- ====== SECTION 1: ORDER INFO ====== -->
+        <section class="order-info bg-white rounded-xl p-8 custom-shadow border border-border-divider">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div class="w-full">
+              <div class="flex justify-between items-center mb-6">
+                <h2 class="text-primary text-xl font-bold">Thông tin đơn hàng</h2>
+                <app-button variant="primary" class="lookup-action"
+                  [disabled]="isEditButtonDisabled"
+                  (clicked)="openEditOrderModal()"
+                 >
+                  <span class="material-symbols-outlined text-sm">edit</span>
+                  Chỉnh sửa đơn hàng
+                </app-button>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-12 text-sm">
+                <!-- Left Info Column -->
+                <div class="space-y-4">
+                  <div class="flex justify-between border-b border-gray-100 pb-2">
+                    <span class="text-text-secondary">Mã đơn hàng</span>
+                    <span class="font-bold text-text-strong">{{ currentOrder.MaDonHang }}</span>
+                  </div>
+                  <div class="flex justify-between border-b border-gray-100 pb-2">
+                    <span class="text-text-secondary">Họ tên người đi</span>
+                    <span class="font-bold text-text-strong">{{ currentOrder.HoTenNguoiDi }}</span>
+                  </div>
+                  <div class="flex justify-between border-b border-gray-100 pb-2">
+                    <span class="text-text-secondary">Số điện thoại</span>
+                    <span class="font-bold text-text-strong">{{ currentOrder.SoDienThoai }}</span>
+                  </div>
+                  <div class="flex justify-between border-b border-gray-100 pb-2">
+                    <span class="text-text-secondary">Email</span>
+                    <span class="font-bold text-text-strong">{{ currentOrder.Email }}</span>
+                  </div>
+                  <div class="flex justify-between pb-2">
+                    <span class="text-text-secondary">Thời gian đặt</span>
+                    <span class="font-bold text-text-strong">{{ currentOrder.ThoiGianDat }}</span>
+                  </div>
+                </div>
+
+                <!-- Right Info Column -->
+                <div class="space-y-4">
+                  <div class="flex justify-between border-b border-gray-100 pb-2">
+                    <span class="text-text-secondary">Số lượng vé đã đặt</span>
+                    <span class="font-bold text-text-strong">{{ currentOrder.SoLuongVeDaDat }}</span>
+                  </div>
+                  <div class="flex justify-between border-b border-gray-100 pb-2">
+                    <span class="text-text-secondary">Số vé còn hiệu lực</span>
+                    <span class="font-bold text-text-strong">{{ getActiveTicketCount() }}</span>
+                  </div>
+                  <div class="flex justify-between border-b border-gray-100 pb-2" *ngIf="getCanceledTicketCount() > 0">
+                    <span class="text-text-secondary">Số vé đã hủy</span>
+                    <span class="font-bold text-error">{{ getCanceledTicketCount() }}</span>
+                  </div>
+                  <div class="flex justify-between border-b border-gray-100 pb-2">
+                    <span class="text-text-secondary">Tổng giá vé đã đặt</span>
+                    <span class="font-extrabold text-secondary text-base">{{ formatPrice(currentOrder.TongGiaVe) }}</span>
+                  </div>
+                  <div class="flex justify-between border-b border-gray-100 pb-2" *ngIf="getCanceledTicketCount() > 0">
+                    <span class="text-text-secondary">Tổng giá vé còn hiệu lực</span>
+                    <span class="font-extrabold text-success text-base">{{ formatPrice(getActiveTicketTotal()) }}</span>
+                  </div>
+                  <div class="flex justify-between border-b border-gray-100 pb-2">
+                    <span class="text-text-secondary">Phương thức thanh toán</span>
+                    <span class="font-bold text-text-strong">{{ currentOrder.PhuongThucThanhToan }}</span>
+                  </div>
+                  <div class="flex justify-between pb-2">
+                    <span class="text-text-secondary">Trạng thái đơn hàng</span>
+                    <app-badge [variant]="statusVariant(currentOrder.TrangThaiDonHang)" [label]="currentOrder.TrangThaiDonHang" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ====== SECTION 2: ELECTRONIC TICKETS ====== -->
+        <section id="tickets-section" class="space-y-4">
+          <h2 class="text-primary text-xl font-bold">Thông tin vé điện tử</h2>
+
+          <div *ngFor="let ticket of currentOrder.Tickets; let idx = index"
+               [id]="'ticket-' + idx"
+               class="bg-white rounded-xl custom-shadow border border-border-divider overflow-hidden flex flex-col md:flex-row">
+            <!-- Left Side Route Info -->
+            <div class="ticket-route flex-grow p-8 flex flex-col justify-between">
+              <div>
+                <div class="flex justify-between items-center mb-6">
+                  <span class="text-xs font-bold text-text-secondary">Vé {{ idx + 1 }} / {{ currentOrder.Tickets.length }}</span>
+                  <app-badge [variant]="statusVariant(ticket.TrangThaiVe)" [label]="ticket.TrangThaiVe" />
+                </div>
+
+                <h3 class="text-lg font-bold text-text-strong mb-1">Tuyến xe: <span class="font-medium text-text-primary">{{ currentOrder.TenTuyen }}</span></h3>
+                <p class="text-sm font-semibold text-text-strong mb-6">Thời gian khởi hành: <span class="font-medium text-text-primary">{{ currentOrder.GioKhoiHanh }} {{ formatDisplayDate(currentOrder.DepartureDate) }}</span></p>
+
+                <!-- Route Steps -->
+                <div class="space-y-6 relative pl-6 border-l-2 border-dashed border-gray-200 ml-3 mb-6">
+                  <div class="relative">
+                    <span class="absolute lookup-u-7 top-0.5 w-4.5 h-4.5 rounded-full bg-white border-2 border-secondary flex items-center justify-center">
+                      <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                    </span>
+                    <p class="lookup-u-5 font-bold text-text-secondary">Điểm đón</p>
+                    <p class="text-sm font-bold text-text-strong">{{ ticket.DiemDon }}</p>
+                    <p class="lookup-u-5 text-text-secondary mt-0.5">{{ ticket.DiemDonThoiGian }}</p>
+                  </div>
+
+                  <div class="relative">
+                    <span class="absolute lookup-u-7 top-0.5 w-4.5 h-4.5 rounded-full bg-white border-2 border-success flex items-center justify-center">
+                      <span class="w-1.5 h-1.5 rounded-full bg-success"></span>
+                    </span>
+                    <p class="lookup-u-5 font-bold text-text-secondary">Điểm trả</p>
+                    <p class="text-sm font-bold text-text-strong">{{ ticket.DiemTra }}</p>
+                    <p class="lookup-u-5 text-text-secondary mt-0.5">{{ ticket.DiemTraThoiGian }}</p>
+                  </div>
+                </div>
+
+                <!-- Warning Banner -->
+                <div class="lookup-u-8 border lookup-u-9 lookup-u-10 rounded-lg p-4 flex items-center gap-2.5 text-xs font-medium">
+                  <span class="material-symbols-outlined lookup-u-11 lookup-u-12 flex-shrink-0">schedule</span>
+                  <span>Có mặt tại điểm đón trước 15 phút để chuẩn bị làm thủ tục lên xe. Giờ cần có mặt: {{ getPresenceTimeLabel() }}.</span>
+                </div>
+              </div>
+
+              <!-- Bottom Properties Row -->
+              <div class="ticket-properties grid grid-cols-4 gap-4 mt-8 pt-6 border-t border-gray-100 text-center text-xs">
+                <div class="bg-background rounded-lg py-3">
+                  <p class="lookup-u-13 font-bold text-text-secondary mb-1">Số ghế</p>
+                  <p class="font-bold lookup-u-14 text-sm">{{ ticket.SoGhe }}</p>
+                </div>
+                <div class="bg-background rounded-lg py-3">
+                  <p class="lookup-u-13 font-bold text-text-secondary mb-1">Mã vé</p>
+                  <p class="font-bold text-text-strong text-sm">{{ ticket.MaVe }}</p>
+                </div>
+                <div class="bg-background rounded-lg py-3">
+                  <p class="lookup-u-13 font-bold text-text-secondary mb-1">Biển số xe</p>
+                  <p class="font-bold text-text-strong text-sm">{{ ticket.BienSoXe }}</p>
+                </div>
+                <div class="bg-background rounded-lg py-3 flex flex-col justify-center items-center">
+                  <p class="lookup-u-13 font-bold text-text-secondary mb-1">Trạng thái vé</p>
+                  <app-badge [variant]="statusVariant(ticket.TrangThaiVe)" [label]="ticket.TrangThaiVe" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Side: QR Code panel -->
+            <div class="ticket-qr w-full lookup-u-15 bg-gray-50 p-8 flex flex-col items-center justify-center text-center border-t md:border-t-0 md:border-l border-border-divider">
+              <div class="w-full flex flex-col items-center">
+                <div class="mb-3 space-y-1">
+                  <p class="lookup-u-13 font-bold text-text-secondary">Mã QR riêng của vé</p>
+                  <p class="text-xs font-bold text-text-strong">{{ ticket.MaQRVe }}</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
+                  <img [src]="getQrCodeUrl(ticket)" alt="Mã QR Vé" class="w-36 h-36 object-contain" [class.opacity-40]="ticket.TrangThaiVe === 'Đã hủy'">
+                </div>
+              </div>
+              <div class="w-full space-y-2 no-print">
+                <app-button variant="primary" class="lookup-action full-width"
+                  [disabled]="ticket.TrangThaiVe === 'Đã hủy' || (!!downloadingTicketCode && downloadingTicketCode !== ticket.MaVe)"
+                  [loading]="downloadingTicketCode === ticket.MaVe"
+                  (clicked)="downloadTicket(ticket)"
+                 >
+                  <span class="material-symbols-outlined text-base" aria-hidden="true">download</span> Tải vé
+                </app-button>
+                <app-button variant="danger" class="lookup-action full-width"
+                  [disabled]="isTicketCancelDisabled(ticket)"
+                  [title]="getCancelButtonTitle(ticket)"
+                  (clicked)="openCancelModal(ticket)"
+                 >
+                  <span class="material-symbols-outlined text-base">cancel</span> Hủy vé này
+                </app-button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Action buttons -->
+          <div class="flex justify-end gap-3 no-print">
+            <app-button variant="primary" class="lookup-action"
+              [disabled]="isReviewButtonDisabled"
+              (clicked)="openReviewModal()"
+             >
+              <span>Đánh giá dịch vụ</span>
+            </app-button>
+          </div>
+        </section>
+
+        <!-- ====== SECTION 3: MAPS & LIVE TRACKING ====== -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Left: Pickup Point Map -->
+          <div class="bg-white rounded-xl overflow-hidden custom-shadow border border-border-divider flex flex-col">
+            <div class="p-6 flex justify-between items-start">
+              <div>
+                <h3 class="text-text-strong text-lg font-bold flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">pin_drop</span>
+                  <span>Điểm đón khách</span>
+                </h3>
+                <p class="text-text-secondary text-xs font-normal mt-1">Ga Diêu Trì - Quốc lộ 1A, Diêu Trì, Tuy Phước, Bình Định</p>
+              </div>
+              <span class="lookup-u-16 border lookup-u-17 text-primary px-3 py-1 rounded-full lookup-u-13 font-bold flex items-center gap-1">
+                <span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">star</span> Điểm đón chính
+              </span>
+            </div>
+            <div class="flex-grow relative h-72 bg-gray-100">
+              <img alt="Map view" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAODScg0auC6TWWfjUa44GM-QaLgsIWw2kZpshDWCeW-JfaC4-jpoBisVCODNr6Yupv_DCnrUlWwnZcKII5SNlLqBgmeLN0oKSr4wy5x-au1Af1qYt9Pfp1NTw7n0hPX1z00HVemrXLb9UD28C_Qs-T-KGG8N2GcRk2xgm5V0hQEOCVX1MU-wdOw0zCXCWSF3xD_DpmtDGZY_N7dLRLUN_dmQDyhVP-uFfjE4cGQxLhAkWM4RpovgnP7l03TF7_3PCyzXtL2MezpkRX"/>
+              <div class="absolute inset-0 bg-primary/5 flex items-center justify-center">
+                <div class="bg-white p-2 rounded-full shadow-lg relative">
+                  <span class="w-3 h-3 bg-primary rounded-full absolute -top-1 -right-1 animate-ping"></span>
+                  <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">location_on</span>
+                </div>
+              </div>
+              <div class="absolute top-4 left-4 bg-primary text-white px-3 py-1.5 rounded-lg shadow-md font-bold lookup-u-13 flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-sm">schedule</span>
+                <span>Cần có mặt trước 15 phút</span>
+              </div>
+              <a class="absolute bottom-4 right-4 bg-primary text-white px-4 py-2.5 rounded-lg shadow-md font-bold text-xs flex items-center gap-2 hover:bg-primary-hover transition-all" href="https://www.google.com/maps/dir/?api=1&destination=Ga+Dieu+Tri" target="_blank" rel="noopener noreferrer">
+                <span class="material-symbols-outlined text-sm">explore</span> Chỉ đường đến điểm đón <span class="material-symbols-outlined text-xs">open_in_new</span>
+              </a>
+            </div>
+            <div class="p-4 border-t border-gray-100 bg-gray-50 lookup-u-13 text-text-secondary flex items-center gap-1 font-semibold">
+              <span class="material-symbols-outlined text-xs">info</span>
+              Mở Google Maps để xem đường đi từ vị trí của bạn đến điểm đón.
+            </div>
+          </div>
+
+          <!-- Right: Live Journey Tracking / Static Route Map -->
+          <div class="bg-white rounded-xl overflow-hidden custom-shadow border border-border-divider flex flex-col">
+            <div class="p-6 flex justify-between items-start">
+              <div>
+                <h3 class="text-text-strong text-lg font-bold flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">route</span>
+                  <span>Theo dõi hành trình</span>
+                </h3>
+                <p class="text-text-secondary text-xs font-normal mt-1">Biển số xe: <span class="font-bold text-text-strong">{{ currentOrder.BienSoXe }}</span></p>
+              </div>
+              <div class="flex items-center gap-1.5 px-2.5 py-0.5 bg-warning/10 text-warning rounded-full border border-warning/30" *ngIf="currentOrder.TrangThaiDonHang === 'Chờ khởi hành'">
+                <span class="lookup-u-13 font-bold">Chờ khởi hành</span>
+              </div>
+              <div class="flex items-center gap-1.5 px-2.5 py-0.5 bg-success/10 text-success rounded-full border border-success/30" *ngIf="currentOrder.TrangThaiDonHang !== 'Chờ khởi hành'">
+                <span class="lookup-u-13 font-bold">{{ currentOrder.TrangThaiDonHang }}</span>
+              </div>
+            </div>
+
+            <div class="flex-grow relative h-72 bg-gray-100 overflow-hidden" *ngIf="currentOrder.TrangThaiDonHang === 'Chờ khởi hành'">
+              <img alt="Planned Route Map" class="w-full h-full object-cover lookup-u-18" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUY8sePCKcsbbq7cPORYRwpsT0g-JEWVhn9XYnaEFizlV8NkuqB9ZINP07S9AlEaRV5ojC4foG5AMJA0_n8bX1z691xHMVXguY4C17gEle3RHy2gX2cW6klGI6mmSmP_9LtY7DbU_a1ghtafGasngBqVJLICy-AU2XQaegAglmGiz6qoXfohkxKE9nxNw_8U2VRLXFjIATj798S8FTuB96cN-WGbmwWWzjhf7k86n1OaMli-MwsVJlU62gRQQARcx_yYdrmho1xugA"/>
+              <div class="absolute inset-0 bg-black/45 flex flex-col items-center justify-center text-center p-6 space-y-2">
+                <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 shadow-md">
+                  <span class="material-symbols-outlined text-2xl">sensors_off</span>
+                </div>
+                <div class="space-y-1">
+                  <h4 class="text-white text-xs font-extrabold">Theo dõi trực tuyến (Live)</h4>
+                  <p class="text-white/80 lookup-u-13 leading-relaxed lookup-u-19 mx-auto">Hệ thống định vị GPS và theo dõi xe trực tuyến sẽ tự động kích hoạt khi xe bắt đầu di chuyển xuất bến.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex-grow relative h-72 bg-gray-100 overflow-hidden" *ngIf="currentOrder.TrangThaiDonHang !== 'Chờ khởi hành'">
+              <!-- Simulated Live Map View -->
+              <img alt="Map Live Route" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUY8sePCKcsbbq7cPORYRwpsT0g-JEWVhn9XYnaEFizlV8NkuqB9ZINP07S9AlEaRV5ojC4foG5AMJA0_n8bX1z691xHMVXguY4C17gEle3RHy2gX2cW6klGI6mmSmP_9LtY7DbU_a1ghtafGasngBqVJLICy-AU2XQaegAglmGiz6qoXfohkxKE9nxNw_8U2VRLXFjIATj798S8FTuB96cN-WGbmwWWzjhf7k86n1OaMli-MwsVJlU62gRQQARcx_yYdrmho1xugA"/>
+              <!-- Speed, ETA and position tags -->
+              <div class="absolute top-4 left-4 bg-red-600 text-white px-2 py-0.5 rounded lookup-u-20 font-extrabold animate-pulse flex items-center gap-1">
+                <span class="w-1.5 h-1.5 bg-white rounded-full"></span> LIVE
+              </div>
+              <div class="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-xs p-3 rounded-lg border border-border-divider/50 shadow-md grid grid-cols-3 gap-2 text-center lookup-u-13">
+                <div>
+                  <p class="text-text-secondary leading-none mb-1">VẬN TỐC</p>
+                  <p class="font-bold text-text-strong flex items-center justify-center gap-0.5">
+                    <span class="material-symbols-outlined text-xs text-blue-500">speed</span> 72 km/h
+                  </p>
+                </div>
+                <div class="border-l border-gray-200">
+                  <p class="text-text-secondary leading-none mb-1">DỰ KIẾN ĐẾN</p>
+                  <p class="font-bold text-secondary flex items-center justify-center gap-0.5">
+                    <span class="material-symbols-outlined text-xs">schedule</span> 05:45 AM
+                  </p>
+                </div>
+                <div class="border-l border-gray-200">
+                  <p class="text-text-secondary leading-none mb-1">VỊ TRÍ HIỆN TẠI</p>
+                  <p class="font-bold text-text-strong truncate flex items-center justify-center gap-0.5">
+                    <span class="material-symbols-outlined text-xs text-success">place</span> Đèo Cù Mông
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-3 border-t border-gray-100 bg-gray-50 flex justify-between items-center lookup-u-13 text-text-secondary">
+              <span class="flex items-center gap-1 font-semibold">
+                <span class="material-symbols-outlined text-xs text-primary">info</span>
+                Dự kiến xuất bến: {{ currentOrder.GioKhoiHanh }} {{ formatDisplayDate(currentOrder.DepartureDate) }}
+              </span>
+              <app-button variant="outline" class="lookup-action" (clicked)="shareJourneyLink()" *ngIf="currentOrder.TrangThaiDonHang !== 'Chờ khởi hành'">
+                <span class="material-symbols-outlined text-xs">share</span> Tạo liên kết chia sẻ
+              </app-button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ====== SECTION 4: DESTINATION UTILITIES ====== -->
+        <section class="space-y-6">
+          <div class="space-y-1">
+            <h2 class="text-text-strong text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">explore</span>
+              <span>Tiện ích tại điểm đến</span>
+            </h2>
+            <p class="text-text-secondary text-xs font-normal">Các dịch vụ hỗ trợ hành trình của bạn tại điểm trả khách Bến xe Miền Đông.</p>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Left Sidebar: Weather & AI Suggestions -->
+            <div class="lg:col-span-4 space-y-6">
+              <div class="bg-gradient-to-br lookup-u-21 lookup-u-22 border border-primary/10 rounded-xl p-5 flex items-center justify-between">
+                <div>
+                  <p class="lookup-u-13 font-bold text-primary">Thời tiết TP. HCM</p>
+                  <h4 class="text-3xl font-extrabold text-text-strong mt-1">26–31°C</h4>
+                  <p class="text-xs text-text-secondary mt-1">Mưa rào rải rác</p>
+                </div>
+                <div class="text-5xl animate-bounce">🌧️</div>
+              </div>
+
+              <div class="bg-gray-50 rounded-xl p-5 border border-border-divider">
+                <h4 class="text-xs font-bold text-text-strong mb-3 flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-primary lookup-u-11">smart_toy</span>
+                  <span>Gợi ý từ VIAGO AI</span>
+                </h4>
+                <div class="space-y-3 text-xs">
+                  <div class="flex items-start gap-2.5 bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                    <span class="material-symbols-outlined text-blue-500 text-lg mt-0.5">check_circle</span>
+                    <div>
+                      <p class="font-bold text-text-strong">Mang theo áo mưa hoặc ô</p>
+                      <p class="lookup-u-13 text-text-secondary mt-0.5">Dự báo thời tiết có khả năng xảy ra mưa rào rải rác vào buổi chiều và tối tại TP. HCM.</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-2.5 bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                    <span class="material-symbols-outlined text-blue-500 text-lg mt-0.5">check_circle</span>
+                    <div>
+                      <p class="font-bold text-text-strong">Sử dụng túi chống nước cho balo</p>
+                      <p class="lookup-u-13 text-text-secondary mt-0.5">Bảo vệ các thiết bị điện tử và giấy tờ quan trọng tránh khỏi độ ẩm cao hoặc những cơn mưa bất chợt.</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-2.5 bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                    <span class="material-symbols-outlined text-blue-500 text-lg mt-0.5">check_circle</span>
+                    <div>
+                      <p class="font-bold text-text-strong">Chuẩn bị sạc dự phòng cầm tay</p>
+                      <p class="lookup-u-13 text-text-secondary mt-0.5">Đảm bảo điện thoại luôn duy trì nguồn pin để liên hệ với người thân hoặc tài xế trung chuyển khi xe cập bến.</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-2.5 bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                    <span class="material-symbols-outlined text-blue-500 text-lg mt-0.5">check_circle</span>
+                    <div>
+                      <p class="font-bold text-text-strong">Đặt xe taxi / xe máy đón trước</p>
+                      <p class="lookup-u-13 text-text-secondary mt-0.5">Bến xe Miền Đông mới nằm khá xa khu vực trung tâm thành phố. Bạn nên đặt xe trước 15-20 phút khi xe chuẩn bị cập bến.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Content: Hotels & Transportation -->
+            <div class="lg:col-span-8 space-y-6">
+              <!-- Hotels List -->
+              <div>
+                <div class="flex justify-between items-center mb-3">
+                  <h3 class="text-text-strong text-base font-bold">Khách sạn gần Bến xe Miền Đông</h3>
+                  <a [href]="getDestinationBookingLink()" target="_blank" class="text-primary hover:underline text-xs font-bold flex items-center gap-0.5">
+                    <span>Xem tất cả</span>
+                    <span class="material-symbols-outlined text-sm font-bold">chevron_right</span>
+                  </a>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <!-- Hotel Card 1 -->
+                  <div class="bg-white rounded-xl overflow-hidden border border-border-divider custom-shadow hover:-translate-y-1 transition-transform group">
+                    <div class="h-28 bg-gray-100 overflow-hidden">
+                      <img alt="Aurora Hotel" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgHmWMpxxEQOkkHPsDKrXm_VQfAtPv1IwirKrrcK-j67AnVRCcRf_0B9FLr_Yrv3GroV04EIR4YN5hASl_lLjqiuI__akwGzCBdZw2e3Vqu_DE5J2290WRZFfXXrT36II6hkiWIT3Nj_V0Wzf8tsK2Bo2aC10fzllDwfVhkYYXmJBFIyrk553GvK2dxvXCU5Xl_ASk9KGV3GV_LBFAWFYYzq5Rt5qpqLwc8tXdhRQHLypsYFdpb87ZK_rhmSnbODyPrwVNNdYJVNm3"/>
+                    </div>
+                    <div class="p-3 space-y-2">
+                      <div class="flex justify-between items-start">
+                        <h5 class="font-bold text-xs text-text-strong truncate">Aurora Hotel</h5>
+                        <div class="flex items-center gap-0.5 text-secondary font-bold lookup-u-13">
+                          <span class="material-symbols-outlined lookup-u-13" style="font-variation-settings: 'FILL' 1;">star</span> 4.8
+                        </div>
+                      </div>
+                      <p class="lookup-u-13 text-text-secondary">Cách bến xe 500m</p>
+                      <a class="block text-center py-1.5 rounded-lg bg-gray-50 text-primary font-bold lookup-u-13 hover:bg-primary hover:text-white transition-colors" href="https://www.booking.com/searchresults.vi.html?ss=Aurora+Hotel" target="_blank">Đặt ngay Booking.com</a>
+                    </div>
+                  </div>
+
+                  <!-- Hotel Card 2 -->
+                  <div class="bg-white rounded-xl overflow-hidden border border-border-divider custom-shadow hover:-translate-y-1 transition-transform group">
+                    <div class="h-28 bg-gray-100 overflow-hidden">
+                      <img alt="Saigon Riverside" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBoHCW2p-9KJAFre-DrZL0SZreE2QMdWag6VncXaVLYUON2d8MiGp1jR3ZwFXX0VXFuUY5CekLDK6KzY75Yoj9zRZDvvCNFbzs8VQ0GeOdD5UAnC2M9RTnPj3jwBKjzSIU6yjywGbAA5Ui7RQT_f14H3CSVDJl1uBG1BhULoPd9Toq_HQkin7viKBHwVWNoRZdzyqKSaH-35OciM4E_OaNoaqmYF4c2Vv0inqCQdWbADk2XpT6V6QbA0swDVXuygovc1lrD7AlV7Uso"/>
+                    </div>
+                    <div class="p-3 space-y-2">
+                      <div class="flex justify-between items-start">
+                        <h5 class="font-bold text-xs text-text-strong truncate">Saigon Riverside</h5>
+                        <div class="flex items-center gap-0.5 text-secondary font-bold lookup-u-13">
+                          <span class="material-symbols-outlined lookup-u-13" style="font-variation-settings: 'FILL' 1;">star</span> 4.5
+                        </div>
+                      </div>
+                      <p class="lookup-u-13 text-text-secondary">Cách bến xe 1.2km</p>
+                      <a class="block text-center py-1.5 rounded-lg bg-gray-50 text-primary font-bold lookup-u-13 hover:bg-primary hover:text-white transition-colors" href="https://www.booking.com/searchresults.vi.html?ss=Saigon+Riverside" target="_blank">Đặt ngay Booking.com</a>
+                    </div>
+                  </div>
+
+                  <!-- Hotel Card 3 -->
+                  <div class="bg-white rounded-xl overflow-hidden border border-border-divider custom-shadow hover:-translate-y-1 transition-transform group">
+                    <div class="h-28 bg-gray-100 overflow-hidden">
+                      <img alt="Grand Central" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUY8sePCKcsbbq7cPORYRwpsT0g-JEWVhn9XYnaEFizlV8NkuqB9ZINP07S9AlEaRV5ojC4foG5AMJA0_n8bX1z691xHMVXguY4C17gEle3RHy2gX2cW6klGI6mmSmP_9LtY7DbU_a1ghtafGasngBqVJLICy-AU2XQaegAglmGiz6qoXfohkxKE9nxNw_8U2VRLXFjIATj798S8FTuB96cN-WGbmwWWzjhf7k86n1OaMli-MwsVJlU62gRQQARcx_yYdrmho1xugA"/>
+                    </div>
+                    <div class="p-3 space-y-2">
+                      <div class="flex justify-between items-start">
+                        <h5 class="font-bold text-xs text-text-strong truncate">Grand Central</h5>
+                        <div class="flex items-center gap-0.5 text-secondary font-bold lookup-u-13">
+                          <span class="material-symbols-outlined lookup-u-13" style="font-variation-settings: 'FILL' 1;">star</span> 4.9
+                        </div>
+                      </div>
+                      <p class="lookup-u-13 text-text-secondary">Cách bến xe 800m</p>
+                      <a class="block text-center py-1.5 rounded-lg bg-gray-50 text-primary font-bold lookup-u-13 hover:bg-primary hover:text-white transition-colors" href="https://www.booking.com/searchresults.vi.html?ss=Grand+Central" target="_blank">Đặt ngay Booking.com</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Transportation suggestions -->
+              <div class="space-y-3 mt-6">
+                <h3 class="text-text-strong text-base font-bold">Phương tiện di chuyển tiếp nối</h3>
+                <div class="bg-white rounded-xl border border-border-divider overflow-hidden divide-y divide-gray-100 custom-shadow">
+                  <!-- VIAGO Shuttles -->
+                  <div class="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer group text-sm">
+                    <div class="flex items-center gap-4">
+                      <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined lookup-u-23">airport_shuttle</span>
+                      </div>
+                      <div>
+                        <p class="font-bold text-text-strong text-sm">Xe trung chuyển VIAGO (Khuyên dùng)</p>
+                        <p class="text-xs text-text-secondary">Liên hệ tổng đài nhà xe để đăng ký thay đổi bến trả mong muốn</p>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <p class="font-bold text-primary text-base">Miễn phí (VIP)</p>
+                      <a href="tel:19001234" class="text-xs text-secondary font-bold group-hover:underline flex items-center gap-1 justify-end">
+                        <span class="material-symbols-outlined text-xs">call</span> Gọi tổng đài
+                      </a>
+                    </div>
+                  </div>
+
+                  <!-- Tech Taxi -->
+                  <div class="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer group text-sm">
+                    <div class="flex items-center gap-4">
+                      <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined lookup-u-23">local_taxi</span>
+                      </div>
+                      <div>
+                        <p class="font-bold text-text-strong text-sm">Taxi đối tác liên kết (Nhà xe không tự cung cấp)</p>
+                        <p class="text-xs text-text-secondary">Quý khách vui lòng gọi tổng đài hãng taxi đối tác tại bến xe</p>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <p class="font-bold text-primary text-base">Theo đồng hồ xe</p>
+                      <a href="tel:1055" class="text-xs text-secondary font-bold group-hover:underline flex items-center gap-1 justify-end">
+                        <span class="material-symbols-outlined text-xs">call</span> Gọi Mai Linh
+                      </a>
+                    </div>
+                  </div>
+
+                  <!-- Car Rental -->
+                  <div class="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer group text-sm">
+                    <div class="flex items-center gap-4">
+                      <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined lookup-u-23">directions_car</span>
+                      </div>
+                      <div>
+                        <p class="font-bold text-text-strong text-sm">Thuê xe hợp đồng 7 chỗ (Đơn vị liên kết đối tác)</p>
+                        <p class="text-xs text-text-secondary">Dịch vụ xe riêng của đối tác. Quý khách vui lòng liên hệ hotline để nhận báo giá</p>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <p class="font-bold text-primary text-base">Theo hợp đồng</p>
+                      <a href="tel:19001234" class="text-xs text-secondary font-bold group-hover:underline flex items-center gap-1 justify-end">
+                        <span class="material-symbols-outlined text-xs">call</span> Gọi hotline đối tác
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- end results -->
+    </div>
+  </main>
+
+  <!-- ====== MODAL: EDIT ORDER ====== -->
+  <app-modal (keydown.escape)="$event.stopPropagation()" *ngIf="showEditModal && currentOrder" [open]="true" size="large" title="Chỉnh sửa thông tin đơn hàng"
+     [confirmMode]="true" [danger]="false" [loading]="isLoading"
+    [closeOnBackdrop]="false" confirmText="Lưu thay đổi" cancelText="Hủy" [disableConfirm]="isEditSaveDisabled()"
+    (closed)="closeEditOrderModal()" (confirmed)="saveEditChanges()">
+    <div class="lookup-modal-content">
+        <div class="lookup-edit-grid">
+          <app-input label="Mã đơn hàng" [id]="'edit-order-code'" [value]="currentOrder.MaDonHang" [readonly]="true" />
+          <app-input label="Họ tên người đặt" [id]="'edit-full-name'" placeholder="Nhập họ tên đầy đủ"
+            [required]="true" [value]="editFullName" (valueChange)="editFullName = $event"
+            [error]="editFieldErrors['HoTenNguoiDi'] || ''" />
+          <app-input label="Số điện thoại" type="tel" [id]="'edit-phone'" placeholder="Nhập số điện thoại"
+            [required]="true" [value]="editPhone" (valueChange)="editPhone = $event"
+            [error]="editFieldErrors['SoDienThoai'] || ''" />
+          <app-input label="Email" type="email" [id]="'edit-email'" placeholder="Nhập email (không bắt buộc)"
+            [value]="editEmail" (valueChange)="editEmail = $event" />
+          <!-- Điểm đón dropdown -->
+          <div>
+            <app-searchable-dropdown label="Điểm đón khách" [id]="'edit-pickup'"
+              [items]="locationOptions" bindLabel="TenDiem" bindValue="MaDiem"
+              [value]="editMaDiemDon" (selected)="selectDiemDon($event)" />
+            <p *ngIf="editFieldErrors['MaDiemDon']" class="field-error">{{ editFieldErrors['MaDiemDon'] }}</p>
+          </div>
+          <!-- Điểm trả dropdown -->
+          <div>
+            <app-searchable-dropdown label="Điểm trả khách" [id]="'edit-dropoff'"
+              [items]="locationOptions" bindLabel="TenDiem" bindValue="MaDiem"
+              [value]="editMaDiemTra" (selected)="selectDiemTra($event)" />
+            <p *ngIf="editFieldErrors['MaDiemTra']" class="field-error">{{ editFieldErrors['MaDiemTra'] }}</p>
+          </div>
+        </div>
+        <div class="mt-2 pt-4 border-t border-border-divider">
+          <div class="flex items-center gap-2 text-warning font-bold text-xs"
+               [class.text-error]="getEditRemaining() === 0">
+            <span class="material-symbols-outlined">warning</span>
+            <span>Lưu ý: Bạn còn {{ getEditRemaining() }}/{{ getEditLimit() }} lần chỉnh thông tin cho đơn hàng này.</span>
+          </div>
+        </div>
+      </div>
+  </app-modal>
+
+  <!-- ====== MODAL: EDIT CONFIRMATION SUMMARY ====== -->
+  <app-modal (keydown.escape)="$event.stopPropagation()" *ngIf="showEditConfirmationSummary && currentOrder" [open]="true" size="medium" title="Xác nhận thay đổi"
+    class="modal-confirm-layer" [confirmMode]="true" [danger]="false" [loading]="isLoading"
+    [closeOnBackdrop]="false" confirmText="Xác nhận lưu" cancelText="Quay lại sửa" [disableConfirm]="false"
+    (closed)="closeEditConfirmationSummary()" (confirmed)="confirmAndSaveEdit()">
+    <div class="lookup-modal-content">
+        <p class="text-text-secondary text-sm">Vui lòng kiểm tra lại các mục bên dưới trước khi xác nhận lưu.</p>
+        <div class="space-y-3">
+          <div *ngFor="let change of editChangeSummary" class="rounded-2xl border border-border-divider bg-background p-4">
+            <div class="font-semibold text-text-strong text-sm">{{ change.field }}</div>
+            <div class="grid gap-4 sm:grid-cols-2 mt-3 text-xs">
+              <div class="space-y-1">
+                <div class="lookup-u-13 text-text-secondary">Thông tin cũ</div>
+                <div class="font-medium text-text-strong line-through">{{ change.oldValue || 'Không có' }}</div>
+              </div>
+              <div class="space-y-1">
+                <div class="lookup-u-13 text-text-secondary">Thông tin mới</div>
+                <div class="font-bold text-primary">{{ change.newValue || 'Không có' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  </app-modal>
+
+  <!-- ====== MODAL: CANCEL TICKET ====== -->
+  <app-modal (keydown.escape)="$event.stopPropagation()" *ngIf="showCancelModal && currentOrder && selectedCancelTicket" [open]="true" size="medium" title="Hủy vé"
+     [confirmMode]="true" [danger]="true" [loading]="isLoading"
+    [closeOnBackdrop]="false" confirmText="Tiếp tục" cancelText="Đóng" [disableConfirm]="false"
+    (closed)="closeCancelModal()" (confirmed)="openCancelConfirmModal()">
+    <div class="lookup-modal-content">
+        <div class="flex items-start gap-3 bg-warning/10 border border-warning/30 p-4 rounded-xl">
+          <span class="material-symbols-outlined text-warning lookup-u-3">warning</span>
+          <p class="text-text-strong text-xs font-semibold leading-relaxed">
+            Bạn sắp hủy vé <span class="font-bold">{{ selectedCancelTicket.MaVe }}</span> ghế <span class="font-bold">{{ selectedCancelTicket.SoGhe }}</span> thuộc đơn hàng <span class="font-bold">{{ currentOrder.MaDonHang }}</span>. Vui lòng đọc kỹ chính sách hoàn tiền trước khi xác nhận.
+          </p>
+        </div>
+
+        <div class="space-y-3">
+          <h4 class="font-bold text-primary text-xs">Chính sách hủy vé và hoàn tiền</h4>
+          <ul class="list-disc list-inside text-xs text-text-secondary space-y-1">
+            <li *ngFor="let policy of cancelPolicies" class="font-medium">
+              <span class="font-bold text-text-strong">{{ policy.title }}</span>: {{ policy.description }}
+            </li>
+          </ul>
+
+          <app-select label="Lý do hủy vé" [id]="'cancel-reason'" [options]="cancelReasonOptions"
+            [value]="selectedCancelReason" (valueChange)="selectedCancelReason = $event" />
+
+          <div class="bg-background p-4 rounded-xl border border-border-divider text-xs">
+            <div class="flex justify-between py-1">
+              <span class="text-text-secondary">Mã vé:</span>
+              <span class="font-bold text-text-strong">{{ selectedCancelTicket.MaVe }}</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-text-secondary">Số ghế:</span>
+              <span class="font-bold text-text-strong">{{ selectedCancelTicket.SoGhe }}</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-text-secondary">Giá vé ban đầu:</span>
+              <span class="font-bold text-text-strong">{{ formatPrice(getSelectedCancelTicketPrice()) }}</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-text-secondary">Phí hủy:</span>
+              <span class="font-bold text-error">- {{ formatPrice(getRefundFee()) }}</span>
+            </div>
+            <div class="flex justify-between py-1 border-t border-dashed border-border-divider mt-2 pt-2">
+              <span class="text-text-strong font-bold">Số tiền thực nhận:</span>
+              <span class="font-bold text-success">{{ formatPrice(getRefundAmount()) }}</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-text-secondary">Phương thức nhận tiền:</span>
+              <span class="font-bold text-text-strong">{{ currentOrder.PhuongThucThanhToan }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+  </app-modal>
+
+  <!-- ====== MODAL: CANCEL CONFIRM (tách riêng, z-[90]) ====== -->
+  <app-modal (keydown.escape)="$event.stopPropagation()" *ngIf="showCancelConfirmModal && currentOrder && selectedCancelTicket" [open]="true" size="small" title="Xác nhận hủy vé"
+    class="modal-confirm-layer" [confirmMode]="true" [danger]="true" [loading]="isLoading"
+    [closeOnBackdrop]="false" confirmText="Xác nhận hủy" cancelText="Quay lại" [disableConfirm]="false"
+    (closed)="closeCancelConfirmModal()" (confirmed)="confirmCancelTicket()">
+    <div class="lookup-modal-content">
+        <span class="material-symbols-outlined text-error text-5xl block">help</span>
+        <p class="text-text-strong text-sm font-semibold">Bạn có chắc chắn muốn hủy vé {{ selectedCancelTicket.MaVe }} không?</p>
+        <p class="text-text-secondary text-xs">Hành động này không thể được hoàn tác. Vé sẽ được chuyển thành trạng thái "Đã hủy".</p>
+      </div>
+  </app-modal>
+
+  <!-- ====== MODAL: PRINT TICKET ====== -->
+  <div role="dialog" aria-modal="true" aria-label="Vé điện tử" class="fixed inset-0 lookup-u-32 bg-black/60 backdrop-blur-sm flex items-start justify-center overflow-y-auto px-4 py-6 print-modal-overlay" *ngIf="showPrintModal && printTicket && currentOrder" (click)="$event.stopPropagation()">
+    <div class="bg-white rounded-2xl shadow-xl w-full lookup-u-31 overflow-hidden border border-border-divider mx-4 transform transition-all scale-100 duration-300 flex flex-col print-modal-card" (click)="$event.stopPropagation()">
+      <!-- Header -->
+      <div class="flex justify-between items-center px-6 py-4 border-b border-border-divider bg-background flex-shrink-0 no-print">
+        <h3 class="text-primary text-base font-extrabold">Vé điện tử</h3>
+        <app-button variant="ghost" class="lookup-action" [iconOnly]="true" ariaLabel="Đóng bản xem trước" (clicked)="closePrintModal()">
+          <span class="material-symbols-outlined lookup-u-23">close</span>
+        </app-button>
+      </div>
+      <!-- Body (Printable thermal receipt) -->
+      <div class="p-6 overflow-y-auto flex-grow bg-background flex justify-center print-modal-body">
+        <!-- Thermal Ticket Container -->
+        <div id="print-ticket-content" class="bg-white p-6 w-full lookup-u-33 shadow-sm border border-border-divider text-xs font-mono text-text-primary space-y-4 relative select-none">
+          <!-- Brand Header -->
+          <div class="text-center space-y-1">
+            <h4 class="text-sm font-black text-text-strong">CÔNG TY TNHH VIAGO</h4>
+            <p class="lookup-u-13 leading-tight text-text-secondary">669 Đỗ Mười, khu phố 13, Linh Xuân, TPHCM</p>
+            <p class="lookup-u-13 text-text-secondary">MST: 0317654321</p>
+            <div class="h-px border-b border-dashed border-border-divider my-2"></div>
+            <h5 class="text-sm font-extrabold text-text-strong">VÉ XE KHÁCH</h5>
+            <p class="lookup-u-13 text-text-secondary italic">Liên: Giao cho hành khách</p>
+          </div>
+
+          <div class="h-px border-b border-dashed border-border-divider my-2"></div>
+
+          <!-- Ticket details grid with QR on right -->
+          <div class="flex justify-between items-start gap-4">
+            <!-- Details List -->
+            <div class="space-y-1.5 flex-grow text-left">
+              <p><span class="text-text-secondary">Mã đơn hàng:</span> <span class="font-bold text-text-strong">{{ currentOrder.MaDonHang }}</span></p>
+              <p><span class="text-text-secondary">Họ tên khách:</span> <span class="font-bold text-text-strong">{{ currentOrder.HoTenNguoiDi }}</span></p>
+              <p><span class="text-text-secondary">Mã vé:</span> <span class="font-bold text-text-strong">{{ printTicket.MaVe }}</span></p>
+              <p><span class="text-text-secondary">Tuyến xe:</span> <span class="font-bold text-text-strong">{{ currentOrder.TenTuyen }}</span></p>
+              <p><span class="text-text-secondary">Khởi hành:</span> <span class="font-bold text-text-strong">{{ currentOrder.GioKhoiHanh }} {{ formatDisplayDate(currentOrder.DepartureDate) }}</span></p>
+              <p><span class="text-text-secondary">Số ghế:</span> <span class="font-bold text-primary text-sm">{{ printTicket.SoGhe }}</span></p>
+              <p><span class="text-text-secondary">Điểm đón:</span> <span class="font-bold text-text-strong">{{ printTicket.DiemDon }}</span></p>
+              <p><span class="text-text-secondary">Điểm trả:</span> <span class="font-bold text-text-strong">{{ printTicket.DiemTra }}</span></p>
+              <p><span class="text-text-secondary">Biển số xe:</span> <span class="font-bold text-text-strong">{{ printTicket.BienSoXe }}</span></p>
+              <p><span class="text-text-secondary">Giá vé:</span> <span class="font-extrabold text-text-strong text-sm">{{ formatPrice(printTicket.GiaVe) }}</span></p>
+            </div>
+            <!-- QR Code -->
+            <div class="flex-shrink-0 w-24 h-24 border border-border-divider p-1 rounded bg-white flex items-center justify-center">
+              <img [src]="getQrCodeUrl(printTicket)" alt="QR Code" class="w-full h-full object-contain">
+            </div>
+          </div>
+
+          <div class="h-px border-b border-dashed border-border-divider my-2"></div>
+
+          <!-- Footer scanner instruction -->
+          <div class="text-center space-y-1 lookup-u-20 text-text-secondary leading-tight">
+            <p>Quét mã QR tại cổng soát vé để lên xe</p>
+            <p class="font-bold text-text-strong">Tổng đài hỗ trợ: 1900 1234</p>
+          </div>
+        </div>
+      </div>
+      <!-- Footer Actions -->
+      <div class="flex justify-end gap-3 px-6 py-4 bg-background border-t border-border-divider flex-shrink-0 no-print lookup-ticket-actions">
+        <app-button variant="outline" class="lookup-action" (clicked)="closePrintModal()">Đóng</app-button>
+        <app-button variant="outline" class="lookup-action" (clicked)="doPrint()">
+          <span class="material-symbols-outlined text-sm">print</span>
+          In vé
+        </app-button>
+        <app-button variant="primary" class="lookup-action" [loading]="downloadingTicketCode === printTicket.MaVe"
+          [disabled]="!!downloadingTicketCode && downloadingTicketCode !== printTicket.MaVe" (clicked)="downloadTicket(printTicket)">
+          <span class="material-symbols-outlined text-sm" aria-hidden="true">download</span> Tải vé
+        </app-button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ====== MODAL: REVIEW & RATING ====== -->
+  <app-modal (keydown.escape)="$event.stopPropagation()" *ngIf="showReviewModal && currentOrder" [open]="true" size="medium" title="Đánh giá chuyến đi"
+     [confirmMode]="true" [danger]="false" [loading]="isLoading"
+    [closeOnBackdrop]="false" confirmText="Gửi đánh giá" cancelText="Hủy bỏ" [disableConfirm]="isReviewSubmitDisabled"
+    (closed)="closeReviewModal()" (confirmed)="submitReview()">
+    <div class="lookup-modal-content">
+        <p class="text-text-secondary text-xs font-medium">Vui lòng chấm điểm cho các dịch vụ của chuyến đi và gửi đánh giá của bạn.</p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div *ngFor="let criteria of ratingCriteria; let i = index" class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-text-strong">{{ criteria.Label }}</label>
+            <div class="flex items-center gap-1">
+              <button type="button" *ngFor="let star of [1,2,3,4,5]" class="rating-star"
+                    [class.is-selected]="criteria.Score >= star" [attr.aria-label]="criteria.Label + ': ' + star + ' sao'"
+                    [attr.aria-pressed]="criteria.Score === star" (click)="setRating(i, star)">
+                <span class="material-symbols-outlined" aria-hidden="true">star</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <app-textarea label="Nhận xét thêm" [id]="'reviewComment'" [rows]="3"
+          placeholder="Chia sẻ thêm trải nghiệm của bạn..." [value]="reviewComment"
+          (valueChange)="reviewComment = $event; reviewFieldError = ''" [error]="reviewFieldError" />
+
+        <div class="flex flex-col gap-1.5 mt-2">
+          <label for="review-files" class="text-xs font-medium text-text-strong">Hình ảnh/video đính kèm (tối đa 3)</label>
+          <input id="review-files" type="file" accept="image/*,video/*" multiple (change)="onReviewFilesSelected($event)" [disabled]="reviewFiles.length >= 3"
+            class="block w-full text-xs text-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-secondary-hover/10 file:text-secondary hover:file:bg-secondary/10"/>
+          <div class="flex flex-wrap gap-2 mt-1">
+            <div *ngFor="let file of reviewFiles; let i = index" class="flex items-center gap-2 bg-background border border-border-divider rounded-lg px-3 py-1 text-xs">
+              <span class="material-symbols-outlined text-lg text-text-secondary">attach_file</span>
+              <span class="truncate lookup-u-34">{{ file.name }}</span>
+              <app-button variant="danger" class="lookup-action" (clicked)="removeReviewFile(i)">X</app-button>
+            </div>
+          </div>
+        </div>
+
+        
+      </div>
+  </app-modal>
+
+  <!-- ====== MODAL: SHARE JOURNEY ====== -->
+  <app-modal (keydown.escape)="$event.stopPropagation()" *ngIf="showShareModal && currentOrder" [open]="true" size="small" title="Chia sẻ hành trình"
+     [confirmMode]="true" [danger]="false" [loading]="isLoading"
+    [closeOnBackdrop]="false" confirmText="Sao chép liên kết" cancelText="Đóng" [disableConfirm]="false"
+    (closed)="showShareModal = false" (confirmed)="copyShareUrl()">
+    <div class="lookup-modal-content">
+        <p class="text-text-secondary text-xs font-semibold leading-relaxed">
+          Gửi liên kết hoặc mã QR dưới đây cho người thân để họ có thể theo dõi thời gian thực vị trí, vận tốc và lộ trình di chuyển của xe.
+        </p>
+
+        <!-- QR Code -->
+        <div class="flex flex-col items-center justify-center border border-border-divider p-4 rounded-xl bg-white shadow-xs">
+          <img [src]="shareQrUrl" alt="QR Code Định vị" class="w-36 h-36 object-contain">
+          <p class="lookup-u-13 text-text-secondary mt-2 font-medium">Quét QR để xem trên điện thoại</p>
+        </div>
+
+        <!-- Copy link field -->
+        <div class="space-y-1.5">
+          
+          <div class="flex">
+            <app-input label="Đường dẫn chia sẻ" [id]="'share-link'" [value]="shareUrl" [readonly]="true" />
+            
+          </div>
+        </div>
+      </div>
+  </app-modal>
+
+  <!-- ====== TOP-RIGHT TOAST ====== -->
+  <app-toast *ngIf="toastMessage" class="lookup-toast no-print"
+    [variant]="toastType" [message]="toastMessage" (closed)="closeToast()" />
+</div>

@@ -37,7 +37,6 @@ import { ActivityLogs } from './featured/admin/activity-logs/activity-logs';
 // Customer components
 import { Home as CustomerHome } from './featured/customer/home/home';
 import { Schedule } from './featured/customer/schedule/schedule';
-import { TicketLookup } from './featured/customer/ticket-lookup/ticket-lookup';
 import { News } from './featured/customer/news/news';
 import { NewsDetail } from './featured/customer/news/news-detail/news-detail';
 import { Invoice } from './featured/customer/invoice/invoice';
@@ -67,6 +66,9 @@ import { DetailedReportComponent } from './featured/admin/reports/detailed-repor
 import { RouteReportComponent } from './featured/admin/reports/route-report/route-report';
 import { LostAndFound } from './featured/customer/services/lost-and-found/lost-and-found';
 
+const loadNewBooking = () => import('./featured/admin/booking/new-booking/new-booking').then(m => m.NewBooking);
+const loadBookingManagement = () => import('./featured/admin/booking/booking-management/booking-management').then(m => m.BookingManagement);
+
 export const routes: Routes = [
   {
     path: 'admin',
@@ -75,6 +77,15 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', loadComponent: () => import('./featured/admin/home/home').then(m => m.Home) },
       { path: 'home', component: AdminHome },
+      { path: 'tickets/new', loadComponent: loadNewBooking },
+      { path: 'tickets/list', loadComponent: loadBookingManagement },
+      { path: 'booking/new', loadComponent: loadNewBooking },
+      { path: 'booking/management', loadComponent: loadBookingManagement },
+      { path: 'datve/moi', loadComponent: loadNewBooking },
+      { path: 'datve/danhsach', loadComponent: loadBookingManagement },
+      { path: 'dispatch/drivers', loadComponent: () => import('./featured/admin/dispatch/drivers-assistants/drivers-assistants').then(m => m.DriversAssistants) },
+      { path: 'customers/reviews', loadComponent: () => import('./featured/admin/customers/reviews-feedback/reviews-feedback').then(m => m.ReviewsFeedback) },
+      { path: 'reports/cancellations', loadComponent: () => import('./featured/admin/reports/cancellation-report/cancellation-report').then(m => m.CancellationReport) },
       { path: 'dispatch/pickup', component: PickupDropoffComponent },
       { path: 'dispatch/vehicles', component: VehiclesComponent },
       { path: 'dispatch/drivers-assistants', component: DriversAssistantsComponent },
@@ -128,7 +139,7 @@ export const routes: Routes = [
       { path: 'dieu-khoan', loadComponent: () => import('./featured/customer/about/terms/terms').then(m => m.Terms) },
       { path: '', component: CustomerHome },
       { path: 'lich-trinh', component: Schedule },
-      { path: 'tra-cuu-ve', component: TicketLookup },
+      { path: 'tra-cuu-ve', loadComponent: () => import('./featured/customer/ticket-lookup/ticket-lookup').then(m => m.TicketLookup) },
       { path: 'tin-tuc', component: News },
       { path: 'tin-tuc/:id', component: NewsDetail },
       { path: 'hoa-don', component: Invoice },

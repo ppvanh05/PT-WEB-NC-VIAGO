@@ -1,5 +1,7 @@
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router } from '@angular/router';
 import { Router } from '@angular/router';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -30,6 +32,7 @@ export class AdminSidebar implements OnInit {
   private router = inject(Router);
 
   readonly isCollapsed = this.sidebarState.isCollapsed;
+  readonly activeRoute = signal(this.router.url.split(/[?#]/)[0]);
   readonly activeRoute = signal(this.router.url);
   readonly activeRoute = signal('/admin/home');
   readonly expandedItem = signal<string | null>(null);
@@ -89,6 +92,17 @@ export class AdminSidebar implements OnInit {
     { label: 'Quản lý nhật ký', icon: 'log', route: '/admin/logs' },
   ];
 
+  constructor() {
+    this.router.events.pipe(takeUntilDestroyed()).subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        const route = event.urlAfterRedirects.split(/[?#]/)[0];
+        this.activeRoute.set(route === '/admin/home' ? '/admin' : route);
+        const parent = this.menuItems.find(item => item.children?.some(child => child.route === route));
+        if (parent) this.expandedItem.set(parent.label);
+      }
+    });
+  }
+
   // Listen to router events if needed, but for now just set active route on init
   constructor() {
     this.router.events.subscribe(() => {
@@ -144,6 +158,7 @@ export class AdminSidebar implements OnInit {
     if (item.expandable) {
       this.toggleExpand(item.label);
     } else {
+      this.selectSubItem(item.route);
       this.activeRoute.set(item.route || '');
       if (item.route) this.router.navigateByUrl(item.route);
     } else if (item.route) {
@@ -154,6 +169,7 @@ export class AdminSidebar implements OnInit {
 
   selectSubItem(route: string | undefined): void {
     if (route) {
+      void this.router.navigateByUrl(route);
       this.activeRoute.set(route);
       this.router.navigateByUrl(route);
     }
