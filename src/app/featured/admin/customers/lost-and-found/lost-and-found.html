@@ -1,1 +1,801 @@
-<p>lost-and-found works!</p>
+<div class="news-page-container">
+  <!-- Premium Header Card Container -->
+  <div class="header-card-container">
+    <div class="header-titles">
+      <h1 class="main-title">Quản lý đồ thất lạc</h1>
+    </div>
+    
+    <!-- Info Banner & Create Button Box -->
+    <div class="header-action-banner" (click)="openCreateModal()" title="Nhấp để tiếp nhận yêu cầu mới">
+      <div class="action-icon-circle">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+      </div>
+      <div class="action-banner-text">
+        <h3>Tiếp nhận yêu cầu</h3>
+        <p>Ghi nhận thông tin hành lý thất lạc mới từ khách hàng báo mất.</p>
+      </div>
+    </div>
+
+    <!-- Statistics Dashboard Cards -->
+    <div class="stats-row">
+      <div class="stats-card purple-card">
+        <span class="stats-card-value">{{ totalItemsCount }}</span>
+        <span class="stats-card-label">Tổng số báo mất</span>
+      </div>
+      <div class="stats-card blue-card">
+        <span class="stats-card-value">{{ activeSearchingCount }}</span>
+        <span class="stats-card-label">Đang tìm kiếm</span>
+      </div>
+      <div class="stats-card green-card">
+        <span class="stats-card-value">{{ activeFoundCount }}</span>
+        <span class="stats-card-label">Đã tìm thấy</span>
+      </div>
+      <div class="stats-card orange-card">
+        <span class="stats-card-value">{{ activeReturnedCount }}</span>
+        <span class="stats-card-label">Đã trả khách</span>
+      </div>
+      <div class="stats-card red-card">
+        <span class="stats-card-value">{{ activeClosedCount }}</span>
+        <span class="stats-card-label">Đóng yêu cầu</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Dashboard Card -->
+  <div class="dashboard-card">
+    <div class="news-content-card">
+      <!-- Unified Filter Controls Container (Search + Sort + Pill Tabs in same container, no divider line) -->
+      <div class="filter-controls-container">
+        <!-- Row 1: Search, Route, Sort, Reset -->
+        <div class="controls-row">
+          <!-- 1. TÌM KIẾM -->
+          <div class="filter-col flex-2">
+            <label class="filter-group-lbl">TÌM KIẾM</label>
+            <div class="search-box-wrapper">
+              <input 
+                type="text" 
+                [(ngModel)]="searchText" 
+                (ngModelChange)="filterData()" 
+                placeholder="Tên khách, SĐT, mã vé, mô tả..." 
+                class="search-input" 
+                style="padding-left: 12px !important;" />
+            </div>
+          </div>
+
+          <!-- 2. LỌC TUYẾN XE -->
+          <div class="filter-col">
+            <label class="filter-group-lbl">TUYẾN XE</label>
+            <select [(ngModel)]="filterTuyenXe" (ngModelChange)="filterData()" class="filter-select">
+              <option value="Tất cả tuyến xe">Tất cả tuyến xe</option>
+              <option *ngFor="let route of routesList" [value]="route">{{ route }}</option>
+            </select>
+          </div>
+
+          <!-- 3. SẮP XẾP -->
+          <div class="filter-col filter-col-sort">
+            <label class="filter-group-lbl">SẮP XẾP</label>
+            <select [(ngModel)]="filterSort" (ngModelChange)="filterData()" class="filter-select">
+              <option value="Mới nhất">Mới nhất</option>
+              <option value="Cũ nhất">Cũ nhất</option>
+              <option value="Theo mô tả A-Z">Theo mô tả A-Z</option>
+              <option value="Theo mô tả Z-A">Theo mô tả Z-A</option>
+            </select>
+          </div>
+
+          <!-- 4. NÚT XÓA BỘ LỌC -->
+          <div class="filter-col filter-action-col">
+            <label class="filter-group-lbl" style="visibility: hidden;">ACTION</label>
+            <button type="button" class="btn-reset-filters" (click)="resetFilters()">
+              Xóa bộ lọc
+            </button>
+          </div>
+        </div>
+
+        <!-- Row 2: Status Pill Tabs (Inside same container, no divider line) -->
+        <div class="status-tabs-row">
+          <div class="pill-tabs">
+            <button 
+              type="button" 
+              class="pill-tab-item" 
+              [class.active]="filterTrangThai === 'Tất cả trạng thái' || filterTrangThai === 'Tất cả'" 
+              (click)="selectTab('Tất cả trạng thái')">
+              Tất cả ({{ totalItemsCount }})
+            </button>
+            <button 
+              type="button" 
+              class="pill-tab-item" 
+              [class.active]="filterTrangThai === 'Đang tìm kiếm'" 
+              (click)="selectTab('Đang tìm kiếm')">
+              Đang tìm kiếm ({{ activeSearchingCount }})
+            </button>
+            <button 
+              type="button" 
+              class="pill-tab-item" 
+              [class.active]="filterTrangThai === 'Đã tìm thấy'" 
+              (click)="selectTab('Đã tìm thấy')">
+              Đã tìm thấy ({{ activeFoundCount }})
+            </button>
+            <button 
+              type="button" 
+              class="pill-tab-item" 
+              [class.active]="filterTrangThai === 'Đã trả khách'" 
+              (click)="selectTab('Đã trả khách')">
+              Đã trả khách ({{ activeReturnedCount }})
+            </button>
+            <button 
+              type="button" 
+              class="pill-tab-item" 
+              [class.active]="filterTrangThai === 'Đóng yêu cầu'" 
+              (click)="selectTab('Đóng yêu cầu')">
+              Đóng yêu cầu ({{ activeClosedCount }})
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cards Grid of Lost & Found Items (9 Cards per page) -->
+      <div class="cards-grid" *ngIf="paginatedItems.length > 0">
+        <div class="lost-card" *ngFor="let item of paginatedItems">
+          <!-- Card Header: ID, Ticket Code & Status -->
+          <div class="lost-card-header">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="lost-card-id">{{ item.ma_do_that_lac }}</span>
+              <span *ngIf="item.ma_ve" class="category-badge" style="background-color: #e0f2fe; color: #0284c7; font-size: 11px; padding: 2px 6px;">Mã vé: {{ item.ma_ve }}</span>
+            </div>
+            <div class="status-pill" [ngClass]="{
+              'status-active': item.trang_thai === 'Đang tìm kiếm',
+              'status-scheduled': item.trang_thai === 'Đã tìm thấy',
+              'status-inactive': item.trang_thai === 'Đã trả khách',
+              'status-draft': item.trang_thai === 'Đóng yêu cầu'
+            }">
+              <span>{{ item.trang_thai }}</span>
+            </div>
+          </div>
+
+          <!-- Card Image -->
+          <div class="lost-card-img-container">
+            <img [src]="item.hinh_anh" alt="Vật phẩm" *ngIf="item.hinh_anh" />
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" *ngIf="!item.hinh_anh">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </div>
+
+          <!-- Card Body -->
+          <div class="lost-card-body">
+            <!-- Item Description -->
+            <div class="lost-card-desc" [title]="item.mo_ta_vat_pham">
+              {{ item.mo_ta_vat_pham }}
+            </div>
+
+            <!-- Route & Seat & Date (Formatted dd/mm/yyyy) -->
+            <div class="lost-card-meta">
+              <div class="lost-card-meta-row">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; color: #94a3b8;">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="category-badge" style="font-size: 11px; padding: 2px 6px;">{{ item.tuyen_xe }}</span>
+              </div>
+              <div class="lost-card-meta-row">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; color: #94a3b8;">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>Ngày đi: <strong>{{ formatDate(item.ngay_di_chuyen) }}</strong></span>
+                <span style="color: #cbd5e1;">|</span>
+                <span>Báo mất: <strong>{{ formatDate(item.ngay_bao_mat) }}</strong></span>
+                <span style="color: #cbd5e1;">|</span>
+                <span>Ghế: <strong>{{ item.vi_tri_ghe || 'N/A' }}</strong></span>
+              </div>
+            </div>
+
+            <!-- Customer Profile Info (Equal font size 12px across name, phone, email) -->
+            <div class="lost-card-customer">
+              <div>Khách hàng: {{ item.ten_khach_hang }}</div>
+              <div>SĐT: {{ item.so_dien_thoai }}</div>
+              <div>Email: {{ item.email }}</div>
+            </div>
+          </div>
+
+          <!-- Card Footer (Short Time + Date & Orange Edit Button) -->
+          <div class="lost-card-footer">
+            <span style="font-size: 11px; color: #64748b; font-weight: 500;">Cập nhật: {{ formatDateTime(item.ngay_cap_nhat) }}</span>
+            <button class="btn-card-edit" type="button" (click)="openEditModal(item)" aria-label="Xử lý yêu cầu">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              <span>Xử lý</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state inside cards area -->
+      <div *ngIf="paginatedItems.length === 0" class="empty-row-text">
+        <div class="empty-state-content" style="padding: 40px 0;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <p style="margin-top: 12px; color: #64748b;">Không tìm thấy yêu cầu thất lạc nào phù hợp với bộ lọc hiện tại.</p>
+        </div>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div class="pagination-footer">
+        <div class="pagination-info">
+          Hiển thị {{ filteredItems.length === 0 ? 0 : startIndex + 1 }} - {{ endIndex }} của {{ filteredItems.length }} yêu cầu
+        </div>
+        <div class="pagination-controls" *ngIf="totalPages > 1">
+          <button class="page-btn prev-btn" [disabled]="currentPage === 1" (click)="prevPage()" aria-label="Trang trước">
+            <svg class="pagination-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <button class="page-btn number-btn" *ngFor="let p of getPages()" [class.active-page]="p === currentPage" (click)="setPage(p)">
+            {{ p }}
+          </button>
+          <button class="page-btn next-btn" [disabled]="currentPage === totalPages" (click)="nextPage()" aria-label="Trang sau">
+            <svg class="pagination-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     CREATE MODAL (Form khai báo mất đồ)
+     ========================================== -->
+<div class="modal-backdrop-overlay" *ngIf="showCreateModal">
+  <div class="modal-main-container modal-md">
+    <div class="modal-header-panel">
+      <h2 class="modal-title-txt">Tiếp nhận yêu cầu tìm đồ thất lạc</h2>
+      <button class="btn-close-modal" (click)="closeCreateModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="modal-body-content">
+      <p class="desc-helper-txt" style="margin-bottom: 16px; font-size: 12.5px; color: #64748b; line-height: 1.5;">Điền chi tiết biểu mẫu khai báo dưới đây hoặc tra cứu từ mã vé để hỗ trợ trích xuất dữ liệu và tìm kiếm hành lý thất lạc.</p>
+
+      <!-- 0. Khung Tra cứu tự động theo Mã vé -->
+      <div class="form-group-unified" style="background: #f8fafc; padding: 14px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px;">
+        <label class="field-label-lbl" style="color: #0f172a; font-weight: 700;">Tra cứu tự động theo Mã vé (Nếu có)</label>
+        <div style="display: flex; gap: 10px; margin-top: 6px;">
+          <input 
+            type="text" 
+            [(ngModel)]="newItem.ma_ve" 
+            placeholder="Nhập mã vé để tra cứu (VD: VE00001, VE00002...)" 
+            class="form-input-control" 
+            style="flex: 1;" 
+            (keyup.enter)="lookupTicketInCreate()" />
+          <button type="button" class="btn-footer-secondary" (click)="lookupTicketInCreate()" style="display: flex; align-items: center; gap: 6px; white-space: nowrap; padding: 0 16px; height: 42px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <span>Tra cứu</span>
+          </button>
+        </div>
+        <small style="color: #64748b; font-size: 11.5px; margin-top: 6px; display: block; line-height: 1.4;">
+          💡 <em>Nhập mã vé và nhấn "Tra cứu" để tự động điền thông tin hành khách, tuyến xe, ngày đi và số ghế.</em>
+        </small>
+      </div>
+
+      <!-- 1. Mã vé (bắt buộc) -->
+      <div class="form-group-unified">
+        <label class="field-label-lbl">Mã vé liên quan <span class="required">*</span></label>
+        <input 
+          type="text" 
+          id="create-ma-ve"
+          [(ngModel)]="newItem.ma_ve" 
+          placeholder="Nhập mã vé (VD: VE00001...)" 
+          class="form-input-control" 
+          [class.border-red]="createFormSubmitted && !newItem.ma_ve?.trim()" />
+        <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.ma_ve?.trim()">
+          Vui lòng nhập mã vé
+        </div>
+      </div>
+
+      <!-- 2. Mô tả vật phẩm thất lạc (Rộng ra) -->
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Mô tả vật phẩm thất lạc <span class="required">*</span></label>
+        <textarea 
+          id="create-mo-ta"
+          rows="3"
+          [(ngModel)]="newItem.mo_ta_vat_pham" 
+          placeholder="Ví dụ: Ví da cá sấu đen, iPhone 14 Pro màu tím..." 
+          class="form-input-control" 
+          [class.border-red]="createFormSubmitted && !newItem.mo_ta_vat_pham?.trim()"></textarea>
+        <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.mo_ta_vat_pham?.trim()">
+          Vui lòng nhập mô tả vật phẩm thất lạc
+        </div>
+      </div>
+
+      <!-- 3. Tuyến xe & Ngày di chuyển & Ngày báo mất (Custom dd/mm/yyyy DatePicker) -->
+      <div style="display: flex; gap: 16px; margin-top: 16px;">
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Tuyến xe <span class="required">*</span></label>
+          <select 
+            id="create-tuyen-xe"
+            [(ngModel)]="newItem.tuyen_xe" 
+            class="form-input-control"
+            [class.border-red]="createFormSubmitted && !newItem.tuyen_xe">
+            <option value="" disabled selected>Chọn tuyến</option>
+            <option *ngFor="let r of routesList" [value]="r">{{ r }}</option>
+          </select>
+          <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.tuyen_xe">
+            Vui lòng chọn tuyến xe
+          </div>
+        </div>
+        
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Ngày di chuyển <span class="required">*</span></label>
+          <app-date-picker 
+            id="create-ngay-di"
+            [(ngModel)]="newItem.ngay_di_chuyen"
+            [showLunar]="false"
+            [showClear]="false">
+          </app-date-picker>
+          <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.ngay_di_chuyen">
+            Vui lòng chọn ngày di chuyển
+          </div>
+        </div>
+
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Ngày báo mất <span class="required">*</span></label>
+          <app-date-picker 
+            id="create-ngay-bao-mat"
+            [(ngModel)]="newItem.ngay_bao_mat"
+            [showLunar]="false"
+            [showClear]="false">
+          </app-date-picker>
+          <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.ngay_bao_mat">
+            Vui lòng chọn ngày báo mất
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Số ghế / vị trí phòng -->
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Số ghế / vị trí phòng (nếu nhớ)</label>
+        <input 
+          type="text" 
+          [(ngModel)]="newItem.vi_tri_ghe" 
+          placeholder="Ví dụ: Phòng A12, số ghế 5..." 
+          class="form-input-control" />
+      </div>
+
+      <!-- 5. Họ tên hành khách -->
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Họ tên hành khách <span class="required">*</span></label>
+        <input 
+          type="text" 
+          id="create-ten-khach"
+          [(ngModel)]="newItem.ten_khach_hang" 
+          placeholder="Nguyễn Văn A" 
+          class="form-input-control" 
+          [class.border-red]="createFormSubmitted && !newItem.ten_khach_hang?.trim()" />
+        <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.ten_khach_hang?.trim()">
+          Vui lòng nhập họ tên hành khách
+        </div>
+      </div>
+
+      <!-- 6. Số điện thoại & Email (State machine blur & inline error) -->
+      <div style="display: flex; gap: 16px; margin-top: 16px;">
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Số điện thoại <span class="required">*</span></label>
+          <input 
+            type="tel" 
+            id="create-phone"
+            [(ngModel)]="newItem.so_dien_thoai" 
+            (blur)="onBlurPhoneCreate()"
+            (input)="onInputPhoneCreate()"
+            placeholder="0912345678" 
+            class="form-input-control" 
+            [class.border-red]="phoneErrorCreate || (createFormSubmitted && !newItem.so_dien_thoai?.trim())" />
+          <div class="field-error-msg" *ngIf="phoneErrorCreate">
+            {{ phoneErrorCreate }}
+          </div>
+        </div>
+        
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Địa chỉ Email <span class="required">*</span></label>
+          <input 
+            type="email" 
+            id="create-email"
+            [(ngModel)]="newItem.email" 
+            (blur)="onBlurEmailCreate()"
+            (input)="onInputEmailCreate()"
+            placeholder="name@example.com" 
+            class="form-input-control" 
+            [class.border-red]="emailErrorCreate || (createFormSubmitted && !newItem.email?.trim())" />
+          <div class="field-error-msg" *ngIf="emailErrorCreate">
+            {{ emailErrorCreate }}
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Hình ảnh vật phẩm lúc mất -->
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Hình ảnh vật phẩm lúc mất</label>
+        <div class="upload-dropzone" (click)="fileInputCreate.click()" style="border: 2px dashed #cbd5e1; border-radius: 8px; padding: 18px; text-align: center; cursor: pointer; background-color: #f8fafc; transition: all 0.2s ease-in-out; position: relative;">
+          <input 
+            type="file" 
+            #fileInputCreate 
+            (change)="onUploadImage($event, 'create', 'lost')" 
+            accept="image/*" 
+            style="display: none;" />
+          
+          <div class="upload-zone-content" *ngIf="!newItem.hinh_anh" style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p class="upload-main-text" style="font-size: 13px; font-weight: 700; color: #475569; margin: 0;">Tải hình ảnh vật phẩm lên</p>
+            <p class="upload-sub-text" style="font-size: 11px; color: #94a3b8; margin: 0;">Hỗ trợ ảnh JPG, PNG. Dung lượng tối đa 5MB</p>
+            <button type="button" class="btn-footer-secondary" style="padding: 6px 14px; font-size: 12px; margin-top: 4px;">Chọn tệp từ máy</button>
+          </div>
+
+          <div class="upload-preview-container" *ngIf="newItem.hinh_anh" (click)="$event.stopPropagation()" style="position: relative; display: inline-block; max-width: 100%;">
+            <img [src]="newItem.hinh_anh" class="upload-preview-img" alt="Ảnh vật phẩm lúc mất" style="max-height: 140px; border-radius: 6px; border: 1px solid #e2e8f0;" />
+            <button type="button" class="btn-remove-preview" (click)="removeImage('create', 'lost')" style="position: absolute; top: -8px; right: -8px; background-color: #ef4444; color: white; border: none; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); outline: none;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. Ghi chú thêm -->
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Ghi chú đối soát</label>
+        <textarea 
+          [(ngModel)]="newItem.ghi_chu" 
+          placeholder="Các thông tin lưu ý khác..." 
+          class="form-input-control" 
+          rows="2"
+          style="padding: 10px 14px; border-radius: 8px; border: 1px solid var(--admin-border-strong, #cbd5e1); font-family: 'Inter', sans-serif; font-size: 13.5px; width: 100%; box-sizing: border-box;"></textarea>
+      </div>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="modal-footer-panel modal-footer-actions">
+      <button class="btn-footer-secondary" (click)="closeCreateModal()">Hủy bỏ</button>
+      <button class="btn-footer-primary" (click)="saveNewItem()">Lưu thông tin</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     EDIT / UPDATE MODAL
+     ========================================== -->
+<div class="modal-backdrop-overlay" *ngIf="showEditModal && editingItem">
+  <div class="modal-main-container modal-md">
+    <div class="modal-header-panel">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h2 class="modal-title-txt">Chi tiết yêu cầu thất lạc ({{ editingItem.ma_do_that_lac }}{{ editingItem.ma_ve ? ' - ' + editingItem.ma_ve : '' }})</h2>
+        <div class="status-pill" [ngClass]="{
+          'status-active': editingItem.trang_thai === 'Đang tìm kiếm',
+          'status-scheduled': editingItem.trang_thai === 'Đã tìm thấy',
+          'status-inactive': editingItem.trang_thai === 'Đã trả khách',
+          'status-draft': editingItem.trang_thai === 'Đóng yêu cầu'
+        }">
+          <span>{{ editingItem.trang_thai }}</span>
+        </div>
+      </div>
+      <button class="btn-close-modal" (click)="closeEditModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="modal-body-content">
+      <!-- 1. Mã vé (Bắt buộc) -->
+      <div class="form-group-unified">
+        <label class="field-label-lbl">Mã vé liên quan <span class="required">*</span></label>
+        <input 
+          type="text" 
+          id="edit-ma-ve"
+          [(ngModel)]="editingItem.ma_ve" 
+          class="form-input-control" 
+          [class.border-red]="editFormSubmitted && !editingItem.ma_ve?.trim()" />
+        <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.ma_ve?.trim()">
+          Vui lòng nhập mã vé
+        </div>
+      </div>
+
+      <!-- 2. Mô tả vật phẩm thất lạc (Rộng ra) -->
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Mô tả vật phẩm thất lạc <span class="required">*</span></label>
+        <textarea 
+          id="edit-mo-ta"
+          rows="3"
+          [(ngModel)]="editingItem.mo_ta_vat_pham" 
+          class="form-input-control" 
+          [class.border-red]="editFormSubmitted && !editingItem.mo_ta_vat_pham?.trim()"></textarea>
+        <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.mo_ta_vat_pham?.trim()">
+          Vui lòng nhập mô tả vật phẩm thất lạc
+        </div>
+      </div>
+
+      <!-- 3. Tuyến xe & Ngày di chuyển & Ngày báo mất (Custom dd/mm/yyyy DatePicker) -->
+      <div style="display: flex; gap: 16px; margin-top: 16px;">
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Tuyến xe <span class="required">*</span></label>
+          <select 
+            id="edit-tuyen-xe"
+            [(ngModel)]="editingItem.tuyen_xe" 
+            class="form-input-control"
+            [class.border-red]="editFormSubmitted && !editingItem.tuyen_xe">
+            <option *ngFor="let r of routesList" [value]="r">{{ r }}</option>
+          </select>
+          <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.tuyen_xe">
+            Vui lòng chọn tuyến xe
+          </div>
+        </div>
+        
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Ngày di chuyển <span class="required">*</span></label>
+          <app-date-picker 
+            id="edit-ngay-di"
+            [(ngModel)]="editingItem.ngay_di_chuyen"
+            [showLunar]="false"
+            [showClear]="false">
+          </app-date-picker>
+          <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.ngay_di_chuyen">
+            Vui lòng chọn ngày di chuyển
+          </div>
+        </div>
+
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Ngày báo mất <span class="required">*</span></label>
+          <app-date-picker 
+            id="edit-ngay-bao-mat"
+            [(ngModel)]="editingItem.ngay_bao_mat"
+            [showLunar]="false"
+            [showClear]="false">
+          </app-date-picker>
+          <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.ngay_bao_mat">
+            Vui lòng chọn ngày báo mất
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Số ghế -->
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Số ghế / vị trí phòng (nếu nhớ)</label>
+        <input 
+          type="text" 
+          [(ngModel)]="editingItem.vi_tri_ghe" 
+          class="form-input-control" />
+      </div>
+
+      <!-- 5. Tên khách hàng -->
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Họ tên hành khách <span class="required">*</span></label>
+        <input 
+          type="text" 
+          id="edit-ten-khach"
+          [(ngModel)]="editingItem.ten_khach_hang" 
+          class="form-input-control" 
+          [class.border-red]="editFormSubmitted && !editingItem.ten_khach_hang?.trim()" />
+        <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.ten_khach_hang?.trim()">
+          Vui lòng nhập họ tên hành khách
+        </div>
+      </div>
+
+      <!-- 6. SĐT & Email (State machine blur & inline error) -->
+      <div style="display: flex; gap: 16px; margin-top: 16px;">
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Số điện thoại <span class="required">*</span></label>
+          <input 
+            type="tel" 
+            id="edit-phone"
+            [(ngModel)]="editingItem.so_dien_thoai" 
+            (blur)="onBlurPhoneEdit()"
+            (input)="onInputPhoneEdit()"
+            class="form-input-control" 
+            [class.border-red]="phoneErrorEdit || (editFormSubmitted && !editingItem.so_dien_thoai?.trim())" />
+          <div class="field-error-msg" *ngIf="phoneErrorEdit">
+            {{ phoneErrorEdit }}
+          </div>
+        </div>
+        
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Địa chỉ Email <span class="required">*</span></label>
+          <input 
+            type="email" 
+            id="edit-email"
+            [(ngModel)]="editingItem.email" 
+            (blur)="onBlurEmailEdit()"
+            (input)="onInputEmailEdit()"
+            class="form-input-control" 
+            [class.border-red]="emailErrorEdit || (editFormSubmitted && !editingItem.email?.trim())" />
+          <div class="field-error-msg" *ngIf="emailErrorEdit">
+            {{ emailErrorEdit }}
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Hình ảnh vật phẩm lúc mất (Redesigned like Create modal dropzone) -->
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Hình ảnh vật phẩm lúc mất</label>
+        <div class="upload-dropzone" (click)="fileInputEditLost.click()" style="border: 2px dashed #cbd5e1; border-radius: 8px; padding: 18px; text-align: center; cursor: pointer; background-color: #f8fafc; transition: all 0.2s ease-in-out; position: relative;">
+          <input 
+            type="file" 
+            #fileInputEditLost 
+            (change)="onUploadImage($event, 'edit', 'lost')" 
+            accept="image/*" 
+            style="display: none;" />
+          
+          <div class="upload-zone-content" *ngIf="!editingItem.hinh_anh" style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p class="upload-main-text" style="font-size: 13px; font-weight: 700; color: #475569; margin: 0;">Tải hình ảnh vật phẩm lên</p>
+            <p class="upload-sub-text" style="font-size: 11px; color: #94a3b8; margin: 0;">Hỗ trợ ảnh JPG, PNG. Dung lượng tối đa 5MB</p>
+            <button type="button" class="btn-footer-secondary" style="padding: 6px 14px; font-size: 12px; margin-top: 4px;">Chọn tệp từ máy</button>
+          </div>
+
+          <div class="upload-preview-container" *ngIf="editingItem.hinh_anh" (click)="$event.stopPropagation()" style="position: relative; display: inline-block; max-width: 100%;">
+            <img [src]="editingItem.hinh_anh" alt="Ảnh vật phẩm lúc mất" style="max-height: 140px; border-radius: 6px; border: 1px solid #e2e8f0;" />
+            <button type="button" class="btn-remove-preview" (click)="removeImage('edit', 'lost')" style="position: absolute; top: -8px; right: -8px; background-color: #ef4444; color: white; border: none; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); outline: none;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. Trạng thái xử lý -->
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Trạng thái xử lý <span class="required">*</span></label>
+        <select 
+          [(ngModel)]="editingItem.trang_thai" 
+          (ngModelChange)="onStatusChange()"
+          class="form-input-control">
+          <option value="Đang tìm kiếm">Đang tìm kiếm</option>
+          <option value="Đã tìm thấy">Đã tìm thấy</option>
+          <option value="Đã trả khách">Đã trả khách</option>
+          <option value="Đóng yêu cầu">Đóng yêu cầu</option>
+        </select>
+      </div>
+
+      <!-- 9. Khung Thông tin tìm thấy vật phẩm (Redesigned Dropzone matching Create modal) -->
+      <div class="found-info-card">
+        <div class="found-info-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <span>Thông tin tìm thấy vật phẩm</span>
+        </div>
+
+        <div class="found-info-body">
+          <div class="form-group-unified">
+            <label class="field-label-lbl">Vị trí tìm thấy <span class="required" *ngIf="editingItem.trang_thai === 'Đã tìm thấy' || editingItem.trang_thai === 'Đã trả khách'">*</span></label>
+            <textarea 
+              id="edit-vi-tri-tim"
+              rows="2"
+              [(ngModel)]="editingItem.vi_tri_tim_thay" 
+              placeholder="Ví dụ: Ghế số 4, Cốp xe, Kho chứa đồ..."
+              class="form-input-control" 
+              [class.border-red]="editFormSubmitted && (editingItem.trang_thai === 'Đã tìm thấy' || editingItem.trang_thai === 'Đã trả khách') && !editingItem.vi_tri_tim_thay?.trim()"></textarea>
+            <div class="field-error-msg" *ngIf="editFormSubmitted && (editingItem.trang_thai === 'Đã tìm thấy' || editingItem.trang_thai === 'Đã trả khách') && !editingItem.vi_tri_tim_thay?.trim()">
+              Vui lòng nhập vị trí tìm thấy vật phẩm
+            </div>
+          </div>
+
+          <div class="form-group-unified" style="margin-top: 14px;">
+            <label class="field-label-lbl">Thời gian tìm thấy (Ngày & Giờ) <span class="required" *ngIf="editingItem.trang_thai === 'Đã tìm thấy' || editingItem.trang_thai === 'Đã trả khách'">*</span></label>
+            <input 
+              type="datetime-local" 
+              id="edit-thoi-gian-tim"
+              [(ngModel)]="editingItem.thoi_gian_tim_thay" 
+              class="form-input-control" 
+              [class.border-red]="editFormSubmitted && (editingItem.trang_thai === 'Đã tìm thấy' || editingItem.trang_thai === 'Đã trả khách') && !editingItem.thoi_gian_tim_thay?.trim()" />
+            <div class="field-error-msg" *ngIf="editFormSubmitted && (editingItem.trang_thai === 'Đã tìm thấy' || editingItem.trang_thai === 'Đã trả khách') && !editingItem.thoi_gian_tim_thay?.trim()">
+              Vui lòng chọn thời gian tìm thấy vật phẩm
+            </div>
+            <small style="font-size: 11.5px; color: #047857; margin-top: 2px;" *ngIf="editingItem.thoi_gian_tim_thay">Hiển thị: {{ formatDateTime(editingItem.thoi_gian_tim_thay) }}</small>
+          </div>
+
+          <!-- Matching upload dropzone for Edit found image -->
+          <div class="form-group-unified" style="margin-top: 14px;">
+            <label class="field-label-lbl">Hình ảnh minh chứng đã tìm thấy</label>
+            <div class="upload-dropzone" (click)="fileInputEditFound.click()" style="border: 2px dashed #0d9488; border-radius: 8px; padding: 18px; text-align: center; cursor: pointer; background-color: #ffffff; transition: all 0.2s ease-in-out; position: relative;">
+              <input 
+                type="file" 
+                #fileInputEditFound 
+                (change)="onUploadImage($event, 'edit', 'found')" 
+                accept="image/*" 
+                style="display: none;" />
+              
+              <div class="upload-zone-content" *ngIf="!editingItem.hinh_anh_tim_thay" style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p class="upload-main-text" style="font-size: 13px; font-weight: 700; color: #0f766e; margin: 0;">Tải hình ảnh minh chứng đã tìm thấy</p>
+                <p class="upload-sub-text" style="font-size: 11px; color: #64748b; margin: 0;">Hỗ trợ ảnh JPG, PNG. Dung lượng tối đa 5MB</p>
+                <button type="button" class="btn-footer-secondary" style="padding: 6px 14px; font-size: 12px; margin-top: 4px;">Chọn tệp từ máy</button>
+              </div>
+
+              <div class="upload-preview-container" *ngIf="editingItem.hinh_anh_tim_thay" (click)="$event.stopPropagation()" style="position: relative; display: inline-block; max-width: 100%;">
+                <img [src]="editingItem.hinh_anh_tim_thay" alt="Ảnh đã tìm thấy" style="max-height: 140px; border-radius: 6px; border: 1px solid #99f6e4;" />
+                <button type="button" class="btn-remove-preview" (click)="removeImage('edit', 'found')" style="position: absolute; top: -8px; right: -8px; background-color: #ef4444; color: white; border: none; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); outline: none;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10. Ghi chú -->
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Ghi chú / Nhật ký xử lý</label>
+        <textarea 
+          [(ngModel)]="editingItem.ghi_chu" 
+          placeholder="Lịch sử liên hệ, bàn giao..." 
+          class="form-input-control" 
+          rows="2"
+          style="padding: 10px 14px; border-radius: 8px; border: 1px solid var(--admin-border-strong, #cbd5e1); font-family: 'Inter', sans-serif; font-size: 13.5px; width: 100%; box-sizing: border-box;"></textarea>
+      </div>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="modal-footer-panel modal-footer-actions">
+      <button class="btn-footer-secondary" (click)="closeEditModal()">Hủy bỏ</button>
+      <button class="btn-footer-primary" (click)="saveEditItem()">Lưu thông tin</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     SUCCESS OVERLAY ALERT DIALOG
+     ========================================== -->
+<div class="modal-backdrop-overlay flex-centered z-index-200" *ngIf="showSuccessModal">
+  <div class="success-alert-card" style="position: relative;">
+    <button (click)="closeSuccessModal()" style="position: absolute; top: 12px; right: 12px; background: none; border: none; cursor: pointer; color: #64748b;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+    <div class="success-icon-ring">
+      <svg class="check-success-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <h3 class="success-alert-title font-bold">{{ successMessageTitle }}</h3>
+    <p class="success-alert-body font-medium">
+      {{ successMessageBody }}
+    </p>
+  </div>
+</div>
