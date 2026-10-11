@@ -30,6 +30,7 @@ export class AdminSidebar implements OnInit {
   private router = inject(Router);
 
   readonly isCollapsed = this.sidebarState.isCollapsed;
+  readonly activeRoute = signal(this.router.url);
   readonly activeRoute = signal('/admin/home');
   readonly expandedItem = signal<string | null>(null);
 
@@ -87,6 +88,13 @@ export class AdminSidebar implements OnInit {
     },
     { label: 'Quản lý nhật ký', icon: 'log', route: '/admin/logs' },
   ];
+
+  // Listen to router events if needed, but for now just set active route on init
+  constructor() {
+    this.router.events.subscribe(() => {
+      this.activeRoute.set(this.router.url);
+    });
+  }
 
   ngOnInit(): void {
     this.updateActiveFromUrl(this.router.url);

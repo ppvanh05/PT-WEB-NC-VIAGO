@@ -52,6 +52,13 @@ import { DriversAssistantsComponent } from './featured/admin/dispatch/drivers-as
 import { ContractRentalsComponent } from './featured/admin/contract-rentals/contract-rentals';
 import { CustomerReportComponent } from './featured/admin/reports/customer-report/customer-report';
 
+import { RoutesComponent } from './featured/admin/dispatch/routes/routes';
+import { SchedulesComponent } from './featured/admin/dispatch/schedules/schedules';
+import { PromotionsComponent } from './featured/admin/content/promotions/promotions';
+import { DetailedReportComponent } from './featured/admin/reports/detailed-report/detailed-report';
+import { RouteReportComponent } from './featured/admin/reports/route-report/route-report';
+import { LostAndFound } from './featured/customer/services/lost-and-found/lost-and-found';
+
 export const routes: Routes = [
   {
     path: 'admin',
@@ -100,6 +107,7 @@ export const routes: Routes = [
       { path: 'hoa-don', component: Invoice },
       { path: 'danh-gia', component: Reviews },
       { path: 'dich-vu', component: Services },
+      { path: 'dich-vu/tim-do-that-lac', component: LostAndFound },
       { path: 'do-that-lac', component: Services },
       { path: 'profile', component: Profile },
       { path: 've-chung-toi', component: AboutUs },

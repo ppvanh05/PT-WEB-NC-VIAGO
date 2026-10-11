@@ -1,0 +1,188 @@
+<div class="lf-container">
+  <!-- Toast Notification -->
+  <div class="toast-notification" [class.show]="showToast">
+    <div class="toast-icon"><i class="fas fa-check-circle"></i></div>
+    <div class="toast-content">
+      <strong>Thành công</strong>
+      <span>{{ toastMessage }}</span>
+    </div>
+  </div>
+
+  <div class="lf-layout" id="items-list-top">
+    <!-- Top Section: Form -->
+    <div class="lf-right-col">
+      <div class="lf-form-card">
+        <h2 class="lf-form-title">Khai báo thất lạc</h2>
+        <p class="lf-form-desc">
+          Hãy điền chi tiết biểu mẫu khai báo dưới đây để bộ phận đối soát trích xuất camera hành trình hỗ trợ bạn tìm kiếm.
+        </p>
+
+        <div class="lf-form-body">
+          <div class="lf-form-group">
+            <label>MÃ SỐ VÉ CHUYẾN ĐI (Tùy chọn)</label>
+            <input type="text" [(ngModel)]="reportForm.ticketCode" class="lf-input" placeholder="Ví dụ: VG123456 (Nhập để tự động điền)" (blur)="onTicketCodeChange()" />
+          </div>
+
+          <div class="lf-form-group">
+            <label>MÔ TẢ VẬT PHẨM THẤT LẠC <span class="lf-req">*</span></label>
+            <input type="text" [(ngModel)]="reportForm.description" class="lf-input" placeholder="Ví dụ: Ví da cá sấu đen, iPhone 14 Pro màu tím..." />
+          </div>
+
+          <div class="lf-form-row">
+            <div class="lf-form-group">
+              <label>TUYẾN XE <span class="lf-req">*</span></label>
+              <div class="lf-select-wrap">
+                <select [(ngModel)]="reportForm.route" class="lf-input lf-select">
+                  <option value="">Chọn tuyến</option>
+                  <option *ngFor="let route of routes" [value]="route" [disabled]="route === 'Tất cả các tuyến'">{{ route }}</option>
+                </select>
+                <i class="fas fa-chevron-down lf-select-icon"></i>
+              </div>
+            </div>
+            <div class="lf-form-group">
+              <label>NGÀY DI CHUYỂN <span class="lf-req">*</span></label>
+              <input type="date" [(ngModel)]="reportForm.date" class="lf-input" (keydown)="$event.preventDefault()" (click)="openDatePicker($event)" />
+            </div>
+          </div>
+
+          <div class="lf-form-group">
+            <label>SỐ GHẾ / VỊ TRÍ PHÒNG (NẾU NHỚ)</label>
+            <input type="text" [(ngModel)]="reportForm.seat" class="lf-input" placeholder="Ví dụ: Phòng A12, số ghế 5..." />
+          </div>
+
+          <div class="lf-form-group">
+            <label>HỌ TÊN HÀNH KHÁCH <span class="lf-req">*</span></label>
+            <input type="text" [(ngModel)]="reportForm.fullName" class="lf-input" placeholder="Nguyễn Văn A" />
+          </div>
+
+          <div class="lf-form-row">
+            <div class="lf-form-group">
+              <label>SỐ ĐIỆN THOẠI <span class="lf-req">*</span></label>
+              <input type="text" [(ngModel)]="reportForm.phone" class="lf-input" placeholder="0987xxxxxx" />
+            </div>
+            <div class="lf-form-group">
+              <label>ĐỊA CHỈ EMAIL <span class="lf-req">*</span></label>
+              <input type="email" [(ngModel)]="reportForm.email" class="lf-input" placeholder="name@example.com" />
+            </div>
+          </div>
+
+          <div class="lf-form-group">
+            <label>HÌNH ẢNH VẬT PHẨM (NẾU CÓ)</label>
+            <div class="lf-upload-zone">
+              <span>Tải ảnh vật phẩm lên (.jpg, .png)</span>
+            </div>
+          </div>
+
+          <button class="lf-btn-submit" (click)="submitReport()">
+            GỬI YÊU CẦU ĐỐI SOÁT
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Section: Items List -->
+    <div class="lf-left-col">
+      <div class="lf-header">
+        <h1 class="lf-title">
+          Đồ ải đồ ai
+          <span class="lf-badge-count">{{ filteredItems.length }}</span>
+        </h1>
+        <div class="lf-pagination-info" *ngIf="totalPages > 0">
+          Xem trang {{ currentPage }} trên {{ totalPages }}
+        </div>
+      </div>
+
+      <div class="lf-grid">
+        <div class="lf-card" *ngFor="let item of paginatedItems">
+          <!-- Image and Status -->
+          <div class="lf-card-image-wrap">
+            <img [src]="item.image" [alt]="item.name" class="lf-card-img" />
+            
+            <div class="lf-status-badge stored" *ngIf="item.status === 'stored'">
+              ĐANG LƯU TRỮ
+            </div>
+            <div class="lf-status-badge processing" *ngIf="item.status === 'processing'">
+              ĐANG XỬ LÝ
+            </div>
+            <div class="lf-status-badge returned" *ngIf="item.status === 'returned'">
+              ĐÃ TRAO TRẢ
+            </div>
+          </div>
+          
+          <!-- Info -->
+          <div class="lf-card-body">
+            <h3 class="lf-item-name">{{ item.name }}</h3>
+            
+            <div class="lf-item-details">
+              <div class="lf-detail-row">
+                <span class="lf-detail-label">Tìm thấy:</span>
+                <span class="lf-detail-val">{{ item.foundDate }}</span>
+              </div>
+              <div class="lf-detail-row">
+                <span class="lf-detail-label">Tuyến:</span>
+                <span class="lf-detail-val truncate">{{ item.route }}</span>
+              </div>
+              <div class="lf-detail-row">
+                <span class="lf-detail-label">Lưu trữ:</span>
+                <span class="lf-detail-val truncate">{{ item.storage }}</span>
+              </div>
+            </div>
+            
+            <button class="lf-btn-claim" (click)="openClaimModal(item)" [disabled]="item.status !== 'stored'">
+              Báo nhận sở hữu
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="lf-empty" *ngIf="filteredItems.length === 0">
+        <i class="fas fa-box-open lf-empty-icon"></i>
+        <h3>Không tìm thấy dữ liệu</h3>
+        <p>Chúng tôi chưa ghi nhận vật phẩm nào khớp với bộ lọc tìm kiếm của bạn.</p>
+        <button class="lf-btn-outline" (click)="clearFilters()">Xóa bộ lọc</button>
+      </div>
+
+      <!-- Pagination -->
+      <div class="lf-pagination-wrapper" *ngIf="totalPages > 1" style="margin-top: 2rem; display: flex; justify-content: center;">
+        <app-pagination 
+          [currentPage]="currentPage"
+          [totalItems]="filteredItems.length"
+          [pageSize]="pageSize"
+          [showSummary]="false"
+          (pageChange)="setPage($event)">
+        </app-pagination>
+      </div>
+    </div>
+  </div>
+
+  <!-- Claim Modal -->
+  <div class="modal-backdrop" [class.show]="isClaimModalOpen" (click)="closeClaimModal()">
+    <div class="modal-card scale-in" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3>Xác thực sở hữu</h3>
+          <p>{{ selectedClaimItem?.name }}</p>
+        </div>
+        <button class="btn-close-circle" (click)="closeClaimModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert-box info">
+          Vui lòng cung cấp chính xác mã vé chuyến đi và đặc điểm nhận dạng độc nhất để hệ thống đối chiếu bảo mật.
+        </div>
+        <div class="lf-form-group mt-3">
+          <label>MÃ VÉ CHUYẾN ĐI LIÊN QUAN <span class="lf-req">*</span></label>
+          <input type="text" [(ngModel)]="claimForm.ticketCode" class="lf-input" placeholder="Ví dụ: VG123456" />
+        </div>
+        <div class="lf-form-group mt-3">
+          <label>ĐẶC ĐIỂM NHẬN DẠNG ĐỘC NHẤT <span class="lf-req">*</span></label>
+          <textarea [(ngModel)]="claimForm.description" class="lf-input" rows="3" placeholder="Mật khẩu khóa máy, vết xước góc trái..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="lf-btn-outline" (click)="closeClaimModal()">Hủy bỏ</button>
+        <button class="lf-btn-submit" style="margin-top:0; width: auto;" (click)="submitClaim()">Gửi yêu cầu xác thực</button>
+      </div>
+    </div>
+  </div>
+</div>
