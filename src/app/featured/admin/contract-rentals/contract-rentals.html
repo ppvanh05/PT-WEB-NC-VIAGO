@@ -1,1 +1,499 @@
-<p>contract-rentals works!</p>
+<div class="management-container">
+  <!-- Premium Header Container -->
+  <div class="header-card-container">
+    <div class="header-titles">
+      <span class="category-tag">QUẢN LÝ THUÊ XE HỢP ĐỒNG</span>
+      <h1 class="main-title">Thuê xe hợp đồng</h1>
+    </div>
+    
+    <!-- Action Banner & Create Button Box -->
+    <button type="button" class="header-action-banner" (click)="openCreateAction()" title="Nhấp để thêm mới">
+      <div class="action-icon-circle">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+      </div>
+      <div class="action-banner-text">
+        <h3 *ngIf="activeMainTab === 'request'">Xử lý yêu cầu</h3>
+        <h3 *ngIf="activeMainTab === 'quote' && activeQuoteSubTab === 'standard'">Thêm bảng giá</h3>
+        <h3 *ngIf="activeMainTab === 'quote' && activeQuoteSubTab === 'customer'">Tạo báo giá</h3>
+        <h3 *ngIf="activeMainTab === 'contract'">Thêm hợp đồng</h3>
+        <p>Thiết lập thông tin báo giá, hợp đồng và quản lý yêu cầu khách hàng.</p>
+      </div>
+    </button>
+    <!-- Premium Stats Overview Cards -->
+    <div class="stats-overview-row">
+    <div class="stats-overview-card border-orange">
+      <div class="stat-card-content">
+        <span class="stat-label">Yêu cầu chờ</span>
+        <h2 class="stat-value text-orange">{{pendingRequestCount}}</h2>
+        <span class="stat-trend-indicator text-orange">Chờ xử lý</span>
+      </div>
+      <div class="stat-card-icon-container orange-accent">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+      </div>
+    </div>
+    <div class="stats-overview-card border-blue">
+      <div class="stat-card-content">
+        <span class="stat-label">Báo giá chờ</span>
+        <h2 class="stat-value text-blue">{{pendingQuoteCount}}</h2>
+        <span class="stat-trend-indicator text-blue">Chờ phản hồi</span>
+      </div>
+      <div class="stat-card-icon-container blue-accent">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      </div>
+    </div>
+    <div class="stats-overview-card border-green">
+      <div class="stat-card-content">
+        <span class="stat-label">HĐ thực hiện</span>
+        <h2 class="stat-value text-green">{{activeContractCount}}</h2>
+        <span class="stat-trend-indicator text-green">Đang thực hiện</span>
+      </div>
+      <div class="stat-card-icon-container green-accent">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- Main Dashboard Card -->
+  <div class="dashboard-card">
+    <!-- Tabs matching Lịch trình style -->
+    <div class="dashboard-control-panel">
+      <div class="pill-tabs">
+        <button class="pill-tab-item" [class.active]="activeMainTab === 'request'" (click)="setTab('request')">
+          Yêu cầu thuê xe ({{requests.length}})
+        </button>
+        <button class="pill-tab-item" [class.active]="activeMainTab === 'quote'" (click)="setTab('quote')">
+          Báo giá ({{customerQuotes.length}})
+        </button>
+        <button class="pill-tab-item" [class.active]="activeMainTab === 'contract'" (click)="setTab('contract')">
+          Hợp đồng ({{contracts.length}})
+        </button>
+      </div>
+    </div>
+
+    <!-- Sub Tabs (Pill style for sub-tabs) -->
+    <div class="sub-tabs-row" *ngIf="activeMainTab === 'quote'">
+      <button class="sub-tab-pill" [class.active]="activeQuoteSubTab === 'standard'" (click)="setSubTab('standard')">Bảng giá chuẩn</button>
+      <button class="sub-tab-pill" [class.active]="activeQuoteSubTab === 'customer'" (click)="setSubTab('customer')">Báo giá khách hàng</button>
+    </div>
+
+    <!-- Filter Bar & View Options -->
+    <div class="search-filters-row">
+      <!-- 1. Yêu cầu thuê xe Filters -->
+      <ng-container *ngIf="activeMainTab === 'request'">
+        <div class="filter-input-wrapper flex-grow">
+          <label class="input-mini-label">Tìm kiếm yêu cầu</label>
+          <div class="search-input-container">
+            <input type="text" [(ngModel)]="requestSearch" placeholder="Tìm mã YC, khách hàng, SĐT...">
+          </div>
+        </div>
+        <div class="filter-input-wrapper col-select">
+          <label class="input-mini-label">Loại xe</label>
+          <div class="custom-select-container">
+            <select [(ngModel)]="requestTypeFilter">
+              <option value="Tất cả loại xe">Tất cả loại xe</option>
+              <option value="Limousine 9 chỗ">Limousine 9 chỗ</option>
+              <option value="Giường nằm 34 chỗ">Giường nằm 34 chỗ</option>
+              <option value="Giường nằm 40 chỗ">Giường nằm 40 chỗ</option>
+              <option value="Cabin đôi cao cấp">Cabin đôi cao cấp</option>
+            </select>
+          </div>
+        </div>
+        <div class="filter-input-wrapper col-select">
+          <label class="input-mini-label">Trạng thái</label>
+          <div class="custom-select-container">
+            <select [(ngModel)]="requestStatusFilter">
+              <option value="Tất cả trạng thái">Tất cả trạng thái</option>
+              <option value="Chờ xử lý">Chờ xử lý</option>
+              <option value="Đã báo giá">Đã báo giá</option>
+              <option value="Đã hủy">Đã hủy</option>
+            </select>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- 2. Báo giá Filters -->
+      <ng-container *ngIf="activeMainTab === 'quote'">
+        <ng-container *ngIf="activeQuoteSubTab === 'standard'">
+          <div class="filter-input-wrapper flex-grow">
+            <label class="input-mini-label">Tìm loại xe</label>
+            <div class="search-input-container">
+              <input type="text" [(ngModel)]="standardPriceSearch" placeholder="Tìm theo loại xe...">
+            </div>
+          </div>
+          <div class="filter-input-wrapper col-select">
+            <label class="input-mini-label">Trạng thái</label>
+            <div class="custom-select-container">
+              <select [(ngModel)]="standardPriceStatus">
+                <option value="Tất cả">Tất cả trạng thái</option>
+                <option value="Đang áp dụng">Đang áp dụng</option>
+                <option value="Ngưng áp dụng">Ngưng áp dụng</option>
+              </select>
+            </div>
+          </div>
+        </ng-container>
+        <ng-container *ngIf="activeQuoteSubTab === 'customer'">
+          <div class="filter-input-wrapper flex-grow">
+            <label class="input-mini-label">Tìm báo giá</label>
+            <div class="search-input-container">
+              <input type="text" [(ngModel)]="customerQuoteSearch" placeholder="Tìm mã BG, YC, khách...">
+            </div>
+          </div>
+          <div class="filter-input-wrapper col-select">
+            <label class="input-mini-label">Trạng thái</label>
+            <div class="custom-select-container">
+              <select [(ngModel)]="customerQuoteStatus">
+                <option value="Tất cả">Tất cả trạng thái</option>
+                <option value="Chờ phản hồi">Chờ phản hồi</option>
+                <option value="Đã chấp nhận">Đã chấp nhận</option>
+                <option value="Đã từ chối">Đã từ chối</option>
+                <option value="Hết hiệu lực">Hết hiệu lực</option>
+              </select>
+            </div>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <!-- 3. Hợp đồng Filters -->
+      <ng-container *ngIf="activeMainTab === 'contract'">
+        <div class="filter-input-wrapper flex-grow">
+          <label class="input-mini-label">Tìm hợp đồng</label>
+          <div class="search-input-container">
+            <input type="text" [(ngModel)]="contractSearch" placeholder="Tìm mã HĐ, khách, SĐT...">
+          </div>
+        </div>
+        <div class="filter-input-wrapper col-select">
+          <label class="input-mini-label">Trạng thái</label>
+          <div class="custom-select-container">
+            <select [(ngModel)]="contractStatus">
+              <option value="Tất cả">Tất cả trạng thái</option>
+              <option value="Chờ thực hiện">Chờ thực hiện</option>
+              <option value="Đang thực hiện">Đang thực hiện</option>
+              <option value="Hoàn thành">Hoàn thành</option>
+              <option value="Đã hủy">Đã hủy</option>
+            </select>
+          </div>
+        </div>
+      </ng-container>
+
+      <div class="filter-actions-col">
+        <button class="btn-clear-filters" (click)="refreshFilters()" title="Xóa bộ lọc">
+          Xóa lọc
+        </button>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-wrapper">
+      <!-- 1. Yêu cầu thuê xe -->
+      <table class="data-table" *ngIf="activeMainTab === 'request'">
+        <thead>
+          <tr>
+            <th class="col-stt">STT</th>
+            <th class="col-code">Mã YC</th>
+            <th class="col-customer">Khách hàng</th>
+            <th class="col-phone">Số điện thoại</th>
+            <th class="col-type">Loại xe</th>
+            <th class="col-number">Số khách</th>
+            <th class="col-number">Số xe</th>
+            <th class="col-date">Ngày đi</th>
+            <th class="col-status">Trạng thái</th>
+            <th class="col-actions">Chức năng</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of paginatedRequests; let i = index">
+            <td class="col-stt text-center">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+            <td class="col-code text-semibold">{{item.code}}</td>
+            <td class="col-customer">
+              <div class="name-with-status">
+                <span class="status-indicator" [class.active]="item.status !== 'Đã hủy'"></span>
+                <span class="text-semibold status-text-gap">{{item.customer}}</span>
+              </div>
+            </td>
+            <td class="col-phone text-center">{{item.phone}}</td>
+            <td class="col-type">{{item.vehicleType}}</td>
+            <td class="col-number text-center">{{item.guests}}</td>
+            <td class="col-number text-center">{{item.vehicles}}</td>
+            <td class="col-date text-center">{{item.departure}}</td>
+            <td class="col-status text-center">
+              <span class="status-badge" [ngClass]="{
+                'status-active': item.status === 'Đã báo giá',
+                'status-pending': item.status === 'Chờ xử lý',
+                'status-locked': item.status === 'Đã hủy'
+              }">{{item.status}}</span>
+            </td>
+            <td class="col-actions text-center">
+              <button class="btn-icon" (click)="viewDetail(item, 'request')" title="Xem chi tiết">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 2. Bảng giá chuẩn -->
+      <table class="data-table" *ngIf="activeMainTab === 'quote' && activeQuoteSubTab === 'standard'">
+        <thead>
+          <tr>
+            <th class="col-stt">STT</th>
+            <th class="col-type">Loại xe</th>
+            <th class="col-number">Số chỗ</th>
+            <th class="col-price">Nội tỉnh</th>
+            <th class="col-price">Liên tỉnh</th>
+            <th class="col-price">Theo ngày</th>
+            <th class="col-status">Trạng thái</th>
+            <th class="col-actions">Chức năng</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of paginatedStandardPrices; let i = index">
+            <td class="col-stt text-center">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+            <td class="col-type text-semibold">{{item.vehicleType}}</td>
+            <td class="col-number text-center">{{item.seats}} chỗ</td>
+            <td class="col-price text-secondary">{{item.inland}}</td>
+            <td class="col-price text-secondary">{{item.intercity}}</td>
+            <td class="col-price text-secondary">{{item.daily}}</td>
+            <td class="col-status text-center">
+              <span class="status-badge" [class.status-active]="item.status === 'Đang áp dụng'">{{item.status}}</span>
+            </td>
+            <td class="col-actions text-center">
+              <div class="action-buttons">
+                <button class="btn-icon" title="Chỉnh sửa"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 3. Báo giá khách hàng -->
+      <table class="data-table" *ngIf="activeMainTab === 'quote' && activeQuoteSubTab === 'customer'">
+        <thead>
+          <tr>
+            <th class="col-stt">STT</th>
+            <th class="col-code">Mã BG</th>
+            <th class="col-customer">Khách hàng</th>
+            <th class="col-type">Loại xe</th>
+            <th class="col-number">Số xe</th>
+            <th class="col-price">Giá báo</th>
+            <th class="col-date">Ngày gửi</th>
+            <th class="col-status">Trạng thái</th>
+            <th class="col-actions">Chức năng</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of paginatedCustomerQuotes; let i = index">
+            <td class="col-stt text-center">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+            <td class="col-code text-semibold">{{item.code}}</td>
+            <td class="col-customer">
+              <div class="name-with-status">
+                <span class="status-indicator" [class.active]="item.status === 'Đã chấp nhận'"></span>
+                <span class="text-semibold status-text-gap">{{item.customer}}</span>
+              </div>
+            </td>
+            <td class="col-type">{{item.vehicleType}}</td>
+            <td class="col-number text-center">{{item.vehicles}}</td>
+            <td class="col-price text-secondary">{{item.total}}</td>
+            <td class="col-date text-center">{{item.sent}}</td>
+            <td class="col-status text-center">
+              <span class="status-badge" [ngClass]="{
+                'status-active': item.status === 'Đã chấp nhận',
+                'status-pending': item.status === 'Chờ phản hồi',
+                'status-locked': item.status === 'Đã từ chối' || item.status === 'Hết hiệu lực'
+              }">{{item.status}}</span>
+            </td>
+            <td class="col-actions text-center">
+              <button class="btn-icon" (click)="viewDetail(item, 'quote')" title="Xem chi tiết">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 4. Hợp đồng -->
+      <table class="data-table" *ngIf="activeMainTab === 'contract'">
+        <thead>
+          <tr>
+            <th class="col-stt">STT</th>
+            <th class="col-code">Mã HĐ</th>
+            <th class="col-customer">Khách hàng</th>
+            <th class="col-type">Loại xe</th>
+            <th class="col-number">Số xe</th>
+            <th class="col-date">Ngày đi</th>
+            <th class="col-price">Giá trị</th>
+            <th class="col-status">Trạng thái</th>
+            <th class="col-actions">Chức năng</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of paginatedContracts; let i = index">
+            <td class="col-stt text-center">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+            <td class="col-code text-semibold">{{item.code}}</td>
+            <td class="col-customer">
+              <div class="name-with-status">
+                <span class="status-indicator" [class.active]="item.status === 'Hoàn thành' || item.status === 'Đang thực hiện'"></span>
+                <span class="text-semibold status-text-gap">{{item.customer}}</span>
+              </div>
+            </td>
+            <td class="col-type">{{item.vehicleType}}</td>
+            <td class="col-number text-center">{{item.vehicles}}</td>
+            <td class="col-date text-center">{{item.departure}}</td>
+            <td class="col-price text-secondary">{{item.amount}}</td>
+            <td class="col-status text-center">
+              <span class="status-badge" [ngClass]="{
+                'status-active': item.status === 'Hoàn thành',
+                'status-maintenance': item.status === 'Đang thực hiện',
+                'status-pending': item.status === 'Chờ thực hiện',
+                'status-locked': item.status === 'Đã hủy'
+              }">{{item.status}}</span>
+            </td>
+            <td class="col-actions text-center">
+              <button class="btn-icon" (click)="viewDetail(item, 'contract')" title="Xem chi tiết">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="isTableEmpty()">
+        <div class="empty-content">
+          <svg xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 -960 960 960" width="48" fill="currentColor">
+            <path d="M480-312q9 0 16.5-4.5T507-329l118-208q7-12 1-24.5t-19-12.5H520v-226q0-17-11.5-28.5T480-816q-17 0-28.5 11.5T440-776v226H354q-13 0-19 12.5t1 24.5l118 208q8 8 15.5 12.5t16.5 4.5Zm0 232q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
+          </svg>
+          <span>Không tìm thấy dữ liệu phù hợp.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="pagination-footer">
+      <div>
+        Hiển thị {{ visibleStart }} - {{ visibleEnd }}
+        của {{ activeTotalItems }} {{ activeListLabel }}
+      </div>
+      <div class="pagination-controls">
+        <button class="pagination-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
+        <ng-container *ngFor="let page of getPaginationItems()">
+          <span *ngIf="page === '...'" class="pagination-ellipsis">...</span>
+          <button
+            *ngIf="page !== '...'"
+            class="pagination-btn"
+            [class.active]="currentPage === page"
+            (click)="setPage(page)"
+          >
+            {{ page }}
+          </button>
+        </ng-container>
+        <button class="pagination-btn" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Drawer Sync -->
+  <div class="drawer-overlay" *ngIf="activeDrawer" [class.open]="activeDrawer" (click)="closeDrawer()"></div>
+  <div class="drawer-container custom-scrollbar" [class.open]="activeDrawer">
+    <ng-container *ngIf="selectedItem">
+      <div class="drawer-header">
+        <div>
+          <h2 class="drawer-title">
+            {{activeDrawer === 'request' ? 'Chi tiết yêu cầu' : (activeDrawer === 'quote' ? 'Chi tiết báo giá' : 'Chi tiết hợp đồng')}}
+          </h2>
+          <span class="drawer-subtitle">Mã số: {{selectedItem?.code}}</span>
+        </div>
+        <button class="btn-close" (click)="closeDrawer()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+  
+      <div class="drawer-body">
+        <ng-container *ngIf="activeDrawer === 'request'">
+          <div class="drawer-card">
+            <h3 class="drawer-card-title">Thông tin khách hàng</h3>
+            <div class="drawer-grid">
+              <div class="drawer-item"><label>Họ tên</label><span>{{selectedItem.customer}}</span></div>
+              <div class="drawer-item"><label>Số điện thoại</label><span>{{selectedItem.phone}}</span></div>
+              <div class="drawer-item full-width"><label>Email</label><span>{{selectedItem.email}}</span></div>
+            </div>
+          </div>
+          <div class="drawer-card">
+            <h3 class="drawer-card-title">Thông tin chuyến đi</h3>
+            <div class="drawer-grid">
+              <div class="drawer-item"><label>Điểm đón</label><span>{{selectedItem.pickup}}</span></div>
+              <div class="drawer-item"><label>Điểm đến</label><span>{{selectedItem.destination}}</span></div>
+              <div class="drawer-item"><label>Ngày đi</label><span>{{selectedItem.departure}}</span></div>
+              <div class="drawer-item"><label>Loại xe</label><span>{{selectedItem.vehicleType}}</span></div>
+              <div class="drawer-item"><label>Số xe</label><span>{{selectedItem.vehicles}}</span></div>
+              <div class="drawer-item"><label>Số khách</label><span>{{selectedItem.guests}}</span></div>
+              <div class="drawer-item full-width"><label>Ghi chú</label><span class="text-muted">{{selectedItem.note}}</span></div>
+            </div>
+          </div>
+        </ng-container>
+  
+        <ng-container *ngIf="activeDrawer === 'quote'">
+          <div class="drawer-card">
+            <h3 class="drawer-card-title">Thông tin chung</h3>
+            <div class="drawer-grid">
+              <div class="drawer-item"><label>Mã yêu cầu</label><span>{{selectedItem.requestCode}}</span></div>
+              <div class="drawer-item"><label>Khách hàng</label><span>{{selectedItem.customer}}</span></div>
+              <div class="drawer-item"><label>Số điện thoại</label><span>{{selectedItem.phone}}</span></div>
+            </div>
+          </div>
+          <div class="drawer-card">
+            <h3 class="drawer-card-title">Chi tiết chi phí</h3>
+            <div class="drawer-price-list">
+              <div class="price-row"><span>Giá thuê cơ bản</span><span class="text-semibold">{{selectedItem.basePrice}}</span></div>
+              <div class="price-row"><span>Phụ phí</span><span class="text-semibold">{{selectedItem.fees}}</span></div>
+              <div class="price-row text-danger"><span>Giảm giá</span><span class="text-semibold">-{{selectedItem.discount}}</span></div>
+              <div class="price-row total"><span>Tổng cộng</span><span class="text-secondary">{{selectedItem.total}}</span></div>
+            </div>
+          </div>
+        </ng-container>
+  
+        <ng-container *ngIf="activeDrawer === 'contract'">
+          <div class="drawer-card">
+            <h3 class="drawer-card-title">Thông tin hợp đồng</h3>
+            <div class="drawer-grid">
+              <div class="drawer-item"><label>Mã báo giá</label><span>{{selectedItem.quoteCode}}</span></div>
+              <div class="drawer-item"><label>Ngày tạo</label><span>{{selectedItem.created}}</span></div>
+              <div class="drawer-item"><label>Trạng thái</label><span class="status-badge status-active">{{selectedItem.status}}</span></div>
+            </div>
+          </div>
+          <div class="drawer-card">
+            <h3 class="drawer-card-title">Điều khoản & Lịch sử</h3>
+            <div class="drawer-section">
+              <label class="input-mini-label">Điều khoản hợp đồng</label>
+              <ul class="drawer-list">
+                <li *ngFor="let term of selectedItem.terms">{{term}}</li>
+              </ul>
+            </div>
+            <div class="drawer-section mt-16">
+              <label class="input-mini-label">Lịch sử xử lý</label>
+              <div class="drawer-history">
+                <div class="history-step" *ngFor="let step of selectedItem.history; let i = index">
+                  <span class="step-circle">{{i+1}}</span>
+                  <span class="step-text">{{step}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+  
+      <div class="drawer-footer">
+        <button class="btn-cancel" (click)="closeDrawer()">Đóng</button>
+        <button class="btn-save" *ngIf="activeDrawer === 'request'" (click)="createQuoteFromRequest(selectedItem)">Tạo báo giá</button>
+        <button class="btn-save" *ngIf="activeDrawer === 'quote'" (click)="convertQuoteToContract(selectedItem)">Chuyển thành hợp đồng</button>
+        <button class="btn-save" *ngIf="activeDrawer === 'contract'" (click)="updateContractStatus(selectedItem)">Cập nhật trạng thái</button>
+      </div>
+    </ng-container>
+  </div>
+</div>

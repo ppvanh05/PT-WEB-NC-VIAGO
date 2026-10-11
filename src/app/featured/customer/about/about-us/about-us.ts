@@ -1,30 +1,21 @@
-import { Component } from '@angular/core';
+import { Component, AfterViewInit, ElementRef, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-
-@Component({
-  selector: 'app-about-us',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './about-us.html',
-  styleUrls: ['../../customer-pages.css', './about-us.css', '../../customer-page-theme.css']
-})
-export class AboutUs {
-  constructor(private router: Router) {}
-
-  goToRentalServices() {
-    this.router.navigate(['/dich-vu'], {
-      queryParams: { tab: 'thue-xe' }
-    });
-  }
-
-  goToSchedule() {
-    this.router.navigate(['/lich-trinh']);
-  }
-
-  goToBookingSection() {
-    this.router.navigate(['/'], {
-      queryParams: { scroll: 'booking-form-card' }
-    });
-  }
+type Item = readonly [string, string, string];
+type Page = { title: string; items: Item[] };
+@Component({ selector:'app-about-us', standalone:true, imports:[CommonModule], templateUrl:'./about-us.html', styleUrls:['../../customer-pages.css','./about-us.css','../../customer-page-theme.css'] })
+export class AboutUs implements AfterViewInit, OnDestroy {
+ @ViewChild('countersSection') countersSection!: ElementRef; passengersDisplay='0'; onTimeDisplay='0'; tripsDisplay='0'; private observer?: IntersectionObserver; private started=false;
+ selectedVehicle='limousine'; currentPage=0; lightboxIndex:number|null=null; currentSlide=0; limoImages:any[]=[];
+ vehicleGalleries:Record<string,{label:string,pages:Page[]}>= {
+  limousine:{label:'Limousine',pages:[{title:'Không gian và ghế ngồi',items:[['/assets/customer/limo_vip_int.png','Toàn cảnh khoang hành khách','Không gian rộng rãi, sang trọng.'],['/assets/customer/limo_9_1.jpg','Ghế thương gia','Ghế ngồi êm ái cho hành trình dài.'],['/assets/customer/limo_9_2.jpg','Khoảng để chân','Không gian duỗi chân thoải mái.'],['/assets/customer/limo_9_3.jpg','Bố trí ghế và lối đi','Thiết kế thuận tiện, riêng tư.']]},{title:'Tiện nghi và chi tiết',items:[['/assets/customer/limo_vip_int.png','Tiện nghi cá nhân','Mọi nhu cầu trong tầm tay.'],['/assets/customer/limo_9_2.jpg','Ánh sáng nội thất','Ánh sáng dịu nhẹ suốt hành trình.'],['/assets/customer/limo_vip_ext.png','Rèm cửa và cửa sổ','Tận hưởng không gian riêng tư.'],['/assets/customer/limo_9_seater.png','Chi tiết hoàn thiện cao cấp','Tinh tế trong từng đường nét.']]}]},
+  sleeper:{label:'Giường nằm',pages:[{title:'Không gian và bố trí giường',items:[['/assets/customer/sleeper_bus_int.png','Toàn cảnh khoang giường','Không gian nghỉ ngơi tiện nghi.'],['/assets/customer/sleeper_22_1.png','Bố trí tầng giường','Sắp xếp khoa học, dễ di chuyển.'],['/assets/customer/futa_sleeper_int.png','Không gian giường tầng dưới','Thoải mái và thoáng đãng.'],['/assets/customer/sleeper_34_1.jpg','Không gian giường tầng trên','Tầm nhìn riêng tư hơn.']]},{title:'Tiện nghi và riêng tư',items:[['/assets/customer/sleeper_22_2.jpg','Đệm và gối','Êm ái cho giấc ngủ trọn vẹn.'],['/assets/customer/sleeper_22_3.jpg','Rèm riêng tư','Khoảng nghỉ riêng dành cho bạn.'],['/assets/customer/futa_sleeper_int.png','Đèn đọc sách và cổng sạc','Luôn kết nối khi cần.'],['/assets/customer/sleeper_bus_int.png','Lối đi và chi tiết nội thất','Di chuyển thuận tiện giữa các khoang.']]}]},
+  cabin:{label:'Cabin',pages:[{title:'Không gian cabin',items:[['/assets/customer/futa_cabin_int.png','Toàn cảnh khoang cabin','Không gian hiện đại, yên tĩnh.'],['/assets/customer/palace_cabin_int.png','Không gian bên trong một cabin','Riêng tư và tiện nghi.'],['/assets/customer/futa_cabin_int.png','Giường hoặc ghế trong cabin','Thiết kế tối ưu sự thoải mái.'],['/assets/customer/palace_cabin_int.png','Không gian lưu trữ','Sắp xếp hành lý gọn gàng.']]},{title:'Tiện nghi và chi tiết',items:[['/assets/customer/palace_cabin_int.png','Bảng điều khiển và tiện nghi','Điều khiển dễ dàng trong tầm tay.'],['/assets/customer/futa_cabin_int.png','Ánh sáng riêng tư','Không gian thư giãn theo cách của bạn.'],['/assets/customer/palace_cabin_int.png','Vách ngăn và tính riêng tư','Tách biệt vừa đủ cho hành trình.'],['/assets/customer/futa_cabin_int.png','Chi tiết nội thất cabin','Hoàn thiện chỉn chu, hiện đại.']]}]}
+ };
+ constructor(private router:Router){} get selectedGallery(){return this.vehicleGalleries[this.selectedVehicle];} get currentGalleryPage(){return this.selectedGallery.pages[this.currentPage];}
+ ngAfterViewInit(){if(this.countersSection?.nativeElement){this.observer=new IntersectionObserver(e=>{if(e.some(x=>x.isIntersecting)&&!this.started){this.started=true;this.animateCounters();this.observer?.disconnect();}},{threshold:.3});this.observer.observe(this.countersSection.nativeElement);}}
+ ngOnDestroy(){this.observer?.disconnect();} private animateCounters(){let n=0;const t=()=>{const p=1-Math.pow(1-Math.min(++n/60,1),3);this.passengersDisplay=(1.5*p).toFixed(1)+'M+';this.onTimeDisplay=(99.2*p).toFixed(1)+'%';this.tripsDisplay=Math.round(50*p)+'+';if(n<60)setTimeout(t,33);};t();}
+ selectVehicle(v:string){this.selectedVehicle=v;this.currentPage=0;this.lightboxIndex=null;} setPage(p:number){this.currentPage=p;this.lightboxIndex=null;} openLightbox(i:number){this.lightboxIndex=i;} closeLightbox(){this.lightboxIndex=null;} previousLightbox(){if(this.lightboxIndex!==null)this.lightboxIndex=(this.lightboxIndex+3)%4;} nextLightbox(){if(this.lightboxIndex!==null)this.lightboxIndex=(this.lightboxIndex+1)%4;}
+ prevSlide(){} nextSlide(){} goToSlide(i:number){this.currentSlide=i;}
+ goToRentalServices(){this.router.navigate(['/dich-vu'],{queryParams:{tab:'thue-xe'}});} goToSchedule(){this.router.navigate(['/lich-trinh']);} goToBookingSection(){this.router.navigate(['/'],{queryParams:{scroll:'booking-form-card'}});}
 }

@@ -1,5 +1,6 @@
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { SidebarStateService } from '../../services/sidebar-state.service';
@@ -48,7 +49,7 @@ export class AdminSidebar implements OnInit {
         { label: 'Lịch trình', route: '/admin/dispatch/schedules' },
         { label: 'Đón trả', route: '/admin/dispatch/pickup' },
         { label: 'Phương tiện', route: '/admin/dispatch/vehicles' },
-        { label: 'Tài xế & Phụ xe', route: '/admin/dispatch/drivers' },
+        { label: 'Tài xế & Phụ xe', route: '/admin/dispatch/drivers-assistants' },
       ]
     },
     {
@@ -73,12 +74,12 @@ export class AdminSidebar implements OnInit {
         { label: 'Khuyến mãi', route: '/admin/content/promotions' },
       ]
     },
-    { label: 'Thuê xe hợp đồng', icon: 'contract', route: '/admin/contract' },
+    { label: 'Thuê xe hợp đồng', icon: 'contract', route: '/admin/contract-rentals' },
     {
       label: 'Báo cáo', icon: 'chart', expandable: true,
       children: [
         { label: 'Doanh thu', route: '/admin/reports/revenue' },
-        { label: 'Khách hàng', route: '/admin/reports/customers' },
+        { label: 'Khách hàng', route: '/admin/reports/customer-report' },
         { label: 'Tài xế & Phụ xe', route: '/admin/reports/drivers' },
         { label: 'Tuyến xe', route: '/admin/reports/routes' },
         { label: 'Hoàn hủy', route: '/admin/reports/cancellations' },
@@ -134,6 +135,9 @@ export class AdminSidebar implements OnInit {
   selectItem(item: SidebarItem): void {
     if (item.expandable) {
       this.toggleExpand(item.label);
+    } else {
+      this.activeRoute.set(item.route || '');
+      if (item.route) this.router.navigateByUrl(item.route);
     } else if (item.route) {
       this.activeRoute.set(item.route);
       this.router.navigateByUrl(item.route);
