@@ -16,7 +16,7 @@ import { DriversAssistants as DispatchDrivers } from './featured/admin/dispatch/
 import { CustomerAccountManagement } from './featured/admin/customers/customer-account-management/customer-account-management';
 import { ReviewsFeedback } from './featured/admin/customers/reviews-feedback/reviews-feedback';
 import { LostAndFound as AdminLostAndFound } from './featured/admin/customers/lost-and-found/lost-and-found';
-import { EmployeeAccountManagement } from './featured/admin/employees/employee-account-management/employee-account-management';
+import { StaffAccountManagement } from './featured/admin/staff/staff-account-management/staff-account-management';
 import { News as AdminNews } from './featured/admin/content/news/news';
 import { Policies as AdminPolicies } from './featured/admin/content/policies/policies';
 import { PromotionsComponent as AdminPromotions } from './featured/admin/content/promotions/promotions';
@@ -26,7 +26,7 @@ import { CustomerReportComponent as CustomerReport } from './featured/admin/repo
 import { DriverAssistantReport } from './featured/admin/reports/driver-assistant-report/driver-assistant-report';
 import { RouteReportComponent as RouteReport } from './featured/admin/reports/route-report/route-report';
 import { CancellationReport } from './featured/admin/reports/cancellation-report/cancellation-report';
-import { ActivityLogs } from './featured/admin/activity-logs/activity-logs';
+import { ActivityLog } from './featured/admin/logs/activity-log/activity-log';
 
 // Customer components
 import { Home as CustomerHome } from './featured/customer/home/home';
@@ -95,7 +95,7 @@ export const routes: Routes = [
       { path: 'customers/accounts', component: CustomerAccountManagement },
       { path: 'customers/reviews', component: ReviewsFeedback },
       { path: 'customers/lost-items', component: AdminLostAndFound },
-      { path: 'staff/accounts', component: EmployeeAccountManagement },
+      { path: 'staff/accounts', component: StaffAccountManagement },
       { path: 'content/news', component: AdminNews },
       { path: 'content/policies', component: AdminPolicies },
       { path: 'content/promotions', component: AdminPromotions },
@@ -105,7 +105,7 @@ export const routes: Routes = [
       { path: 'reports/drivers', component: DriverAssistantReport },
       { path: 'reports/routes', component: RouteReport },
       { path: 'reports/cancellations', component: CancellationReport },
-      { path: 'logs', component: ActivityLogs },
+      { path: 'logs', component: ActivityLog },
       { path: '**', redirectTo: 'home' },
     ],
   },
