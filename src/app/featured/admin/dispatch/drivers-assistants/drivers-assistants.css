@@ -271,7 +271,6 @@
 .filter-search { flex: 2; }
 .filter-role, .filter-license, .filter-status { flex: 1; }
 
-.search-filters-row .filter-status {
 .col-search { flex: 2; }
 .col-role, .col-license, .col-status { flex: 1; }
 
@@ -932,6 +931,7 @@
 .btn-status-toggle:hover:not(:disabled) {
   background-color: var(--color-danger-700);
   color: var(--color-surface);
+}
 .btn-status-toggle:hover {
   background-color: var(--warning);
   color: white;

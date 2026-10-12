@@ -117,10 +117,6 @@ export class DatePickerComponent implements ControlValueAccessor, OnChanges, Aft
   }
   private toIso(date: Date): string { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
   private parseDate(value: string): Date | null {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-    if (!match) return null;
-    const date = new Date(+match[1], +match[2] - 1, +match[3]);
-    return date.getFullYear() === +match[1] && date.getMonth() === +match[2] - 1 && date.getDate() === +match[3] ? date : null;
     if (!value) return null;
     const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
     if (isoMatch) return new Date(+isoMatch[1], +isoMatch[2] - 1, +isoMatch[3]);

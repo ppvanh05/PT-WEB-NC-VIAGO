@@ -1,10 +1,11 @@
-import { afterNextRender, ChangeDetectorRef, Component, DestroyRef, HostListener, inject, Injector, OnDestroy, OnInit } from '@angular/core';
+import { afterNextRender, ChangeDetectorRef, Component, DestroyRef, ElementRef, HostListener, inject, Injector, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CustomerNavigationService } from '../../../core/services/customer-navigation.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
+import { Subscription, filter } from 'rxjs';
 import { Button } from '../../../shared/components/button/button';
 import { Input } from '../../../shared/components/input/input';
 import { Select } from '../../../shared/components/input/select/select';
@@ -22,21 +23,9 @@ import { DestinationService, DestinationWeather } from './destination-service';
 import { BookingError, BookingService, BOOKING_KEY, CATALOG_KEY } from './booking.service';
 import { BookingDraft, BookingLeg, BookingOrder, BookingState, BookingStep, Passenger, SearchRequest, Trip, TripPoint, normalizeName, normalizePhone, passengerErrors, vietnamDate } from './booking.models';
 import { CITIES, ROUTES, VOUCHERS } from './booking.data';
-
-@Component({
-  imports: [CommonModule, FormsModule, RouterLink, Button, Input, Select, DatePickerComponent, SearchableDropdown, ModalComponent, Badge, Amenities, Toast, Pagination, QrCode, VoucherCard, SeatMap],
-  selector: 'app-home',
-  styleUrls: ['./home.css', './home-original-layout.css', './home-reference-completion.css', './home-destination.css', './home-review.css', './home-payment.css'],
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
-import { Subscription, filter } from 'rxjs';
 import { VoucherService, Voucher } from '../../../core/services/voucher.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { VoucherCard } from '../../../shared/components/voucher-card/voucher-card';
 import { SearchableDropdownComponent } from '../../../shared/components/searchable-dropdown/searchable-dropdown';
-import { DatePickerComponent } from '../../../shared/components/date-picker/date-picker';
 import { scrollToTop, todayIso } from '../../../shared/utils/form-validators';
 
 type SearchField = 'departure' | 'destination' | 'departureDate' | 'returnDate';
@@ -44,7 +33,7 @@ type SearchField = 'departure' | 'destination' | 'departureDate' | 'returnDate';
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, VoucherCard, SearchableDropdownComponent, DatePickerComponent],
+  imports: [CommonModule, FormsModule, RouterLink, DatePickerComponent, SearchableDropdownComponent, VoucherCard],
   templateUrl: './home.html',
   styleUrl: './home.css',
 })
@@ -584,11 +573,9 @@ export class Home implements OnInit, OnDestroy {
     window.print();
   }
   showTicket(): void { this.ticketOpen = true; this.cd.markForCheck(); }
-}
   @ViewChild('searchPanel') searchPanel?: ElementRef<HTMLElement>;
 
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
   private readonly toastService = inject(ToastService);
   readonly voucherService = inject(VoucherService);
 
@@ -638,16 +625,7 @@ export class Home implements OnInit, OnDestroy {
     { cities: ['Nha Trang', 'Đà Nẵng'] }
   ];
 
-  departureCities: string[] = [...this.allCities];
-  destinationCities: string[] = [...this.allCities];
-
   // ===== Tuyến phổ biến / Tin tức (dữ liệu hiển thị) =====
-  readonly popularRoutes = [
-    { from: 'TP. Hồ Chí Minh', to: 'Đà Lạt', image: '/assets/customer/da_lat.jpg', distance: '310km', duration: '6 giờ', price: '280.000đ' },
-    { from: 'Cần Thơ', to: 'Rạch Giá', image: '/assets/customer/cho_noi.jpg', distance: '115km', duration: '2.5 giờ', price: '140.000đ' },
-    { from: 'Nha Trang', to: 'Đà Nẵng', image: '/assets/customer/da_nang.jpg', distance: '530km', duration: '10 giờ', price: '350.000đ' },
-  ];
-
   readonly testimonials = [
     { initials: 'TP', color: 'pink', name: 'Đỗ Thanh Phương', route: 'TP. Hồ Chí Minh - Vũng Tàu', content: 'Nhân viên phục vụ nhiệt tình, hướng dẫn chỗ ngồi chu đáo, 5 sao cho nhà xe. Xe chạy rất êm, tài xế lái xe cẩn thận và đón đúng giờ. Sẽ tiếp tục ủng hộ' },
     { initials: 'VA', color: 'blue', name: 'Nguyễn Văn An', route: 'TP. Hồ Chí Minh - Nha Trang', content: 'Dịch vụ chuyên nghiệp, ghế ngồi rất thoải mái. Wifi trên xe mạnh, sạc điện thoại tiện lợi. Một trải nghiệm đi đường dài tuyệt vời.' },
@@ -668,50 +646,12 @@ export class Home implements OnInit, OnDestroy {
     return Math.max(1, Math.ceil(this.voucherService.publicVouchers.length / 3));
   }
 
-  get paginatedPromos(): Voucher[] {
-    const startIndex = (this.currentPromoPage - 1) * 3;
-    return this.voucherService.publicVouchers.slice(startIndex, startIndex + 3);
-  }
-
   prevPromoPage(): void {
     if (this.currentPromoPage > 1) this.currentPromoPage--;
   }
 
   nextPromoPage(): void {
     if (this.currentPromoPage < this.totalPromoPages) this.currentPromoPage++;
-  }
-
-  ngOnInit(): void {
-    this.startHeroTimer();
-
-    // Quay về Trang chủ (logo / menu): luôn cuộn lên đầu trang và làm mới form tìm kiếm
-    this.subscriptions.add(
-      this.router.events.pipe(filter(event => event instanceof NavigationEnd)).subscribe(event => {
-        const url = (event as NavigationEnd).urlAfterRedirects.split('?')[0];
-        if (url === '/customer' || url === '/customer/') {
-          scrollToTop();
-        }
-      })
-    );
-
-    // Điền sẵn tuyến khi đi từ "Đặt lại chuyến" / "Đặt vé ngay"
-    this.subscriptions.add(
-      this.route.queryParams.subscribe(params => {
-        const from = params['departure'] || params['from'];
-        const to = params['destination'] || params['to'];
-        if (from) this.departure = this.normalizeCity(from);
-        if (to) this.destination = this.normalizeCity(to);
-        if (from || to) {
-          this.updateCitiesLists();
-          setTimeout(() => this.scrollToSearchPanel());
-        }
-      })
-    );
-  }
-
-  ngOnDestroy(): void {
-    if (this.heroIntervalId) clearInterval(this.heroIntervalId);
-    this.subscriptions.unsubscribe();
   }
 
   // ===== Banner =====
@@ -757,13 +697,6 @@ export class Home implements OnInit, OnDestroy {
   }
 
   updateCitiesLists(): void {
-    this.destinationCities = this.departure
-      ? this.allCities.filter(c => this.connectedCities(this.departure).includes(c))
-      : [...this.allCities];
-    this.departureCities = this.destination
-      ? this.allCities.filter(c => this.connectedCities(this.destination).includes(c))
-      : [...this.allCities];
-
     if (this.departure && !this.departureCities.includes(this.departure)) this.departure = '';
     if (this.destination && !this.destinationCities.includes(this.destination)) this.destination = '';
   }
