@@ -49,7 +49,7 @@ import { Policies } from './featured/customer/about/policies/policies';
 import { Terms } from './featured/customer/about/terms/terms';
 import { PickupDropoffComponent } from './featured/admin/dispatch/pickup-dropoff/pickup-dropoff';
 import { VehiclesComponent } from './featured/admin/dispatch/vehicles/vehicles';
-import { DriversAssistantsComponent } from './featured/admin/dispatch/drivers-assistants/drivers-assistants';
+import { DriversAssistants as DriversAssistantsComponent } from './featured/admin/dispatch/drivers-assistants/drivers-assistants';
 import { ContractRentalsComponent } from './featured/admin/contract-rentals/contract-rentals';
 import { CustomerReportComponent } from './featured/admin/reports/customer-report/customer-report';
 
