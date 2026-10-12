@@ -23,6 +23,11 @@ import { DestinationService, DestinationWeather } from './destination-service';
 import { BookingError, BookingService, BOOKING_KEY, CATALOG_KEY } from './booking.service';
 import { BookingDraft, BookingLeg, BookingOrder, BookingState, BookingStep, Passenger, SearchRequest, Trip, TripPoint, normalizeName, normalizePhone, passengerErrors, vietnamDate } from './booking.models';
 import { CITIES, ROUTES, VOUCHERS } from './booking.data';
+
+@Component({
+  imports: [CommonModule, FormsModule, RouterLink, Button, Input, Select, DatePickerComponent, SearchableDropdown, ModalComponent, Badge, Amenities, Toast, Pagination, QrCode, VoucherCard, SeatMap],
+  selector: 'app-home',
+  styleUrls: ['./home.css', './home-original-layout.css', './home-reference-completion.css', './home-destination.css', './home-review.css', './home-payment.css'],
 import { VoucherService, Voucher } from '../../../core/services/voucher.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { SearchableDropdownComponent } from '../../../shared/components/searchable-dropdown/searchable-dropdown';
@@ -35,7 +40,6 @@ type SearchField = 'departure' | 'destination' | 'departureDate' | 'returnDate';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, DatePickerComponent, SearchableDropdownComponent, VoucherCard],
   templateUrl: './home.html',
-  styleUrl: './home.css',
 })
 export class Home implements OnInit, OnDestroy {
   readonly authService = inject(AuthService);
@@ -573,6 +577,7 @@ export class Home implements OnInit, OnDestroy {
     window.print();
   }
   showTicket(): void { this.ticketOpen = true; this.cd.markForCheck(); }
+}
   @ViewChild('searchPanel') searchPanel?: ElementRef<HTMLElement>;
 
   private readonly router = inject(Router);

@@ -1,1 +1,514 @@
-<p>customer-account-management works!</p>
+<div class="ticket-list-page">
+  <section class="lookup-panel account-header-panel">
+    <div class="lookup-heading">
+      <div>
+        <span class="eyebrow">Quản lý hệ thống</span>
+        <h1>Quản lý tài khoản khách hàng</h1>
+      </div>
+      <div class="admin-create-banner" role="button" tabindex="0" (click)="openCreateModal()" title="Thêm tài khoản khách hàng mới">
+        <span class="admin-create-icon">
+          <svg class="account-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+        </span>
+        <span class="admin-create-text">
+          <strong>Thêm tài khoản mới</strong>
+          <span>Tạo hồ sơ khách hàng, cập nhật thông tin liên hệ và trạng thái tài khoản.</span>
+        </span>
+      </div>
+    </div>
+  <!-- Summary Strip -->
+    <section class="account-summary-section">
+    <div class="summary-strip">
+        <div class="summary-item">
+          <span>{{ customers.length }}</span>
+          <small>Tất cả tài khoản</small>
+        </div>
+        <div class="summary-item paid">
+          <span>{{ activeCount }}</span>
+          <small>Đang hoạt động</small>
+        </div>
+        <div class="summary-item cancelled">
+          <span>{{ lockedCount }}</span>
+          <small>Đã khóa</small>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section class="table-panel">
+    <div class="table-control-panel">
+      <div class="pill-tabs account-status-tabs">
+      <button type="button" class="pill-tab-item" [class.active]="activeTab === 'all'" (click)="setTab('all')">
+        Tất cả ({{ customers.length }})
+      </button>
+      <button type="button" class="pill-tab-item" [class.active]="activeTab === 'active'" (click)="setTab('active')">
+        Đang hoạt động ({{ activeCount }})
+      </button>
+      <button type="button" class="pill-tab-item" [class.active]="activeTab === 'locked'" (click)="setTab('locked')">
+        Đã khóa ({{ lockedCount }})
+      </button>
+      </div>
+    </div>
+
+    <!-- Filters Grid -->
+    <div class="filters-grid">
+      <!-- Search Input field -->
+      <div class="field">
+        <label>Tìm kiếm</label>
+        <div style="position: relative; display: flex; align-items: center; width: 100%;">
+          <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="applyFilter()" placeholder="Nhập Mã KH/Họ tên/SĐT/Email..." />
+          <button *ngIf="searchQuery" class="clear-search-btn-custom" (click)="clearSearchQuery()" style="position: absolute; right: 8px; border: none; background: none; color: #94a3b8; cursor: pointer; display: flex; align-items: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 14px; height: 14px;">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Gender selector dropdown field -->
+      <div class="field">
+        <label>Giới tính</label>
+        <select [(ngModel)]="searchGender" (change)="applyFilter()">
+          <option value="all">Tất cả giới tính</option>
+          <option value="Nam">Nam</option>
+          <option value="Nữ">Nữ</option>
+          <option value="Khác">Khác</option>
+        </select>
+      </div>
+
+      <!-- Clear filter button field -->
+      <div class="field filter-action-field">
+        <label>&nbsp;</label>
+        <button type="button" class="secondary-button" (click)="clearAllFilters()" style="width: 100%; min-height: 40px;">Xóa bộ lọc</button>
+      </div>
+
+    </div>
+    <div class="table-header">
+      <strong>Danh sách tài khoản khách hàng</strong>
+      <span>{{ filteredCustomers.length }} bản ghi</span>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 12%;">Mã KH</th>
+            <th style="width: 22%;">Họ và tên</th>
+            <th style="width: 13%;">Số điện thoại</th>
+            <th style="width: 15%;">Email</th>
+            <th style="width: 12%;">Hạng thành viên</th>
+            <th style="width: 10%;">Ngày đăng ký</th>
+            <th style="width: 8%; text-align: center;">Vé đã đặt</th>
+            <th style="width: 8%; text-align: center; white-space: nowrap;">Chức năng</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of paginatedCustomers">
+            <td class="name">
+              <strong style="color: #0f172a;">{{ item.code }}</strong>
+              <span class="badge payment {{ item.status === 'Đang hoạt động' ? 'da-thanh-toan' : 'cho-thanh-toan' }}" style="margin-top: 4px;">
+                {{ item.status }}
+              </span>
+            </td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="avatar-badge" style="width: 32px; height: 32px; border-radius: 9999px; background-color: #1E3A8A; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; text-transform: uppercase;">
+                  {{ item.initials }}
+                </div>
+                <strong style="color: #0f172a; font-weight: 800;">{{ item.name }}</strong>
+              </div>
+            </td>
+            <td>
+              <span style="font-size: 13px; color: #334155; font-weight: 600;">{{ item.phone }}</span>
+            </td>
+            <td [title]="item.email">
+              <span style="font-size: 13px; color: #475569;">{{ item.email }}</span>
+            </td>
+            <td>
+              <span *ngIf="getMemberTier(item) !== 'Không có'" class="tier-badge" [ngClass]="{
+                'diamond': getMemberTier(item) === 'Kim cương',
+                'gold': getMemberTier(item) === 'Vàng',
+                'silver': getMemberTier(item) === 'Bạc',
+                'bronze': getMemberTier(item) === 'Đồng'
+              }">
+                {{ getMemberTier(item).toUpperCase() }}
+              </span>
+            </td>
+            <td>
+              <span style="font-size: 13px; color: #334155; font-weight: 500;">{{ item.date }}</span>
+            </td>
+            <td style="text-align: center;">
+              <span class="badge payment da-thanh-toan" style="font-size: 12px; font-weight: 800; padding: 4px 10px; background-color: #eff6ff; color: #1E3A8A; border: 1px solid #dbe8ff;">
+                {{ item.tickets.replace('vé', '').replace('-', '').trim() }}
+              </span>
+            </td>
+            <td class="actions-col">
+              <button type="button" class="action-btn-icon edit" (click)="openEditModal(item)" title="Chỉnh sửa tài khoản">
+                <svg class="account-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M4 10h7M4 14h5M13 20l-3 1 1-3 7-7 2 2-7 7Z"/></svg>
+              </button>
+            </td>
+          </tr>
+          <!-- Empty State -->
+          <tr *ngIf="filteredCustomers.length === 0">
+            <td colspan="8">
+              <div class="empty-table">
+                <h3>Không tìm thấy tài khoản khách hàng nào phù hợp.</h3>
+                <p>Thử thay đổi từ khóa hoặc trạng thái lọc.</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Bar -->
+    <div class="pagination-bar">
+      <span>
+        Hiển thị {{ startIndex }}-{{ endIndex }} / {{ filteredCustomers.length }} khách hàng
+      </span>
+      <div class="pagination-controls">
+        <button type="button" class="page-button" [disabled]="validCurrentPage <= 1" (click)="changePage(validCurrentPage - 1)" aria-label="Trang trước">
+          <svg class="account-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+        </button>
+        <button
+          type="button"
+          class="page-button"
+          *ngFor="let page of getPaginationItems()"
+          [class.active]="page === validCurrentPage"
+          (click)="changePage(page)">
+          {{ page }}
+        </button>
+        <button type="button" class="page-button" [disabled]="validCurrentPage >= totalPages" (click)="changePage(validCurrentPage + 1)" aria-label="Trang sau">
+          <svg class="account-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ================= MODAL CHỈNH SỬA TÀI KHOẢN ================= -->
+<div class="modal-overlay" *ngIf="showEditModal && selectedCustomer" (click)="closeEditModal()">
+  <div class="edit-modal" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <header class="modal-header">
+      <div>
+        <h2>Chỉnh sửa thông tin - {{ selectedCustomer.code }}</h2>
+      </div>
+      <button class="close-button" (click)="closeEditModal()">x</button>
+    </header>
+
+    <!-- Tab Buttons (Horizontal at Top of Body) -->
+    <div class="modal-horizontal-tabs" style="display: flex; gap: 16px; padding: 12px 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+      <button type="button" class="horizontal-tab-btn" [class.active]="editSubTab === 'profile'" (click)="setEditSubTab('profile')" style="background: none; border: none; padding: 8px 12px; font-weight: 800; font-size: 13px; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent;" [style.border-bottom-color]="editSubTab === 'profile' ? '#1E3A8A' : 'transparent'" [style.color]="editSubTab === 'profile' ? '#1E3A8A' : '#64748b'">Thông tin cơ bản</button>
+      <button type="button" class="horizontal-tab-btn" [class.active]="editSubTab === 'history'" (click)="setEditSubTab('history')" style="background: none; border: none; padding: 8px 12px; font-weight: 800; font-size: 13px; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent;" [style.border-bottom-color]="editSubTab === 'history' ? '#1E3A8A' : 'transparent'" [style.color]="editSubTab === 'history' ? '#1E3A8A' : '#64748b'">Lịch sử đặt vé ({{ selectedCustomer.bookings?.length || 0 }})</button>
+      <button type="button" class="horizontal-tab-btn" [class.active]="editSubTab === 'logs'" (click)="setEditSubTab('logs')" style="background: none; border: none; padding: 8px 12px; font-weight: 800; font-size: 13px; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent;" [style.border-bottom-color]="editSubTab === 'logs' ? '#1E3A8A' : 'transparent'" [style.color]="editSubTab === 'logs' ? '#1E3A8A' : '#64748b'">Nhật ký hoạt động</button>
+    </div>
+
+    <!-- Modal Body Layout -->
+    <div class="detail-modal-body" style="grid-template-columns: 1fr; display: flex; flex-direction: column; gap: 16px; padding: 20px; overflow-y: auto; max-height: 60vh;">
+
+      <!-- SUBTAB 1: Basic Info -->
+      <div *ngIf="editSubTab === 'profile'" style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Row 1: Code & Status -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="field">
+            <label>Mã khách hàng *</label>
+            <input type="text" [value]="selectedCustomer.code" disabled style="background: #f1f5f9; color: #64748b; cursor: not-allowed;" />
+          </div>
+          <div class="field">
+            <label>Trạng thái hoạt động</label>
+            <div style="display: flex; align-items: center; min-height: 40px; font-weight: 800; font-size: 13px;" [style.color]="selectedCustomer.status === 'Đang hoạt động' ? '#10B981' : '#EF4444'">
+              <span style="width: 8px; height: 8px; border-radius: 999px; background: currentColor; margin-right: 8px;"></span>
+              <span>{{ selectedCustomer.status.toUpperCase() }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row: Lock Reason (only shown when Locked) -->
+        <div class="field" *ngIf="selectedCustomer.status === 'Đã khóa' && selectedCustomer.lockInfo">
+          <label style="color: #EF4444;">Lý do khóa tài khoản</label>
+          <input type="text" disabled [value]="selectedCustomer.lockInfo.reason || 'Chưa cập nhật lý do khóa'" style="background: #fdf2f2; border-color: #fecaca; color: #b91c1c; cursor: not-allowed;" />
+        </div>
+
+        <!-- Row 2: Name & Phone -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="field">
+            <label>Họ và tên khách hàng *</label>
+            <input type="text" [(ngModel)]="selectedCustomer.name" name="name" />
+          </div>
+          <div class="field">
+            <label>Số điện thoại *</label>
+            <input type="text" [(ngModel)]="selectedCustomer.phone" name="phone" />
+          </div>
+        </div>
+
+        <!-- Row 3: Email & Gender -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="field">
+            <label>Địa chỉ Email</label>
+            <input type="email" [(ngModel)]="selectedCustomer.email" name="email" />
+          </div>
+          <div class="field">
+            <label>Giới tính</label>
+            <select [(ngModel)]="selectedCustomer.gender" name="gender">
+              <option value="Nam">Nam</option>
+              <option value="Nữ">Nữ</option>
+              <option value="Khác">Khác</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row: Hạng thành viên & Nghề nghiệp -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="field">
+            <label>Hạng thành viên</label>
+            <select [(ngModel)]="selectedCustomer.memberTier" name="memberTier">
+              <option value="Không có">Không có</option>
+              <option value="Bạc">Bạc</option>
+              <option value="Vàng">Vàng</option>
+              <option value="Kim cương">Kim cương</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Nghề nghiệp</label>
+            <input type="text" [(ngModel)]="selectedCustomer.occupation" name="occupation" placeholder="Nhập nghề nghiệp..." />
+          </div>
+        </div>
+
+        <!-- Row 4: Birth Date & Avatar -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="field">
+            <label>Ngày sinh *</label>
+            <input type="date" [(ngModel)]="selectedCustomer.birthDate" name="birthDate" />
+          </div>
+          <div class="field">
+            <label>Ảnh đại diện</label>
+            <div style="width: 100px; height: 100px; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; cursor: pointer;">
+              <svg class="account-icon" style="font-size: 28px; color: #64748b;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18H5a4 4 0 0 1-1-8 7 7 0 0 1 13-2 5 5 0 0 1 2 10h-2M12 20V10m-4 4 4-4 4 4"/></svg>
+              <span style="font-size: 11px; font-weight: 800; color: #64748b; margin-top: 4px;">Tải ảnh lên</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBTAB 2: Booking History -->
+      <div *ngIf="editSubTab === 'history'" style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <h3 style="font-size: 14px; font-weight: 900; color: #1e3a8a; text-transform: uppercase; margin-bottom: 4px;">Lịch sử đặt mua vé xe</h3>
+          <p style="font-size: 12px; color: #64748b; margin: 0;">Lịch sử giao dịch đặt ghế/chuyến xe vật lý trên hệ thống VIAGO của khách hàng.</p>
+        </div>
+
+        <div class="table-scroll" *ngIf="selectedCustomer.bookings?.length > 0; else noBookings" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: auto; max-height: 40vh;">
+          <table style="min-width: 100% !important; width: 100% !important; table-layout: fixed;">
+            <thead>
+              <tr>
+                <th style="width: 95px;">Mã vé</th>
+                <th>Tuyến xe</th>
+                <th style="width: 130px; text-align: center;">Ghế</th>
+                <th style="width: 95px;">Ngày chạy</th>
+                <th style="width: 90px;">Giá vé</th>
+                <th style="width: 100px;">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let booking of selectedCustomer.bookings">
+                <td><strong class="code" style="font-size: 13px;">{{ booking.code }}</strong></td>
+                <td style="font-size: 13px; font-weight: 600; word-break: break-word;">{{ booking.route }}</td>
+                <td style="text-align: center;">
+                  <span class="badge payment da-thanh-toan" style="font-size: 12px; font-weight: 800; padding: 4px 10px; background-color: #eff6ff; color: #1E3A8A; border: 1px solid #dbe8ff; display: inline-block; width: 100%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" [title]="booking.seat">
+                    {{ booking.seat.includes('_GHE_') ? booking.seat.split('_GHE_')[1] : booking.seat }}
+                  </span>
+                </td>
+                <td style="font-size: 13px; color: #475569; white-space: nowrap;">{{ booking.date }}</td>
+                <td style="font-size: 13px; font-weight: 800; color: #0f172a;">{{ booking.price }}</td>
+                <td>
+                  <span class="badge payment {{ booking.status === 'Thành công' ? 'da-thanh-toan' : 'cho-thanh-toan' }}" style="display: inline-block; width: 100%; text-align: center;">
+                    {{ booking.status }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #noBookings>
+          <div class="empty-table">
+            <h3>Khách hàng chưa đặt mua vé xe nào.</h3>
+          </div>
+        </ng-template>
+      </div>
+
+      <!-- SUBTAB 3: Activity Log Timeline -->
+      <div *ngIf="editSubTab === 'logs'" style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <h3 style="font-size: 14px; font-weight: 900; color: #1e3a8a; text-transform: uppercase; margin-bottom: 4px;">Nhật ký hoạt động hệ thống</h3>
+          <p style="font-size: 12px; color: #64748b; margin: 0;">Lịch sử thao tác đăng nhập, sửa đổi hồ sơ, đặt vé và xác thực tài khoản của khách hàng.</p>
+        </div>
+
+        <div class="table-scroll" *ngIf="selectedCustomer.logs?.length > 0; else noLogs" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: auto; max-height: 40vh;">
+          <table style="min-width: 100% !important; width: 100% !important; table-layout: fixed;">
+            <thead>
+              <tr>
+                <th style="width: 120px;">Thời gian</th>
+                <th style="width: 130px;">Thao tác</th>
+                <th>Chi tiết</th>
+                <th style="width: 90px;">IP</th>
+                <th style="width: 95px;">Mã nhật ký</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let log of selectedCustomer.logs">
+                <td style="font-size: 13px; color: #64748b; white-space: nowrap;">{{ log.time }}</td>
+                <td>
+                  <span style="font-size: 13px; font-weight: 600; color: #334155;">
+                    {{ log.title }}
+                  </span>
+                </td>
+                <td style="font-size: 13px; color: #334155; line-height: 1.4; word-break: break-word;">{{ log.desc }}</td>
+                <td style="font-family: monospace; font-size: 12px; white-space: nowrap;">{{ log.ip }}</td>
+                <td style="font-family: monospace; font-size: 12px; color: #64748b; cursor: help;" [title]="log.code">{{ log.code.slice(-8) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #noLogs>
+          <div class="empty-table">
+            <h3>Không có nhật ký hoạt động hệ thống nào của khách hàng.</h3>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- Modal Footer Controls -->
+    <footer class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+      <!-- Danger Lock/Unlock action -->
+      <button type="button" class="danger-button" (click)="toggleCustomerStatus()">
+        {{ selectedCustomer.status === 'Đang hoạt động' ? 'Khóa tài khoản' : 'Mở khóa tài khoản' }}
+      </button>
+
+      <!-- Standard Save/Close actions -->
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="secondary-button" (click)="closeEditModal()">Hủy</button>
+        <button type="button" class="primary-button" (click)="saveCustomerChanges()">Lưu thay đổi</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<!-- ================= MODAL XÁC NHẬN KHÓA TÀI KHOẢN ================= -->
+<div class="modal-overlay top-layer" *ngIf="showLockConfirmModal" (click)="closeLockConfirmModal()">
+  <div class="confirm-modal" (click)="$event.stopPropagation()">
+    <header class="modal-header cancel-header">
+      <h2>Xác nhận khóa tài khoản?</h2>
+      <button type="button" class="close-button" (click)="closeLockConfirmModal()">x</button>
+    </header>
+    <div class="confirm-body" style="text-align: left;">
+      <p style="font-size: 14px; color: #334155; margin-bottom: 12px;">
+        Tài khoản khách hàng <strong>{{ selectedCustomer?.name }}</strong> (Mã: <strong>{{ selectedCustomer?.code }}</strong>) sẽ bị vô hiệu hóa quyền đăng nhập hệ thống ngay lập tức.
+      </p>
+
+      <div class="field">
+        <label>Lý do khóa tài khoản *</label>
+        <textarea [(ngModel)]="lockReason" placeholder="Nhập lý do khóa tài khoản khách hàng này..." rows="3"></textarea>
+      </div>
+    </div>
+    <footer class="modal-footer">
+      <button type="button" class="secondary-button" (click)="closeLockConfirmModal()">Hủy thao tác</button>
+      <button type="button" class="danger-button solid" (click)="confirmLockCustomer()">Xác nhận khóa</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ================= MODAL THÊM MỚI TÀI KHOẢN ================= -->
+<div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
+  <div class="edit-modal" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <header class="modal-header">
+      <div>
+        <h2>Đăng ký tài khoản khách hàng mới</h2>
+      </div>
+      <button class="close-button" (click)="closeCreateModal()">x</button>
+    </header>
+
+    <!-- Modal Body Layout -->
+    <div class="detail-modal-body" style="grid-template-columns: 1fr; display: flex; flex-direction: column; gap: 16px; padding: 20px; overflow-y: auto; max-height: 60vh;">
+      <!-- Row 1: Code & Status -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="field">
+          <label>Mã khách hàng *</label>
+          <input type="text" [value]="newCustomer.code" disabled style="background: #f1f5f9; color: #64748b; cursor: not-allowed;" />
+        </div>
+        <div class="field">
+          <label>Trạng thái hoạt động</label>
+          <div style="display: flex; align-items: center; min-height: 40px; font-weight: 800; font-size: 13px; color: #10B981;">
+            <span style="width: 8px; height: 8px; border-radius: 999px; background: currentColor; margin-right: 8px;"></span>
+            <span>ĐANG HOẠT ĐỘNG</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: Name & Phone -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="field">
+          <label>Họ và tên khách hàng *</label>
+          <input type="text" [(ngModel)]="newCustomer.name" name="name" placeholder="Ví dụ: Nguyễn Văn A" />
+        </div>
+        <div class="field">
+          <label>Số điện thoại *</label>
+          <input type="text" [(ngModel)]="newCustomer.phone" name="phone" placeholder="Nhập số điện thoại..." />
+        </div>
+      </div>
+
+      <!-- Row 3: Email & Gender -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="field">
+          <label>Địa chỉ Email</label>
+          <input type="email" [(ngModel)]="newCustomer.email" name="email" placeholder="Nhập địa chỉ email..." />
+        </div>
+        <div class="field">
+          <label>Giới tính</label>
+          <select [(ngModel)]="newCustomer.gender" name="gender">
+            <option value="Nam">Nam</option>
+            <option value="Nữ">Nữ</option>
+            <option value="Khác">Khác</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Row: Hạng thành viên & Nghề nghiệp -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="field">
+          <label>Hạng thành viên</label>
+          <select [(ngModel)]="newCustomer.memberTier" name="memberTier">
+            <option value="Không có">Không có</option>
+            <option value="Bạc">Bạc</option>
+            <option value="Vàng">Vàng</option>
+            <option value="Kim cương">Kim cương</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Nghề nghiệp</label>
+          <input type="text" [(ngModel)]="newCustomer.occupation" name="occupation" placeholder="Nhập nghề nghiệp..." />
+        </div>
+      </div>
+
+      <!-- Row 4: Birth Date & Avatar -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="field">
+          <label>Ngày sinh *</label>
+          <input type="date" [(ngModel)]="newCustomer.birthDate" name="birthDate" />
+        </div>
+        <div class="field">
+          <label>Ảnh đại diện</label>
+          <div style="width: 100px; height: 100px; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; cursor: pointer;">
+            <svg class="account-icon" style="font-size: 28px; color: #64748b;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18H5a4 4 0 0 1-1-8 7 7 0 0 1 13-2 5 5 0 0 1 2 10h-2M12 20V10m-4 4 4-4 4 4"/></svg>
+            <span style="font-size: 11px; font-weight: 800; color: #64748b; margin-top: 4px;">Tải ảnh lên</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="modal-footer">
+      <button type="button" class="secondary-button" (click)="closeCreateModal()">Hủy</button>
+      <button type="button" class="primary-button" (click)="createCustomer()">Tạo tài khoản</button>
+    </footer>
+  </div>
+</div>
