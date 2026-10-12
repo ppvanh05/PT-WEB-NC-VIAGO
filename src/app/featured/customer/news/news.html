@@ -1,3 +1,22 @@
+@if (toast(); as t) {
+  <div class="news-toast-container">@for (notification of [t]; track notification) {
+    <app-toast [variant]="notification.variant" [message]="notification.message" [duration]="3200" (closed)="toast.set(null)" />
+  }</div>
+}
+
+<section class="news-filter-bar">
+  <div class="container mx-auto px-4 md:px-10 lg:px-16">
+    <!-- Category selectors row -->
+    <div class="category-links-wrapper mb-6 flex justify-center overflow-x-auto pb-2">
+      <div class="category-capsule-bar flex items-center p-1 bg-slate-100 rounded-full border border-slate-200/60 w-max">
+        <button
+          *ngFor="let cat of categories"
+          type="button"
+          class="category-capsule-btn px-6 py-2.5 rounded-full text-xs font-bold transition duration-300 whitespace-nowrap"
+          [class.active]="activeCategory === cat.key"
+          (click)="setCategory(cat.key)"
+        >
+          {{ cat.name }}
 <div class="news-page">
   <div class="news-container">
 

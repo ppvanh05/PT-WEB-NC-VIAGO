@@ -1,12 +1,6 @@
 import { bookingLeaveGuard } from './featured/customer/home/booking.guard';
 import { Routes } from '@angular/router';
 
-export const routes: Routes = [
-  { path: 'admin', pathMatch: 'full', redirectTo: 'admin/login' },
-  {
-    path: 'admin/login',
-    loadComponent: () => import('./featured/admin/auth/login/login').then(m => m.Login),
-  },
 import { AdminLayout } from './core/layout/admin-layout/admin-layout';
 import { CustomerLayout } from './core/layout/customer-layout/customer-layout';
 
@@ -14,30 +8,29 @@ import { CustomerLayout } from './core/layout/customer-layout/customer-layout';
 import { Home as AdminHome } from './featured/admin/home/home';
 import { NewBooking } from './featured/admin/booking/new-booking/new-booking';
 import { BookingManagement } from './featured/admin/booking/booking-management/booking-management';
-import { Routes as DispatchRoutes } from './featured/admin/dispatch/routes/routes';
-import { Schedules as DispatchSchedules } from './featured/admin/dispatch/schedules/schedules';
-import { PickupDropoff as DispatchPickup } from './featured/admin/dispatch/pickup-dropoff/pickup-dropoff';
-import { Vehicles as DispatchVehicles } from './featured/admin/dispatch/vehicles/vehicles';
+import { RoutesComponent as DispatchRoutes } from './featured/admin/dispatch/routes/routes';
+import { SchedulesComponent as DispatchSchedules } from './featured/admin/dispatch/schedules/schedules';
+import { PickupDropoffComponent as DispatchPickup } from './featured/admin/dispatch/pickup-dropoff/pickup-dropoff';
+import { VehiclesComponent as DispatchVehicles } from './featured/admin/dispatch/vehicles/vehicles';
 import { DriversAssistants as DispatchDrivers } from './featured/admin/dispatch/drivers-assistants/drivers-assistants';
 import { CustomerAccountManagement } from './featured/admin/customers/customer-account-management/customer-account-management';
 import { ReviewsFeedback } from './featured/admin/customers/reviews-feedback/reviews-feedback';
 import { LostAndFound as AdminLostAndFound } from './featured/admin/customers/lost-and-found/lost-and-found';
-import { EmployeeAccountManagement } from './featured/admin/employees/employee-account-management/employee-account-management';
+import { StaffAccountManagement } from './featured/admin/staff/staff-account-management/staff-account-management';
 import { News as AdminNews } from './featured/admin/content/news/news';
 import { Policies as AdminPolicies } from './featured/admin/content/policies/policies';
-import { Promotions as AdminPromotions } from './featured/admin/content/promotions/promotions';
-import { ContractRentals } from './featured/admin/contract-rentals/contract-rentals';
-import { DetailedReport } from './featured/admin/reports/detailed-report/detailed-report';
-import { CustomerReport } from './featured/admin/reports/customer-report/customer-report';
+import { PromotionsComponent as AdminPromotions } from './featured/admin/content/promotions/promotions';
+import { ContractRentalsComponent as ContractRentals } from './featured/admin/contract-rentals/contract-rentals';
+import { DetailedReportComponent as DetailedReport } from './featured/admin/reports/detailed-report/detailed-report';
+import { CustomerReportComponent as CustomerReport } from './featured/admin/reports/customer-report/customer-report';
 import { DriverAssistantReport } from './featured/admin/reports/driver-assistant-report/driver-assistant-report';
-import { RouteReport } from './featured/admin/reports/route-report/route-report';
+import { RouteReportComponent as RouteReport } from './featured/admin/reports/route-report/route-report';
 import { CancellationReport } from './featured/admin/reports/cancellation-report/cancellation-report';
-import { ActivityLogs } from './featured/admin/activity-logs/activity-logs';
+import { ActivityLog } from './featured/admin/logs/activity-log/activity-log';
 
 // Customer components
 import { Home as CustomerHome } from './featured/customer/home/home';
 import { Schedule } from './featured/customer/schedule/schedule';
-import { TicketLookup } from './featured/customer/ticket-lookup/ticket-lookup';
 import { News } from './featured/customer/news/news';
 import { NewsDetail } from './featured/customer/news/news-detail/news-detail';
 import { Invoice } from './featured/customer/invoice/invoice';
@@ -67,6 +60,9 @@ import { DetailedReportComponent } from './featured/admin/reports/detailed-repor
 import { RouteReportComponent } from './featured/admin/reports/route-report/route-report';
 import { LostAndFound } from './featured/customer/services/lost-and-found/lost-and-found';
 
+const loadNewBooking = () => import('./featured/admin/booking/new-booking/new-booking').then(m => m.NewBooking);
+const loadBookingManagement = () => import('./featured/admin/booking/booking-management/booking-management').then(m => m.BookingManagement);
+
 export const routes: Routes = [
   {
     path: 'admin',
@@ -75,6 +71,15 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', loadComponent: () => import('./featured/admin/home/home').then(m => m.Home) },
       { path: 'home', component: AdminHome },
+      { path: 'tickets/new', loadComponent: loadNewBooking },
+      { path: 'tickets/list', loadComponent: loadBookingManagement },
+      { path: 'booking/new', loadComponent: loadNewBooking },
+      { path: 'booking/management', loadComponent: loadBookingManagement },
+      { path: 'datve/moi', loadComponent: loadNewBooking },
+      { path: 'datve/danhsach', loadComponent: loadBookingManagement },
+      { path: 'dispatch/drivers', loadComponent: () => import('./featured/admin/dispatch/drivers-assistants/drivers-assistants').then(m => m.DriversAssistants) },
+      { path: 'customers/reviews', loadComponent: () => import('./featured/admin/customers/reviews-feedback/reviews-feedback').then(m => m.ReviewsFeedback) },
+      { path: 'reports/cancellations', loadComponent: () => import('./featured/admin/reports/cancellation-report/cancellation-report').then(m => m.CancellationReport) },
       { path: 'dispatch/pickup', component: PickupDropoffComponent },
       { path: 'dispatch/vehicles', component: VehiclesComponent },
       { path: 'dispatch/drivers-assistants', component: DriversAssistantsComponent },
@@ -90,7 +95,7 @@ export const routes: Routes = [
       { path: 'customers/accounts', component: CustomerAccountManagement },
       { path: 'customers/reviews', component: ReviewsFeedback },
       { path: 'customers/lost-items', component: AdminLostAndFound },
-      { path: 'staff/accounts', component: EmployeeAccountManagement },
+      { path: 'staff/accounts', component: StaffAccountManagement },
       { path: 'content/news', component: AdminNews },
       { path: 'content/policies', component: AdminPolicies },
       { path: 'content/promotions', component: AdminPromotions },
@@ -100,7 +105,7 @@ export const routes: Routes = [
       { path: 'reports/drivers', component: DriverAssistantReport },
       { path: 'reports/routes', component: RouteReport },
       { path: 'reports/cancellations', component: CancellationReport },
-      { path: 'logs', component: ActivityLogs },
+      { path: 'logs', component: ActivityLog },
       { path: '**', redirectTo: 'home' },
     ],
   },
@@ -126,28 +131,10 @@ export const routes: Routes = [
       { path: 'huong-dan-mua-ve', loadComponent: () => import('./featured/customer/about/guide/guide').then(m => m.Guide) },
       { path: 'chinh-sach', loadComponent: () => import('./featured/customer/about/policies/policies').then(m => m.Policies) },
       { path: 'dieu-khoan', loadComponent: () => import('./featured/customer/about/terms/terms').then(m => m.Terms) },
-      { path: '', component: CustomerHome },
-      { path: 'lich-trinh', component: Schedule },
-      { path: 'tra-cuu-ve', component: TicketLookup },
-      { path: 'tin-tuc', component: News },
-      { path: 'tin-tuc/:id', component: NewsDetail },
-      { path: 'hoa-don', component: Invoice },
-      { path: 'danh-gia', component: Reviews },
-      { path: 'dich-vu', component: Services },
       { path: 'dich-vu/tim-do-that-lac', component: LostAndFound },
-      { path: 'do-that-lac', component: Services },
-      { path: 'profile', component: Profile },
-      { path: 've-chung-toi', component: AboutUs },
-      { path: 'gioi-thieu', component: AboutUs },
-      { path: 'tuyen-dung', component: Careers },
-      { path: 'lien-he', component: Contact },
-      { path: 'faq', component: Faq },
-      { path: 'huong-dan-mua-ve', component: Guide },
       { path: 'huong-dan-mua-ve/dat-ve-online', component: GuideDetail },
       { path: 'huong-dan-mua-ve/dat-ve-hotline', component: GuideHotline },
       { path: 'huong-dan-mua-ve/nhan-ve-tai-ben', component: GuidePickup },
-      { path: 'chinh-sach', component: Policies },
-      { path: 'dieu-khoan', component: Terms },
       { path: '**', redirectTo: '' },
     ],
   },

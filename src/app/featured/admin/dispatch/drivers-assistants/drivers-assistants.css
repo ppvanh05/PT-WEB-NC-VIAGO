@@ -8,36 +8,36 @@
   min-height: 0;
 
   /* Color Palette - Synced from quan-ly-lich-trinh.css */
-  --primary: var(--color-primary-500);
-  --primary-hover: var(--color-primary-700);
-  --primary-light: var(--color-primary-50);
+  --primary: #1E3A8A; 
+  --primary-hover: #152C68;
+  --primary-light: #EEF2FF;
   
-  --secondary: var(--color-accent-600);
-  --secondary-light: var(--color-accent-50);
+  --secondary: #FF6A00; 
+  --secondary-light: #FFF3EB;
 
-  --teal-green: var(--color-success-500);
-  --teal-hover: var(--color-success-700);
-  --teal-light: var(--color-success-50);
+  --teal-green: #0d9488; 
+  --teal-hover: #0f766e;
+  --teal-light: #f0fdfa;
 
-  --navy: var(--color-neutral-900);
-  --slate: var(--color-neutral-600);
-  --slate-light: var(--color-neutral-50);
+  --navy: #0f172a;
+  --slate: #475569;
+  --slate-light: #f8fafc;
   
   /* Semantic Statuses */
-  --success: var(--color-success-500);
-  --success-bg: var(--color-success-50);
-  --warning: var(--color-warning-500);
-  --warning-bg: var(--color-warning-50);
-  --danger: var(--color-danger-500);
-  --danger-bg: var(--color-danger-50);
-  --danger-text: var(--color-danger-700);
-  --info: var(--color-info-500);
-  --info-light: var(--color-info-50);
+  --success: #10B981;
+  --success-bg: #E6FBF4;
+  --warning: #F59E0B;
+  --warning-bg: #FFFBEB;
+  --danger: #EF4444;
+  --danger-bg: #FEF2F2;
+  --danger-text: #991B1B;
+  --info: #2563EB;
+  --info-light: #EFF6FF;
   
   /* Outline & Surface */
-  --surface: var(--color-surface);
-  --background: var(--color-background);
-  --border: var(--color-border);
+  --surface: #FFFFFF;
+  --background: #F1F5F9;
+  --border: #e2e8f0;
   
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);

@@ -107,16 +107,12 @@ export class CustomerNavbar {
     this.isDropdownOpen = false;
   }
 
-  onHomeClick(event: Event) {
+  onHomeClick(event?: Event): void {
     this.closeMobileMenu();
     if (event instanceof MouseEvent && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0)) return;
     if (this.isHomeRouteActive()) {
       event?.preventDefault();
       this.customerNavigation.showHome();
-  onHomeClick(event?: Event) {
-    this.closeMobileMenu();
-    // Đang ở Trang chủ thì router bỏ qua điều hướng cùng URL -> tự cuộn về đầu trang
-    if (this.isHomeRouteActive()) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }

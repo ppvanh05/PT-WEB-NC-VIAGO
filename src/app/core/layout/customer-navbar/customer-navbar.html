@@ -141,13 +141,9 @@
               <span class="dot-bullet"></span>
               <span class="menu-item-title">Thuê xe hợp đồng</span>
             </a>
-            <a routerLink="/customer/do-that-lac" (click)="isServicesOpen = false" class="dropdown-menu-item">
+            <a routerLink="/customer/dich-vu/tim-do-that-lac" (click)="isServicesOpen = false" class="dropdown-menu-item">
               <span class="dot-bullet"></span>
               <span class="menu-item-title">Tìm đồ thất lạc</span>
-            </a>
-            <a routerLink="/customer/dich-vu/tim-do-that-lac" (click)="isServicesOpen = false" class="dropdown-menu-item">
-              <span class="menu-item-title">Tìm đồ thất lạc</span>
-              <span class="menu-item-desc">Hỗ trợ tra cứu tài sản bỏ quên</span>
             </a>
           </div>
         </div>
@@ -176,14 +172,6 @@
               <span class="menu-item-title">Chính sách nhà xe</span>
               <span class="menu-item-desc">Cam kết bảo vệ dữ liệu</span>
             </a>
-            <a routerLink="/customer/chinh-sach" (click)="isAboutOpen = false" class="dropdown-menu-item">
-              <span class="dot-bullet"></span>
-              <span class="menu-item-title">Chính sách nhà xe</span>
-            </a>
-            <a routerLink="/customer/huong-dan-mua-ve" (click)="isAboutOpen = false" class="dropdown-menu-item">
-              <span class="dot-bullet"></span>
-              <span class="menu-item-title">Hướng dẫn mua vé</span>
-            </a>
             <a routerLink="/customer/huong-dan-mua-ve" (click)="isAboutOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Hướng dẫn mua vé</span>
               <span class="menu-item-desc">Hướng dẫn đặt vé nhanh chóng</span>
@@ -191,14 +179,6 @@
             <a routerLink="/customer/faq" (click)="isAboutOpen = false" class="dropdown-menu-item">
               <span class="dot-bullet"></span>
               <span class="menu-item-title">Câu hỏi thường gặp</span>
-            </a>
-            <a routerLink="/customer/dieu-khoan" (click)="isAboutOpen = false" class="dropdown-menu-item">
-              <span class="dot-bullet"></span>
-              <span class="menu-item-title">Điều khoản sử dụng</span>
-            </a>
-            <a routerLink="/customer/tuyen-dung" (click)="isAboutOpen = false" class="dropdown-menu-item">
-              <span class="dot-bullet"></span>
-              <span class="menu-item-title">Tuyển dụng</span>
             </a>
             <a routerLink="/customer/dieu-khoan" (click)="isAboutOpen = false" class="dropdown-menu-item">
               <span class="menu-item-title">Điều khoản sử dụng</span>
@@ -264,11 +244,7 @@
           </button>
           <div class="mobile-sub-list" *ngIf="isMobileServicesOpen">
             <a routerLink="/customer/dich-vu" (click)="closeMobileMenu()" class="mobile-sub-item">Cho thuê xe hợp đồng</a>
-            <a routerLink="/customer/dich-vu" (click)="closeMobileMenu()" class="mobile-sub-item">Gửi hàng nhanh</a>
-            <a routerLink="/customer/dich-vu" (click)="closeMobileMenu()" class="mobile-sub-item">Vận tải hành khách</a>
             <a routerLink="/customer/dich-vu/tim-do-that-lac" (click)="closeMobileMenu()" class="mobile-sub-item">Tìm đồ thất lạc</a>
-            <a routerLink="/customer/dich-vu" (click)="closeMobileMenu()" class="mobile-sub-item">Thuê xe hợp đồng</a>
-            <a routerLink="/customer/do-that-lac" (click)="closeMobileMenu()" class="mobile-sub-item">Tìm đồ thất lạc</a>
           </div>
         </div>
 
