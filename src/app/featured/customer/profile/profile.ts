@@ -117,11 +117,17 @@ export class Profile implements OnInit, OnDestroy {
   }
 
   get activeVouchers(): Voucher[] {
-    return this.vouchersList;
+    return this.vouchersList.filter(v => v.count !== 0);
+  }
+
+  useVoucher(): void {
+    this.toastService.showInfo('Chọn chuyến xe, voucher trong Ví sẽ có sẵn ở bước mã giảm giá.');
+    this.router.navigate(['/customer']);
   }
 
   get expiredVouchers(): any[] {
     return [
+      ...this.vouchersList.filter(v => v.count === 0).map(v => ({ ...v, discount: v.title, title: v.code, status: 'used', usedAt: v.usedAt })),
       { id: 'v_exp1', code: 'APPONLY70', title: 'Ưu đãi đặt qua App Mobile', description: 'Ưu đãi dành riêng khi đặt qua ứng dụng VIAGO Mobile', value: 70000, type: 'fixed', expiryDate: '15/06/2026', discount: 'GIẢM 70K', status: 'expired', expiry: '15/06/2026' }
     ];
   }

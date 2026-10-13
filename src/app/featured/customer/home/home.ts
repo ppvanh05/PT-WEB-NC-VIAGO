@@ -1,4 +1,4 @@
-import { afterNextRender, ChangeDetectorRef, Component, DestroyRef, HostListener, inject, Injector, OnDestroy, OnInit } from '@angular/core';
+import { afterNextRender, ChangeDetectorRef, Component, DestroyRef, HostListener, effect, inject, Injector, OnDestroy, OnInit, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CustomerNavigationService } from '../../../core/services/customer-navigation.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -18,10 +18,13 @@ import { Toast } from '../../../shared/components/toast/toast';
 import { Pagination } from '../../../shared/components/pagination/pagination';
 import { QrCode } from '../../../shared/components/qr-code/qr-code';
 import { VoucherCard, VoucherItem } from '../../../shared/components/voucher-card/voucher-card';
+import { NewsService } from '../../../core/services/news.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { Voucher, VoucherService } from '../../../core/services/voucher.service';
 import { SeatMap, SeatStatus, displaySeatLabel } from '../../../shared/components/seat-map/seat-map';
 import { DestinationService, DestinationWeather } from './destination-service';
 import { BookingError, BookingService, BOOKING_KEY, CATALOG_KEY } from './booking.service';
-import { BookingDraft, BookingLeg, BookingOrder, BookingState, BookingStep, Passenger, SearchRequest, Trip, TripPoint, normalizeName, normalizePhone, passengerErrors, vietnamDate } from './booking.models';
+import { BookingDraft, BookingLeg, BookingOrder, BookingState, BookingStep, Passenger, SearchRequest, Trip, TripPoint, VoucherRule, normalizeName, normalizePhone, passengerErrors, vietnamDate } from './booking.models';
 import { CITIES, ROUTES, VOUCHERS } from './booking.data';
 
 @Component({
@@ -71,23 +74,68 @@ export class Home implements OnInit, OnDestroy {
   readonly accommodationCards = [{image:'hotel_1.jpg',label:'Khách sạn tại trung tâm'}, {image:'hotel_2.jpg',label:'Lưu trú gần điểm trả'}, {image:'hotel_3.jpg',label:'Khách sạn cho gia đình'}];
   readonly cities = CITIES;
   readonly popularRoutes = ROUTES;
-  readonly vouchers = VOUCHERS;
+  // Checkout lists general codes plus the codes held in the member's voucher wallet.
+  get vouchers(): VoucherRule[] { const wallet = this.walletCodes, today = this.today; return VOUCHERS.filter(rule => rule.active && rule.startsAt <= today && today <= rule.endsAt && (wallet.has(rule.code) || !rule.wallet && !rule.hidden)); }
   promoPage = 1;
-  savedPromos = new Set<string>();
-  readonly homePromos: VoucherItem[] = [
-    { id: 'v1', code: 'WELCOME50', title: 'GIẢM 50K', description: 'Giảm ngay 50.000đ cho hành trình đầu tiên', value: 50000, type: 'fixed', expiryDate: '31/12/2026' },
+  private readonly voucherService = inject(VoucherService);
+  private readonly toastService = inject(ToastService);
+  private savedPromosKey = ''; private savedPromoCodes = new Set<string>(); private usableWalletCodes = new Set<string>();
+  // Wallet codes of the signed-in member; guests have no wallet and only copy codes.
+  get savedPromos(): Set<string> {
+    const user = this.authService.currentUser(), key = `${user?.id ?? ''}:${this.voucherService.walletUpdated$()}`;
+    if (key !== this.savedPromosKey) {
+      this.savedPromosKey = key;
+      const wallet = user ? untracked(() => this.voucherService.getWalletVouchers(user.id)) : [];
+      this.savedPromoCodes = new Set(wallet.map(voucher => voucher.code));
+      this.usableWalletCodes = new Set(wallet.filter(voucher => voucher.count !== 0).map(voucher => voucher.code));
+    }
+    return this.savedPromoCodes;
+  }
+  get walletCodes(): Set<string> { this.savedPromos; return this.usableWalletCodes; }
+  // A guest who asked for the welcome voucher receives it right after signing up.
+  private claimWelcomeOnSignIn = false;
+  private readonly welcomeClaim = effect(() => {
+    const user = this.authService.currentUser();
+    if (!user || !this.claimWelcomeOnSignIn) return;
+    this.claimWelcomeOnSignIn = false;
+    untracked(() => void this.savePromo(this.homePromos[0]));
+  });
+  copiedPromo = '';
+  private copiedPromoTimer?: ReturnType<typeof setTimeout>;
+  readonly homePromos: (Voucher & VoucherItem)[] = [
+    { id: 'v1', code: 'WELCOME50', title: 'GIẢM 50K', description: 'Giảm ngay 50.000đ cho khách hàng đăng ký tài khoản lần đầu', value: 50000, type: 'fixed', expiryDate: '31/12/2026' },
     { id: 'v2', code: 'SUMMER10', title: 'GIẢM 10%', description: 'Giảm 10% tối đa 30.000đ cho chuyến đi mùa hè', value: 10, type: 'percentage', expiryDate: '31/08/2026', isExpired: true },
     { id: 'v3', code: 'MIDWEEK10', title: 'GIẢM 10K', description: 'Giảm ngay 10.000đ cho chuyến đi giữa tuần', value: 10000, type: 'fixed', expiryDate: '31/12/2026' },
     { id: 'v4', code: 'VIAGO30', title: 'GIẢM 30K', description: 'Giảm 30.000đ khi đặt vé qua ví điện tử', value: 30000, type: 'fixed', expiryDate: '31/12/2026' },
   ];
-  get paginatedPromos(): VoucherItem[] { return this.homePromos.slice((this.promoPage - 1) * 3, this.promoPage * 3); }
-  savePromo(voucher: VoucherItem): void { this.savedPromos.add(voucher.code); }
-  get featuredRoutes() { return ['Đà Lạt', 'Vũng Tàu', 'Nha Trang'].map(to => ROUTES.find(route => route.from === 'TP.HCM' && route.to === to)!); }
-  readonly homeNews = [
-    { id: 101, image: 'nha_trang.jpg', date: '01/01/2026', title: 'VIAGO mở thêm chuyến Đà Lạt - Nha Trang', description: 'Nhằm đáp ứng nhu cầu đi lại ngày càng tăng, VIAGO chính thức bổ sung thêm 5 chuyến xe mỗi ngày trên tuyến Đà Lạt - Nha Trang...' },
-    { id: 102, image: 'ben_xe.jpg', date: '20/05/2026', title: 'Cập nhật lịch trình tại BX Miền Đông mới', description: 'Lịch trình mới nhất áp dụng cho mùa hè 2026 sẽ giúp quý khách dễ dàng sắp xếp thời gian cho các hành trình tại BX Miền Đông mới...' },
-    { id: 103, image: 'summer.jpg', date: '01/06/2026', title: 'Ưu đãi hè rực rỡ: Giảm ngay 10% giá vé', description: 'Đón mùa du lịch hè 2026, VIAGO tung chương trình khuyến mãi cực lớn cho tất cả khách hàng đặt vé trực tuyến qua website...' },
-  ];
+  get paginatedPromos(): (Voucher & VoucherItem)[] { return this.homePromos.slice((this.promoPage - 1) * 3, this.promoPage * 3); }
+  promoActionText(voucher: VoucherItem): string | undefined { return voucher.isExpired || this.authService.currentUser() ? undefined : voucher.code === 'WELCOME50' ? 'Đăng ký ngay' : this.copiedPromo === voucher.code ? 'Đã sao chép' : 'Sao chép'; }
+  async savePromo(voucher: VoucherItem): Promise<void> {
+    const user = this.authService.currentUser(), promo = this.homePromos.find(item => item.code === voucher.code);
+    if (!promo) return;
+    if (!user) {
+      if (promo.code === 'WELCOME50') {
+        this.toastService.show('Voucher này chỉ dành cho khách hàng đăng ký lần đầu. Hãy đăng ký tài khoản ngay để nhận ưu đãi!', 'info', undefined, 5000);
+        this.claimWelcomeOnSignIn = true; this.customerNavigation.showAuth('register'); return;
+      }
+      try {
+        await navigator.clipboard.writeText(promo.code);
+        this.copiedPromo = promo.code; clearTimeout(this.copiedPromoTimer);
+        this.copiedPromoTimer = setTimeout(() => { this.copiedPromo = ''; if (this.alive) this.cd.markForCheck(); }, 2000);
+        this.toastService.showSuccess(`Đã sao chép mã ${promo.code}. Dán vào ô mã giảm giá khi thanh toán.`);
+      } catch { this.toastService.showError('Không thể sao chép mã ưu đãi.'); }
+      this.cd.markForCheck(); return;
+    }
+    const owned = this.savedPromos.has(promo.code);
+    if (this.voucherService.claimVoucher(user.id, promo)) this.toastService.showSuccess(`Đã lưu mã ${promo.code} vào Ví voucher.`);
+    else this.toastService.showWarning(promo.code === 'WELCOME50' && !owned ? 'Voucher này chỉ dành cho khách hàng đăng ký lần đầu.' : 'Mã này đã có trong Ví voucher của bạn.');
+  }
+  // Fare, distance and travel time come from the booking catalog so the cards match search results.
+  readonly featuredRoutes = [['TP.HCM', 'Đà Lạt', 'da_lat.jpg'], ['Cần Thơ', 'Rạch Giá', 'cho_noi.jpg'], ['Nha Trang', 'Đà Nẵng', 'da_nang.jpg']].map(([from, to, image]) => {
+    const route = ROUTES.find(item => item.from === from && item.to === to)!;
+    return { from, to, image, label: from === 'TP.HCM' ? 'TP. Hồ Chí Minh' : from, distance: route.distance, duration: `${route.minutes / 60} giờ`, price: route.price };
+  });
+  readonly homeNews = inject(NewsService).getLatestNews(3);
   expandedTrip: Trip | null = null;
   expandedTab = '';
   toggleTripTab(trip: Trip, tab: string): void { if (this.expandedTrip?.id === trip.id && this.expandedTab === tab) { this.expandedTrip = null; this.expandedTab = ''; } else { this.expandedTrip = trip; this.expandedTab = tab; } }
@@ -230,7 +278,7 @@ export class Home implements OnInit, OnDestroy {
     this.timer = setInterval(() => void this.tick(), 1000);
     this.heroTimer = setInterval(() => { this.heroIndex = (this.heroIndex + 1) % 3; this.cd.markForCheck(); }, 6000);
   }
-  ngOnDestroy(): void { this.alive = false; clearTimeout(this.roomFocusTimer); clearTimeout(this.confettiTimer); clearInterval(this.timer); clearInterval(this.heroTimer); this.weatherRequest?.abort(); this.leaveResolve?.(false); }
+  ngOnDestroy(): void { this.alive = false; clearTimeout(this.roomFocusTimer); clearTimeout(this.confettiTimer); clearTimeout(this.copiedPromoTimer); clearInterval(this.timer); clearInterval(this.heroTimer); this.weatherRequest?.abort(); this.leaveResolve?.(false); }
   async load(): Promise<void> {
     this.searchError = '';
     this.pendingDraft = null;
@@ -451,6 +499,8 @@ export class Home implements OnInit, OnDestroy {
       if (!this.alive) return;
       this.step = 'success'; this.expiresAt = 0; this.pendingDraft = null;
       try { this.booking.clearDraft(); } catch (e) { this.error = this.message(e); }
+      const user = this.authService.currentUser();
+      if (user && this.order.voucher) this.voucherService.consumeVoucher(user.id, this.order.voucher);
       this.state = this.booking.state(); this.pushStep();
     } catch (e) { if (this.alive && this.order?.id === payingId) this.fail(e); }
     finally { this.paymentBusy = false; this.cd.markForCheck(); }

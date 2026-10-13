@@ -5,6 +5,7 @@ import { getAuth, RecaptchaVerifier } from 'firebase/auth';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
+import { AuthModalService } from '../../core/services/auth-modal.service';
 import { DatePickerComponent } from '../../shared/components/date-picker/date-picker';
 import { PasswordChecklist } from '../../shared/components/password-checklist/password-checklist';
 import { NoAutofillDirective, PhoneInputDirective } from '../../shared/utils/input-guards';
@@ -84,8 +85,11 @@ export class AuthModal implements OnInit, OnDestroy {
     private router: Router
   ) {}
 
+  private readonly authModalService = inject(AuthModalService);
+
   ngOnInit(): void {
     this.initForms();
+    if (this.authModalService.mode() === 'register') this.setStep('register-phone');
   }
 
   ngOnDestroy(): void {

@@ -1,5 +1,6 @@
 import { AsyncPipe } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, OnDestroy, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterOutlet } from '@angular/router';
 import { AuthModal } from '../../../auth/auth-modal/auth-modal';
 import { Chatbot } from '../../../featured/customer/chatbot/chatbot';
@@ -17,6 +18,7 @@ export class CustomerLayout implements AfterViewInit, OnDestroy {
   protected readonly authModal = inject(AuthModalService);
   protected readonly toastService = inject(ToastService);
   private observer?: ResizeObserver;
+  constructor() { this.navigation.authRequested.pipe(takeUntilDestroyed()).subscribe(mode => this.authModal.open(mode)); }
   onAuthModalOpen(): void { this.navigation.showAuth(); }
   ngAfterViewInit(): void {
     const navbar = this.host.nativeElement.querySelector<HTMLElement>('.viago-customer-navbar-wrapper');

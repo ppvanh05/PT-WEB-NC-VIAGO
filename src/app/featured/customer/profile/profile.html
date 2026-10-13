@@ -662,7 +662,7 @@
               </button>
               <div id="voucher-scroll-container" class="voucher-scroller__track">
                 <div *ngFor="let v of activeVouchers" class="voucher-scroller__item">
-                  <app-voucher-card [voucher]="v" context="wallet"></app-voucher-card>
+                  <app-voucher-card [voucher]="v" context="wallet" (onAction)="useVoucher()"></app-voucher-card>
                 </div>
               </div>
             </div>

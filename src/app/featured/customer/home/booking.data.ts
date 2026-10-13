@@ -5,11 +5,11 @@ export const ROUTES = [
   { from: 'TP.HCM', to: 'Vũng Tàu', price: 160000, minutes: 120, distance: 100, times: ['07:15', '11:00', '16:45', '21:00'], image: 'vung_tau.jpg' },
   { from: 'Đà Lạt', to: 'Buôn Ma Thuột', price: 220000, minutes: 300, distance: 210, times: ['08:00', '14:00', '19:00'], image: 'buon_me_thuot.jpg' },
   { from: 'Đà Lạt', to: 'Nha Trang', price: 170000, minutes: 180, distance: 140, times: ['06:30', '12:15', '17:00'], image: 'nha_trang.jpg' },
-  { from: 'Cần Thơ', to: 'Rạch Giá', price: 150000, minutes: 150, distance: 115, times: ['07:00', '13:00', '18:30'], image: 'rach_gia.jpg' },
+  { from: 'Cần Thơ', to: 'Rạch Giá', price: 140000, minutes: 150, distance: 115, times: ['07:00', '13:00', '18:30'], image: 'rach_gia.jpg' },
   { from: 'TP.HCM', to: 'Phan Thiết', price: 200000, minutes: 240, distance: 200, times: ['05:30', '09:30', '14:30', '20:00'], image: 'phan_thiet.jpg' },
-  { from: 'TP.HCM', to: 'Đà Lạt', price: 250000, minutes: 420, distance: 310, times: ['07:30', '12:30', '19:30', '22:15'], image: 'da_lat.jpg' },
+  { from: 'TP.HCM', to: 'Đà Lạt', price: 280000, minutes: 360, distance: 310, times: ['07:30', '12:30', '19:30', '22:15'], image: 'da_lat.jpg' },
   { from: 'TP.HCM', to: 'Nha Trang', price: 300000, minutes: 510, distance: 435, times: ['06:45', '13:30', '20:45', '23:00'], image: 'nha_trang.jpg' },
-  { from: 'Nha Trang', to: 'Đà Nẵng', price: 350000, minutes: 660, distance: 530, times: ['08:45', '17:30', '21:45'], image: 'da_nang.jpg' },
+  { from: 'Nha Trang', to: 'Đà Nẵng', price: 350000, minutes: 600, distance: 530, times: ['08:45', '17:30', '21:45'], image: 'da_nang.jpg' },
 ];
 export const CITIES = [...new Set(ROUTES.flatMap(route => [route.from, route.to]))];
 const SPOTS: Record<string, [string, string][]> = {
@@ -52,9 +52,18 @@ export function initialCatalog(now = Date.now()): Trip[] {
   }
   return trips;
 }
+// hidden: valid when typed or pasted, listed at checkout only once saved to the member's voucher wallet.
+// wallet: usable only by a signed-in member who holds the code in the voucher wallet.
 export const VOUCHERS: VoucherRule[] = [
   { code: 'VIAGO2026', title: 'Giảm 10%, tối đa 50.000đ', percent: 10, amount: 0, maximum: 50000, minimum: 150000, startsAt: '2026-01-01', endsAt: '2026-12-31', active: true, routes: [], limit: 1000, perPhone: 3 },
   { code: 'BANMOI', title: 'Giảm 20.000đ cho đơn đầu tiên', percent: 0, amount: 20000, maximum: 20000, minimum: 150000, startsAt: '2026-01-01', endsAt: '2026-12-31', active: true, routes: [], limit: 500, perPhone: 1 },
+  { code: 'WELCOME50', title: 'Giảm 50.000đ cho khách hàng đăng ký lần đầu', percent: 0, amount: 50000, maximum: 50000, minimum: 100000, startsAt: '2026-01-01', endsAt: '2026-12-31', active: true, routes: [], limit: 1000, perPhone: 1, wallet: true },
+  { code: 'SUMMER10', title: 'Giảm 10%, tối đa 30.000đ cho chuyến đi mùa hè', percent: 10, amount: 0, maximum: 30000, minimum: 0, startsAt: '2026-06-01', endsAt: '2026-08-31', active: true, routes: [], limit: 1000, perPhone: 1, hidden: true },
+  { code: 'MIDWEEK10', title: 'Giảm 10.000đ cho chuyến đi giữa tuần', percent: 0, amount: 10000, maximum: 10000, minimum: 0, startsAt: '2026-01-01', endsAt: '2026-12-31', active: true, routes: [], limit: 1000, perPhone: 1, hidden: true },
+  { code: 'VIAGO30', title: 'Giảm 30.000đ khi đặt vé qua ví điện tử', percent: 0, amount: 30000, maximum: 30000, minimum: 100000, startsAt: '2026-01-01', endsAt: '2026-12-31', active: true, routes: [], limit: 1000, perPhone: 1, hidden: true },
+  { code: 'SILVER10', title: 'Giảm 10% cho thành viên Bạc', percent: 10, amount: 0, maximum: 50000, minimum: 0, startsAt: '2026-01-01', endsAt: '2026-12-31', active: true, routes: [], limit: 100000, perPhone: 1, wallet: true },
+  { code: 'GOLDVIP20', title: 'Giảm 20% cho thành viên Vàng', percent: 20, amount: 0, maximum: 100000, minimum: 0, startsAt: '2026-01-01', endsAt: '2026-12-31', active: true, routes: [], limit: 100000, perPhone: 2, wallet: true },
+  { code: 'DIAMOND30', title: 'Giảm 30% cho thành viên Kim cương', percent: 30, amount: 0, maximum: 150000, minimum: 0, startsAt: '2026-01-01', endsAt: '2026-12-31', active: true, routes: [], limit: 100000, perPhone: 3, wallet: true },
 ];
 // Frontend fixture for exercising saved passenger lookup without an API.
 export const SAVED_PASSENGER_EXAMPLES = [{ phone: '0987654321', name: 'Nguyễn Văn Minh', email: 'minh.nguyen@example.com' }];

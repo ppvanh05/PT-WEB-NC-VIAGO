@@ -1,5 +1,5 @@
 import { Injectable, InjectionToken, inject } from '@angular/core';
-import { initialCatalog, SAVED_PASSENGER_EXAMPLES, VOUCHERS } from './booking.data';
+import { initialCatalog, ROUTES, SAVED_PASSENGER_EXAMPLES, VOUCHERS } from './booking.data';
 import { BookingAudit, BookingDraft, BookingLeg, BookingOrder, BookingState, Passenger, Trip, passengerErrors, normalizeName, vietnamDate } from './booking.models';
 
 export class BookingError extends Error {
@@ -43,6 +43,14 @@ export class BookingService {
     let corrected = false;
     for (const trip of saved) if (trip.type === 'Cabin 22 chỗ' && trip.seats.includes('11B') && !trip.seats.includes('12A')) {
       trip.seats = [...Array.from({ length: 12 }, (_, i) => `${i + 1}A`), ...Array.from({ length: 10 }, (_, i) => `${i + 1}B`)]; corrected = true;
+    }
+    // Saved catalogs follow the published fare and travel time of each route.
+    for (const trip of saved) {
+      const route = ROUTES.find(r => r.from === trip.from && r.to === trip.to || r.from === trip.to && r.to === trip.from);
+      if (!route) continue;
+      const shift = Date.parse(trip.departureAt) + route.minutes * 60000 - Date.parse(trip.arrivalAt);
+      if (trip.price !== route.price) { trip.price = route.price; corrected = true; }
+      if (shift) { trip.arrivalAt = new Date(Date.parse(trip.arrivalAt) + shift).toISOString(); for (const point of trip.dropoff) point.at = new Date(Date.parse(point.at) + shift).toISOString(); corrected = true; }
     }
     if (corrected) this.write(CATALOG_KEY, saved);
     return this.catalogCache = saved;
@@ -136,6 +144,11 @@ export class BookingService {
     if (!code) return 0;
     const rule = VOUCHERS.find(v => v.code === code.trim().toUpperCase()); const date = vietnamDate(this.now());
     if (!rule || !rule.active || date < rule.startsAt || date > rule.endsAt) throw new BookingError('validation', 'Mã không hợp lệ hoặc đã hết hạn.');
+    if (rule.wallet) {
+      const user = this.read<{ id?: string } | null>('viago_current_user', null);
+      const wallet = user?.id ? this.read<{ code: string; count?: number }[]>(`viago_voucher_wallet_${user.id}`, []) : [];
+      if (!wallet.some(v => v.code === rule.code && v.count !== 0)) throw new BookingError('validation', user?.id ? 'Mã này chưa có trong Ví voucher của bạn.' : 'Đăng nhập để dùng mã dành cho thành viên.');
+    }
     const subtotal = this.subtotal(legs);
     if (subtotal < rule.minimum) throw new BookingError('validation', `Đơn cần từ ${rule.minimum.toLocaleString('vi-VN')}đ để dùng mã này.`);
     if (rule.routes.length && legs.some(l => !rule.routes.includes(`${this.trip(l.tripId).from} → ${this.trip(l.tripId).to}`))) throw new BookingError('validation', 'Mã không áp dụng cho tuyến này.');

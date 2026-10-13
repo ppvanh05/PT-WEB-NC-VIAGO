@@ -76,7 +76,7 @@ describe('Customer booking rules', () => {
     await expect(service.create(a, 'vietqr')).rejects.toThrow('hành khách');
   });
   it('validates vouchers and reserves use limits for pending orders', async () => {
-    const a = draft(); await service.hold(a.owner, a.legs); expect(service.voucher('VIAGO2026', a.legs, a.passenger.phone)).toBe(25000);
+    const a = draft(); await service.hold(a.owner, a.legs); expect(service.voucher('VIAGO2026', a.legs, a.passenger.phone)).toBe(28000);
     expect(() => service.voucher('NOPE', a.legs, a.passenger.phone)).toThrow('không hợp lệ');
     a.voucher = 'BANMOI'; await service.create(a, 'vietqr');
     expect(() => service.voucher('BANMOI', a.legs, a.passenger.phone)).toThrow('hết lượt');

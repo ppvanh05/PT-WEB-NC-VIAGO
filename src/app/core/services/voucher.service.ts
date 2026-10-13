@@ -11,6 +11,7 @@ export interface Voucher {
   expiryDate: string;
   count?: number;
   badgeTarget?: string[];
+  usedAt?: string;
 }
 
 @Injectable({
@@ -19,7 +20,7 @@ export interface Voucher {
 export class VoucherService {
   // Public vouchers list shown on home page
   publicVouchers: Voucher[] = [
-    { id: 'v1', code: 'WELCOME50', title: 'GIẢM 50K', description: 'Giảm ngay 50.000đ cho hành trình đầu tiên', value: 50000, type: 'fixed', expiryDate: '31/12/2026' },
+    { id: 'v1', code: 'WELCOME50', title: 'GIẢM 50K', description: 'Giảm ngay 50.000đ cho khách hàng đăng ký tài khoản lần đầu', value: 50000, type: 'fixed', expiryDate: '31/12/2026' },
     { id: 'v2', code: 'SUMMER10', title: 'GIẢM 10%', description: 'Giảm 10% tối đa 30.000đ cho chuyến đi mùa hè', value: 10, type: 'percentage', expiryDate: '31/08/2026' },
     { id: 'v3', code: 'MIDWEEK10', title: 'GIẢM 10K', description: 'Giảm ngay 10.000đ cho chuyến đi giữa tuần', value: 10000, type: 'fixed', expiryDate: '31/12/2026' },
     { id: 'v4', code: 'VIAGO30', title: 'GIẢM 30K', description: 'Giảm 30.000đ khi đặt vé qua ví điện tử', value: 30000, type: 'fixed', expiryDate: '31/12/2026' }
@@ -127,6 +128,16 @@ export class VoucherService {
 
     this.saveWallet(userId, wallet);
     return true;
+  }
+
+  // Spend one use of a wallet voucher after a paid order; spent vouchers stay in the wallet with count 0
+  consumeVoucher(userId: string, code: string): void {
+    const wallet = this.getWalletVouchers(userId);
+    const voucher = wallet.find(w => w.code === code);
+    if (!voucher || voucher.count === 0) return;
+    voucher.count = Math.max(0, (voucher.count ?? 1) - 1);
+    if (voucher.count === 0) voucher.usedAt = new Date().toLocaleDateString('vi-VN');
+    this.saveWallet(userId, wallet);
   }
 
   // Check if voucher is already in the wallet

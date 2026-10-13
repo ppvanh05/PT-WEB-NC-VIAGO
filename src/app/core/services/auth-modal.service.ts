@@ -6,8 +6,10 @@ import { Injectable, signal } from '@angular/core';
 })
 export class AuthModalService {
   readonly isOpen = signal(false);
+  readonly mode = signal<'login' | 'register'>('login');
 
-  open(): void {
+  open(mode: 'login' | 'register' = 'login'): void {
+    this.mode.set(mode);
     this.isOpen.set(true);
   }
 

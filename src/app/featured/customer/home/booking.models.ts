@@ -20,7 +20,7 @@ export interface BookingOrder extends BookingDraft {
 }
 export interface BookingAudit { id: string; at: string; action: string; owner: string; orderId: string; result: 'success' | 'failure'; before: string; after: string; actor: {code: string; name: string; username: string; phone: string; role: string}; userAgent: string; }
 export interface BookingState { holds: SeatHold[]; orders: BookingOrder[]; audit: BookingAudit[]; }
-export interface VoucherRule { code: string; title: string; percent: number; amount: number; maximum: number; minimum: number; startsAt: string; endsAt: string; active: boolean; routes: string[]; limit: number; perPhone: number; }
+export interface VoucherRule { code: string; title: string; percent: number; amount: number; maximum: number; minimum: number; startsAt: string; endsAt: string; active: boolean; routes: string[]; limit: number; perPhone: number; wallet?: boolean; hidden?: boolean; }
 
 export function vietnamDate(time = Date.now()): string { return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(time)); }
 export function normalizeName(value: string): string { return value.trim().replace(/\s+/g, ' '); }

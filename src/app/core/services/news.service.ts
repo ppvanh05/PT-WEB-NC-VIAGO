@@ -1678,6 +1678,11 @@ export class NewsService {
     return this.newsList;
   }
 
+  getLatestNews(limit: number = 3): NewsItem[] {
+    const time = (date: string) => { const [day, month, year] = date.split('/').map(Number); return new Date(year, month - 1, day).getTime(); };
+    return [...this.newsList].sort((a, b) => time(b.date) - time(a.date)).slice(0, limit);
+  }
+
   getNewsById(id: string): NewsItem | undefined {
     return this.newsList.find(item => item.id === id);
   }

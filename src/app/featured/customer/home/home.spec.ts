@@ -92,7 +92,7 @@ describe('Customer booking interface', () => {
   });
   it('applies vouchers without passenger details and celebrates only explicit successful actions', async () => {
     await choose(); page.applyVoucher('VIAGO2026'); fixture.detectChanges();
-    expect(page.draft.passenger.phone).toBe(''); expect(page.discount).toBe(25000); expect(page.voucherError).toBe('');
+    expect(page.draft.passenger.phone).toBe(''); expect(page.discount).toBe(28000); expect(page.voucherError).toBe('');
     expect(fixture.nativeElement.querySelectorAll('.voucher-confetti i')).toHaveLength(32);
     page.voucherCelebrating = false; page.recalculateVoucher(); expect(page.voucherCelebrating).toBe(false);
     page.applyVoucher('NOPE'); expect(page.voucherCelebrating).toBe(false); expect(page.discount).toBe(0);
