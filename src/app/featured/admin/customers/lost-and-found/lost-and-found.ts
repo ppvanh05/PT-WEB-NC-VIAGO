@@ -3,10 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../../../core/services/toast.service';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker';
+import { BookingService } from '../../../customer/home/booking.service';
+import { vietnamDate } from '../../../customer/home/booking.models';
 
 export interface LostItem {
   ma_do_that_lac: string;
-  ma_ve: string;
+  ma_don_hang?: string | null; // DO_THAT_LAC.MaDonHang (nullable)
+  ma_ve: string;               // DO_THAT_LAC.MaVe (nullable, '' = chưa xác định)
+  chua_ro_chu?: boolean;       // Đồ nhặt trên xe, chưa xác định chủ sở hữu
   ma_khach_hang?: string | null;
   ten_khach_hang: string;
   so_dien_thoai: string;
@@ -28,6 +32,7 @@ export interface LostItem {
 
 export interface TicketInfo {
   ma_ve: string;
+  ma_don_hang: string;
   ten_khach_hang: string;
   so_dien_thoai: string;
   email: string;
@@ -39,6 +44,7 @@ export interface TicketInfo {
 const MOCK_TICKETS: Record<string, TicketInfo> = {
   'VE00001': {
     ma_ve: 'VE00001',
+    ma_don_hang: 'DH00001',
     ten_khach_hang: 'Nguyễn Văn Hùng',
     so_dien_thoai: '0912345678',
     email: 'hung.nv@example.com',
@@ -48,6 +54,7 @@ const MOCK_TICKETS: Record<string, TicketInfo> = {
   },
   'VE00002': {
     ma_ve: 'VE00002',
+    ma_don_hang: 'DH00002',
     ten_khach_hang: 'Trần Thị Lan',
     so_dien_thoai: '0987654321',
     email: 'lan.tt@example.com',
@@ -57,6 +64,7 @@ const MOCK_TICKETS: Record<string, TicketInfo> = {
   },
   'VE00003': {
     ma_ve: 'VE00003',
+    ma_don_hang: 'DH00003',
     ten_khach_hang: 'Lê Minh Triết',
     so_dien_thoai: '0905123456',
     email: 'triet.lm@example.com',
@@ -66,6 +74,7 @@ const MOCK_TICKETS: Record<string, TicketInfo> = {
   },
   'VE00004': {
     ma_ve: 'VE00004',
+    ma_don_hang: 'DH00004',
     ten_khach_hang: 'Phạm Thanh Thảo',
     so_dien_thoai: '0934567890',
     email: 'thao.pt@example.com',
@@ -75,12 +84,24 @@ const MOCK_TICKETS: Record<string, TicketInfo> = {
   },
   'VE00005': {
     ma_ve: 'VE00005',
+    ma_don_hang: 'DH00005',
     ten_khach_hang: 'Hoàng Anh Tuấn',
     so_dien_thoai: '0977112233',
     email: 'tuan.ha@example.com',
     tuyen_xe: 'Nha Trang → TP.HCM',
     ngay_di_chuyen: '2026-06-25',
     vi_tri_ghe: 'Ghế số 15'
+  },
+  // Đơn DH00002 có 2 vé -> tra theo mã đơn phải chọn ghế
+  'VE00006': {
+    ma_ve: 'VE00006',
+    ma_don_hang: 'DH00002',
+    ten_khach_hang: 'Trần Thị Lan',
+    so_dien_thoai: '0987654321',
+    email: 'lan.tt@example.com',
+    tuyen_xe: 'TP.HCM → Đà Lạt',
+    ngay_di_chuyen: '2026-06-30',
+    vi_tri_ghe: 'Ghế số 13'
   }
 };
 
@@ -88,6 +109,7 @@ const MOCK_LOST_ITEMS: LostItem[] = [
   {
     ma_do_that_lac: "DTL00001",
     ma_ve: "VE00001",
+    ma_don_hang: "DH00001",
     ma_khach_hang: "KH00084",
     ten_khach_hang: "Nguyễn Văn Hùng",
     so_dien_thoai: "0912345678",
@@ -107,6 +129,7 @@ const MOCK_LOST_ITEMS: LostItem[] = [
   {
     ma_do_that_lac: "DTL00002",
     ma_ve: "VE00002",
+    ma_don_hang: "DH00002",
     ma_khach_hang: "KH00109",
     ten_khach_hang: "Trần Thị Lan",
     so_dien_thoai: "0987654321",
@@ -128,6 +151,7 @@ const MOCK_LOST_ITEMS: LostItem[] = [
   {
     ma_do_that_lac: "DTL00003",
     ma_ve: "VE00003",
+    ma_don_hang: "DH00003",
     ma_khach_hang: null,
     ten_khach_hang: "Lê Minh Triết",
     so_dien_thoai: "0905123456",
@@ -149,6 +173,7 @@ const MOCK_LOST_ITEMS: LostItem[] = [
   {
     ma_do_that_lac: "DTL00004",
     ma_ve: "VE00004",
+    ma_don_hang: "DH00004",
     ma_khach_hang: "KH00155",
     ten_khach_hang: "Phạm Thanh Thảo",
     so_dien_thoai: "0934567890",
@@ -168,6 +193,7 @@ const MOCK_LOST_ITEMS: LostItem[] = [
   {
     ma_do_that_lac: "DTL00005",
     ma_ve: "VE00005",
+    ma_don_hang: "DH00005",
     ma_khach_hang: null,
     ten_khach_hang: "Hoàng Anh Tuấn",
     so_dien_thoai: "0977112233",
@@ -187,6 +213,7 @@ const MOCK_LOST_ITEMS: LostItem[] = [
   {
     ma_do_that_lac: "DTL00006",
     ma_ve: "VE00201",
+    ma_don_hang: "DH00201",
     ma_khach_hang: "KH00201",
     ten_khach_hang: "Vũ Hoàng Giang",
     so_dien_thoai: "0911223344",
@@ -208,6 +235,7 @@ const MOCK_LOST_ITEMS: LostItem[] = [
   {
     ma_do_that_lac: "DTL00007",
     ma_ve: "VE00310",
+    ma_don_hang: "DH00310",
     ma_khach_hang: null,
     ten_khach_hang: "Bùi Thị Mai",
     so_dien_thoai: "0966778899",
@@ -229,6 +257,7 @@ const MOCK_LOST_ITEMS: LostItem[] = [
   {
     ma_do_that_lac: "DTL00008",
     ma_ve: "VE00412",
+    ma_don_hang: "DH00412",
     ma_khach_hang: "KH00310",
     ten_khach_hang: "Đặng Văn Lâm",
     so_dien_thoai: "0944556677",
@@ -248,6 +277,7 @@ const MOCK_LOST_ITEMS: LostItem[] = [
   {
     ma_do_that_lac: "DTL00009",
     ma_ve: "VE00520",
+    ma_don_hang: "DH00520",
     ma_khach_hang: null,
     ten_khach_hang: "Cao Văn Sang",
     so_dien_thoai: "0978123456",
@@ -313,9 +343,16 @@ export class LostAndFound implements OnInit {
   successMessageBody = '';
   private successTimer: any = null;
 
+  // Tra cứu theo mã đơn / mã vé / SĐT
+  lookupKeyword = '';
+  lookupTicketOptions: TicketInfo[] = [];
+  lookupSelectedTicket = '';
+
   // Forms
   newItem: Partial<LostItem> = {
+    ma_don_hang: '',
     ma_ve: '',
+    chua_ro_chu: false,
     mo_ta_vat_pham: '',
     tuyen_xe: '',
     ngay_di_chuyen: new Date().toISOString().slice(0, 10),
@@ -345,6 +382,7 @@ export class LostAndFound implements OnInit {
   currentPage = 1;
 
   toastService = inject(ToastService);
+  private readonly bookingService = inject(BookingService);
   cdr = inject(ChangeDetectorRef);
 
   ngOnInit() {
@@ -454,7 +492,9 @@ export class LostAndFound implements OnInit {
 
   validatePhoneCreate() {
     const val = this.newItem.so_dien_thoai?.trim();
-    if (!val) {
+    if (!val && this.newItem.chua_ro_chu) {
+      this.phoneErrorCreate = '';
+    } else if (!val) {
       this.phoneErrorCreate = 'Vui lòng nhập số điện thoại';
     } else if (!this.isValidPhone(val)) {
       this.phoneErrorCreate = 'Số điện thoại không hợp lệ (gồm 10 chữ số bắt đầu bằng số 0)';
@@ -476,7 +516,9 @@ export class LostAndFound implements OnInit {
 
   validateEmailCreate() {
     const val = this.newItem.email?.trim();
-    if (!val) {
+    if (!val && this.newItem.chua_ro_chu) {
+      this.emailErrorCreate = '';
+    } else if (!val) {
       this.emailErrorCreate = 'Vui lòng nhập địa chỉ email';
     } else if (!this.isValidEmail(val)) {
       this.emailErrorCreate = 'Email không đúng định dạng hoặc tên miền không hợp lệ (ví dụ: name@domain.com)';
@@ -499,7 +541,9 @@ export class LostAndFound implements OnInit {
 
   validatePhoneEdit() {
     const val = this.editingItem?.so_dien_thoai?.trim();
-    if (!val) {
+    if (!val && this.editingItem?.chua_ro_chu) {
+      this.phoneErrorEdit = '';
+    } else if (!val) {
       this.phoneErrorEdit = 'Vui lòng nhập số điện thoại';
     } else if (!this.isValidPhone(val)) {
       this.phoneErrorEdit = 'Số điện thoại không hợp lệ (gồm 10 chữ số bắt đầu bằng số 0)';
@@ -521,7 +565,9 @@ export class LostAndFound implements OnInit {
 
   validateEmailEdit() {
     const val = this.editingItem?.email?.trim();
-    if (!val) {
+    if (!val && this.editingItem?.chua_ro_chu) {
+      this.emailErrorEdit = '';
+    } else if (!val) {
       this.emailErrorEdit = 'Vui lòng nhập địa chỉ email';
     } else if (!this.isValidEmail(val)) {
       this.emailErrorEdit = 'Email không đúng định dạng hoặc tên miền không hợp lệ (ví dụ: name@domain.com)';
@@ -557,31 +603,121 @@ export class LostAndFound implements OnInit {
     }, 50);
   }
 
-  // --- TICKET CODE LOOKUP FOR CREATE MODAL ---
+  // --- LOOKUP (MÃ ĐƠN / MÃ VÉ / SĐT) FOR CREATE MODAL ---
   lookupTicketInCreate() {
-    const code = this.newItem.ma_ve?.trim();
-    if (!code) {
-      this.toastService.showError('Vui lòng nhập mã vé để tra cứu (Ví dụ: VE00001, VE00002...)');
+    const keyword = this.lookupKeyword.trim();
+    this.lookupTicketOptions = [];
+    this.lookupSelectedTicket = '';
+    if (!keyword) {
+      this.toastService.showError('Vui lòng nhập mã đơn, mã vé hoặc số điện thoại để tra cứu (VD: DH00001, VE00001...)');
       return;
     }
-    const upperCode = code.toUpperCase();
-    const ticket = MOCK_TICKETS[upperCode];
-    if (ticket) {
-      this.newItem.ma_ve = ticket.ma_ve;
-      this.newItem.ten_khach_hang = ticket.ten_khach_hang;
-      this.newItem.so_dien_thoai = ticket.so_dien_thoai;
-      this.newItem.email = ticket.email;
-      this.newItem.tuyen_xe = ticket.tuyen_xe;
-      this.newItem.ngay_di_chuyen = ticket.ngay_di_chuyen;
-      this.newItem.vi_tri_ghe = ticket.vi_tri_ghe;
-
-      // Re-validate phone and email if already touched/submitted
-      this.validatePhoneCreate();
-      this.validateEmailCreate();
-
-      this.toastService.showSuccess(`Đã tìm thấy thông tin vé ${ticket.ma_ve}! Tự động điền dữ liệu thành công.`);
+    const upper = keyword.toUpperCase();
+    const tickets = this.allTickets();
+    let matches: TicketInfo[];
+    let label: string;
+    const byTicket = tickets.find(t => t.ma_ve.toUpperCase() === upper);
+    if (byTicket) {
+      matches = [byTicket];
+      label = `vé ${upper}`;
+    } else if (tickets.some(t => t.ma_don_hang.toUpperCase() === upper)) {
+      matches = tickets.filter(t => t.ma_don_hang.toUpperCase() === upper);
+      label = `đơn ${upper}`;
     } else {
-      this.toastService.showError(`Không tìm thấy dữ liệu cho mã vé "${code}". Vui lòng kiểm tra lại.`);
+      matches = tickets.filter(t => t.so_dien_thoai === keyword);
+      label = `SĐT ${keyword}`;
+    }
+
+    if (matches.length === 0) {
+      this.toastService.showError(`Không tìm thấy dữ liệu cho "${keyword}". Vui lòng kiểm tra lại.`);
+    } else if (matches.length === 1) {
+      this.applyTicketToNewItem(matches[0]);
+      this.toastService.showSuccess(`Đã tìm thấy thông tin ${label}! Tự động điền dữ liệu thành công.`);
+    } else {
+      // Nhiều vé (đơn nhiều ghế hoặc SĐT có nhiều đơn) -> điền sẵn phần chung, cho nhân viên chọn vé/ghế
+      this.lookupTicketOptions = matches;
+      this.applySharedInfoToNewItem(matches);
+      this.toastService.showSuccess(`Tìm thấy ${matches.length} vé theo ${label}. Đã điền thông tin chung, vui lòng chọn vé/ghế liên quan.`);
+    }
+    this.cdr.detectChanges();
+  }
+
+  /** Điền các trường giống nhau giữa các vé tìm được (khách hàng, mã đơn, tuyến, ngày đi). */
+  private applySharedInfoToNewItem(matches: TicketInfo[]) {
+    const first = matches[0];
+    const same = (key: keyof TicketInfo) => matches.every(t => t[key] === first[key]);
+    this.newItem.chua_ro_chu = false;
+    this.newItem.ma_ve = '';
+    this.newItem.vi_tri_ghe = '';
+    this.newItem.ma_don_hang = same('ma_don_hang') ? first.ma_don_hang : '';
+    this.newItem.ten_khach_hang = first.ten_khach_hang;
+    this.newItem.so_dien_thoai = first.so_dien_thoai;
+    this.newItem.email = first.email;
+    if (same('tuyen_xe')) this.newItem.tuyen_xe = first.tuyen_xe;
+    if (same('ngay_di_chuyen')) this.newItem.ngay_di_chuyen = first.ngay_di_chuyen;
+    this.validatePhoneCreate();
+    this.validateEmailCreate();
+  }
+
+  /** Vé mẫu + vé thật từ luồng đặt vé của khách (mã vé = {mã đơn}-{chiều}-{thứ tự ghế}). */
+  private allTickets(): TicketInfo[] {
+    const result = Object.values(MOCK_TICKETS);
+    try {
+      const trips = this.bookingService.catalog();
+      for (const order of this.bookingService.state().orders) {
+        if (order.status !== 'paid') continue;
+        order.legs.forEach((leg, li) => {
+          const trip = trips.find(t => t.id === leg.tripId);
+          if (!trip) return;
+          const route = `${trip.from} → ${trip.to}`;
+          if (!this.routesList.includes(route)) this.routesList.push(route);
+          leg.seats.forEach((seat, si) => result.push({
+            ma_ve: `${order.id}-${li + 1}-${si + 1}`.toUpperCase(),
+            ma_don_hang: order.id.toUpperCase(),
+            ten_khach_hang: order.passenger.name,
+            so_dien_thoai: order.passenger.phone,
+            email: order.passenger.email,
+            tuyen_xe: route,
+            ngay_di_chuyen: vietnamDate(Date.parse(trip.departureAt)),
+            vi_tri_ghe: seat,
+          }));
+        });
+      }
+    } catch {
+      // Không đọc được dữ liệu đặt vé -> chỉ dùng dữ liệu mẫu
+    }
+    return result;
+  }
+
+  onSelectLookupTicket(maVe: string) {
+    const ticket = this.lookupTicketOptions.find(t => t.ma_ve === maVe);
+    if (ticket) this.applyTicketToNewItem(ticket);
+  }
+
+  private applyTicketToNewItem(ticket: TicketInfo) {
+    this.newItem.chua_ro_chu = false;
+    this.newItem.ma_don_hang = ticket.ma_don_hang;
+    this.newItem.ma_ve = ticket.ma_ve;
+    this.newItem.ten_khach_hang = ticket.ten_khach_hang;
+    this.newItem.so_dien_thoai = ticket.so_dien_thoai;
+    this.newItem.email = ticket.email;
+    this.newItem.tuyen_xe = ticket.tuyen_xe;
+    this.newItem.ngay_di_chuyen = ticket.ngay_di_chuyen;
+    this.newItem.vi_tri_ghe = ticket.vi_tri_ghe;
+
+    // Re-validate phone and email if already touched/submitted
+    this.validatePhoneCreate();
+    this.validateEmailCreate();
+    this.cdr.detectChanges();
+  }
+
+  onUnknownOwnerChange(mode: 'create' | 'edit') {
+    if (mode === 'create') {
+      if (this.phoneTouchedCreate || this.createFormSubmitted) this.validatePhoneCreate();
+      if (this.emailTouchedCreate || this.createFormSubmitted) this.validateEmailCreate();
+    } else {
+      if (this.phoneTouchedEdit || this.editFormSubmitted) this.validatePhoneEdit();
+      if (this.emailTouchedEdit || this.editFormSubmitted) this.validateEmailEdit();
     }
     this.cdr.detectChanges();
   }
@@ -622,6 +758,7 @@ export class LostAndFound implements OnInit {
       const search = this.searchText.toLowerCase().trim();
       result = result.filter(i => 
         i.ma_do_that_lac.toLowerCase().includes(search) ||
+        (i.ma_don_hang && i.ma_don_hang.toLowerCase().includes(search)) ||
         (i.ma_ve && i.ma_ve.toLowerCase().includes(search)) ||
         i.ten_khach_hang.toLowerCase().includes(search) ||
         i.so_dien_thoai.includes(search) ||
@@ -718,8 +855,13 @@ export class LostAndFound implements OnInit {
 
   // --- MODALS ---
   openCreateModal() {
+    this.lookupKeyword = '';
+    this.lookupTicketOptions = [];
+    this.lookupSelectedTicket = '';
     this.newItem = {
+      ma_don_hang: '',
       ma_ve: '',
+      chua_ro_chu: false,
       mo_ta_vat_pham: '',
       tuyen_xe: '',
       ngay_di_chuyen: new Date().toISOString().slice(0, 10),
@@ -788,13 +930,13 @@ export class LostAndFound implements OnInit {
     this.validatePhoneCreate();
     this.validateEmailCreate();
 
+    // Mã đơn / mã vé không bắt buộc: đồ nhặt trên xe chỉ cần xác định chuyến (tuyến + ngày đi)
     let hasError = false;
-    if (!this.newItem.ma_ve?.trim()) hasError = true;
     if (!this.newItem.mo_ta_vat_pham?.trim()) hasError = true;
     if (!this.newItem.tuyen_xe) hasError = true;
     if (!this.newItem.ngay_di_chuyen) hasError = true;
     if (!this.newItem.ngay_bao_mat) hasError = true;
-    if (!this.newItem.ten_khach_hang?.trim()) hasError = true;
+    if (!this.newItem.chua_ro_chu && !this.newItem.ten_khach_hang?.trim()) hasError = true;
     if (this.phoneErrorCreate || this.emailErrorCreate) hasError = true;
 
     if (hasError) {
@@ -812,11 +954,13 @@ export class LostAndFound implements OnInit {
 
     const itemToSave: LostItem = {
       ma_do_that_lac: newId,
-      ma_ve: this.newItem.ma_ve!.trim().toUpperCase(),
+      ma_don_hang: this.newItem.ma_don_hang?.trim().toUpperCase() || null,
+      ma_ve: (this.newItem.ma_ve || '').trim().toUpperCase(),
+      chua_ro_chu: !!this.newItem.chua_ro_chu,
       ma_khach_hang: null,
-      ten_khach_hang: this.newItem.ten_khach_hang!.trim(),
-      so_dien_thoai: this.newItem.so_dien_thoai!.trim(),
-      email: this.newItem.email!.trim(),
+      ten_khach_hang: (this.newItem.ten_khach_hang || '').trim(),
+      so_dien_thoai: (this.newItem.so_dien_thoai || '').trim(),
+      email: (this.newItem.email || '').trim(),
       tuyen_xe: this.newItem.tuyen_xe!,
       ngay_di_chuyen: this.newItem.ngay_di_chuyen!,
       ngay_bao_mat: this.newItem.ngay_bao_mat!,
@@ -883,12 +1027,11 @@ export class LostAndFound implements OnInit {
     this.validateEmailEdit();
 
     let hasError = false;
-    if (!this.editingItem.ma_ve?.trim()) hasError = true;
     if (!this.editingItem.mo_ta_vat_pham?.trim()) hasError = true;
     if (!this.editingItem.tuyen_xe) hasError = true;
     if (!this.editingItem.ngay_di_chuyen) hasError = true;
     if (!this.editingItem.ngay_bao_mat) hasError = true;
-    if (!this.editingItem.ten_khach_hang?.trim()) hasError = true;
+    if (!this.editingItem.chua_ro_chu && !this.editingItem.ten_khach_hang?.trim()) hasError = true;
     if (this.phoneErrorEdit || this.emailErrorEdit) hasError = true;
 
     if (this.editingItem.trang_thai === 'Đã tìm thấy' || this.editingItem.trang_thai === 'Đã trả khách') {
@@ -911,7 +1054,8 @@ export class LostAndFound implements OnInit {
       const nowStr = `${hours}:${mins} ${datePart}`;
 
       this.editingItem.ngay_cap_nhat = nowStr;
-      this.editingItem.ma_ve = this.editingItem.ma_ve.trim().toUpperCase();
+      this.editingItem.ma_ve = (this.editingItem.ma_ve || '').trim().toUpperCase();
+      this.editingItem.ma_don_hang = this.editingItem.ma_don_hang?.trim().toUpperCase() || null;
 
       const code = this.editingItem.ma_do_that_lac;
       this.items[idx] = { ...this.editingItem! };

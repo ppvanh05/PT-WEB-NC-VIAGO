@@ -252,6 +252,18 @@
 
 .lf-req { color: #ef4444; }
 
+.lf-input.lf-input-invalid,
+.lf-input.lf-input-invalid:focus {
+  border-color: #ef4444;
+}
+
+.lf-field-error {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: #ef4444;
+}
+
 .lf-input {
   width: 100%;
   padding: 0.875rem 1rem;

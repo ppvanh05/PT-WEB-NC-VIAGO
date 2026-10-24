@@ -18,9 +18,21 @@
         </p>
 
         <div class="lf-form-body">
+          <div class="lf-form-group" *ngIf="myTrips.length">
+            <label>CHỌN TỪ CHUYẾN ĐI CỦA TÔI</label>
+            <div class="lf-select-wrap">
+              <select [(ngModel)]="selectedTripId" (ngModelChange)="onSelectMyTrip($event)" class="lf-input lf-select">
+                <option value="">Chọn chuyến đi đã đặt</option>
+                <option *ngFor="let trip of myTrips" [value]="trip.orderId">{{ trip.orderId }} · {{ trip.route }} · {{ trip.date | date:'dd/MM/yyyy' }}</option>
+              </select>
+              <i class="fas fa-chevron-down lf-select-icon"></i>
+            </div>
+          </div>
+
           <div class="lf-form-group">
-            <label>MÃ SỐ VÉ CHUYẾN ĐI (Tùy chọn)</label>
-            <input type="text" [(ngModel)]="reportForm.ticketCode" class="lf-input" placeholder="Ví dụ: VG123456 (Nhập để tự động điền)" (blur)="onTicketCodeChange()" />
+            <label>MÃ ĐƠN HOẶC MÃ VÉ (Tùy chọn)</label>
+            <input type="text" [(ngModel)]="reportForm.bookingCode" class="lf-input" placeholder="Nhập để tự động điền"(blur)="onBookingCodeChange()" (keydown.enter)="onBookingCodeChange()" />
+            <small class="lf-field-error" *ngIf="bookingCodeError">{{ bookingCodeError }}</small>
           </div>
 
           <div class="lf-form-group">
@@ -47,7 +59,16 @@
 
           <div class="lf-form-group">
             <label>SỐ GHẾ / VỊ TRÍ PHÒNG (NẾU NHỚ)</label>
-            <input type="text" [(ngModel)]="reportForm.seat" class="lf-input" placeholder="Ví dụ: Phòng A12, số ghế 5..." />
+            <div class="lf-select-wrap" *ngIf="orderTickets.length > 1; else seatInput">
+              <select [(ngModel)]="reportForm.maVe" (ngModelChange)="onSelectOrderTicket($event)" class="lf-input lf-select">
+                <option value="">Chọn ghế trong đơn {{ reportForm.maDonHang }}</option>
+                <option *ngFor="let t of orderTickets" [value]="t.id">Ghế {{ t.seat }}{{ t.route && t.route !== reportForm.route ? ' · ' + t.route : '' }} (Vé {{ t.id }})</option>
+              </select>
+              <i class="fas fa-chevron-down lf-select-icon"></i>
+            </div>
+            <ng-template #seatInput>
+              <input type="text" [(ngModel)]="reportForm.seat" class="lf-input" placeholder="Ví dụ: Phòng A12, số ghế 5..." />
+            </ng-template>
           </div>
 
           <div class="lf-form-group">
@@ -168,15 +189,24 @@
       </div>
       <div class="modal-body">
         <div class="alert-box info">
-          Vui lòng cung cấp chính xác mã vé chuyến đi và đặc điểm nhận dạng độc nhất để hệ thống đối chiếu bảo mật.
+          Vui lòng cung cấp chính xác mã đơn hoặc mã vé, số điện thoại người đặt và đặc điểm nhận dạng độc nhất để hệ thống đối chiếu bảo mật.
         </div>
-        <div class="lf-form-group mt-3">
-          <label>MÃ VÉ CHUYẾN ĐI LIÊN QUAN <span class="lf-req">*</span></label>
-          <input type="text" [(ngModel)]="claimForm.ticketCode" class="lf-input" placeholder="Ví dụ: VG123456" />
+        <div class="lf-form-row mt-3">
+          <div class="lf-form-group">
+            <label>MÃ ĐƠN HOẶC MÃ VÉ <span class="lf-req">*</span></label>
+            <input type="text" id="claim-bookingCode" [(ngModel)]="claimForm.bookingCode" (ngModelChange)="onClaimInput('bookingCode')" (blur)="onClaimBlur('bookingCode')" class="lf-input" [class.lf-input-invalid]="claimErrors.bookingCode" placeholder="Mã đơn / mã vé" />
+            <small class="lf-field-error" *ngIf="claimErrors.bookingCode">{{ claimErrors.bookingCode }}</small>
+          </div>
+          <div class="lf-form-group">
+            <label>SĐT NGƯỜI ĐẶT <span class="lf-req">*</span></label>
+            <input appPhoneInput id="claim-phone" [(ngModel)]="claimForm.phone" (ngModelChange)="onClaimInput('phone')" (blur)="onClaimBlur('phone')" class="lf-input" [class.lf-input-invalid]="claimErrors.phone" placeholder="0987xxxxxx" />
+            <small class="lf-field-error" *ngIf="claimErrors.phone">{{ claimErrors.phone }}</small>
+          </div>
         </div>
         <div class="lf-form-group mt-3">
           <label>ĐẶC ĐIỂM NHẬN DẠNG ĐỘC NHẤT <span class="lf-req">*</span></label>
-          <textarea [(ngModel)]="claimForm.description" class="lf-input" rows="3" placeholder="Mật khẩu khóa máy, vết xước góc trái..."></textarea>
+          <textarea id="claim-description" [(ngModel)]="claimForm.description" (ngModelChange)="onClaimInput('description')" (blur)="onClaimBlur('description')" class="lf-input" [class.lf-input-invalid]="claimErrors.description" rows="3" placeholder="Mật khẩu khóa máy, vết xước góc trái..."></textarea>
+          <small class="lf-field-error" *ngIf="claimErrors.description">{{ claimErrors.description }}</small>
         </div>
       </div>
       <div class="modal-footer">

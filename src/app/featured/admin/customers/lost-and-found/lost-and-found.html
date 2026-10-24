@@ -60,7 +60,7 @@
                 type="text" 
                 [(ngModel)]="searchText" 
                 (ngModelChange)="filterData()" 
-                placeholder="Tên khách, SĐT, mã vé, mô tả..." 
+                placeholder="Tên khách, SĐT, mã đơn, mã vé, mô tả..."
                 class="search-input" 
                 style="padding-left: 12px !important;" />
             </div>
@@ -145,6 +145,7 @@
             <div style="display: flex; align-items: center; gap: 8px;">
               <span class="lost-card-id">{{ item.ma_do_that_lac }}</span>
               <span *ngIf="item.ma_ve" class="category-badge" style="background-color: #e0f2fe; color: #0284c7; font-size: 11px; padding: 2px 6px;">Mã vé: {{ item.ma_ve }}</span>
+              <span *ngIf="!item.ma_ve && item.ma_don_hang" class="category-badge" style="background-color: #e0f2fe; color: #0284c7; font-size: 11px; padding: 2px 6px;">Mã đơn: {{ item.ma_don_hang }}</span>
             </div>
             <div class="status-pill" [ngClass]="{
               'status-active': item.trang_thai === 'Đang tìm kiếm',
@@ -195,9 +196,9 @@
 
             <!-- Customer Profile Info (Equal font size 12px across name, phone, email) -->
             <div class="lost-card-customer">
-              <div>Khách hàng: {{ item.ten_khach_hang }}</div>
-              <div>SĐT: {{ item.so_dien_thoai }}</div>
-              <div>Email: {{ item.email }}</div>
+              <div>Khách hàng: {{ item.ten_khach_hang || 'Chưa xác định chủ sở hữu' }}</div>
+              <div>SĐT: {{ item.so_dien_thoai || 'N/A' }}</div>
+              <div>Email: {{ item.email || 'N/A' }}</div>
             </div>
           </div>
 
@@ -267,16 +268,16 @@
     </div>
     
     <div class="modal-body-content">
-      <p class="desc-helper-txt" style="margin-bottom: 16px; font-size: 12.5px; color: #64748b; line-height: 1.5;">Điền chi tiết biểu mẫu khai báo dưới đây hoặc tra cứu từ mã vé để hỗ trợ trích xuất dữ liệu và tìm kiếm hành lý thất lạc.</p>
+      <p class="desc-helper-txt" style="margin-bottom: 16px; font-size: 12.5px; color: #64748b; line-height: 1.5;">Điền chi tiết biểu mẫu khai báo dưới đây hoặc tra cứu từ mã đơn, mã vé, số điện thoại để hỗ trợ trích xuất dữ liệu và tìm kiếm hành lý thất lạc.</p>
 
-      <!-- 0. Khung Tra cứu tự động theo Mã vé -->
+      <!-- 0. Khung Tra cứu tự động theo Mã đơn / Mã vé / SĐT -->
       <div class="form-group-unified" style="background: #f8fafc; padding: 14px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px;">
-        <label class="field-label-lbl" style="color: #0f172a; font-weight: 700;">Tra cứu tự động theo Mã vé (Nếu có)</label>
+        <label class="field-label-lbl" style="color: #0f172a; font-weight: 700;">Tra cứu tự động theo Mã đơn / Mã vé / SĐT (Nếu có)</label>
         <div style="display: flex; gap: 10px; margin-top: 6px;">
-          <input 
-            type="text" 
-            [(ngModel)]="newItem.ma_ve" 
-            placeholder="Nhập mã vé để tra cứu (VD: VE00001, VE00002...)" 
+          <input
+            type="text"
+            [(ngModel)]="lookupKeyword"
+            placeholder="Nhập mã đơn, mã vé hoặc SĐT (VD: DH00002, VE00001, 0912345678...)"
             class="form-input-control" 
             style="flex: 1;" 
             (keyup.enter)="lookupTicketInCreate()" />
@@ -288,25 +289,45 @@
             <span>Tra cứu</span>
           </button>
         </div>
+        <select
+          *ngIf="lookupTicketOptions.length > 1"
+          [(ngModel)]="lookupSelectedTicket"
+          (ngModelChange)="onSelectLookupTicket($event)"
+          class="form-input-control"
+          style="margin-top: 10px;">
+          <option value="" disabled>Chọn vé / ghế liên quan ({{ lookupTicketOptions.length }} vé)</option>
+          <option *ngFor="let t of lookupTicketOptions" [value]="t.ma_ve">{{ t.ma_don_hang }} · {{ t.ma_ve }} · {{ t.vi_tri_ghe }} · {{ t.tuyen_xe }} ({{ formatDate(t.ngay_di_chuyen) }})</option>
+        </select>
         <small style="color: #64748b; font-size: 11.5px; margin-top: 6px; display: block; line-height: 1.4;">
-          💡 <em>Nhập mã vé và nhấn "Tra cứu" để tự động điền thông tin hành khách, tuyến xe, ngày đi và số ghế.</em>
+          💡 <em>Nhập mã đơn, mã vé hoặc SĐT rồi nhấn "Tra cứu" để tự động điền thông tin hành khách, tuyến xe, ngày đi và số ghế.</em>
         </small>
       </div>
 
-      <!-- 1. Mã vé (bắt buộc) -->
-      <div class="form-group-unified">
-        <label class="field-label-lbl">Mã vé liên quan <span class="required">*</span></label>
-        <input 
-          type="text" 
-          id="create-ma-ve"
-          [(ngModel)]="newItem.ma_ve" 
-          placeholder="Nhập mã vé (VD: VE00001...)" 
-          class="form-input-control" 
-          [class.border-red]="createFormSubmitted && !newItem.ma_ve?.trim()" />
-        <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.ma_ve?.trim()">
-          Vui lòng nhập mã vé
+      <!-- 1. Mã đơn & Mã vé (không bắt buộc) -->
+      <div style="display: flex; gap: 16px;">
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Mã đơn hàng liên quan</label>
+          <input
+            type="text"
+            id="create-ma-don"
+            [(ngModel)]="newItem.ma_don_hang"
+            placeholder="VD: DH00001 (nếu có)"
+            class="form-input-control" />
+        </div>
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Mã vé liên quan</label>
+          <input
+            type="text"
+            id="create-ma-ve"
+            [(ngModel)]="newItem.ma_ve"
+            placeholder="VD: VE00001 (nếu có)"
+            class="form-input-control" />
         </div>
       </div>
+      <label style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12.5px; color: #475569; cursor: pointer;">
+        <input type="checkbox" [(ngModel)]="newItem.chua_ro_chu" (ngModelChange)="onUnknownOwnerChange('create')" />
+        Đồ nhặt được trên xe, chưa xác định chủ sở hữu (chỉ cần tuyến xe và ngày di chuyển)
+      </label>
 
       <!-- 2. Mô tả vật phẩm thất lạc (Rộng ra) -->
       <div class="form-group-unified" style="margin-top: 16px;">
@@ -379,15 +400,15 @@
 
       <!-- 5. Họ tên hành khách -->
       <div class="form-group-unified" style="margin-top: 16px;">
-        <label class="field-label-lbl">Họ tên hành khách <span class="required">*</span></label>
-        <input 
-          type="text" 
+        <label class="field-label-lbl">Họ tên hành khách <span class="required" *ngIf="!newItem.chua_ro_chu">*</span></label>
+        <input
+          type="text"
           id="create-ten-khach"
-          [(ngModel)]="newItem.ten_khach_hang" 
-          placeholder="Nguyễn Văn A" 
-          class="form-input-control" 
-          [class.border-red]="createFormSubmitted && !newItem.ten_khach_hang?.trim()" />
-        <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.ten_khach_hang?.trim()">
+          [(ngModel)]="newItem.ten_khach_hang"
+          placeholder="Nguyễn Văn A"
+          class="form-input-control"
+          [class.border-red]="createFormSubmitted && !newItem.chua_ro_chu && !newItem.ten_khach_hang?.trim()" />
+        <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.chua_ro_chu && !newItem.ten_khach_hang?.trim()">
           Vui lòng nhập họ tên hành khách
         </div>
       </div>
@@ -395,32 +416,32 @@
       <!-- 6. Số điện thoại & Email (State machine blur & inline error) -->
       <div style="display: flex; gap: 16px; margin-top: 16px;">
         <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Số điện thoại <span class="required">*</span></label>
-          <input 
-            type="tel" 
+          <label class="field-label-lbl">Số điện thoại <span class="required" *ngIf="!newItem.chua_ro_chu">*</span></label>
+          <input
+            type="tel"
             id="create-phone"
-            [(ngModel)]="newItem.so_dien_thoai" 
+            [(ngModel)]="newItem.so_dien_thoai"
             (blur)="onBlurPhoneCreate()"
             (input)="onInputPhoneCreate()"
-            placeholder="0912345678" 
-            class="form-input-control" 
-            [class.border-red]="phoneErrorCreate || (createFormSubmitted && !newItem.so_dien_thoai?.trim())" />
+            placeholder="0912345678"
+            class="form-input-control"
+            [class.border-red]="phoneErrorCreate" />
           <div class="field-error-msg" *ngIf="phoneErrorCreate">
             {{ phoneErrorCreate }}
           </div>
         </div>
         
         <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Địa chỉ Email <span class="required">*</span></label>
-          <input 
-            type="email" 
+          <label class="field-label-lbl">Địa chỉ Email <span class="required" *ngIf="!newItem.chua_ro_chu">*</span></label>
+          <input
+            type="email"
             id="create-email"
-            [(ngModel)]="newItem.email" 
+            [(ngModel)]="newItem.email"
             (blur)="onBlurEmailCreate()"
             (input)="onInputEmailCreate()"
-            placeholder="name@example.com" 
-            class="form-input-control" 
-            [class.border-red]="emailErrorCreate || (createFormSubmitted && !newItem.email?.trim())" />
+            placeholder="name@example.com"
+            class="form-input-control"
+            [class.border-red]="emailErrorCreate" />
           <div class="field-error-msg" *ngIf="emailErrorCreate">
             {{ emailErrorCreate }}
           </div>
@@ -488,7 +509,7 @@
   <div class="modal-main-container modal-md">
     <div class="modal-header-panel">
       <div style="display: flex; align-items: center; gap: 12px;">
-        <h2 class="modal-title-txt">Chi tiết yêu cầu thất lạc ({{ editingItem.ma_do_that_lac }}{{ editingItem.ma_ve ? ' - ' + editingItem.ma_ve : '' }})</h2>
+        <h2 class="modal-title-txt">Chi tiết yêu cầu thất lạc ({{ editingItem.ma_do_that_lac }}{{ editingItem.ma_ve ? ' - ' + editingItem.ma_ve : (editingItem.ma_don_hang ? ' - ' + editingItem.ma_don_hang : '') }})</h2>
         <div class="status-pill" [ngClass]="{
           'status-active': editingItem.trang_thai === 'Đang tìm kiếm',
           'status-scheduled': editingItem.trang_thai === 'Đã tìm thấy',
@@ -507,19 +528,31 @@
     </div>
     
     <div class="modal-body-content">
-      <!-- 1. Mã vé (Bắt buộc) -->
-      <div class="form-group-unified">
-        <label class="field-label-lbl">Mã vé liên quan <span class="required">*</span></label>
-        <input 
-          type="text" 
-          id="edit-ma-ve"
-          [(ngModel)]="editingItem.ma_ve" 
-          class="form-input-control" 
-          [class.border-red]="editFormSubmitted && !editingItem.ma_ve?.trim()" />
-        <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.ma_ve?.trim()">
-          Vui lòng nhập mã vé
+      <!-- 1. Mã đơn & Mã vé (không bắt buộc) -->
+      <div style="display: flex; gap: 16px;">
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Mã đơn hàng liên quan</label>
+          <input
+            type="text"
+            id="edit-ma-don"
+            [(ngModel)]="editingItem.ma_don_hang"
+            placeholder="VD: DH00001 (nếu có)"
+            class="form-input-control" />
+        </div>
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Mã vé liên quan</label>
+          <input
+            type="text"
+            id="edit-ma-ve"
+            [(ngModel)]="editingItem.ma_ve"
+            placeholder="VD: VE00001 (nếu có)"
+            class="form-input-control" />
         </div>
       </div>
+      <label style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12.5px; color: #475569; cursor: pointer;">
+        <input type="checkbox" [(ngModel)]="editingItem.chua_ro_chu" (ngModelChange)="onUnknownOwnerChange('edit')" />
+        Đồ nhặt được trên xe, chưa xác định chủ sở hữu (chỉ cần tuyến xe và ngày di chuyển)
+      </label>
 
       <!-- 2. Mô tả vật phẩm thất lạc (Rộng ra) -->
       <div class="form-group-unified" style="margin-top: 16px;">
@@ -589,14 +622,14 @@
 
       <!-- 5. Tên khách hàng -->
       <div class="form-group-unified" style="margin-top: 16px;">
-        <label class="field-label-lbl">Họ tên hành khách <span class="required">*</span></label>
+        <label class="field-label-lbl">Họ tên hành khách <span class="required" *ngIf="!editingItem.chua_ro_chu">*</span></label>
         <input 
           type="text" 
           id="edit-ten-khach"
           [(ngModel)]="editingItem.ten_khach_hang" 
           class="form-input-control" 
-          [class.border-red]="editFormSubmitted && !editingItem.ten_khach_hang?.trim()" />
-        <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.ten_khach_hang?.trim()">
+          [class.border-red]="editFormSubmitted && !editingItem.chua_ro_chu && !editingItem.ten_khach_hang?.trim()" />
+        <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.chua_ro_chu && !editingItem.ten_khach_hang?.trim()">
           Vui lòng nhập họ tên hành khách
         </div>
       </div>
@@ -604,7 +637,7 @@
       <!-- 6. SĐT & Email (State machine blur & inline error) -->
       <div style="display: flex; gap: 16px; margin-top: 16px;">
         <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Số điện thoại <span class="required">*</span></label>
+          <label class="field-label-lbl">Số điện thoại <span class="required" *ngIf="!editingItem.chua_ro_chu">*</span></label>
           <input 
             type="tel" 
             id="edit-phone"
@@ -612,14 +645,14 @@
             (blur)="onBlurPhoneEdit()"
             (input)="onInputPhoneEdit()"
             class="form-input-control" 
-            [class.border-red]="phoneErrorEdit || (editFormSubmitted && !editingItem.so_dien_thoai?.trim())" />
+            [class.border-red]="phoneErrorEdit" />
           <div class="field-error-msg" *ngIf="phoneErrorEdit">
             {{ phoneErrorEdit }}
           </div>
         </div>
         
         <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Địa chỉ Email <span class="required">*</span></label>
+          <label class="field-label-lbl">Địa chỉ Email <span class="required" *ngIf="!editingItem.chua_ro_chu">*</span></label>
           <input 
             type="email" 
             id="edit-email"
@@ -627,7 +660,7 @@
             (blur)="onBlurEmailEdit()"
             (input)="onInputEmailEdit()"
             class="form-input-control" 
-            [class.border-red]="emailErrorEdit || (editFormSubmitted && !editingItem.email?.trim())" />
+            [class.border-red]="emailErrorEdit" />
           <div class="field-error-msg" *ngIf="emailErrorEdit">
             {{ emailErrorEdit }}
           </div>
