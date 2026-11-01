@@ -152,6 +152,8 @@
 }
 
 .report-filter-grid .search-field { grid-column: span 2; }
+.report-filter-grid .date-from-field { grid-column: 1; }
+.report-filter-grid .date-to-field { grid-column: 2; }
 
 .field {
   display: flex;

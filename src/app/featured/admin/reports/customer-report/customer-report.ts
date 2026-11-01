@@ -105,6 +105,7 @@ export class CustomerReportComponent implements OnInit {
     status: 'Tất cả',
     loaiKH: 'Tất cả',
     hangTV: 'Tất cả',
+    chiTieu: 'Tất cả',
     fromDate: '',
     toDate: ''
   };
@@ -133,7 +134,8 @@ export class CustomerReportComponent implements OnInit {
 
   onViewReport() {
     this.filteredCustomers = this.customers.filter(customer => {
-      const matchSearch = !this.filters.searchTerm || 
+      const listMode = this.cheDoXem === 'danh-sach';
+      const matchSearch = !listMode || !this.filters.searchTerm || 
         customer.maKH.toLowerCase().includes(this.filters.searchTerm.toLowerCase()) ||
         customer.hoTen.toLowerCase().includes(this.filters.searchTerm.toLowerCase()) ||
         customer.sdt.includes(this.filters.searchTerm) ||
@@ -142,10 +144,15 @@ export class CustomerReportComponent implements OnInit {
       const matchStatus = this.filters.status === 'Tất cả' || customer.trangThai === this.filters.status;
       const matchLoaiKH = this.filters.loaiKH === 'Tất cả' || customer.loaiKH === this.filters.loaiKH;
       const matchHangTV = this.filters.hangTV === 'Tất cả' || customer.hangThanhVien === this.filters.hangTV;
+      const matchChiTieu = this.filters.chiTieu === 'Tất cả' ||
+        (this.filters.chiTieu === 'Dưới 1 triệu' && customer.tongChiTieu < 1000000) ||
+        (this.filters.chiTieu === '1 - 5 triệu' && customer.tongChiTieu >= 1000000 && customer.tongChiTieu < 5000000) ||
+        (this.filters.chiTieu === '5 - 10 triệu' && customer.tongChiTieu >= 5000000 && customer.tongChiTieu < 10000000) ||
+        (this.filters.chiTieu === 'Từ 10 triệu' && customer.tongChiTieu >= 10000000);
       
       // Date filtering logic (simplified for mock)
       let matchDate = true;
-      if (this.filters.fromDate || this.filters.toDate) {
+      if (listMode && (this.filters.fromDate || this.filters.toDate)) {
         const regDate = this.parseDate(customer.ngayDangKy);
         if (this.filters.fromDate) {
           matchDate = matchDate && regDate >= new Date(this.filters.fromDate);
@@ -155,7 +162,7 @@ export class CustomerReportComponent implements OnInit {
         }
       }
 
-      return matchSearch && matchStatus && matchLoaiKH && matchHangTV && matchDate;
+      return matchSearch && matchStatus && matchLoaiKH && matchHangTV && matchChiTieu && matchDate;
     });
 
     this.calculateStats();
@@ -212,6 +219,7 @@ export class CustomerReportComponent implements OnInit {
 
   ChuyenCheDoXem(mode: 'bieu-do' | 'danh-sach') {
     this.cheDoXem = mode;
+    this.onViewReport();
   }
 
   onResetFilters() {
@@ -220,6 +228,7 @@ export class CustomerReportComponent implements OnInit {
       status: 'Tất cả',
       loaiKH: 'Tất cả',
       hangTV: 'Tất cả',
+      chiTieu: 'Tất cả',
       fromDate: '',
       toDate: ''
     };

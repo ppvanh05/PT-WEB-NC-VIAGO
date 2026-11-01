@@ -78,16 +78,16 @@ export class PickupDropoffComponent implements OnInit {
   ngOnInit() {
     this.allPoints = [
       // Điểm đón trả
-      { id: 1, name: 'Bến xe Miền Đông', address: '292 Đinh Bộ Lĩnh, Phường 26, Bình Thạnh', city: 'TP.HCM', type: 'don-tra', status: 'active' },
-      { id: 2, name: 'Văn phòng Quận 1', address: '123 Phạm Ngũ Lão, Quận 1', city: 'TP.HCM', type: 'don-tra', status: 'active' },
-      { id: 3, name: 'Bến xe Cần Thơ', address: 'QL1A, Phường Hưng Thạnh, Cái Răng', city: 'Cần Thơ', type: 'don-tra', status: 'active' },
-      { id: 4, name: 'Bến xe Vũng Tàu', address: '192 Nam Kỳ Khởi Nghĩa, Phường 3', city: 'Bà Rịa - Vũng Tàu', type: 'don-tra', status: 'active' },
-      { id: 5, name: 'Bến xe Liên tỉnh Đà Lạt', address: '01 Tô Hiến Thành, Phường 3', city: 'Lâm Đồng', type: 'don-tra', status: 'active' },
-      { id: 6, name: 'Bến xe phía Nam Nha Trang', address: 'Vĩnh Trung, Thành phố Nha Trang', city: 'Khánh Hòa', type: 'don-tra', status: 'active' },
-      { id: 7, name: 'Bến xe phía Bắc Buôn Ma Thuột', address: '71 Nguyễn Chí Thanh, Tân An', city: 'Đắk Lắk', type: 'don-tra', status: 'active' },
-      { id: 8, name: 'Bến xe Phan Thiết', address: '01 Từ Văn Tư, Phú Trinh', city: 'Bình Thuận', type: 'don-tra', status: 'active' },
-      { id: 9, name: 'Bến xe Trung tâm Đà Nẵng', address: '201 Tôn Đức Thắng, Hòa Minh, Liên Chiểu', city: 'Đà Nẵng', type: 'don-tra', status: 'active' },
-      { id: 10, name: 'Bến xe Rạch Giá', address: '204 Nguyễn Hùng Sơn, Vĩnh Thanh Vân', city: 'Kiên Giang', type: 'don-tra', status: 'active' },
+      { id: 1, name: 'Bến xe Miền Đông', address: '292 Đinh Bộ Lĩnh, Phường 26, Bình Thạnh', city: 'TP.HCM', type: 'don-tra', status: 'active', mapLink: 'https://www.google.com/maps/search/?api=1&query=292+Đinh+Bộ+Lĩnh+Phường+26+Bình+Thạnh+Thành+phố+Hồ+Chí+Minh' },
+      { id: 2, name: 'Văn phòng Quận 1', address: '123 Phạm Ngũ Lão, Quận 1', city: 'TP.HCM', type: 'don-tra', status: 'active', mapLink: 'https://www.google.com/maps/search/?api=1&query=123+Phạm+Ngũ+Lão+Phường+Phạm+Ngũ+Lão+Quận+1+Thành+phố+Hồ+Chí+Minh' },
+      { id: 3, name: 'Bến xe Cần Thơ', address: 'QL1A, Phường Hưng Thạnh, Cái Răng', city: 'Cần Thơ', type: 'don-tra', status: 'active', mapLink: 'https://www.google.com/maps/search/?api=1&query=Bến+xe+Trung+tâm+Cần+Thơ+Hưng+Thạnh+Cái+Răng+Cần+Thơ' },
+      { id: 4, name: 'Bến xe Vũng Tàu', address: '192 Nam Kỳ Khởi Nghĩa, Phường 3', city: 'Bà Rịa - Vũng Tàu', type: 'don-tra', status: 'active', mapLink: 'https://www.google.com/maps/search/?api=1&query=192+Nam+Kỳ+Khởi+Nghĩa+Phường+3+Thành+phố+Vũng+Tàu+Bà+Rịa+Vũng+Tàu' },
+      { id: 5, name: 'Bến xe Liên tỉnh Đà Lạt', address: '01 Tô Hiến Thành, Phường 3', city: 'Lâm Đồng', type: 'don-tra', status: 'active', mapLink: 'https://www.google.com/maps/search/?api=1&query=01+Tô+Hiến+Thành+Phường+3+Thành+phố+Đà+Lạt+Lâm+Đồng' },
+      { id: 6, name: 'Bến xe phía Nam Nha Trang', address: 'Vĩnh Trung, Thành phố Nha Trang', city: 'Khánh Hòa', type: 'don-tra', status: 'active', mapLink: 'https://www.google.com/maps/search/?api=1&query=Bến+xe+phía+Nam+Nha+Trang+Vĩnh+Trung+Nha+Trang+Khánh+Hòa' },
+      { id: 7, name: 'Bến xe phía Bắc Buôn Ma Thuột', address: '71 Nguyễn Chí Thanh, Tân An', city: 'Đắk Lắk', type: 'don-tra', status: 'active', mapLink: 'https://www.google.com/maps/search/?api=1&query=71+Nguyễn+Chí+Thanh+Tân+An+Thành+phố+Buôn+Ma+Thuột+Đắk+Lắk' },
+      { id: 8, name: 'Bến xe Phan Thiết', address: '01 Từ Văn Tư, Phú Trinh', city: 'Bình Thuận', type: 'don-tra', status: 'active', mapLink: 'https://www.google.com/maps/search/?api=1&query=01+Từ+Văn+Tư+Phú+Trinh+Thành+phố+Phan+Thiết+Bình+Thuận' },
+      { id: 9, name: 'Bến xe Trung tâm Đà Nẵng', address: '201 Tôn Đức Thắng, Hòa Minh, Liên Chiểu', city: 'Đà Nẵng', type: 'don-tra', status: 'active', mapLink: 'https://www.google.com/maps/search/?api=1&query=201+Tôn+Đức+Thắng+Hòa+Minh+Liên+Chiểu+Đà+Nẵng' },
+      { id: 10, name: 'Bến xe Rạch Giá', address: '204 Nguyễn Hùng Sơn, Vĩnh Thanh Vân', city: 'Kiên Giang', type: 'don-tra', status: 'active', mapLink: 'https://www.google.com/maps/search/?api=1&query=204+Nguyễn+Hùng+Sơn+Vĩnh+Thanh+Vân+Rạch+Giá+Kiên+Giang' },
 
       // Điểm trung chuyển
       { id: 101, name: 'Sân bay Tân Sơn Nhất', address: 'Trường Sơn, Phường 2, Tân Bình, TP.HCM', city: 'TP.HCM', type: 'trung-chuyen', status: 'active' },
@@ -189,7 +189,6 @@ export class PickupDropoffComponent implements OnInit {
     this.cityFilters[this.activeTab] = 'all';
     this.typeFilters[this.activeTab] = 'all';
     this.filterPoints();
-    this.addToast('Đã xóa bộ lọc địa điểm.', 'success');
   }
 
   openAddModal() {

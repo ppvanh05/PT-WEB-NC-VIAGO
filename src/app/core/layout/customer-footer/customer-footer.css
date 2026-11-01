@@ -20,11 +20,53 @@
 
 .footer-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+  grid-template-columns: 1.5fr 1fr 1fr;
   gap: 32px 48px;
   padding-top: 48px;
   padding-bottom: 40px;
   align-items: start;
+}
+
+/* Keep the footer stable even when older merged markup uses generic classes. */
+.footer-col h3 {
+  margin: 0 0 16px;
+  color: #38bdf8;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.footer-brand address {
+  margin: 0;
+  color: #cbd5e1;
+  font-style: normal;
+  line-height: 1.8;
+}
+
+.footer-brand address a {
+  color: #cbd5e1;
+  text-decoration: none;
+}
+
+.footer-brand address a:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.footer-social {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-social a {
+  color: #cbd5e1;
+  text-decoration: none;
+}
+
+.footer-social a:hover {
+  color: #ffffff;
 }
 
 /* Cột 1: Thương hiệu */

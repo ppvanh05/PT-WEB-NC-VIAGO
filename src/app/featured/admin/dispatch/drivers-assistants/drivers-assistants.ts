@@ -26,6 +26,10 @@ export interface Personnel {
   identityBackImage?: string | null;
 }
 
+interface PersonnelErrors {
+  name?: boolean; dob?: boolean; phone?: boolean; identityNumber?: boolean;
+  role?: boolean; licenseClass?: boolean; licenseExpiry?: boolean;
+}
 const DRIVER_PORTRAIT_IMAGE_URL = '/assets/customer/chandungtaixe.jpg';
 const LICENSE_FRONT_IMAGE_URL = '/assets/customer/gplxmattruoc.jpg';
 const LICENSE_BACK_IMAGE_URL = '/assets/customer/gplxmatsau.jpg';

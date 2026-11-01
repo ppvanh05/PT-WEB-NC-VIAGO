@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker';
 
 export interface Vehicle {
   id: number;
@@ -23,7 +24,7 @@ const INSURANCE_IMAGE_URL = 'asset/images/customer/baohiemxe.jpg';
 @Component({
   selector: 'app-vehicles',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DatePickerComponent],
   templateUrl: './vehicles.html',
   styleUrls: ['./vehicles.css']
 })
@@ -146,7 +147,6 @@ export class VehiclesComponent implements OnInit {
     this.selectedType = 'Tất cả loại xe';
     this.selectedStatus = 'Tất cả trạng thái';
     this.filterVehicles();
-    this.addToast('Đã xóa bộ lọc phương tiện.', 'success');
   }
 
   openAddModal() {
@@ -188,9 +188,9 @@ export class VehiclesComponent implements OnInit {
       type: !this.currentVehicle.type,
       registrationExpiry: !this.currentVehicle.registrationExpiry,
       insuranceExpiry: !this.currentVehicle.insuranceExpiry,
-      floors: !this.currentVehicle.floors,
-      rows: !this.currentVehicle.rows,
-      seats: !this.currentVehicle.seats,
+      floors: !Number.isInteger(Number(this.currentVehicle.floors)) || Number(this.currentVehicle.floors) <= 0,
+      rows: !Number.isInteger(Number(this.currentVehicle.rows)) || Number(this.currentVehicle.rows) <= 0,
+      seats: !Number.isInteger(Number(this.currentVehicle.seats)) || Number(this.currentVehicle.seats) <= 0,
       amenities: !this.currentVehicle.amenities || this.currentVehicle.amenities.length === 0,
       vehicleImage: !this.currentVehicle.vehicleImage
     };
@@ -236,13 +236,16 @@ export class VehiclesComponent implements OnInit {
 
   onImageUpload(event: any, field: string) {
     const file = event.target.files[0];
-    if (file) {
+    if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (e: any) => {
         this.currentVehicle[field] = e.target.result;
         this.cdr.detectChanges();
       };
       reader.readAsDataURL(file);
+    } else if (file) {
+      this.addToast('Vui lòng chọn tệp hình ảnh hợp lệ.', 'error');
+      event.target.value = '';
     }
   }
 
@@ -256,6 +259,11 @@ export class VehiclesComponent implements OnInit {
       this.currentVehicle.status === 'Đã khóa' ? 'Đã khóa phương tiện.' : 'Đã mở khóa phương tiện.',
       'success'
     );
+  }
+
+  toggleMaintenance() {
+    this.currentVehicle.status = this.currentVehicle.status === 'Bảo trì' ? 'Đang hoạt động' : 'Bảo trì';
+    this.addToast(this.currentVehicle.status === 'Bảo trì' ? 'Đã chuyển phương tiện sang bảo trì.' : 'Đã đưa phương tiện hoạt động lại.', 'success');
   }
 
   addToast(message: string, type: 'success' | 'error') {

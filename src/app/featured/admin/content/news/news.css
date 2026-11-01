@@ -2403,3 +2403,10 @@
   font-family: inherit !important;
   resize: vertical !important;
 }
+.news-page-container {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box;
+}

@@ -55,7 +55,7 @@
 
     <!-- Filters Grid -->
     <div class="filters-grid report-filter-grid">
-      <div class="field search-field">
+      <div class="field search-field" *ngIf="cheDoXem === 'danh-sach'">
         <label>Tìm kiếm</label>
         <input
           type="text"
@@ -71,6 +71,17 @@
           <option value="Tất cả">Tất cả trạng thái</option>
           <option value="Đang hoạt động">Đang hoạt động</option>
           <option value="Đã khóa">Đã khóa</option>
+        </select>
+      </div>
+
+      <div class="field" *ngIf="cheDoXem === 'bieu-do'">
+        <label>Tổng chi tiêu</label>
+        <select [(ngModel)]="filters.chiTieu" (change)="onViewReport()">
+          <option value="Tất cả">Tất cả mức chi tiêu</option>
+          <option value="Dưới 1 triệu">Dưới 1 triệu</option>
+          <option value="1 - 5 triệu">1 - 5 triệu</option>
+          <option value="5 - 10 triệu">5 - 10 triệu</option>
+          <option value="Từ 10 triệu">Từ 10 triệu</option>
         </select>
       </div>
 
@@ -94,12 +105,12 @@
         </select>
       </div>
 
-      <div class="field">
+      <div class="field date-from-field" *ngIf="cheDoXem === 'danh-sach'">
         <label>Từ ngày đăng ký</label>
         <input type="date" [(ngModel)]="filters.fromDate" (change)="onViewReport()" />
       </div>
 
-      <div class="field">
+      <div class="field date-to-field" *ngIf="cheDoXem === 'danh-sach'">
         <label>Đến ngày đăng ký</label>
         <input type="date" [(ngModel)]="filters.toDate" (change)="onViewReport()" />
       </div>
