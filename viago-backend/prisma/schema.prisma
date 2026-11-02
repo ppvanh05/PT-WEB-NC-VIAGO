@@ -102,6 +102,16 @@ model binh_luan_tin_tuc {
   other_binh_luan_tin_tuc binh_luan_tin_tuc[]      @relation("binh_luan_tin_tucTobinh_luan_tin_tuc")
   khach_hang              khach_hang?              @relation(fields: [makhachhang], references: [makhachhang], onDelete: NoAction, onUpdate: NoAction)
   tin_tuc                 tin_tuc                  @relation(fields: [matintuc], references: [matintuc], onDelete: NoAction, onUpdate: NoAction)
+  luot_thich_binh_luan    luot_thich_binh_luan[]
+}
+
+model luot_thich_binh_luan {
+  mabinhluan String            @db.VarChar
+  nguoithich String            @db.VarChar(64)
+  thoigian   DateTime          @default(now()) @db.Timestamptz(6)
+  binh_luan  binh_luan_tin_tuc  @relation(fields: [mabinhluan], references: [mabinhluan], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([mabinhluan, nguoithich])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.

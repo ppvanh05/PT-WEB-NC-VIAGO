@@ -25,6 +25,579 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+`src/featured/admin` and `src/featured/customer` mirror the frontend's
+`src/app/featured` directory structure. Policies, news and promotions are
+implemented in `src/featured/admin/content/`. Other feature directories are
+reserved for later implementation.
+
+## API quản lý chính sách
+
+Chạy lệnh từ `viago-backend/`. Với máy mới, tạo `.env` theo `.env.example`,
+điền kết nối Supabase, rồi chạy:
+
+```powershell
+npm ci
+npm run prisma:generate
+npm run start:dev
+```
+
+`DATABASE_URL` dùng transaction pooler cổng 6543 với `pgbouncer=true`;
+`DIRECT_URL` dùng session pooler cổng 5432 cho Prisma CLI. Mật khẩu có ký tự
+đặc biệt cần URL encode. `.env` không được đưa vào Git.
+Module dùng các bảng sẵn có, không cần thay đổi schema hay chạy migration.
+Server mặc định ở `http://localhost:3000`; CORS cho `http://localhost:4200`,
+có thể đổi bằng `FRONTEND_ORIGIN` trong `.env`.
+
+| Method | Endpoint | Chức năng |
+| --- | --- | --- |
+| GET | `/admin/policies` | Danh sách, tìm kiếm, lọc và phân trang |
+| GET | `/admin/policies/statistics` | Tổng số, đang áp dụng, đã khóa, số lượng theo loại |
+| GET | `/admin/policies/:id` | Chi tiết chính sách và phiên bản phí hủy mới nhất |
+| POST | `/admin/policies` | Tạo chính sách |
+| PATCH | `/admin/policies/:id` | Sửa nội dung, loại, ngày áp dụng, mốc phí hủy |
+| PATCH | `/admin/policies/:id/status` | Khóa hoặc mở khóa |
+
+Query danh sách: `page` (mặc định 1), `pageSize` (mặc định 10, tối đa 100),
+`search` (tên/mã, không phân biệt hoa thường), `loaiChinhSach`, `trangThai`,
+`sort` (`newest`, `oldest`, `name`). Trả về `{ data, pagination }`;
+`pagination` gồm `page`, `pageSize`, `total`, `totalPages`.
+Thống kê được tính trên toàn bộ chính sách, độc lập với bộ lọc danh sách.
+
+Loại chính sách nhận enum `DatVe`, `ChinhSuaVe`, `HoanHuy`,
+`DieuKhoanDichVu`, `BaoMat`, hoặc nhãn tiếng Việt tương ứng trên frontend.
+Trạng thái nhận `DangApDung` / `DaKhoa` hoặc `Đang áp dụng` / `Đã khóa`.
+
+Ví dụ body tạo chính sách hoàn hủy:
+
+```json
+{
+  "tenChinhSach": "Chính sách hoàn hủy vé",
+  "loaiChinhSach": "HoanHuy",
+  "ngayApDung": "2026-11-02",
+  "noiDungChinhSach": "<p>Phí hủy được tính theo thời gian trước khởi hành.</p>",
+  "maNhanVien": "MA_NHAN_VIEN_DANG_HOAT_DONG",
+  "mocThoiGianHuyVe": [
+    { "truocGio": 24, "phiHuy": 10 },
+    { "truocGio": 12, "phiHuy": 30 },
+    { "truocGio": 0, "phiHuy": 100 }
+  ]
+}
+```
+
+`maNhanVien` phải là mã có thật trong bảng `nhan_vien` và đang hoạt động;
+API lấy tài khoản tương ứng để ghi nhật ký. Backend hiện chưa triển khai
+đăng nhập/phân quyền: trường này là thông tin người thực hiện, không phải cơ chế
+xác thực. Cần nối guard đăng nhập/phân quyền admin trước khi đưa API ra môi trường
+công khai. Frontend hiện vẫn dùng mock, chưa gọi API này.
+
+Khi tạo chính sách khác `HoanHuy`, bỏ `mocThoiGianHuyVe` hoặc gửi mảng rỗng.
+`trangThai` khi tạo là tùy chọn, mặc định `DangApDung`.
+Mã chính sách do server sinh bằng UUID có tiền tố `CS`.
+Ngày áp dụng nhận đúng `YYYY-MM-DD`, tính theo múi giờ Việt Nam.
+Các trường `maCS`, `capNhatCuoi`, `nguoiThucHien` là dữ liệu trả về;
+không gửi lại toàn bộ đối tượng đọc được khi tạo/sửa.
+
+Body sửa chứa `maNhanVien` và các trường muốn đổi. Trường bị bỏ qua giữ giá trị
+cũ; `null`, chuỗi rỗng, ngày sai, trường ngoài DTO bị từ chối. Đổi trạng thái dùng
+endpoint riêng với body `{ "maNhanVien": "NV...", "trangThai": "DaKhoa" }`.
+Gửi lại cùng trạng thái không tạo thêm nhật ký. Module dùng khóa/mở khóa thay cho
+xóa chính sách.
+
+### Lưu phiên bản phí hủy
+
+- `truocGio` là số nguyên không âm; các mốc không trùng và phải có mốc 0 giờ.
+  `phiHuy` là phần trăm từ 0–100, tối đa hai chữ số thập phân.
+- API sắp xếp các mốc thành khoảng `[giờ tối thiểu, giờ tối đa)`;
+  mốc lớn nhất không có giới hạn trên. Tỷ lệ hoàn là `100 - phiHuy`.
+- `choPhepHuy` là tùy chọn; mặc định `false` khi phí 100%, còn lại `true`.
+  Nếu gửi `false` thì phí phải là 100%.
+- Bảng `chinh_sach` chưa có quan hệ tới nhóm phí hủy. Với chính sách do API
+  quản lý, `chinh_sach_huy.manhomchinhsach` dùng chính `maCS` làm khóa nhóm.
+  API không tự ghép các nhóm phí hủy cũ với một chính sách nội dung theo tên.
+  Chính sách cũ chưa có nhóm tương ứng trả `mocThoiGianHuyVe: []`;
+  khi gửi các mốc phí hủy lần đầu, API tạo nhóm cho chính sách đó.
+- Mỗi lần sửa chính sách hoàn hủy tạo phiên bản và mã mốc mới. Các bản ghi
+  và chi tiết cũ được giữ để `lich_su_huy_ve` tiếp tục tham chiếu.
+- Thời điểm bắt đầu phiên bản mới là ngày áp dụng hoặc thời điểm cập nhật,
+  lấy mốc muộn hơn. Quy tắc hiện hành tiếp tục tới mốc hiệu lực mới.
+  Phiên bản đang chờ áp dụng bị thay thế được giữ với khoảng hiệu lực rỗng;
+  mở khóa không kích hoạt lại phiên bản đã bị thay thế.
+- Chính sách, phiên bản phí hủy và nhật ký được ghi trong cùng transaction.
+  Xung đột đồng thời được thử lại; lỗi không để lại thay đổi dở dang.
+
+Response dùng tên trường của giao diện như `maCS`, `tenChinhSach`,
+`loaiChinhSach`, `trangThai`, `ngayApDung`, `capNhatCuoi`, `nguoiThucHien`,
+`noiDungChinhSach`, `mocThoiGianHuyVe`; kèm các mã enum và thông tin phiên bản
+`phienBanHuy`, `ngayApDungPhiHuy`. `capNhatCuoi` là ISO timestamp.
+Lỗi dữ liệu trả 400, không tìm thấy trả 404, xung đột ghi trả 409.
+
+Kiểm tra cấu hình và biên dịch:
+
+```powershell
+npm run prisma:validate
+npm run build
+```
+
+## API quản lý tin tức
+
+Module NestJS nằm tại `src/featured/admin/content/news/`, được nạp trong
+`AppModule`. Dùng kết nối Prisma/Supabase đã cấu hình như phần policies;
+không cần thay đổi schema. Base URL: `http://localhost:3000/admin/news`.
+
+| Method | Endpoint | Chức năng |
+| --- | --- | --- |
+| GET | `/admin/news` | Danh sách, tìm kiếm, lọc, phân trang |
+| GET | `/admin/news/statistics` | Thống kê loại bài, trạng thái và tin nổi bật |
+| GET | `/admin/news/:id` | Chi tiết gồm toàn bộ nội dung |
+| POST | `/admin/news` | Tạo bài viết |
+| PATCH | `/admin/news/:id` | Sửa bài, tags, ảnh, trạng thái và lịch đăng |
+| PATCH | `/admin/news/:id/status` | Đăng ngay, ẩn, chuyển bản nháp hoặc hẹn đăng |
+| GET | `/admin/news/:id/comments` | Bình luận có phân trang |
+| DELETE | `/admin/news/:id/comments/:commentId` | Ẩn bình luận, giữ bản ghi và phản hồi |
+| PATCH | `/admin/news/:id/comments/:commentId/status` | Ẩn hoặc khôi phục bình luận |
+
+Query danh sách: `page` (1), `pageSize` (10, tối đa 100), `search`
+(mã/tiêu đề/tóm tắt/nội dung), `loai`, `trangThai`, `thang` (`YYYY-MM`),
+`noiBat` (`true`/`false`), `sort` (`newest`, `oldest`, `title-az`, `title-za`).
+Lọc tháng theo ngày đăng/hẹn đăng, dùng ngày tạo nếu bài chưa có ngày đăng,
+tính trong múi giờ Việt Nam. Sắp xếp mới/cũ dựa trên thời gian tạo bài.
+Response danh sách là `{ data, pagination }`, không tải toàn bộ nội dung HTML
+hay mọi bình luận của từng bài. Thống kê tính trên toàn bộ tin tức, độc lập
+với bộ lọc danh sách.
+
+`loai` nhận enum hoặc nhãn UI: `TinTucNhaXe` (Tin tức nhà xe), `KhuyenMai`
+(Khuyến mãi), `CamNangDiChuyen` (Cẩm nang di chuyển), `SuKien` (Sự kiện),
+`TuyenDung` (Tuyển dụng). `trangThai` nhận `DangHienThi`, `LichHenDang`,
+`BanNhap`, `DaAn` hoặc nhãn tiếng Việt trên giao diện.
+
+Ví dụ tạo bản nháp:
+
+```json
+{
+  "tieuDe": "VIAGO khai trương tuyến mới",
+  "moTa": "Thông tin lịch trình và ưu đãi cho hành trình mới.",
+  "loai": "TinTucNhaXe",
+  "image": "/assets/customer/xe.png",
+  "noiDung": "<p>Nội dung chi tiết của bài viết.</p>",
+  "noiBat": true,
+  "tags": ["VIAGO", "Tuyến mới"],
+  "maNhanVien": "MA_NHAN_VIEN_DANG_HOAT_DONG"
+}
+```
+
+Tiêu đề, mô tả (tối đa 200 ký tự), loại, ảnh, nội dung và mã nhân viên là
+bắt buộc khi tạo. Mặc định bài ở `BanNhap`. Có thể gửi `trangThai` để đăng ngay
+hoặc hẹn giờ. `nguoiDang` là nhãn bộ phận hiển thị, mặc định theo loại bài;
+nhân viên thực sự được lưu bằng mã từ `maNhanVien`. Khi sửa, giữ nguyên mã
+nhân viên đăng gốc; nhật ký ghi nhân viên thực hiện lần sửa.
+Như policies, backend chưa nối đăng nhập/phân quyền admin; `maNhanVien`
+không thay thế xác thực. Frontend vẫn đang dùng mock, chưa gọi API news.
+
+Server sinh mã `TT` + UUID và đường dẫn không dấu có hậu tố duy nhất.
+Sửa tiêu đề giữ đường dẫn cũ. Có thể gửi `duongDan` riêng bằng chữ thường,
+số và dấu gạch ngang (tối đa 200 ký tự); đường dẫn trùng trả 409.
+Tags được trim và loại trùng không phân biệt hoa thường; gửi `[]` để xóa tags.
+Trường bỏ qua khi sửa giữ nguyên dữ liệu; `null`, trường lạ và dữ liệu sai
+trả 400. Không có API xóa cứng bài viết, dùng trạng thái `DaAn`.
+
+`image` nhận URL HTTP(S) hoặc đường dẫn asset như `/assets/customer/xe.png`.
+Đây là lưu tham chiếu ảnh, chưa có API upload file hay tích hợp Supabase Storage;
+không gửi data URL base64 từ phần upload mock của frontend.
+
+### Hẹn giờ đăng tin
+
+Gửi `trangThai: "LichHenDang"` và `henDangLuc` là ISO timestamp có múi giờ,
+ở tương lai, ví dụ `2026-12-01T09:00:00+07:00`. Chỉ gửi `henDangLuc` khi
+trạng thái là hẹn đăng. Ngày và giờ tách riêng ở form frontend cần được ghép
+thành timestamp này khi nối API.
+
+Khi backend đang chạy, module kiểm tra mỗi 30 giây, xử lý tối đa 25 bài đến hạn
+mỗi lần; trạng thái tự đổi thành `DangHienThi`, giữ thời điểm hẹn làm ngày đăng.
+Bài đến hạn khi server tắt sẽ được xử lý trong các đợt kiểm tra sau khi khởi động.
+Đặt `NEWS_SCHEDULER_ENABLED=false` để tắt worker trong môi trường test hoặc
+tiến trình không phụ trách xuất bản. Các tiến trình cùng chạy worker sử dụng
+conditional update và transaction để tránh ghi nhật ký xuất bản hai lần.
+
+Ẩn hoặc chuyển bản nháp sẽ hủy lịch đăng đang chờ. Chọn đăng ngay cho một bài
+đang hẹn sẽ dùng thời điểm hiện tại. Khi ẩn rồi đăng lại bài đã xuất bản,
+giữ nguyên ngày xuất bản gốc. Endpoint đổi trạng thái nhận body như:
+
+```json
+{ "maNhanVien": "MA_NHAN_VIEN_DANG_HOAT_DONG", "trangThai": "DaAn" }
+```
+
+### Quản lý bình luận tin tức
+
+GET comments nhận `page`, `pageSize` và `trangThai`: `HienThi` (mặc định)
+hoặc `DaAn`. Mỗi bình luận trả `id`, `parentId`, `author`, `date`, `content`,
+thời điểm ISO, lượt thích và trạng thái; không trả mã tài khoản khách hàng.
+`soBinhLuan` trên bài viết đếm bình luận đang hiển thị.
+
+DELETE nhận body `{ "maNhanVien": "NV..." }` và chuyển bình luận thành `DaAn`.
+PATCH status nhận thêm `trangThai: "HienThi"` hoặc `"DaAn"` để khôi phục/ẩn.
+Mỗi thao tác kiểm tra bình luận thuộc đúng bài; không xóa bản ghi hay phản hồi
+con. Gửi lại cùng trạng thái không tạo thêm nhật ký. Thay đổi bài/bình luận
+và nhật ký được ghi trong cùng transaction.
+
+## API quản lý khuyến mãi và vouchers
+
+Module nằm tại `src/featured/admin/content/promotions/`, dùng schema hiện có,
+không cần migration. Base URL: `http://localhost:3000/admin/promotions`.
+
+| Method | Endpoint | Chức năng |
+| --- | --- | --- |
+| GET | `/admin/promotions` | Danh sách, tìm kiếm, lọc và phân trang |
+| GET | `/admin/promotions/options` | Hạng thành viên, đặc quyền và tuyến đang hoạt động |
+| GET | `/admin/promotions/statistics` | Thống kê toàn bộ chương trình và lượt dùng |
+| GET | `/admin/promotions/:id` | Chi tiết chương trình |
+| GET | `/admin/promotions/:id/statistics` | Hiệu quả và hạn mức của một chương trình |
+| GET | `/admin/promotions/:id/usages` | Lịch sử sử dụng thành công, có phân trang |
+| POST | `/admin/promotions` | Tạo chương trình, cấp voucher nếu chọn khách riêng |
+| PATCH | `/admin/promotions/:id` | Sửa chương trình và điều kiện |
+| PATCH | `/admin/promotions/:id/status` | Hoạt động, tạm dừng hoặc ngừng hoạt động |
+| DELETE | `/admin/promotions/:id` | Ngừng hoạt động, giữ lịch sử và ví khách |
+
+Các endpoint ghi nhận `maNhanVien` đang hoạt động như policies/news. Mã tài khoản
+được lấy từ nhân viên để lưu người tạo/cập nhật, người cấp và nhật ký.
+Module chưa nối đăng nhập/phân quyền admin hoặc frontend hiện đang dùng mock.
+
+### Tạo và sửa chương trình
+
+Ví dụ body tạo chương trình:
+
+```json
+{
+  "maNhanVien": "MA_NHAN_VIEN_DANG_HOAT_DONG",
+  "code": "VIAGO10",
+  "name": "Ưu đãi cho hội viên",
+  "description": "Giảm 10% cho các hạng được chọn.",
+  "discountType": "percentage",
+  "discountValue": 10,
+  "maxDiscount": 50000,
+  "minOrderValue": 150000,
+  "memberTiers": ["SILVER", "GOLD"],
+  "routesType": "all",
+  "startDate": "2026-11-02",
+  "endDate": "2026-12-31",
+  "limitPerUser": 1,
+  "maxUsage": 1000,
+  "priority": "normal",
+  "status": "running"
+}
+```
+
+Khi tạo, bắt buộc mã, tên, loại giảm, giá trị giảm, ngày bắt đầu/kết thúc và mã
+nhân viên. `code` được trim, viết hoa, nhận 3–50 ký tự chữ/số/`_`/`-`, duy nhất
+không phân biệt hoa thường. Server sinh `id` riêng có tiền tố `KM`; mọi endpoint
+`:id` dùng mã này, không dùng `code`. Không đổi mã voucher đã cấp hoặc phát sinh
+lượt giữ/sử dụng. Cập nhật bằng PATCH giữ các trường bị bỏ qua; từ chối trường
+ngoài DTO như `usageCount`, `revenueGenerated` và `assignedCustomer.used`.
+
+- `discountType`: `percentage` (1–100%), `fixed` (số tiền lớn hơn 0),
+  `gift` (giá trị bằng 0). `maxDiscount` chỉ dùng cho phần trăm.
+- Các số tiền không âm, tối đa 1.000.000.000.000 và tối đa hai chữ số thập phân.
+  `description` mô tả quyền lợi; `benefitConfig` là JSON cấu hình tùy chọn,
+  tối đa 20.000 ký tự JSON, giữ nguyên khi sửa trường khác. Ví dụ điều kiện đặt
+  trước trong dữ liệu cũ không bị mất khi sửa tên.
+- `startDate`/`endDate` nhận `YYYY-MM-DD` theo múi giờ Việt Nam. Ngày kết thúc
+  bao gồm đến 23:59:59.999; không được trước ngày bắt đầu. Tạo mới không nhận
+  ngày bắt đầu trong quá khứ. Sửa chương trình cũ có thể giữ/chỉnh khoảng ngày.
+- `minOrderValue` mặc định 0; `serviceScope` nhận `DatVe` (mặc định), `ThueXe`,
+  `TatCa`. `priority` nhận `normal`/`high`.
+- `maxUsage` và `limitPerUser` là số nguyên dương; `null` bỏ giới hạn.
+  Mặc định tổng không giới hạn và mỗi khách một lượt. `limitSubject` là
+  `KhachHang` (mặc định) hoặc `SoDienThoai`. Không giảm hạn mức xuống dưới số
+  lượt đã dùng/đang giữ; giới hạn theo khách bỏ qua lịch sử không có mã khách.
+- `referralRequired`/`emailFollowRequired` là cờ điều kiện bổ sung, mặc định false.
+
+### Đối tượng và tuyến áp dụng
+
+`memberTiers` nhận mã hoặc tên hạng lấy từ `/options`, ví dụ `SILVER` hoặc `Bạc`.
+`["Tất cả"]` là mặc định; không trộn với hạng cụ thể. API đồng bộ cả mảng
+`hangkhachapdung` và bảng `khuyen_mai_hang` bằng mã hạng.
+
+Chỉ chọn một nhóm mục tiêu: hạng thành viên, `firstOrderOnly=true`,
+`birthdayMonthOnly=true` hoặc `assignedCustomer`. Khi đổi nhóm qua PATCH,
+gửi lại các cờ cần tắt, `memberTiers: ["Tất cả"]` nếu bỏ hạng, và
+`assignedCustomer: null` nếu bỏ cấp riêng. `birthdayMonths` nhận các tháng
+`"01"`–`"12"`, chỉ dùng khi bật sinh nhật; mảng rỗng nghĩa là không giới hạn
+tháng trong năm. Tắt sinh nhật tự xóa các tháng cấu hình.
+
+`routesType`: `all` (mặc định), `specific`, `exclude`. Hai loại sau bắt buộc
+`selectedRoutes`; ưu tiên gửi các mã tuyến từ `/options`. Tên tuyến chỉ được
+nhận khi khớp duy nhất với database, không suy đoán cặp tuyến hai chiều từ nhãn
+`↔` của dữ liệu mock. `daysOfWeek` nhận `Mon`–`Sun`, lưu thứ ISO 1–7;
+mảng rỗng nghĩa là cả tuần. Gửi `maxDiscount`, `maxUsage`, `limitPerUser`,
+`benefitConfig` bằng `null` để xóa cấu hình tương ứng.
+
+### Cấp riêng cho khách
+
+```json
+{
+  "assignedCustomer": {
+    "emailOrPhone": "MA_KHACH_HANG_HOAC_SO_DIEN_THOAI_EMAIL",
+    "reason": "complaint",
+    "note": "Lý do cấp bù"
+  }
+}
+```
+
+Đây là phần body bổ sung khi tạo/sửa. Khách phải tồn tại và đang hoạt động;
+nếu email không duy nhất, dùng mã khách hoặc số điện thoại. `reason` nhận
+`complaint`, `delay_cancel`, `system_error`, `custom_compensation`.
+API tạo bản ghi `voucher_khach_hang` nguồn `CapBu`, thời gian theo chương trình
+và lưu tài khoản người cấp. Không nhận `used` từ client; trạng thái dùng lấy từ ví.
+
+Đổi người nhận hoặc bỏ cấp riêng chỉ thu hồi voucher chưa dùng/chưa giữ,
+giữ bản ghi `ThuHoi` thay vì xóa. Không thay đổi người nhận khi voucher đang giữ
+hoặc đã dùng; không chuyển chương trình công khai đã có người lưu sang cấp riêng
+bằng form một khách. Dữ liệu cấp riêng cũ có nhiều voucher chưa thu hồi cần được
+quản lý bằng quy trình cấp hàng loạt, module này không tự gộp/xóa các bản ghi đó.
+Chính sách, điều kiện, ví và nhật ký được ghi trong cùng transaction.
+
+### Trạng thái và báo cáo
+
+Khi ghi, `status` nhận `running`, `paused`, `locked` (mặc định `running`).
+`running` nghĩa là cho phép hoạt động; trạng thái trả về được tính theo thời gian:
+`upcoming` trước ngày bắt đầu, `running` trong khoảng hiệu lực, `expired` sau hạn.
+`paused`/`locked` giữ trạng thái thủ công. Không gửi `upcoming`/`expired` để ép
+trạng thái; sửa ngày hiệu lực nếu muốn gia hạn. Không cần worker để đổi trạng thái.
+
+DELETE và PATCH status nhận body có `maNhanVien`; PATCH cần thêm `status`.
+Ngừng hoạt động không xóa chương trình, lần sử dụng hoặc ví đã cấp. Danh sách
+mặc định ẩn `locked`; dùng `status=locked` để xem và có thể mở lại bằng
+`status=running`. Thống kê tổng vẫn bao gồm các chương trình ngừng hoạt động.
+
+GET danh sách nhận `page`, `pageSize` (tối đa 100), `search`, `status`, `tier`,
+`discountType`, `sort` (`newest`, `oldest`, `code`). `tier` nhận mã/tên hạng và
+bao gồm cả các mã áp dụng cho mọi hạng. Response `{ data, pagination }` dùng
+các trường tương ứng frontend như `code`, `name`, `discountType`, `discountValue`,
+`memberTiers`, `selectedRoutes`, `status`; kèm `id`, mã hạng, nhãn tuyến và thông tin ví.
+
+`usageCount`/`totalVoucherUsages` là bộ đếm lưu tại `khuyen_mai.soluongdadung`.
+`confirmedUsageCount` đếm các bản ghi `su_dung_khuyen_mai` có trạng thái `DaSuDung`;
+hai số có thể khác với dữ liệu import cũ. `revenueGenerated` là tổng giá trị
+trước giảm của các lần dùng thành công, `totalDiscount` là tổng giảm,
+`netRevenue` là hiệu số; đây không phải báo cáo thu tiền/hoàn tiền ngân hàng.
+Các tổng tiền trả chuỗi decimal để giữ độ chính xác. Lịch sử `/usages` chỉ trả
+lần dùng thành công, có thông tin đơn/khách phục vụ màn thống kê admin.
+
+Module này quản lý cấu hình/cấp voucher và báo cáo. Việc kiểm tra điều kiện,
+giữ hạn mức, áp mã và chốt lượt dùng trong checkout cần được nối ở luồng đặt vé/
+thuê xe. Cấu hình quà tặng/miễn phí hủy chưa tự thực thi quyền lợi tại checkout.
+
+## API customer/about
+
+Module công khai nằm tại `src/featured/customer/about/`, được nạp trong
+`AppModule`, dùng database sẵn có và không cần migration.
+Base URL: `http://localhost:3000/customer/about`.
+
+| Method | Endpoint | Chức năng |
+| --- | --- | --- |
+| GET | `/customer/about` hoặc `/customer/about/about-us` | Giới thiệu, liên hệ, ảnh và số liệu tổng hợp |
+| GET | `/customer/about/contact` | Thông tin liên hệ và các chủ đề hỗ trợ |
+| POST | `/customer/about/contact` | Lưu yêu cầu liên hệ |
+| GET | `/customer/about/faq/categories` | Nhóm câu hỏi đang hiển thị và số lượng |
+| GET | `/customer/about/faq` | Tìm kiếm, lọc và phân trang FAQ |
+| GET | `/customer/about/faq/:id` | Chi tiết FAQ đang hoạt động |
+| GET | `/customer/about/policies/types` | Mã và nhãn các loại chính sách dùng cho bộ lọc |
+| GET | `/customer/about/policies` | Chính sách đang có hiệu lực, mặc định là bảo mật |
+| GET | `/customer/about/policies/:id` | Chi tiết chính sách công khai |
+| GET | `/customer/about/terms/types` | Mã và nhãn 4 loại điều khoản |
+| GET | `/customer/about/terms` | Điều khoản và chính sách đặt/sửa/hoàn hủy vé |
+| GET | `/customer/about/terms/:id` | Chi tiết một điều khoản công khai |
+| GET | `/customer/about/guide` | Ba hướng dẫn mua/nhận vé |
+| GET | `/customer/about/guide/:slug` | Nội dung hướng dẫn |
+| GET | `/customer/about/careers/options` | Bộ lọc tuyển dụng từ các vị trí còn nhận hồ sơ |
+| GET | `/customer/about/careers` | Danh sách vị trí còn tuyển |
+| GET | `/customer/about/careers/:id` | Chi tiết vị trí còn tuyển |
+| POST | `/customer/about/careers/:id/applications` | Nộp hồ sơ multipart có CV |
+
+Frontend chưa được nối API: trang liên hệ hiện dùng `mailto`, FAQ/tuyển dụng
+và các trang nội dung hiện dùng dữ liệu trong frontend. Module backend cung cấp
+API thay thế, không tự gửi email, SMS hay thông báo ra bên ngoài.
+
+### Nguồn nội dung công khai
+
+- FAQ lấy từ `faq`, chỉ trả `HoatDong`. Query: `search`, `category` (ví dụ
+  `booking`, `payment`, `refund`, `info`, `member`, `support`), `page`, `pageSize`.
+- Chính sách lấy từ `chinh_sach`, chỉ trả `DangApDung` và `ngayapdung` không
+  nằm trong tương lai. Query `type` nhận enum/nhãn như API admin, cùng `search`,
+  `page`, `pageSize`. `/policies` mặc định `BaoMat`; có thể chỉ rõ `type` khác.
+  `/terms` gồm `DatVe`, `ChinhSuaVe`, `HoanHuy`, `DieuKhoanDichVu` và không nhận
+  `BaoMat`. Các API này chỉ trả nội dung công khai, không trả mã người tạo/cập nhật.
+- Chính sách hoàn hủy kèm phiên bản phí hủy đang thực sự có hiệu lực, không lấy
+  phiên bản còn hẹn áp dụng. Nhóm phí hủy dùng quy ước `manhomchinhsach = maCS`
+  của module admin; chính sách cũ chưa có nhóm tương ứng trả mảng quy tắc rỗng.
+- Tin tuyển dụng chỉ trả `DangTuyen` và hạn nộp từ ngày hiện tại trở đi theo
+  múi giờ Việt Nam; đến hết ngày hạn vẫn được nộp. Query: `search`, `department`,
+  `location`, `workType` (enum hoặc nhãn `Toàn thời gian`, `Bán thời gian`,
+  `Thời vụ`, `Thực tập`), `page`, `pageSize`. Lấy giá trị bộ lọc thật từ `/options`;
+  giờ làm xoay ca nằm trong `workHours`, không phải một enum hình thức làm việc.
+- Giới thiệu, thông tin liên hệ và hướng dẫn dùng nội dung tương ứng frontend.
+  GET `/about-us` trả thêm `story`, `coreValues`, `vision`, và `galleries`
+  gồm 3 loại xe, mỗi loại 2 trang ảnh với tiêu đề/mô tả để dựng thư viện ảnh.
+  Cấu hình liên hệ qua `COMPANY_HOTLINE`, `COMPANY_EMAIL`, `COMPANY_ADDRESS`.
+  Số liệu `activeRoutes`, `activeVehicles`, `tripsToday` được đếm từ database,
+  không dùng số lượt khách/tỷ lệ đúng giờ giả lập trên giao diện.
+
+Các danh sách trả `{ data, pagination }`, `page` mặc định 1, `pageSize` mặc định
+10 và tối đa 100. FAQ sắp xếp theo thứ tự hiển thị, chính sách theo ngày áp dụng
+mới nhất, tuyển dụng theo hạn nộp gần nhất. ID dùng mã database, không dùng số
+thứ tự của mảng mock frontend. Hướng dẫn nhận ba slug `dat-ve-online`,
+`dat-ve-hotline`, `nhan-ve-tai-ben`. Điều khoản dùng chung service đọc chính sách,
+các hướng dẫn dùng chung service hướng dẫn để tránh tạo lớp khung trùng lặp.
+
+GET `/policies/types` trả `{ data: [{ code, label }] }` cho cả 5 loại;
+GET `/terms/types` chỉ trả 4 loại thuộc điều khoản. Các endpoint loại không
+phụ thuộc vào việc database hiện có nội dung cho loại đó hay chưa; danh sách
+và chi tiết vẫn chỉ trả nội dung đang có hiệu lực.
+
+GET `/careers/options` trả `departments`, `locations`, `workTypes` và
+`application` mô tả file CV (`field`, `required`, `maxSizeBytes`, `extensions`),
+yêu cầu đồng ý điều khoản (`consentRequired`) và `termsPath`. Danh sách việc
+làm cũng trả `description` để hiển thị phần mô tả trên thẻ tuyển dụng.
+
+### Gửi liên hệ
+
+```json
+{
+  "fullName": "Nguyễn Văn A",
+  "phone": "0901234567",
+  "email": "a@example.com",
+  "subject": "HoTroDatVe",
+  "message": "Tôi cần hỗ trợ thông tin chuyến xe."
+}
+```
+
+`fullName`, `phone`, `message` bắt buộc; email có thể bỏ qua hoặc gửi chuỗi rỗng.
+`subject` nhận enum hoặc nhãn từ GET `/contact`, mặc định `HoTroDatVe`.
+API chuẩn hóa số điện thoại, email và lưu `yeu_cau_lien_he` ở trạng thái `Moi`.
+Không nhận mã khách hay mã nhân viên từ client để tự gán người gửi/xử lý.
+Response 201 chỉ xác nhận `{ received: true, message }`, không trả dữ liệu cá
+nhân hoặc mã hồ sơ để tra cứu công khai.
+
+### Nộp hồ sơ tuyển dụng và CV
+
+Gửi `multipart/form-data` tới `/careers/:id/applications`. Các field theo form
+frontend: `fullName`, `phoneNumber`, `email` (bắt buộc), `dateOfBirth`
+(`YYYY-MM-DD`, không ở tương lai), `address`, `education`, `experience`,
+`portfolioLink`, `introduction` (tùy chọn), `agreeTerms=true` (bắt buộc).
+Field file tên `cv`, bắt buộc PDF/DOC/DOCX, tối đa 5 MB. Chọn vị trí bằng ID
+trên URL; không gửi `position` là chuỗi tên từ form mock.
+
+Ví dụ PowerShell (thay mã tuyển dụng bằng giá trị GET `/careers`):
+
+```powershell
+curl.exe -X POST "http://localhost:3000/customer/about/careers/TD001/applications" `
+  -F "fullName=Nguyen Van A" `
+  -F "phoneNumber=0901234567" `
+  -F "email=a@example.com" `
+  -F "agreeTerms=true" `
+  -F "cv=@C:\duong-dan\cv.pdf"
+```
+
+API kiểm tra nội dung file theo magic bytes, không chỉ tin tên/MIME do client
+gửi. File được đặt tên ngẫu nhiên và lưu riêng tại `CV_UPLOAD_DIR`, mặc định
+`uploads/private/cv` trong thư mục backend. Thư mục này bị Git bỏ qua và không
+được mở làm static assets. Khi triển khai, cấu hình ổ lưu bền vững riêng tư để
+CV không mất khi thay tiến trình/container. Database chỉ lưu tên file, không lưu
+đường dẫn tuyệt đối hay URL công khai.
+
+Hồ sơ lưu trong `ho_so_ung_tuyen` ở trạng thái `Moi`. CV được xóa nếu yêu cầu
+bị từ chối hoặc database ghi thất bại. Nếu đã có hồ sơ chưa bị từ chối cho cùng
+vị trí và email/số điện thoại, không tạo bản trùng, xóa CV gửi lại và trả cùng
+thông báo tiếp nhận để không tiết lộ tình trạng hồ sơ. Module không có endpoint
+công khai liệt kê/tra cứu hồ sơ ứng viên hoặc tải CV; chức năng nhân sự xem CV
+cần được triển khai ở API admin có phân quyền.
+
+Hai form POST giới hạn 20 yêu cầu/IP/endpoint trong 10 phút; vượt mức trả 429
+kèm `Retry-After`. Bộ giới hạn lưu trong bộ nhớ từng tiến trình và dùng IP kết
+nối Express, không tự tin header `X-Forwarded-For` do client gửi.
+
+## API customer/news
+
+Module nằm trong `src/featured/customer/news/`, dùng chung `tin_tuc` và
+`binh_luan_tin_tuc` với API admin. Base URL: `http://localhost:3000/customer/news`.
+
+| Method | Endpoint (sau base URL) | Chức năng |
+| --- | --- | --- |
+| GET | `/` | Danh sách, tìm kiếm tiêu đề không phân biệt dấu, lọc và phân trang |
+| GET | `/categories` | 5 danh mục và mục tổng hợp, kèm số bài công khai |
+| GET | `/featured?category=all` | Các khối `main`, `grid`, `subHighlight`, `subGrid` |
+| GET | `/:id` | Chi tiết theo mã database hoặc slug |
+| GET | `/:id/related?limit=4` | Bài cùng danh mục, loại trừ bài hiện tại |
+| POST | `/:id/views` | Tăng lượt xem, trả `{ viewCount }`, HTTP 200 |
+| GET | `/:id/comments` | Phân trang bình luận gốc, mỗi bình luận kèm tối đa 3 trả lời |
+| POST | `/:id/comments` | Gửi bình luận |
+| GET | `/:id/comments/:commentId/replies` | Phân trang toàn bộ trả lời đang hiển thị |
+| POST | `/:id/comments/:commentId/replies` | Trả lời bình luận gốc |
+| PUT | `/:id/comments/:commentId/like` | Thích bình luận/trả lời, gửi lại không tăng trùng |
+| DELETE | `/:id/comments/:commentId/like` | Bỏ thích, gửi lại không giảm trùng |
+
+Chỉ bài `DangHienThi` có `thoigiandang <= hiện tại` được đọc/tương tác. Bản nháp,
+bài ẩn, lịch hẹn chưa được xuất bản, bài có ngày đăng rỗng hoặc ở tương lai
+trả 404. GET chi tiết không tự tăng lượt xem; frontend gọi POST `/views` khi
+người dùng mở bài. API không trả mã hoặc thông tin riêng của nhân viên đăng.
+
+Query danh sách: `category` (`all`, `news`, `promotion`, `guide`, `event`,
+`recruitment`; cũng nhận mã enum hoặc nhãn Việt), `search` (tiêu đề), `tag`
+(khớp chính xác), `time` (`all`, `today`, `week`, `month`, `year`), `sort`
+(`newest`, `oldest`, `popular`), `page` (mặc định 1), `pageSize` (mặc định 12,
+tối đa 100). `today` tính từ đầu ngày Việt Nam; week/month/year là 7/30/365 ngày
+gần nhất. Kết quả trả `{ data, pagination: { page, pageSize, total, totalPages } }`.
+Thứ tự có mã bài làm khóa phụ để phân trang ổn định. Bài nổi bật ưu tiên vị trí
+`vitrinoibat` của admin; thiếu vị trí thì lấy bài nổi bật/mới nhất còn lại,
+không lặp bài giữa các khối. Khi không có bài, hai khối đơn trả `null`.
+
+Các trường bài viết theo frontend: `id`, `slug`, `title`, `category`,
+`categoryLabel`, `image`, `summary`, `author`, `tags`, `viewCount`, `commentCount`,
+`isFeatured`, `featuredPosition`, `date` (`DD/MM/YYYY`), `publishedAt`, `updatedAt`,
+`path`. Chi tiết có thêm `content` HTML. Bình luận được tải riêng để phân trang;
+không nhúng toàn bộ bình luận vào response bài viết.
+
+Body gửi bình luận/trả lời:
+
+```json
+{ "authorName": "Nguyễn Văn A", "content": "Tôi muốn tìm hiểu thêm về tuyến xe này." }
+```
+
+`authorName` tùy chọn (rỗng dùng `Hành khách Viago`), tối đa 150 ký tự;
+`content` bắt buộc, trim, tối đa 5000 ký tự, được xem là văn bản thuần.
+Bình luận lưu `HienThi`, không tự gán mã khách hàng; admin có thể ẩn qua API
+admin hiện có. Chỉ hỗ trợ một cấp trả lời. Bình luận ẩn, trả lời của bình luận
+ẩn và bình luận thuộc bài khác đều không đọc/tương tác được. Response bình luận
+có `id`, `parentId`, `authorName`, `content`, `createdAt`, `likes`, `isLiked`;
+danh sách thêm `replyCount` và `replies`. Bộ đếm bình luận của bài bao gồm cả
+trả lời công khai; tổng phân trang `/comments` chỉ đếm bình luận gốc.
+
+### Lưu lượt thích theo trình duyệt
+
+Chạy SQL bổ sung một lần trên database hiện có (không cần reset hoặc db push):
+
+```powershell
+npx prisma db execute --file prisma/sql/customer-news-likes.sql
+npm run prisma:generate
+```
+
+Bảng `luot_thich_binh_luan` lưu cặp bình luận và hash định danh ngẫu nhiên của
+trình duyệt. SQL chỉ thêm bảng này, bật RLS và giữ nguyên các bảng/dữ liệu cũ.
+Không cấp quyền truy cập trực tiếp qua Supabase client; API backend dùng kết nối
+server hiện có. Cookie `viago_news_visitor` là HttpOnly, SameSite=Lax, Secure khi
+`NODE_ENV=production`, có hạn 1 năm. Đây là lượt thích theo trình duyệt, không
+phải xác thực tài khoản; xóa cookie hoặc đổi trình duyệt tạo định danh mới.
+Số lượt thích cũ vẫn được giữ. Thao tác dùng transaction và khóa duy nhất để
+chống tăng/giảm trùng. Frontend cần `withCredentials: true` cho API tin tức để
+lưu cookie và đọc đúng `isLiked`; CORS cho phép credentials từ `FRONTEND_ORIGIN`.
+Frontend/API nên được triển khai cùng site để cookie SameSite=Lax hoạt động.
+
+Bình luận/trả lời giới hạn chung 20 yêu cầu/IP/10 phút; lượt xem và thích/bỏ
+thích giới hạn chung 120 yêu cầu/IP/phút, vượt mức trả 429 với `Retry-After`.
+Bộ giới hạn nằm trong bộ nhớ mỗi tiến trình, dùng IP kết nối Express.
+Frontend hiện vẫn dùng dữ liệu cục bộ; module này cung cấp API để nối sau.
+Không có API đăng ký nhận email vì database chưa có bảng lưu đăng ký và giao
+diện hiện tại không triển khai luồng này.
+
 ## Project setup
 
 ```bash
@@ -41,8 +614,14 @@ $ npm run start
 $ npm run start:dev
 
 # production mode
+$ npm run build
 $ npm run start:prod
 ```
+
+`start:dev` và `start:debug` dùng `tsconfig.dev.json`, xuất vào `dist-dev/`.
+`npm run build` xuất vào `dist/`; chạy production bằng
+`npm run build` rồi `npm run start:prod`. Mỗi cấu hình lưu cache TypeScript
+trong thư mục đầu ra tương ứng để build không xóa file của server watch.
 
 ## Run tests
 
