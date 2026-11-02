@@ -1,59 +1,56 @@
-# ViagoFrontend
+# VIAGO
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.0.
+Frontend Angular và backend NestJS được tổ chức thành hai thư mục ngang cấp.
 
-## Development server
-
-To start a local development server, run:
-
-```bash
-ng serve
+```text
+VIAGO/
+├── .vscode/                 # Cấu hình chạy/debug từ thư mục gốc
+├── viago-backend/           # NestJS, Prisma và API
+│   ├── prisma/
+│   ├── src/
+│   ├── test/
+│   └── package.json
+├── viago-frontend/          # Angular
+│   ├── docs/
+│   ├── public/
+│   ├── scripts/
+│   ├── src/
+│   ├── angular.json
+│   └── package.json
+├── .gitignore
+└── README.md
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Mỗi ứng dụng có `package.json`, `package-lock.json` và `node_modules` riêng. Chạy các lệnh npm trong đúng thư mục ứng dụng.
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Chạy frontend
 
 ```bash
-ng generate component component-name
+cd viago-frontend
+npm ci
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Mở `http://localhost:4200`. Build bằng `npm run build`, chạy kiểm thử bằng `npm test -- --watch=false`.
+
+## Chạy backend
 
 ```bash
-ng generate --help
+cd viago-backend
+npm ci
 ```
 
-## Building
-
-To build the project run:
+Tạo file `.env` trong `viago-backend` và cấu hình `DATABASE_URL` cho cơ sở dữ liệu phù hợp với `prisma/schema.prisma`, sau đó chạy:
 
 ```bash
-ng build
+npx prisma generate
+npm run start:dev
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Backend mặc định chạy tại `http://localhost:3000`. Build bằng `npm run build`.
 
-## Running unit tests
+## VS Code
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Mở thư mục gốc của repository. Các task `frontend: start`, `frontend: test` và `backend: start` đã trỏ đến từng ứng dụng. Cấu hình debug `ng serve` dùng frontend trong `viago-frontend`.
 
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Chi tiết: [Frontend](viago-frontend/README.md), [Backend](viago-backend/README.md), [luồng đặt vé](viago-frontend/docs/customer-booking.md).
