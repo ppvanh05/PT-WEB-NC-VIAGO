@@ -476,7 +476,7 @@ export class AuthModal implements OnInit, OnDestroy {
 
     try {
       const auth = getAuth();
-      this.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+      this.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
     } catch (e) {
       console.error('[VIAGO AUTH] Lỗi tạo RecaptchaVerifier:', e);
     }
