@@ -238,6 +238,17 @@
   background-color: #000000;
 }
 
+.social-circle--yt {
+  background-color: #ff0000;
+}
+
+.social-circle svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  display: block;
+}
+
 .social-circle--ig {
   background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
 }
