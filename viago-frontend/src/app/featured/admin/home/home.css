@@ -1,0 +1,332 @@
+/* ===========================
+   TRANG CHỦ COMPONENT STYLES
+   Nội dung welcome page của admin
+   =========================== */
+
+/* Host element chiếm toàn bộ không gian còn lại */
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  align-self: stretch;
+  position: relative;
+  width: 100%;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+/* Container chính chứa welcome + cards */
+.container-3 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px 96px;
+  position: relative;
+  flex: 1;
+  align-self: stretch;
+  width: 100%;
+  flex-grow: 1;
+  z-index: 1;
+}
+
+/* Welcome Header */
+.welcome-header {
+  padding: 0px 0px 64px;
+  display: inline-flex;
+  flex-direction: column;
+  max-width: 768px;
+  align-items: flex-start;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.welcome-header-2 {
+  gap: 16px;
+  display: inline-flex;
+  flex-direction: column;
+  max-width: 768px;
+  align-items: flex-start;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/* Large IAGO Logo */
+.large-IAGO-logo-wrapper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.large-IAGO-logo {
+  position: relative;
+  width: 480px;
+  height: 240px;
+  max-width: 100%;
+  background-image: url('/assets/brand/logo.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Heading */
+.heading {
+  display: flex;
+  align-items: center;
+  padding: 8px 0px 0px;
+  align-self: stretch;
+  width: 100%;
+  flex-direction: column;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.ch-o-m-ng-b-n-n-v-i {
+  position: relative;
+  width: fit-content;
+  margin-top: -1px;
+  font-family: "Inter", Helvetica;
+  font-weight: 700;
+  color: #002664;
+  font-size: 30px;
+  text-align: center;
+  letter-spacing: 0;
+  line-height: 36px;
+}
+
+/* Sub-description */
+.vui-l-ng-ch-n-ch-c-n-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.vui-l-ng-ch-n-ch-c-n {
+  position: relative;
+  width: fit-content;
+  margin-top: -1px;
+  font-family: "Inter", Helvetica;
+  font-weight: 400;
+  color: #6b7280;
+  font-size: 16px;
+  text-align: center;
+  letter-spacing: 0;
+  line-height: 24px;
+}
+
+/* Quick Action Cards Row */
+.quick-action-cards {
+  display: flex;
+  max-width: 1152px;
+  width: 1152px;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 24px;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/* Shared card elements */
+.background-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 48px;
+  height: 64px;
+  align-items: flex-start;
+  padding: 0px 0px 16px;
+  position: relative;
+}
+
+.background {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-color: #f3f4f6;
+  border-radius: 8px;
+}
+
+.div-2 {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/* Card icon SVG style */
+.card-icon {
+  width: 22px;
+  height: 22px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.heading-margin {
+  display: inline-flex;
+  align-items: flex-start;
+  padding: 0px 0px 8px;
+  flex-direction: column;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.text-wrapper-2 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  margin-top: -1px;
+  font-family: "Inter", Helvetica;
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 16px;
+  text-align: center;
+  letter-spacing: 0;
+  line-height: 24px;
+  white-space: nowrap;
+}
+
+/* Card 1: Quản lý đặt vé (has extra bottom padding) */
+.background-border-2 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  position: relative;
+  flex: 1;
+  flex-grow: 1;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid;
+  border-color: #f3f4f6;
+  box-shadow: 0px 1px 2px #0000000d;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+}
+
+.background-border-2:hover {
+  box-shadow: 0px 4px 12px #0000001a;
+  transform: translateY(-2px);
+}
+
+/* Cards 2–4 */
+.background-border-3 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  position: relative;
+  flex: 1;
+  flex-grow: 1;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid;
+  border-color: #f3f4f6;
+  box-shadow: 0px 1px 2px #0000000d;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+}
+
+.background-border-3:hover {
+  box-shadow: 0px 4px 12px #0000001a;
+  transform: translateY(-2px);
+}
+
+.p {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-family: "Inter", Helvetica;
+  font-weight: 400;
+  color: #6b7280;
+  font-size: 12px;
+  text-align: center;
+  letter-spacing: 0;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.text-wrapper-3 {
+  position: relative;
+  width: 100%;
+  margin-top: -1px;
+  font-family: "Inter", Helvetica;
+  font-weight: 400;
+  color: #6b7280;
+  font-size: 12px;
+  text-align: center;
+  letter-spacing: 0;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* Wrapper containers for card descriptions */
+.qu-n-l-tuy-n-xe-l-ch-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.qu-n-l-kh-ch-h-ng-nh-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.xem-b-o-c-o-th-ng-k-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/* Icon sizes */
+.icon-2 {
+  position: relative;
+  width: 20px;
+  height: 16px;
+}
+
+.icon-3 {
+  position: relative;
+  width: 16px;
+  height: 19px;
+}
+
+.icon-4 {
+  position: relative;
+  width: 22px;
+  height: 16px;
+}
+
+.icon-5 {
+  position: relative;
+  width: 16px;
+  height: 16px;
+}
+
