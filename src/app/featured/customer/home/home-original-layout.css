@@ -1,6 +1,6 @@
 .container { max-width: 1200px; padding-inline: var(--space-8); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.hero { height: 450px; min-height: 0; max-width: 1920px; margin-inline: auto; }
+.hero { height: 450px; min-height: 0; max-width: 1920px; margin-inline: auto; position: relative; }
 .hero::after { display: none; }
 .hero-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 1; border-radius: var(--radius-full); background: var(--color-overlay); color: var(--color-text-inverse); }
 .hero-prev { left: var(--space-4); }.hero-next { right: var(--space-4); }
