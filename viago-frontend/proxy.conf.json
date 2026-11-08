@@ -1,0 +1,32 @@
+{
+  "/admin/auth/**": { "target": "http://127.0.0.1:3000", "secure": false, "changeOrigin": false },
+  "/admin/support/**": {
+    "target": "http://127.0.0.1:3000",
+    "secure": false,
+    "changeOrigin": false,
+    "timeout": 300000,
+    "proxyTimeout": 300000
+  },
+  "/customer/home": {
+    "target": "http://127.0.0.1:3000",
+    "secure": false,
+    "changeOrigin": false
+  },
+  "/customer/home/**": {
+    "target": "http://127.0.0.1:3000",
+    "secure": false,
+    "changeOrigin": false
+  },
+  "/customer/about/**": {
+    "target": "http://127.0.0.1:3000",
+    "secure": false,
+    "changeOrigin": false
+  },
+  "/customer/chatbot/**": {
+    "target": "http://127.0.0.1:3000",
+    "secure": false,
+    "changeOrigin": false,
+    "timeout": 300000,
+    "proxyTimeout": 300000
+  }
+}

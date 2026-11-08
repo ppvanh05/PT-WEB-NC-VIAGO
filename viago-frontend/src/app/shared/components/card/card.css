@@ -27,6 +27,8 @@
 .viago-card--bordered {
     border: 1px solid #e2e8f0;
 }
+.viago-card__header:empty,
+.viago-card__footer:empty { display: none; }
 .viago-card:not(.viago-card--bordered) {
     border: none;
 }

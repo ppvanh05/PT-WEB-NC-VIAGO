@@ -55,6 +55,7 @@ export class AdminSidebar implements OnInit {
       label: 'Khách hàng', icon: 'users', expandable: true,
       children: [
         { label: 'Tài khoản khách hàng', route: '/admin/customers/accounts' },
+        { label: 'Hộp thư hỗ trợ', route: '/admin/customers/support' },
         { label: 'Đánh giá & Phản hồi', route: '/admin/customers/reviews' },
         { label: 'Đồ thất lạc', route: '/admin/customers/lost-items' },
       ]

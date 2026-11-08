@@ -1,7 +1,7 @@
 <div class="admin-layout" [class.sidebar-collapsed]="isCollapsed()">
   <app-admin-sidebar></app-admin-sidebar>
   <main class="admin-content">
-    <app-admin-topbar [user]="{ name: profile.displayName, role: 'Admin', avatarUrl: profile.avatarUrl }" (userAction)="$event === 'profile' && openProfile()"></app-admin-topbar>
+    <app-admin-topbar [user]="{ name: session.account()?.name || '', role: 'Nhân viên', avatarUrl: session.account()?.avatar || '' }" (userAction)="$event === 'profile' ? openProfile() : $event === 'logout' ? logout() : null"></app-admin-topbar>
     @if (profileSaved) { <p class="profile-feedback" role="status">Đã lưu thông tin cá nhân.</p> }
     <router-outlet></router-outlet>
   </main>

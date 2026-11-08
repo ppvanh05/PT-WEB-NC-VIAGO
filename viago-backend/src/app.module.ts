@@ -9,6 +9,10 @@ import { AdminNewsModule } from './featured/admin/content/news/news.module';
 import { AdminPromotionsModule } from './featured/admin/content/promotions/promotions.module';
 import { CustomerAboutModule } from './featured/customer/about/about.module';
 import { CustomerNewsModule } from './featured/customer/news/news.module';
+import { CustomerHomeModule } from './featured/customer/home/home.module';
+import { CustomerChatbotModule } from './featured/customer/chatbot/chatbot.module';
+import { AdminCustomerSupportModule } from './featured/admin/customers/support/support.module';
+import { AdminAuthModule } from './featured/admin/auth/admin-auth.module';
 
 @Module({
   imports: [
@@ -20,6 +24,10 @@ import { CustomerNewsModule } from './featured/customer/news/news.module';
     AdminPromotionsModule,
     CustomerAboutModule,
     CustomerNewsModule,
+    CustomerHomeModule,
+    CustomerChatbotModule,
+    AdminCustomerSupportModule,
+    AdminAuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CustomerAboutUsService } from '../about-us/about-us.service';
 
-const guides = [
+export const guides = [
   {
     id: 'dat-ve-online',
     title: 'Hướng dẫn đặt vé online',

@@ -8,5 +8,6 @@ import { NewsInteractionGuard } from './news-interaction.guard';
   imports: [PrismaModule],
   controllers: [CustomerNewsController],
   providers: [CustomerNewsService, NewsInteractionGuard],
+  exports: [CustomerNewsService],
 })
 export class CustomerNewsModule {}

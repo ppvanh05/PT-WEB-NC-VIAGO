@@ -1,109 +1,225 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { BookingService, PAYMENT_GATEWAY, CATALOG_KEY, BOOKING_KEY, DRAFT_KEY } from './booking.service';
-import { BookingDraft, Trip, passengerErrors, normalizePhone } from './booking.models';
-import { initialCatalog } from './booking.data';
+import { BookingService, DRAFT_KEY } from './booking.service';
+import { HomeApiService, type HomeTrip } from './home-api.service';
+import type { BookingDraft } from './booking.models';
 
-describe('Customer booking rules', () => {
+describe('Booking API connection', () => {
   let service: BookingService;
-  const now = Date.parse('2026-10-07T10:00:00+07:00');
-  const verify = vi.fn(async (order: { id: string; total: number }) => ({ reference: `TX-${order.id}`, amount: order.total, receivedAt: new Date(now).toISOString() }));
-  let trip: Trip;
-  const draft = (owner = 'owner-a'): BookingDraft => ({ owner, key: `key-${owner}`, legs: [{ tripId: trip.id, seats: ['3A'], doubleSeats: [], pickupId: trip.pickup[0].id, dropoffId: trip.dropoff[0].id }], passenger: { name: ' Nguyễn   Văn An ', phone: '0901234567', email: 'an@example.com' }, voucher: '', terms: true });
+  let trip: HomeTrip;
+  let handler: (url: string, init?: RequestInit) => unknown;
+  let fetcher: ReturnType<typeof vi.fn>;
+  const now = Date.now();
+  const date = new Date(now + 86400000).toISOString().slice(0, 10);
+  const query = { from: 'TP.HCM', to: 'Đà Lạt', date, returnDate: '', roundTrip: false, count: 1 };
+  const draft = (): BookingDraft => ({
+    owner: 'browser-draft',
+    key: crypto.randomUUID(),
+    terms: true,
+    voucher: '',
+    legs: [
+      { tripId: 'LT_SERVER', seats: ['1A'], doubleSeats: [], pickupId: 'DON', dropoffId: 'TRA' },
+    ],
+    passenger: { name: 'Nguyễn Văn A', phone: '0901234567', email: '' },
+  });
   beforeEach(() => {
-    [CATALOG_KEY, BOOKING_KEY, DRAFT_KEY].forEach(key => localStorage.removeItem(key));
-    verify.mockReset(); verify.mockImplementation(async order => ({ reference: `TX-${order.id}`, amount: order.total, receivedAt: new Date(now).toISOString() }));
-    TestBed.configureTestingModule({ providers: [{ provide: PAYMENT_GATEWAY, useValue: { verify } }] });
-    service = TestBed.inject(BookingService); vi.spyOn(service, 'now').mockReturnValue(now);
-    const catalog = initialCatalog(now); trip = catalog.find(t => t.from === 'TP.HCM' && t.to === 'Đà Lạt' && t.date === '2026-10-08' && t.seats.includes('6A'))!;
-    localStorage.setItem(CATALOG_KEY, JSON.stringify(catalog));
+    sessionStorage.clear();
+    localStorage.clear();
+    trip = {
+      id: 'LT_SERVER',
+      routeId: 'ROUTE',
+      from: 'TP.HCM',
+      to: 'Đà Lạt',
+      date,
+      departureAt: new Date(now + 86400000).toISOString(),
+      arrivalAt: new Date(now + 90000000).toISOString(),
+      saleClosesAt: new Date(now + 80000000).toISOString(),
+      status: 'open',
+      type: 'Cabin 22 chỗ',
+      price: 180000,
+      distance: 300,
+      seatDetails: [
+        {
+          id: 'GC_DATABASE',
+          label: 'A01',
+          floor: 1,
+          row: 1,
+          column: 'A',
+          price: 220000,
+          status: 'available',
+          allowDouble: true,
+        },
+      ],
+      pickup: [
+        {
+          id: 'DON',
+          name: 'Điểm đón',
+          address: '',
+          at: new Date(now + 86400000).toISOString(),
+          kind: 'station',
+        },
+      ],
+      dropoff: [
+        {
+          id: 'TRA',
+          name: 'Điểm trả',
+          address: '',
+          at: new Date(now + 90000000).toISOString(),
+          kind: 'station',
+        },
+      ],
+      amenities: [],
+    };
+    handler = (url, init) => {
+      if (url.includes('/trips?'))
+        return { outbound: { data: [trip], pagination: { totalPages: 1 } } };
+      if (url.includes('/trips/')) return trip;
+      if (url.endsWith('/holds') && init?.method === 'POST')
+        return {
+          expiresAt: new Date(now + 600000).toISOString(),
+          serverTime: new Date(now).toISOString(),
+        };
+      if (url.endsWith('/holds')) return { data: [], serverTime: new Date(now).toISOString() };
+      if (url.endsWith('/orders/pending')) return { order: null };
+      return {};
+    };
+    fetcher = vi.fn(async (url, init) => ({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+      json: async () => handler(String(url), init),
+    }));
+    vi.stubGlobal('fetch', fetcher);
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(BookingService);
   });
-  afterEach(() => { vi.restoreAllMocks(); TestBed.resetTestingModule(); [CATALOG_KEY, BOOKING_KEY, DRAFT_KEY].forEach(key => localStorage.removeItem(key)); });
-  it('does not invent trips for unsupported routes or past departures', () => {
-    expect(service.search('Vũng Tàu', 'Đà Nẵng', '2026-10-08')).toEqual([]);
-    expect(service.search('TP.HCM', 'Đà Lạt', '2026-10-06')).toEqual([]);
-    expect(service.search('TP.HCM', 'Cần Thơ', '2026-10-07').every(t => Date.parse(t.saleClosesAt) > now)).toBe(true);
+  afterEach(() => {
+    TestBed.resetTestingModule();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    sessionStorage.clear();
+    localStorage.clear();
   });
-  it('rejects locked/cancelled and fully sold trips', () => {
-    trip.status = 'locked'; localStorage.setItem(CATALOG_KEY, JSON.stringify([trip])); service.refreshCatalog();
-    expect(service.search(trip.from, trip.to, trip.date)).toEqual([]);
-    trip.status = 'cancelled'; service.refreshCatalog(); localStorage.setItem(CATALOG_KEY, JSON.stringify([trip])); expect(service.search(trip.from, trip.to, trip.date)).toEqual([]);
-    trip.status = 'open'; trip.soldSeats = [...trip.seats]; service.refreshCatalog(); localStorage.setItem(CATALOG_KEY, JSON.stringify([trip])); expect(service.search(trip.from, trip.to, trip.date)).toEqual([]);
+  it('does not generate trips or orders from local sample storage', () => {
+    localStorage.setItem('viago_customer_trip_catalog_v1', JSON.stringify([{ id: 'FAKE' }]));
+    expect(service.catalog()).toEqual([]);
+    expect(service.state().orders).toEqual([]);
   });
-  it('serializes conflicting seat claims and preserves the original hold deadline', async () => {
-    const a = draft(), b = draft('owner-b');
-    const results = await Promise.allSettled([service.hold(a.owner, a.legs), service.hold(b.owner, b.legs)]);
-    expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(1);
-    vi.mocked(service.now).mockReturnValue(now + 60000);
-    a.legs[0].seats = ['4A'];
-    expect(await service.hold(a.owner, a.legs)).toBe(now + service.holdDuration);
-    expect(service.seatStatus(trip, '3A')).toBe('available');
+  it('maps actual seat IDs and prices when holding a displayed seat', async () => {
+    await service.fetchSearch(query);
+    await service.hold('browser-draft', draft().legs);
+    const call = fetcher.mock.calls.find(
+      ([url, init]) => String(url).endsWith('/holds') && init.method === 'POST',
+    )!;
+    expect(JSON.parse(call[1].body)).toEqual({
+      legs: [
+        {
+          tripId: 'LT_SERVER',
+          seats: ['GC_DATABASE'],
+          doubleSeats: [],
+          pickupId: 'DON',
+          dropoffId: 'TRA',
+        },
+      ],
+    });
+    expect(service.subtotal(draft().legs)).toBe(220000);
+    expect(service.state().holds[0].seat).toBe('1A');
   });
-  it('limits the entire order to five seats including both directions', async () => {
-    const a = draft(); a.legs[0].seats = ['3A', '4A', '5A', '6A', '7A', '8A'];
-    await expect(service.hold(a.owner, a.legs)).rejects.toThrow('5 ghế'); expect(service.state().holds).toHaveLength(0);
+  it('removes stale results when the backend returns no matching trips', async () => {
+    await service.fetchSearch(query);
+    expect(service.search(query.from, query.to, date)).toHaveLength(1);
+    handler = () => ({ outbound: { data: [], pagination: { totalPages: 0 } } });
+    await service.fetchSearch(query);
+    expect(service.search(query.from, query.to, date)).toEqual([]);
   });
-  it('does not renew an expired session when a delayed seat change arrives', async () => {
-    const d = draft(); const deadline = await service.hold(d.owner, d.legs);
-    vi.mocked(service.now).mockReturnValue(deadline);
-    await expect(service.hold(d.owner, [{ ...d.legs[0], seats: ['3A', '4A'] }], deadline)).rejects.toThrow();
-    await service.sweep(); expect(service.state().holds).toHaveLength(0);
+  it('uses the server discount and never sends a client-calculated price', async () => {
+    await service.fetchSearch(query);
+    service.saveDraft(draft());
+    handler = () => ({ subtotal: 220000, discount: 17000, total: 203000 });
+    expect(await service.voucher('ANYCODE', draft().legs, '0901234567')).toBe(17000);
+    const call = fetcher.mock.calls.find(([url]) => String(url).endsWith('/quote'))!;
+    const body = JSON.parse(call[1].body);
+    expect(body.voucher).toBe('ANYCODE');
+    expect(body.subtotal).toBeUndefined();
+    expect(body.discount).toBeUndefined();
+    expect(body.legs[0].seats).toEqual(['GC_DATABASE']);
   });
-  it('expires pending orders, frees seats, and records expiry exactly once', async () => {
-    const a = draft(); await service.hold(a.owner, a.legs); const order = await service.create(a, 'vietqr');
-    vi.mocked(service.now).mockReturnValue(order.expiresAt + 1); await service.sweep(); await service.sweep();
-    expect(service.state().orders[0].status).toBe('expired'); expect(service.seatStatus(trip, '3A')).toBe('available');
-    expect(service.state().audit.filter(l => l.action === 'EXPIRE_BOOKING')).toHaveLength(1);
-    await expect(service.pay(order)).rejects.toThrow('hết');
+  it('requires passenger details before claiming that a voucher applies', async () => {
+    await service.fetchSearch(query);
+    service.saveDraft({ ...draft(), passenger: { name: '', phone: '', email: '' } });
+    await expect(service.voucher('CODE', draft().legs, '')).rejects.toThrow('thông tin hành khách');
+    expect(fetcher.mock.calls.some(([url]) => String(url).endsWith('/quote'))).toBe(false);
   });
-  it('creates one order for repeated requests and normalizes the passenger name', async () => {
-    const a = draft(); await service.hold(a.owner, a.legs);
-    const [one, two] = await Promise.all([service.create(a, 'vietqr'), service.create(a, 'vietqr')]);
-    expect(one.id).toBe(two.id); expect(service.state().orders).toHaveLength(1); expect(one.passenger.name).toBe('Nguyễn Văn An'); expect(one.status).toBe('pending');
+  it('does not confirm a payment while the server still reports pending', async () => {
+    await service.fetchSearch(query);
+    const d = draft();
+    handler = (url) =>
+      url.includes('/payment')
+        ? {
+            qrUrl: 'https://img.vietqr.io/image/test.png',
+            content: 'VG_SERVER',
+            accountName: 'Bank',
+            accountNumber: '123',
+            amount: 220000,
+            bankId: 'BANK',
+          }
+        : {
+            ...d,
+            id: 'DH_SERVER',
+            status: 'pending',
+            createdAt: new Date(now).toISOString(),
+            expiresAt: new Date(now + 600000).toISOString(),
+            serverTime: new Date(now).toISOString(),
+            subtotal: 220000,
+            discount: 0,
+            total: 220000,
+            method: 'vietqr',
+            legs: [{ ...d.legs[0], seats: ['GC_DATABASE'], trip }],
+            tickets: [],
+          };
+    const order = await service.create(d, 'vietqr');
+    await expect(service.pay(order)).rejects.toThrow('Chưa ghi nhận thanh toán');
+    expect(order.status).toBe('pending');
+    expect(order.ticketToken).toBeUndefined();
   });
-  it('rechecks trip availability before creating and confirming payment', async () => {
-    const a = draft(); await service.hold(a.owner, a.legs); trip.status = 'locked'; localStorage.setItem(CATALOG_KEY, JSON.stringify([trip])); service.refreshCatalog();
-    await expect(service.create(a, 'vietqr')).rejects.toThrow('ngừng bán');
-    trip.status = 'open'; localStorage.setItem(CATALOG_KEY, JSON.stringify([trip])); service.refreshCatalog(); const order = await service.create(a, 'vietqr');
-    trip.status = 'cancelled'; localStorage.setItem(CATALOG_KEY, JSON.stringify([trip])); service.refreshCatalog();
-    await expect(service.pay(order)).rejects.toThrow('ngừng bán'); expect(service.state().orders[0].status).toBe('pending');
+  it('reports a misrouted HTML page as a connection configuration error', async () => {
+    fetcher.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'Content-Type': 'text/html; charset=utf-8' }),
+      json: async () => {
+        throw new SyntaxError('HTML is not JSON');
+      },
+    });
+    await expect(TestBed.inject(HomeApiService).overview()).rejects.toThrow(
+      'Kết nối dữ liệu chưa đúng cấu hình',
+    );
+    expect(fetcher.mock.calls[0][1].headers.Accept).toBe('application/json');
   });
-  it('validates optional email, required phone and name before ordering', async () => {
-    expect(passengerErrors({ name: 'An', phone: '0901234567', email: '' })).toEqual({});
-    for (const email of ['bad', '.an@example.com', 'an..x@example.com', 'an@example', 'an@-example.com']) expect(passengerErrors({ name: 'An', phone: '0901234567', email }).email).toBeTruthy();
-    expect(normalizePhone('+84901234567')).toBe('0901234567');
-    const a = draft(); await service.hold(a.owner, a.legs); a.passenger.phone = 'hello';
-    await expect(service.create(a, 'vietqr')).rejects.toThrow('hành khách');
+  it('preserves the server business error for JSON error responses', async () => {
+    fetcher.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+      json: async () => ({ message: 'Mã đã hết lượt sử dụng.' }),
+    });
+    await expect(TestBed.inject(HomeApiService).overview()).rejects.toThrow(
+      'Mã đã hết lượt sử dụng.',
+    );
   });
-  it('validates vouchers and reserves use limits for pending orders', async () => {
-    const a = draft(); await service.hold(a.owner, a.legs); expect(service.voucher('VIAGO2026', a.legs, a.passenger.phone)).toBe(28000);
-    expect(() => service.voucher('NOPE', a.legs, a.passenger.phone)).toThrow('không hợp lệ');
-    a.voucher = 'BANMOI'; await service.create(a, 'vietqr');
-    expect(() => service.voucher('BANMOI', a.legs, a.passenger.phone)).toThrow('hết lượt');
+  it('never treats a local customer ID as an authenticated backend token', async () => {
+    localStorage.setItem('viago_current_user', JSON.stringify({ id: 'KH_OTHER', role: 'admin' }));
+    const api = TestBed.inject(HomeApiService);
+    await api.wallet();
+    expect(fetcher.mock.calls[0][1].headers.Authorization).toBeUndefined();
+    sessionStorage.setItem('viago_backend_access_token', 'a'.repeat(64));
+    await api.wallet();
+    expect(fetcher.mock.calls[1][1].headers.Authorization).toBe('Bearer ' + 'a'.repeat(64));
+    expect(fetcher.mock.calls[1][1].credentials).toBe('include');
   });
-  it('requires valid points and acceptance of terms', async () => {
-    const a = draft(); await service.hold(a.owner, a.legs); a.terms = false; await expect(service.create(a, 'vietqr')).rejects.toThrow('điều khoản');
-    a.terms = true; a.legs[0].pickupId = 'wrong-direction'; await expect(service.create(a, 'vietqr')).rejects.toThrow('đón/trả');
-  });
-  it('confirms payment once and makes paid seats unavailable', async () => {
-    const a = draft(); await service.hold(a.owner, a.legs); const order = await service.create(a, 'momo');
-    const [one, two] = await Promise.all([service.pay(order), service.pay(order)]); expect(one.id).toBe(two.id); expect(one.status).toBe('paid');
-    expect(verify).toHaveBeenCalledOnce(); expect(service.seatStatus(trip, '3A')).toBe('sold'); expect(service.state().holds).toHaveLength(0);
-    await service.pay(order); expect(verify).toHaveBeenCalledOnce(); expect(service.state().audit.filter(l => l.action === 'PAYMENT_CONFIRMED')).toHaveLength(1);
-  });
-  it('keeps the pending order on failed verification and permits retry with the same ID', async () => {
-    const a = draft(); await service.hold(a.owner, a.legs); const order = await service.create(a, 'vietqr');
-    verify.mockRejectedValueOnce(new Error('network')); await expect(service.pay(order)).rejects.toThrow('Chưa xác nhận');
-    expect(service.state().orders[0].status).toBe('pending'); expect((await service.pay(order)).id).toBe(order.id);
-  });
-  it('never reports success when persistence fails or a receipt amount is wrong', async () => {
-    const a = draft(); await service.hold(a.owner, a.legs); const order = await service.create(a, 'vietqr');
-    verify.mockResolvedValueOnce({ reference: 'bad', amount: 1, receivedAt: new Date(now).toISOString() }); await expect(service.pay(order)).rejects.toThrow('chưa khớp');
-    const storage = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
-    await expect(service.pay(order)).rejects.toThrow('Không lưu'); storage.mockRestore(); expect(service.state().orders[0].status).toBe('pending');
-  });
-  it('releases seats on cancellation without a refund transaction', async () => {
-    const a = draft(); await service.hold(a.owner, a.legs); await service.create(a, 'vietqr'); await service.release(a.owner);
-    expect(service.state().orders[0].status).toBe('cancelled'); expect(service.state().holds).toHaveLength(0); expect(service.state().orders[0].payment).toBeUndefined();
+  it('stores only a browser draft in session storage', () => {
+    service.saveDraft(draft());
+    expect(sessionStorage.getItem(DRAFT_KEY)).toBeTruthy();
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
   });
 });

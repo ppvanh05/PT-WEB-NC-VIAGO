@@ -8,7 +8,7 @@ export interface AuditMetadata {
 export function adminAudit(action: string, target: AuditMetadata['target'], changes?: AuditMetadata['changes']): AuditMetadata {
   let actor: AuditActor = { code: '', name: 'Quản trị viên', username: '', role: 'Quản trị viên', phone: '' };
   try {
-    const user = JSON.parse(localStorage.getItem('viago_current_user') || 'null');
+    const user = JSON.parse(sessionStorage.getItem('viago_admin_account') || localStorage.getItem('viago_current_user') || 'null');
     if (user?.role === 'admin') actor = { code: user.id || '', name: user.name || 'Quản trị viên', username: user.username || user.phoneNumber || '', role: 'Quản trị viên', phone: user.phoneNumber || '' };
   } catch { /* An unavailable session must not attribute the operation to its target. */ }
   return { actor, action, target, timestamp: new Date().toISOString(), status: 'Thành công', userAgent: navigator.userAgent, ...(changes ? { changes } : {}) };

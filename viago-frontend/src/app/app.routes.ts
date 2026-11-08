@@ -1,5 +1,6 @@
 import { bookingLeaveGuard } from './featured/customer/home/booking.guard';
 import { Routes } from '@angular/router';
+import { adminSessionGuard } from './core/guards/admin-session.guard';
 
 import { AdminLayout } from './core/layout/admin-layout/admin-layout';
 import { CustomerLayout } from './core/layout/customer-layout/customer-layout';
@@ -64,8 +65,11 @@ const loadNewBooking = () => import('./featured/admin/booking/new-booking/new-bo
 const loadBookingManagement = () => import('./featured/admin/booking/booking-management/booking-management').then(m => m.BookingManagement);
 
 export const routes: Routes = [
+  { path: 'admin/login', loadComponent: () => import('./featured/admin/auth/login/login').then(m => m.Login) },
   {
     path: 'admin',
+    canActivate: [adminSessionGuard],
+    canActivateChild: [adminSessionGuard],
     loadComponent: () => import('./core/layout/admin-layout/admin-layout').then(m => m.AdminLayout),
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
@@ -93,6 +97,7 @@ export const routes: Routes = [
       { path: 'dispatch/vehicles', component: DispatchVehicles },
       { path: 'dispatch/drivers', component: DispatchDrivers },
       { path: 'customers/accounts', component: CustomerAccountManagement },
+      { path: 'customers/support', loadComponent: () => import('./featured/admin/customers/support/support').then(m => m.CustomerSupport) },
       { path: 'customers/reviews', component: ReviewsFeedback },
       { path: 'customers/lost-items', component: AdminLostAndFound },
       { path: 'staff/accounts', component: StaffAccountManagement },

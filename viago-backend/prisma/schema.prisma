@@ -2,6 +2,61 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Private support data. Access only through the authenticated support API.
+model hoi_thoai_chatbot {
+  id              String   @id @db.VarChar @map("mahoithoai")
+  ownerHash       String   @db.VarChar(64) @map("mabamchusohuu")
+  status          trang_thai_hoi_thoai_chatbot_enum @default(TroLyAI) @map("trangthai")
+  language        String   @default("vi") @db.VarChar(8) @map("ngonngu")
+  assignedAgentId String?   @db.VarChar @map("manhanvienphutrach")
+  priority        Int      @default(0) @map("diemuutien")
+  analysis        Json? @map("phantich")
+  handoff         Json? @map("thongtinchuyentiep")
+  revision        Int      @default(0) @map("phienban")
+  processingToken String?  @db.VarChar @map("makhoaxuly")
+  processingUntil DateTime? @db.Timestamptz(6) @map("thoigianhethankhoa")
+  createdAt       DateTime @default(now()) @db.Timestamptz(6) @map("thoigiantao")
+  updatedAt       DateTime @updatedAt @db.Timestamptz(6) @map("thoigiancapnhat")
+  confirmationExpiresAt DateTime? @map("thoigianhethanxacnhan") @db.Timestamptz(6)
+  closedAt DateTime? @map("thoigiandong") @db.Timestamptz(6)
+  memory bo_nho_chatbot?
+  handoffs yeu_cau_chuyen_tiep_chatbot[]
+  messages        tin_nhan_chatbot[]
+  events          su_kien_chatbot[]
+  assignedAgent   nhan_vien? @relation("SupportAssignee", fields: [assignedAgentId], references: [manhanvien], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([ownerHash, createdAt])
+  @@index([status, priority, updatedAt])
+}
+
+model tin_nhan_chatbot {
+  id              String @id @db.VarChar @map("matinnhan")
+  conversationId  String @db.VarChar @map("mahoithoai")
+  sequence        Int @unique @default(autoincrement()) @map("thutu")
+  role            nguoi_gui_chatbot_enum @map("nguoigui")
+  text            String @map("noidung")
+  originalText    String? @map("noidunggoc")
+  clientMessageId String? @db.VarChar @map("mayeucauclient")
+  agentId         String? @db.VarChar @map("manhanvien")
+  createdAt       DateTime @default(now()) @db.Timestamptz(6) @map("thoigiantao")
+  conversation    hoi_thoai_chatbot @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  agent           nhan_vien? @relation("SupportAuthor", fields: [agentId], references: [manhanvien], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([conversationId, clientMessageId])
+  @@index([conversationId, sequence])
+}
+
+model su_kien_chatbot {
+  id             Int @id @default(autoincrement()) @map("masukien")
+  conversationId String @db.VarChar @map("mahoithoai")
+  type           String @db.VarChar(32) @map("loaisukien")
+  data           Json @map("dulieu")
+  createdAt      DateTime @default(now()) @db.Timestamptz(6) @map("thoigiantao")
+  conversation   hoi_thoai_chatbot @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, id])
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -728,6 +783,10 @@ model loai_xe_thue {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model nhan_vien {
+  chuyen_tiep_chatbot yeu_cau_chuyen_tiep_chatbot[]
+  phan_cong_chatbot phan_cong_chatbot[]
+  supportConversations hoi_thoai_chatbot[] @relation("SupportAssignee")
+  supportMessages      tin_nhan_chatbot[] @relation("SupportAuthor")
   manhanvien                                         String                   @id @db.VarChar
   mataikhoan                                         String                   @unique @db.VarChar
   mavaitro                                           String                   @db.VarChar
@@ -1776,4 +1835,148 @@ enum vai_tro_nhan_su_xe_enum {
 enum vai_tro_tai_khoan_enum {
   KhachHang
   NhanVien
+}
+
+
+enum trang_thai_hoi_thoai_chatbot_enum {
+  TroLyAI
+  ChoXacNhan
+  ChoNhanVien
+  NhanVienHoTro
+  DaGiaiQuyet
+  DaDong
+}
+
+enum nguoi_gui_chatbot_enum {
+  KhachHang
+  TroLyAI
+  NhanVien
+  HeThong
+}
+
+enum trang_thai_chuyen_tiep_chatbot_enum {
+  ChoXacNhan
+  ChoNhanVien
+  DangXuLy
+  DaGiaiQuyet
+  DaHuy
+}
+
+enum loai_van_de_chatbot_enum {
+  ThanhToan
+  DatVe
+  HoanTien
+  KhieuNai
+  DoiVe
+  KyThuat
+  AnToan
+  Khac
+}
+
+enum muc_do_uu_tien_chatbot_enum {
+  Thap
+  TrungBinh
+  Cao
+  KhanCap
+}
+
+enum kieu_kich_hoat_chatbot_enum {
+  KhachYeuCau
+  TinhHuongNghiemTrong
+  AIKhongXuLyDuoc
+  KhachChuaHaiLong
+  KhachXacNhan
+}
+
+enum trang_thai_phan_cong_chatbot_enum {
+  DaPhanCong
+  DaTiepNhan
+  DaChuyen
+  DaTuChoi
+  DaHoanThanh
+}
+
+enum trang_thai_tai_lieu_chatbot_enum {
+  ChoXuLy
+  HoatDong
+  DaKhoa
+  LoiXuLy
+}
+
+model bo_nho_chatbot {
+  mabonho String @id @db.VarChar
+  mahoithoai String @unique @db.VarChar
+  tomtat String?
+  ngucanh Json?
+  thoigiancapnhat DateTime @updatedAt @db.Timestamptz(6)
+  hoi_thoai_chatbot hoi_thoai_chatbot @relation(fields: [mahoithoai], references: [id], onDelete: Cascade)
+}
+
+model yeu_cau_chuyen_tiep_chatbot {
+  mayeucau String @id @db.VarChar
+  mahoithoai String @db.VarChar
+  lydo String
+  loaivande loai_van_de_chatbot_enum
+  mucdouutien muc_do_uu_tien_chatbot_enum
+  kieukichhoat kieu_kich_hoat_chatbot_enum
+  trangthai trang_thai_chuyen_tiep_chatbot_enum @default(ChoXacNhan)
+  thoigianxacnhan DateTime? @db.Timestamptz(6)
+  thoigianhethanxacnhan DateTime? @db.Timestamptz(6)
+  manhanvien String? @db.VarChar
+  thoigiantao DateTime @default(now()) @db.Timestamptz(6)
+  thoigiangiaiquyet DateTime? @db.Timestamptz(6)
+  ketquaxuly String?
+  hoi_thoai_chatbot hoi_thoai_chatbot @relation(fields: [mahoithoai], references: [id], onDelete: Cascade)
+  nhan_vien nhan_vien? @relation(fields: [manhanvien], references: [manhanvien], onDelete: NoAction, onUpdate: NoAction)
+  phan_cong_chatbot phan_cong_chatbot[]
+  @@index([trangthai, mucdouutien, thoigiantao])
+  @@index([mahoithoai, thoigiantao])
+}
+
+model phan_cong_chatbot {
+  maphancong String @id @db.VarChar
+  mayeucau String @db.VarChar
+  manhanvien String @db.VarChar
+  thoigianphancong DateTime @default(now()) @db.Timestamptz(6)
+  thoigiantiepnhan DateTime? @db.Timestamptz(6)
+  thoigianketthuc DateTime? @db.Timestamptz(6)
+  trangthai trang_thai_phan_cong_chatbot_enum @default(DaPhanCong)
+  yeu_cau_chuyen_tiep_chatbot yeu_cau_chuyen_tiep_chatbot @relation(fields: [mayeucau], references: [mayeucau], onDelete: Cascade)
+  nhan_vien nhan_vien @relation(fields: [manhanvien], references: [manhanvien], onDelete: NoAction, onUpdate: NoAction)
+  @@index([manhanvien, trangthai])
+}
+
+model danh_muc_kien_thuc_chatbot {
+  madanhmuc String @id @db.VarChar
+  tendanhmuc String @unique @db.VarChar
+  mota String?
+  tai_lieu_kien_thuc_chatbot tai_lieu_kien_thuc_chatbot[]
+}
+
+model tai_lieu_kien_thuc_chatbot {
+  matailieu String @id @db.VarChar
+  madanhmuc String? @db.VarChar
+  tieude String
+  nguon String @unique
+  duongdan String?
+  noidung String
+  mabamnoidung String @db.VarChar(64)
+  trangthai trang_thai_tai_lieu_chatbot_enum @default(ChoXuLy)
+  thoigiantao DateTime @default(now()) @db.Timestamptz(6)
+  thoigiancapnhat DateTime @updatedAt @db.Timestamptz(6)
+  danh_muc_kien_thuc_chatbot danh_muc_kien_thuc_chatbot? @relation(fields: [madanhmuc], references: [madanhmuc], onDelete: NoAction, onUpdate: NoAction)
+  doan_kien_thuc_chatbot doan_kien_thuc_chatbot[]
+}
+
+model doan_kien_thuc_chatbot {
+  madoan String @id @db.VarChar
+  matailieu String @db.VarChar
+  thutudoan Int
+  noidung String
+  embedding Unsupported("vector(1536)")?
+  mohinhnhung String? @db.VarChar
+  metadata Json?
+  thoigiantao DateTime @default(now()) @db.Timestamptz(6)
+  tai_lieu_kien_thuc_chatbot tai_lieu_kien_thuc_chatbot @relation(fields: [matailieu], references: [matailieu], onDelete: Cascade)
+  @@unique([matailieu, thutudoan])
 }

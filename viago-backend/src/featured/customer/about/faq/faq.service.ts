@@ -76,6 +76,7 @@ export class CustomerFaqService {
     cautraloi: string;
     danhmuc: string;
     thutuhienthi: number;
+    thoigiancapnhat: Date;
   }) {
     return {
       id: row.mafaq,
@@ -84,6 +85,7 @@ export class CustomerFaqService {
       categoryId: row.danhmuc,
       categoryName: categories[row.danhmuc] ?? row.danhmuc,
       order: row.thutuhienthi,
+      updatedAt: row.thoigiancapnhat.toISOString(),
     };
   }
 }

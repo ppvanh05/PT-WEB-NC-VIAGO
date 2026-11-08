@@ -1,6 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
 @import "./app/shared/styles/admin-ui.css";
 
+@media (max-width: 767px) {
+  .admin-layout:has(app-customer-support) { padding-left: 0 !important; transition: none; }
+}
+
 :root {
   /* =========================
      Color - Brand
@@ -249,7 +253,6 @@
 }
 
 body { font-family: var(--font-family-base); margin: 0; padding: 0; background-color: var(--color-background); color: var(--color-text-primary); }
-body:has(app-home .booking-title) app-chatbot { display: none; }
 * { box-sizing: border-box; }
 
 .page-hero {

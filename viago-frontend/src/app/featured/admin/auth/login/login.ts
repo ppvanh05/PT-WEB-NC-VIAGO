@@ -1,20 +1,30 @@
 import { Component, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AdminSessionService } from '../../../../core/services/admin-session.service';
+import { Button } from '../../../../shared/components/button/button';
 
 @Component({
   selector: 'app-admin-login',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, Button],
   templateUrl: './login.html',
   styleUrl: './login.css',
 })
 export class Login {
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly session = inject(AdminSessionService);
+  busy = false;
+  error = '';
   readonly form = new FormGroup({
     email: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.email, Validators.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)],
+      validators: [
+        Validators.required,
+        Validators.email,
+        Validators.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
+      ],
     }),
     password: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
   });
@@ -27,10 +37,28 @@ export class Login {
     return this.form.controls.password.touched && this.form.controls.password.invalid;
   }
 
-  onLogin(): void {
+  async onLogin(): Promise<void> {
     this.form.markAllAsTouched();
-    if (this.form.invalid) return;
-    // Preserve the reference's demo flow until admin authentication is connected.
-    void this.router.navigate(['/admin/home']);
+    if (this.form.invalid || this.busy) return;
+    this.busy = true;
+    this.error = '';
+    try {
+      await this.session.login(
+        this.form.controls.email.value.trim(),
+        this.form.controls.password.value,
+      );
+      this.form.controls.password.reset();
+      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/admin/home';
+      await this.router.navigateByUrl(
+        returnUrl.startsWith('/admin/') && !returnUrl.startsWith('/admin/login')
+          ? returnUrl
+          : '/admin/home',
+      );
+    } catch (error) {
+      this.error =
+        error instanceof Error ? error.message : 'Không đăng nhập được. Vui lòng thử lại.';
+    } finally {
+      this.busy = false;
+    }
   }
 }

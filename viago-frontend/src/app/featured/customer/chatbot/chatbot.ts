@@ -1,7 +1,30 @@
-import { Component, ElementRef, ViewChild, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
+import {
+  AfterViewChecked,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  OnDestroy,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
+interface ChatMessage {
+  id: string;
+  text: string;
+  role: string;
+  createdAt: string;
+  clientMessageId?: string;
+  sequence?: number;
+  sources?: { id: string; title: string; url: string; updatedAt?: string }[];
+}
+interface Conversation {
+  id: string;
+  status: string;
+  processing: boolean;
+  messages: ChatMessage[];
+  cursor: number;
+}
 @Component({
   selector: 'app-chatbot',
   standalone: true,
@@ -9,136 +32,274 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './chatbot.css',
   templateUrl: './chatbot.html',
 })
-export class Chatbot implements AfterViewChecked {
-  @ViewChild('chatScroll') private chatScrollContainer!: ElementRef;
-
-  constructor(private cdr: ChangeDetectorRef) {}
-
+export class Chatbot implements AfterViewChecked, OnDestroy {
+  @ViewChild('chatScroll') private chatScrollContainer?: ElementRef<HTMLElement>;
+  constructor(private readonly cdr: ChangeDetectorRef) {}
   isOpen = false;
   isTyping = false;
+  sending = false;
+  connected = false;
   userInput = '';
-
-  messages: any[] = [
-    { text: 'Xin chào! Mình là Trợ lý Ảo của VIAGO. Mình có thể giúp gì cho chuyến đi của bạn hôm nay?', isBot: true, time: this.getCurrentTime() }
-  ];
-
+  error = '';
+  status = 'BOT';
+  messages: ChatMessage[] = [];
   suggestions = [
     'Tra cứu chuyến đi',
     'Chính sách hoàn/huỷ',
     'Mua vé khứ hồi',
-    'Gặp nhân viên hỗ trợ'
+    'Gặp nhân viên hỗ trợ',
   ];
-
+  private conversationId = '';
+  private source?: EventSource;
+  private initializing?: Promise<void>;
+  private destroyed = false;
+  private pending?: { text: string; clientMessageId: string };
+  private readonly storageKey = 'viago-support-conversation';
+  get statusLabel() {
+    if (!this.connected) return 'Đang kết nối…';
+    return this.status === 'QUEUED'
+      ? 'Đang chờ CSKH tiếp nhận'
+      : this.status === 'ASSIGNED'
+        ? 'CSKH đang hỗ trợ'
+        : this.status === 'AWAITING_CONFIRMATION'
+          ? 'Bạn muốn gặp nhân viên hỗ trợ?'
+          : this.status === 'RESOLVED'
+            ? 'Đã giải quyết · Có thể tiếp tục hỏi trợ lý'
+            : this.status === 'CLOSED'
+              ? 'Hội thoại đã đóng'
+              : 'Trợ lý VIAGO';
+  }
   toggleChat() {
     this.isOpen = !this.isOpen;
-    if (this.isOpen) {
-      setTimeout(() => this.scrollToBottom(), 100);
+    if (this.isOpen) void this.connect();
+  }
+  async connect() {
+    try {
+      await this.initialize();
+    } catch {
+      this.error = 'Chưa kết nối được bộ phận hỗ trợ. Vui lòng thử lại.';
+      this.refresh();
     }
   }
-
-  getCurrentTime(): string {
-    const now = new Date();
-    return now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+  private initialize(): Promise<void> {
+    if (this.initializing) return this.initializing;
+    this.initializing = this.load().finally(() => {
+      this.initializing = undefined;
+    });
+    return this.initializing;
   }
-
-  ngAfterViewChecked() {
-    this.scrollToBottom();
+  private async request<T>(path: string, body?: object): Promise<T> {
+    const response = await fetch('/customer/chatbot' + path, {
+      credentials: 'include',
+      method: body ? 'POST' : 'GET',
+      ...(body
+        ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+        : {}),
+    });
+    if (!response.ok) {
+      const detail = (await response.json().catch(() => ({}))) as { message?: string };
+      throw new Error(
+        typeof detail.message === 'string' ? detail.message : 'Không kết nối được dịch vụ hỗ trợ.',
+      );
+    }
+    return response.json() as Promise<T>;
   }
-
-  scrollToBottom(): void {
+  private async load() {
+    if (this.source && this.connected && this.conversationId) return;
+    this.error = '';
+    let id = this.conversationId || sessionStorage.getItem(this.storageKey);
+    if (!id) {
+      const created = await this.request<{ id: string }>('/conversations', { language: 'vi' });
+      id = created.id;
+      sessionStorage.setItem(this.storageKey, id);
+    }
+    let snapshot: Conversation;
     try {
-      if (this.chatScrollContainer) {
-        this.chatScrollContainer.nativeElement.scrollTop = this.chatScrollContainer.nativeElement.scrollHeight;
+      snapshot = await this.request<Conversation>('/conversations/' + encodeURIComponent(id));
+    } catch (error) {
+      this.error = error instanceof Error ? error.message : 'Không tải được hội thoại.';
+      throw error;
+    }
+    if (this.destroyed) return;
+    this.conversationId = id;
+    this.messages = snapshot.messages;
+    this.status = snapshot.status;
+    this.isTyping = snapshot.processing;
+    this.source?.close();
+    const source = new EventSource(
+      `/customer/chatbot/conversations/${encodeURIComponent(id)}/events?after=${snapshot.cursor}`,
+      { withCredentials: true },
+    );
+    this.source = source;
+    source.onopen = () => {
+      this.connected = true;
+      this.error = '';
+      this.refresh();
+    };
+    source.onerror = () => {
+      this.connected = false;
+      this.error = 'Kết nối gián đoạn, đang kết nối lại…';
+      this.refresh();
+    };
+    source.addEventListener('message', (event: MessageEvent<string>) => {
+      const message = JSON.parse(event.data) as ChatMessage;
+      this.messages = this.messages.filter(
+        (m) =>
+          m.id !== message.id &&
+          (!message.clientMessageId || m.clientMessageId !== message.clientMessageId),
+      );
+      this.messages.push(message);
+      this.refresh();
+    });
+    source.addEventListener('delta', (event: MessageEvent<string>) => {
+      const data = JSON.parse(event.data) as { messageId: string; text: string };
+      let message = this.messages.find((m) => m.id === data.messageId);
+      if (!message) {
+        message = {
+          id: data.messageId,
+          role: 'STREAM',
+          text: '',
+          createdAt: new Date().toISOString(),
+        };
+        this.messages.push(message);
       }
-    } catch(err) { }
+      message.text += data.text;
+      this.refresh();
+    });
+    source.addEventListener('discard_delta', (event: MessageEvent<string>) => {
+      const data = JSON.parse(event.data) as { messageId: string };
+      this.messages = this.messages.filter((m) => m.id !== data.messageId);
+      this.refresh();
+    });
+    source.addEventListener('sources', (event: MessageEvent<string>) => {
+      const data = JSON.parse(event.data) as {
+        messageId: string;
+        items: NonNullable<ChatMessage['sources']>;
+      };
+      const message = this.messages.find((item) => item.id === data.messageId);
+      if (message) message.sources = data.items;
+      this.refresh();
+    });
+    source.addEventListener('state', (event: MessageEvent<string>) => {
+      const data = JSON.parse(event.data) as Conversation;
+      this.status = data.status;
+      this.refresh();
+    });
+    source.addEventListener('processing', (event: MessageEvent<string>) => {
+      this.isTyping = (JSON.parse(event.data) as { active: boolean }).active;
+      if (!this.isTyping) this.messages = this.messages.filter((m) => m.role !== 'STREAM');
+      this.refresh();
+    });
+    source.addEventListener('stream_error', () => {
+      source.close();
+      this.source = undefined;
+      this.connected = false;
+      this.error = 'Kết nối hỗ trợ tạm gián đoạn. Nhấn Kết nối lại để tiếp tục.';
+      this.refresh();
+    });
+    this.refresh();
   }
-
   sendSuggestion(text: string) {
     this.userInput = text;
-    this.sendMessage();
+    void this.sendMessage();
   }
-
-  sendMessage() {
+  async sendMessage() {
     const text = this.userInput.trim();
-    if (!text) return;
-
-    // Add user message
-    this.messages.push({ text: text, isBot: false, time: this.getCurrentTime() });
-    this.userInput = '';
-    
-    // Simulate typing briefly for visual effect, but reply almost instantly
-    this.isTyping = true;
-    this.cdr.detectChanges();
-    this.scrollToBottom();
-    
-    setTimeout(() => {
+    if (!text || this.sending || this.isTyping || this.status === 'CLOSED') return;
+    this.sending = true;
+    this.error = '';
+    try {
+      await this.initialize();
+      if (this.status === 'CLOSED' || this.isTyping) return;
+      if (!this.pending || this.pending.text !== text)
+        this.pending = { text, clientMessageId: crypto.randomUUID() };
+      const request = this.pending;
+      this.userInput = '';
+      if (!this.messages.some((m) => m.clientMessageId === request.clientMessageId))
+        this.messages.push({
+          id: request.clientMessageId,
+          clientMessageId: request.clientMessageId,
+          role: 'CUSTOMER',
+          text,
+          createdAt: new Date().toISOString(),
+        });
+      this.isTyping = this.status !== 'QUEUED' && this.status !== 'ASSIGNED';
+      this.refresh();
+      await this.request(`/conversations/${this.conversationId}/messages`, request);
+      this.pending = undefined;
+    } catch (error) {
+      this.error = error instanceof Error ? error.message : 'Chưa gửi được tin nhắn. Hãy thử lại.';
+      this.userInput = text;
+    } finally {
+      this.sending = false;
       this.isTyping = false;
-      this.generateBotResponse(text);
-      this.cdr.detectChanges();
-      this.scrollToBottom();
-    }, 100);
+      this.refresh();
+    }
   }
-
-  generateBotResponse(userText: string) {
-    const text = userText.toLowerCase();
-    
-    // Câu trả lời mặc định nếu không hiểu (Vui nhộn, tinh tế)
-    let reply = 'Dạ Trợ lý ảo hơi "ngốc nghếch" xíu nên chưa hiểu hết ý bạn. Bạn có thể nói rõ hơn hoặc gõ chữ <b>Gặp nhân viên</b> để mình gọi "con người" ra hỗ trợ bạn ngay và luôn nha!';
-    
-    // Các từ khóa chửi bậy, tức giận
-    const angryWords = [' lừa đảo', ' bực mình', ' làm ăn như', ' chó', ' điên ', ' đkm', ' vcl'];
-    const isAngry = angryWords.some(word => text.includes(word));
-
-    if (isAngry) {
-      reply = 'Ấy ấy, khách yêu ơi xin bớt nóng bớt nóng! Có chuyện gì từ từ nói nè, giận quá là nhăn da mau già đó nha. Bạn đang gặp sự cố gì bực mình cứ kể nghe, VIAGO sẽ giải quyết đến nơi đến chốn cho bạn luôn!';
-    } 
-    else if (text.includes('đặt vé') || text.includes('mua vé') || text.includes('book vé')) {
-      reply = 'Để đặt vé, bạn có thể quay lại <b>Trang chủ</b> và sử dụng công cụ Tìm chuyến đi, hoặc bấm vào phần <b>Lịch trình</b> trên thanh menu nhé! Chúc bạn chọn được vé ưng ý.';
-    } 
-    else if (text.includes('tra cứu') || text.includes('kiểm tra vé') || text.includes('xem vé') || text.includes('thông tin chuyến')) {
-      reply = 'Để tra cứu vé, bạn vui lòng cung cấp <b>Mã số vé</b> (ví dụ: VG123456) hoặc <b>Số điện thoại</b> đặt vé nhé! Mình sẽ dùng tốc độ ánh sáng để kiểm tra ngay.';
-    } 
-    else if (text.includes('hoàn') || text.includes('hủy') || text.includes('huỷ')) {
-      reply = 'Quy định hoàn/huỷ của VIAGO như sau:<br>- <b>Hủy trước 24h:</b> Miễn phí hoàn tiền 100%.<br>- <b>Hủy trong vòng 24h:</b> Phí 20% giá vé.<br>Bạn cần hỗ trợ hủy chuyến nào để mình giúp ạ?';
-    } 
-    else if (text.includes('thuê xe') || text.includes('bao xe') || text.includes('mướn xe') || text.includes('hợp đồng')) {
-      reply = 'VIAGO có cung cấp dịch vụ cho thuê xe hợp đồng từ 16 đến 45 chỗ đời mới siêu xịn sò luôn! Bạn vui lòng truy cập vào phần <b>Dịch vụ</b> trên thanh menu hoặc để lại Số điện thoại để chuyên viên tư vấn gọi lại báo giá tốt nhất nha!';
+  newConversation() {
+    if (this.sending) return;
+    this.source?.close();
+    this.source = undefined;
+    sessionStorage.removeItem(this.storageKey);
+    this.conversationId = '';
+    this.messages = [];
+    this.pending = undefined;
+    this.connected = false;
+    this.status = 'BOT';
+    void this.connect();
+  }
+  async resumeChat() {
+    if (
+      this.sending ||
+      this.isTyping ||
+      !['QUEUED', 'AWAITING_CONFIRMATION', 'RESOLVED'].includes(this.status)
+    )
+      return;
+    this.sending = true;
+    this.error = '';
+    try {
+      const result = await this.request<{ status: string }>(
+        `/conversations/${this.conversationId}/resume`,
+        {},
+      );
+      this.status = result.status;
+    } catch (error) {
+      this.error =
+        error instanceof Error ? error.message : 'Chưa quay lại được trợ lý. Vui lòng thử lại.';
+    } finally {
+      this.sending = false;
+      this.refresh();
     }
-    else if (text.includes('mất đồ') || text.includes('quên đồ') || text.includes('thất lạc')) {
-      reply = 'Ôi đừng quá lo lắng nhé! VIAGO có hẳn một trang <b>Đồ Thất Lạc</b> luôn. Bạn vui lòng truy cập vào mục <b>Dịch vụ -> Đồ thất lạc</b> để xem danh sách hoặc điền form báo mất đồ nha. Mong bạn sớm tìm lại được bảo bối!';
+  }
+  async confirmHandoff() {
+    if (this.sending || this.isTyping || this.status !== 'AWAITING_CONFIRMATION') return;
+    this.sending = true;
+    this.error = '';
+    try {
+      const result = await this.request<{ status: string }>(
+        `/conversations/${this.conversationId}/handoff/confirm`,
+        {},
+      );
+      this.status = result.status;
+    } catch (error) {
+      this.error = error instanceof Error ? error.message : 'Chưa chuyển được yêu cầu hỗ trợ.';
+    } finally {
+      this.sending = false;
+      this.refresh();
     }
-    else if (text.includes('tin tức') || text.includes('tuyển dụng') || text.includes('khuyến mãi') || text.includes('ưu đãi')) {
-      reply = 'Dạ, để xem các thông tin ưu đãi hấp dẫn, tin tức mới nhất hoặc các vị trí đang tuyển dụng, bạn vui lòng nhấn vào mục <b>Tin tức</b> trên thanh Menu chính nhé! Chúc bạn săn được nhiều deal hời!';
-    }
-    else if (text.includes('địa chỉ') || text.includes('liên hệ') || text.includes('tổng đài') || text.includes('số điện thoại')) {
-      reply = 'Tổng đài chăm sóc khách hàng của VIAGO là <b>1900 9999</b>. Trụ sở chính nằm tại Bến xe Miền Tây. Bạn có thể kéo xuống cuối trang (Footer) để xem thêm chi tiết các văn phòng đại diện nhé!';
-    }
-    else if (text.includes('nhân viên') || text.includes('cskh') || text.includes('gặp') || text.includes('người') || text.includes('hỗ trợ')) {
-      reply = 'Dạ vâng! Mình đang kết nối tới Chuyên viên Hỗ trợ Khách hàng (CSKH). Sẽ có "người thật việc thật" tư vấn trực tiếp cho bạn ngay sau vài giây... Vui lòng giữ máy nha!';
-      
-      // Giả lập nhân viên thật tham gia chat sau 2.5 giây
-      setTimeout(() => {
-        this.isTyping = true;
-        this.cdr.detectChanges();
-        this.scrollToBottom();
-        
-        setTimeout(() => {
-          this.isTyping = false;
-          this.messages.push({ 
-            text: 'Dạ em chào anh/chị ạ. Em là <b>Mỹ Linh - Chuyên viên CSKH VIAGO</b>. Anh/chị đang cần hỗ trợ vấn đề gì để em xử lý ngay cho mình ạ?', 
-            isBot: true, 
-            isAgent: true,
-            time: this.getCurrentTime() 
-          });
-          this.cdr.detectChanges();
-          this.scrollToBottom();
-        }, 1000);
-      }, 1500);
-    } 
-    else if (text.startsWith('chào') || text.startsWith('hi ') || text.startsWith('hello') || text === 'hi' || text === 'ê' || text.includes('xin chào')) {
-      reply = 'Dạ chào bạn! Trợ lý ảo VIAGO rất hân hạnh được phục vụ. Hôm nay mình có thể giúp gì cho chuyến đi của bạn thêm phần trọn vẹn ạ?';
-    }
-
-    this.messages.push({ text: reply, isBot: true, time: this.getCurrentTime() });
+  }
+  time(value: string) {
+    return new Date(value).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  }
+  ngAfterViewChecked() {
+    const el = this.chatScrollContainer?.nativeElement;
+    if (el) el.scrollTop = el.scrollHeight;
+  }
+  ngOnDestroy() {
+    this.destroyed = true;
+    this.source?.close();
+  }
+  private refresh() {
+    if (!this.destroyed) this.cdr.detectChanges();
   }
 }

@@ -598,7 +598,206 @@ Frontend hiện vẫn dùng dữ liệu cục bộ; module này cung cấp API �
 Không có API đăng ký nhận email vì database chưa có bảng lưu đăng ký và giao
 diện hiện tại không triển khai luồng này.
 
+## Hộp thư hỗ trợ khách hàng
+
+Admin → Khách hàng → **Hộp thư hỗ trợ** (`/admin/customers/support`) tiếp
+nhận hội thoại chuyển từ chatbot, phân công nhân viên và phản hồi trực
+tiếp cho khách. Dùng lại các bảng chatbot và tài khoản hiện có.
+
+Đăng nhập tại `/admin/login` bằng tài khoản nhân viên trong CSDL; hộp thư
+lấy người thao tác từ phiên đã xác thực. Phân quyền chi tiết cấu hình sau.
+Xem [nghiệp vụ, API và tổ chức thư mục](docs/admin-customer-support.md).
+
+## API customer/home
+
+Luồng trang chủ đã nối API thay cho dữ liệu mẫu. Xem
+[cấu trúc home, khuyến mãi/voucher, xác thực và giới hạn cấu hình thanh toán](docs/customer-home.md).
+
+Module nằm nguyên trong `src/featured/customer/home/`. Base URL:
+`http://localhost:3000/customer/home`. Dữ liệu tuyến, lịch trình, ghế, giá,
+khuyến mãi, đơn hàng và vé lấy từ database; tin tức dùng lại service customer/news.
+Module dùng schema hiện có, không cần thêm bảng.
+
+| Method | Endpoint sau base URL | Chức năng |
+| --- | --- | --- |
+| GET | `/` | Banner, thành phố, tuyến nổi bật, ưu đãi, tin mới, đánh giá và cấu hình đặt vé |
+| GET | `/options` | Loại xe, giới hạn ghế, cách sắp xếp, trạng thái cấu hình thanh toán |
+| GET | `/cities` | Thành phố từ các tuyến đang hoạt động |
+| GET | `/routes` | Tìm tuyến, phân trang theo `search`, `page`, `pageSize` |
+| GET | `/news?limit=3` | Tin mới đã xuất bản, limit tối đa 20 |
+| GET | `/reviews` | Đánh giá công khai, phân trang, số lượng và điểm trung bình thật |
+| GET | `/promotions` | Ưu đãi đang có hiệu lực cho đặt vé, phân trang |
+| GET | `/customer` | Thông tin của chính khách đang đăng nhập |
+| GET | `/vouchers` | Ví voucher khả dụng của chính khách đang đăng nhập |
+| POST | `/promotions/:code/claim` | Lưu ưu đãi công khai vào ví, gửi lại không tạo trùng |
+| GET | `/destination/weather?city=TP.HCM&date=YYYY-MM-DD` | Dự báo điểm đến |
+| GET | `/trips` | Tìm chuyến một chiều/khứ hồi |
+| GET | `/trips/:id` | Chi tiết chuyến, điểm đón/trả, tiện nghi và ghế |
+| GET | `/trips/:id/seats` | Trạng thái từng ghế, không lộ định danh người đang giữ |
+| GET | `/holds` | Ghế còn được giữ bởi phiên trình duyệt hiện tại |
+| POST | `/holds` | Giữ/thay danh sách ghế của phiên hiện tại, HTTP 200 |
+| DELETE | `/holds` | Trả ghế khi chưa tạo đơn |
+| POST | `/quote` | Tính lại giá và kiểm tra voucher trên server, HTTP 200 |
+| POST | `/orders` | Tạo đơn có khóa chống gửi trùng, HTTP 201 |
+| GET | `/orders/pending` | Khôi phục đơn đang chờ thanh toán của phiên hiện tại |
+| GET | `/orders/:id` | Chi tiết và trạng thái đơn thuộc phiên hiện tại |
+| POST | `/orders/:id/cancel` | Hủy đơn chưa thanh toán và trả ghế/voucher, HTTP 200 |
+| GET | `/orders/:id/payment` | Thông tin chuyển khoản và URL VietQR có đúng số tiền/nội dung |
+| POST | `/orders/:id/print` | Ghi nhận lần mở in vé đã thanh toán, HTTP 200 |
+| GET | `/tickets/:token` | Đọc một vé bằng token ngẫu nhiên trong QR, không dùng mã đơn/SĐT |
+| POST | `/payments/sepay` | Webhook xác thực tiền vào và phát hành vé, HTTP 200 |
+
+Frontend hiện vẫn dùng booking/localStorage và thanh toán mô phỏng; cần nối
+các API này để chuyển sang dữ liệu backend. Mọi request Home từ Angular cần
+`withCredentials: true`. Cookie `viago_home` là HttpOnly, SameSite=Lax, hạn
+30 ngày, Secure khi production; định danh giữ ghế trong DB là hash của cookie.
+Frontend và API nên triển khai cùng site. Response Home đặt `Cache-Control:
+no-store` để tránh cache thông tin đặt vé. Không truyền `owner`, `session`,
+`makhachhang`, giá tiền hoặc trạng thái thanh toán từ client để tự gán.
+
+### Tìm chuyến và giữ ghế
+
+GET `/trips` nhận `from`, `to`, `date` (`YYYY-MM-DD` theo Việt Nam), `count`
+(1–5), `roundTrip=true/false`, `returnDate` khi khứ hồi, `type` (mã enum hoặc
+nhãn loại xe), `time` (`all`, `morning` 06–12, `afternoon` 12–18, `evening`
+18–24, `night` 00–06), `minPrice`, `maxPrice`, `sort` (`early`, `late`, `price`),
+`page`, `pageSize`. Ngày đi/về nằm trong 365 ngày tới. Các tên TP.HCM/Hồ Chí
+Minh được quy về cùng thành phố. API trả `{ outbound: { data, pagination },
+inbound?: { data, pagination }, serverTime }`; trang/bộ lọc áp dụng cho mỗi chiều.
+Khứ hồi tối đa 2 ghế mỗi chiều, tổng tối đa 5 ghế/đơn.
+
+Chỉ tuyến/xe đang hoạt động và lịch trình `DangMoBan` trong cửa sổ mở bán,
+chưa qua giờ đóng bán/khởi hành được đặt. Chuyến phải đủ ghế hợp lệ còn trống.
+Giá trong bộ lọc là giá cơ sở lịch trình; giá từng ghế được trả trong
+`seatDetails`. `seats` chứa **mã ghế chuyến `maghechuyen`**, không phải nhãn
+`1A`/`2B`; dùng `seatDetails[].label` để hiển thị. Trạng thái ghế:
+`available`, `selected` (phiên hiện tại), `held`, `sold`, `locked`.
+
+Body giữ ghế (lấy ID từ GET `/trips/:id`):
+
+```json
+{
+  "legs": [{
+    "tripId": "MA_LICH_TRINH",
+    "seats": ["MA_GHE_CHUYEN"],
+    "doubleSeats": [],
+    "pickupId": "MA_DIEM_DON",
+    "dropoffId": "MA_DIEM_TRA"
+  }]
+}
+```
+
+`pickupId`/`dropoffId` tùy chọn khi giữ ghế, bắt buộc khi quote/tạo đơn.
+Phải thuộc đúng chuyến, còn hoạt động, đón trước trả và chưa qua giờ đón.
+Chỉ ghế `CabinDoi` mới nhận `doubleSeats`; chọn phòng đôi tính gấp đôi giá ghế.
+Khứ hồi gửi hai legs đúng chiều ngược nhau, cùng số ghế; chuyến về phải khởi
+hành sau khi chuyến đi đến nơi. POST `/holds` thay toàn bộ lựa chọn của phiên.
+Giữ tối đa 10 phút, có thể ngắn hơn theo lịch trình và giờ đóng bán; đổi ghế
+không kéo dài mốc giữ ban đầu. API trả `expiresAt` ISO và `serverTime`.
+Khi đã tạo đơn, phải hủy đơn đó trước khi thay/trả ghế.
+
+### Tính tiền, tạo và khôi phục đơn
+
+POST `/quote` gửi cùng `legs`, thêm:
+
+```json
+{
+  "passenger": { "name": "Nguyễn Văn A", "phone": "0901234567", "email": "a@example.com" },
+  "voucher": "MA_GIAM_GIA"
+}
+```
+
+Tên và SĐT di động Việt Nam bắt buộc; email tùy chọn. POST `/orders` dùng
+cùng body quote, thêm `key` là UUID do client tạo một lần cho lần đặt đó và
+`terms: true`. Gửi lại cùng key và nội dung trả lại cùng đơn; đổi nội dung
+với cùng key trả 409. Mỗi phiên chỉ có một đơn đang chờ thanh toán.
+Không cần migration: khứ hồi dùng hai `don_hang` liên kết, thanh toán một lần
+cho tổng hai chiều và phát hành vé cho cả hai. Giá ghế, tiền giảm được chốt
+khi tạo đơn và dùng khi phát hành vé, kể cả sau đó giá danh mục thay đổi.
+
+Response đơn có `id`, `status` (`pending`, `paid`, `expired`, `cancelled`,
+`partially_cancelled`), `expiresAt`, `serverTime`, `passenger`, `legs`,
+`subtotal`, `discount`, `total`, `method`, `paymentCode`, `paymentStatus`,
+`tickets`. Chỉ phiên đã đặt được đọc/hủy/in đơn; phiên khác nhận 404.
+Vé chỉ xuất hiện sau xác nhận thanh toán; `tickets[].token/qrValue` là mã truy
+cập ngẫu nhiên 256 bit của từng vé. Bảo quản token như thông tin vé.
+POST `/print` ghi số lần in, thời điểm in; frontend tự dựng và in tài liệu.
+Hủy đơn chờ thanh toán và hết hạn trả lại ghế/voucher. Đơn đã trả tiền cần đi
+qua quy trình hủy vé/hoàn tiền, không dùng endpoint hủy giữ chỗ này.
+
+Voucher được kiểm tra thời gian, tuyến, giá tối thiểu, mức giảm tối đa, hạn
+mức tổng, hạn mức mỗi khách/SĐT, hạng thành viên, đơn đầu, tháng sinh và ví
+được cấp. Tiền giảm làm tròn về VND nguyên. Lượt đang giữ được tính vào hạn
+mức; chỉ tăng số đã dùng khi thanh toán thành công; hủy/hết hạn giải phóng
+lượt giữ. Mã quà tặng hoặc mã yêu cầu xác minh giới thiệu/theo dõi email chưa
+được dùng để tự giảm tiền trực tiếp. Đơn tổng 0 sau ưu đãi hợp lệ phát hành
+vé ngay, không yêu cầu chuyển khoản.
+
+Các API thành viên dùng `Authorization: Bearer <session-token>` từ luồng
+đăng nhập backend: `phien_dang_nhap.tokenphien` lưu **SHA-256 của token**,
+phiên phải còn hạn/hoạt động, tài khoản phải là khách hàng đang hoạt động.
+Home không tin user ID trong localStorage và không cung cấp tra cứu hành
+khách công khai bằng SĐT. Nếu chưa có luồng đăng nhập backend tương ứng,
+đặt vé vãng lai vẫn hoạt động; API ví/hồ sơ trả 401.
+
+### Cấu hình VietQR/SePay (điền sau)
+
+Điền các biến đã thêm trong `.env.example` vào `.env` riêng của máy/server:
+
+```dotenv
+VIETQR_BANK_ID=
+VIETQR_ACCOUNT_NO=
+VIETQR_ACCOUNT_NAME=
+SEPAY_BANK_NAME=
+SEPAY_WEBHOOK_API_KEY=
+```
+
+`VIETQR_BANK_ID` là mã ngân hàng/BIN cho ảnh VietQR; `SEPAY_BANK_NAME` phải
+khớp trường `gateway` của ngân hàng kết nối SePay. API key là chuỗi ngẫu nhiên
+tối thiểu 32 ký tự, chỉ đặt ở server và dashboard SePay. Không đưa key vào
+frontend. Khi chưa cấu hình, `/options` báo `configured: false`, API lấy QR và
+webhook trả 503; vẫn có thể kiểm tra tìm chuyến/giữ ghế/tạo đơn.
+
+Trong SePay, cấu hình webhook tiền vào tới URL HTTPS công khai
+`/customer/home/payments/sepay`, xác thực **API Key** (header `Authorization:
+Apikey <key>`). Giao dịch phải đúng ngân hàng, tài khoản, số tiền tổng và mã
+`VG...` trong nội dung chuyển khoản. Backend chống xử lý trùng bằng ID giao
+dịch SePay, xác nhận đơn và bán ghế/phát hành vé trong một transaction.
+Client chỉ poll GET `/orders/:id`; không có thao tác client tự xác nhận đã trả
+tiền. Chuyển thiếu/thừa, chuyển lặp lần nữa hoặc chuyển sau khi giữ chỗ hết
+hạn được ghi trong `thanh_toan` ở trạng thái `DangXuLy` với mã lý do để đối
+soát; không tự lấy ghế đã được bán lại và không tự phát vé.
+
+Tài liệu tích hợp: [VietQR Quick Link](https://www.vietqr.io/qr-dong),
+[SePay webhook](https://developer.sepay.vn/vi/sepay-webhooks/bat-dau-nhanh),
+[xác thực SePay](https://developer.sepay.vn/vi/sepay-webhooks/tao-webhook).
+Sau khi điền thông tin, cần cấu hình dashboard và thử một giao dịch thật
+để kiểm tra kết nối ngân hàng đầu cuối.
+
+### Dữ liệu bổ trợ và giới hạn
+
+Đánh giá chỉ trả `HienThi` của vé chưa bị hủy; tên được viết tắt phần họ,
+không trả SĐT/email, mã khách/nhân viên hoặc ghi chú nội bộ. Thời tiết dùng
+Open-Meteo, cache 10 phút và timeout 8 giây, chỉ hỗ trợ các thành phố có tọa
+độ của frontend và ngày trong 16 ngày dự báo. Không trả dự báo giả khi nguồn
+ngoài lỗi. Banner dùng ảnh hiện có của frontend.
+
+Cookie phiên không thay thế đăng nhập thành viên. Các thay đổi ghế/đơn/voucher
+dùng transaction Serializable và phát hiện xung đột; hết hạn được dọn khi đọc
+giữ chỗ/đơn hoặc thực hiện thao tác đặt vé. Giới hạn theo IP kết nối Express:
+300 GET/phút, 120 thao tác thay đổi/phút; vượt mức trả 429 với `Retry-After`.
+Bộ giới hạn và cache thời tiết nằm trong bộ nhớ mỗi tiến trình.
+
 ## Project setup
+
+### Chatbot realtime và chuyển CSKH
+
+Module `/customer/chatbot`, `/admin/support`, `/admin/knowledge` có bộ nhớ,
+RAG, công cụ chỉ đọc và ba nhánh hỗ trợ: AI xử lý, hỏi xác nhận hoặc chuyển
+nhân viên ngay. Bảng/cột/enum trong CSDL dùng quy ước tiếng Việt của VIAGO;
+migration giữ lịch sử chat cũ. Mặc định gọi OpenAI API với model `gpt-6-luna`,
+không cần cài model. Xem [cấu hình API key, SQL setup và hợp đồng API](docs/customer-support.md).
+API key và bảng support cần được thiết lập trước khi chạy đầy đủ tính năng.
 
 ```bash
 $ npm install

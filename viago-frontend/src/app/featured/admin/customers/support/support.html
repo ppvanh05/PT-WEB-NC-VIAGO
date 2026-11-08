@@ -1,0 +1,689 @@
+<section class="support-page">
+  @if (!sidebarCollapsed()) {
+    <button
+      type="button"
+      class="navigation-backdrop"
+      aria-label="Đóng menu quản trị"
+      (click)="closeNavigation()"
+    ></button>
+  }
+  <div class="mobile-navigation">
+    <app-button variant="outline" size="sm" (clicked)="toggleNavigation()"
+      ><app-support-icon name="menu" />Menu quản trị</app-button
+    >
+  </div>
+
+  <app-card class="header-card" radius="sm" padding="lg" shadow="none" [bordered]="true">
+    <header class="lookup-heading">
+      <div>
+        <span class="eyebrow">Chăm sóc khách hàng</span>
+        <h1>Hộp thư hỗ trợ</h1>
+      </div>
+    </header>
+    <div class="summary-strip" aria-label="Thống kê hội thoại">
+      @for (tab of summaryCards; track tab.id) {
+        <div class="summary-item" [class]="'summary-item ' + tab.id.toLowerCase()">
+          <strong>{{ inbox()?.statistics?.[tab.id] ?? 0 }}</strong
+          ><small>{{ tab.label }}</small>
+        </div>
+      }
+    </div>
+  </app-card>
+
+  <div class="toast-stack" aria-live="polite">
+    @if (error()) {
+      <app-toast variant="error" [message]="error()" (closed)="error.set('')" />
+    }
+    @if (notice()) {
+      <app-toast
+        variant="success"
+        [message]="notice()"
+        [duration]="4000"
+        (closed)="notice.set('')"
+      />
+    }
+  </div>
+
+  <app-card class="inbox-card" radius="sm" padding="none" shadow="none" [bordered]="true">
+    <div class="table-control-panel">
+      <nav class="pill-tabs" aria-label="Nhóm hội thoại">
+        @for (tab of lanes; track tab.id) {
+          <button
+            type="button"
+            class="pill-tab-item"
+            [class.active]="lane() === tab.id"
+            [attr.aria-current]="lane() === tab.id ? 'page' : null"
+            (click)="changeLane(tab.id)"
+          >
+            {{ tab.label }} ({{ inbox()?.counts?.[tab.id] ?? 0 }})
+          </button>
+        }
+      </nav>
+      <app-button variant="outline" size="sm" [loading]="queueBusy()" (clicked)="loadInbox()"
+        ><app-support-icon name="refresh" />Làm mới</app-button
+      >
+    </div>
+    <div class="filters-grid">
+      <app-input
+        [id]="'support-search'"
+        label="Tìm kiếm"
+        placeholder="Nhập mã hoặc nội dung hội thoại…"
+        [maxlength]="150"
+        [value]="search"
+        (valueChange)="search = $event; searchChanged()"
+      />
+      <app-select
+        [id]="'support-category'"
+        label="Loại yêu cầu"
+        [options]="categorySelect"
+        [value]="category"
+        (valueChange)="category = $event; filterChanged()"
+      />
+      <app-select
+        [id]="'support-priority'"
+        label="Mức ưu tiên"
+        [options]="prioritySelect"
+        [value]="priority"
+        (valueChange)="priority = $event; filterChanged()"
+      />
+      <div class="filter-action">
+        <app-button variant="outline" [fullWidth]="true" (clicked)="clearFilters()"
+          >Xóa bộ lọc</app-button
+        >
+      </div>
+    </div>
+    <div class="inbox-toolbar">
+      <div>
+        <strong>{{ inbox()?.pagination?.total ?? 0 }} hội thoại</strong
+        ><span>Ưu tiên cao trước</span>
+      </div>
+    </div>
+
+    <section class="workspace-strip" aria-label="Các hội thoại đang mở">
+      <div class="workspace-heading">
+        <strong
+          >Đang mở <span>{{ workspace.tabs().length }}</span></strong
+        ><small>Đổi khách vẫn giữ bản nháp và cuộc đang xử lý</small>
+      </div>
+      <div class="workspace-tabs" role="tablist" aria-label="Chuyển nhanh cuộc trò chuyện">
+        @for (tab of workspace.tabs(); track tab.id) {
+          <div
+            class="workspace-tab"
+            [class.active]="selectedId() === tab.id"
+            [class.has-unread]="workspace.unread(tab)"
+          >
+            <button
+              type="button"
+              role="tab"
+              [id]="'support-open-' + tab.id"
+              [attr.aria-selected]="selectedId() === tab.id"
+              aria-controls="support-conversation-panel"
+              (click)="selectConversation(tab.id)"
+            >
+              <span class="tab-avatar">K</span
+              ><span class="tab-content"
+                ><strong>Khách {{ tab.id.slice(-6) }}</strong
+                ><span class="tab-status">
+                  @if (workspace.unread(tab)) {
+                    <i aria-hidden="true"></i>
+                  }
+                  {{ tabLabel(tab) }}</span
+                ></span
+              >
+              @if (workspace.draftIds().includes(tab.id)) {
+                <span class="draft-marker">Nháp</span>
+              }
+              @if (busyConversations().includes(tab.id)) {
+                <span class="tab-busy" aria-label="Đang gửi"></span>
+              }
+            </button>
+            <app-button
+              variant="ghost"
+              size="sm"
+              [iconOnly]="true"
+              [ariaLabel]="'Ẩn tab khách ' + tab.id.slice(-6)"
+              title="Ẩn tab, giữ bản nháp và hội thoại"
+              (clicked)="closeTab(tab.id)"
+              ><app-support-icon name="close"
+            /></app-button>
+          </div>
+        } @empty {
+          <p class="workspace-empty">Các cuộc bạn tiếp nhận sẽ được giữ tại đây để chuyển nhanh.</p>
+        }
+      </div>
+    </section>
+
+    <div class="workbench" [class.has-selection]="!!selectedId()">
+      <aside
+        class="conversation-list"
+        aria-label="Danh sách hội thoại"
+        [attr.aria-busy]="queueBusy()"
+      >
+        <div class="list-heading">
+          <app-support-icon name="inbox" /><strong>Yêu cầu hỗ trợ</strong>
+        </div>
+        <div class="conversation-items">
+          @if (initializing() || (queueBusy() && !inbox())) {
+            <div class="list-empty">
+              <span class="loader"></span>
+              <p>Đang tải hội thoại…</p>
+            </div>
+          }
+          @for (row of inbox()?.data || []; track row.id) {
+            <button
+              type="button"
+              class="conversation-item"
+              [attr.data-conversation-id]="row.id"
+              [class.selected]="selectedId() === row.id"
+              [attr.aria-pressed]="selectedId() === row.id"
+              (click)="selectConversation(row.id)"
+            >
+              <div class="item-top">
+                <span class="avatar customer-avatar">K</span>
+                <div>
+                  <strong>{{ customerLabel(row) }}</strong
+                  ><small>{{ code(row.id) }}</small>
+                </div>
+                <time>{{ row.updatedAt | date: 'dd/MM HH:mm' }}</time>
+              </div>
+              <p class="preview">
+                {{
+                  row.lastMessage?.role === 'AGENT'
+                    ? 'Nhân viên: '
+                    : row.lastMessage?.role === 'BOT'
+                      ? 'AI: '
+                      : ''
+                }}{{ row.lastMessage?.text || 'Khách đang cần nhân viên hỗ trợ.' }}
+              </p>
+              <div class="item-tags">
+                <app-badge
+                  size="sm"
+                  rounded="sm"
+                  variant="neutral"
+                  [label]="categories[row.request?.category || ''] || 'Hỗ trợ'"
+                /><app-badge
+                  size="sm"
+                  rounded="sm"
+                  [variant]="priorityVariant(row.request?.priority)"
+                  [label]="priorities[row.request?.priority || ''] || 'Trung bình'"
+                />
+              </div>
+              <div class="item-footer">
+                <span class="assignee"
+                  ><app-support-icon name="user" />{{
+                    row.assignedAgent?.name || statuses[row.status]
+                  }}</span
+                >
+                @if (waiting(row)) {
+                  <span class="needs-reply">Cần phản hồi</span>
+                }
+              </div>
+            </button>
+          } @empty {
+            @if (!initializing() && !queueBusy()) {
+              <div class="list-empty">
+                <app-support-icon name="inbox" /><strong>Chưa có hội thoại</strong>
+                <p>Yêu cầu phù hợp với bộ lọc sẽ xuất hiện tại đây.</p>
+                <app-button variant="ghost" size="sm" (clicked)="clearFilters()"
+                  >Xóa bộ lọc</app-button
+                >
+              </div>
+            }
+          }
+        </div>
+      </aside>
+
+      <section
+        class="conversation-panel"
+        id="support-conversation-panel"
+        role="tabpanel"
+        [attr.aria-labelledby]="selectedId() ? 'support-open-' + selectedId() : null"
+        aria-label="Nội dung hội thoại"
+      >
+        @if (detail(); as current) {
+          <header class="thread-heading">
+            <span class="back-to-list"
+              ><app-button
+                variant="ghost"
+                size="sm"
+                [iconOnly]="true"
+                ariaLabel="Về danh sách"
+                (clicked)="backToList()"
+                ><app-support-icon name="back" /></app-button></span
+            ><span class="avatar customer-avatar">K</span>
+            <div class="thread-identity">
+              <h2>{{ customerLabel(current) }}</h2>
+              <app-badge
+                size="sm"
+                [variant]="
+                  current.status === 'ASSIGNED'
+                    ? 'success'
+                    : current.status === 'QUEUED'
+                      ? 'warning'
+                      : 'neutral'
+                "
+                [dot]="true"
+                [label]="statuses[current.status]"
+              />
+            </div>
+            <span class="info-toggle"
+              ><app-button
+                variant="ghost"
+                size="sm"
+                [iconOnly]="true"
+                ariaLabel="Thông tin yêu cầu"
+                (clicked)="showInfo.set(!showInfo())"
+                ><app-support-icon name="info" /></app-button
+            ></span>
+          </header>
+          <div class="thread-actions">
+            <span
+              ><app-support-icon name="user" />{{
+                current.assignedAgent?.name || 'Chưa có người phụ trách'
+              }}</span
+            >
+            <div>
+              @if (current.status === 'QUEUED') {
+                <app-button
+                  size="sm"
+                  [loading]="actionBusy()"
+                  [disabled]="!agent()"
+                  (clicked)="action('claim')"
+                  ><app-support-icon name="user" />Tiếp nhận</app-button
+                >
+              }
+              @if (canReply()) {
+                <app-button
+                  variant="outline"
+                  size="sm"
+                  [disabled]="actionBusy()"
+                  (clicked)="openFinish('close')"
+                  >Đóng hội thoại</app-button
+                ><app-button size="sm" [disabled]="actionBusy()" (clicked)="openFinish('resolve')"
+                  ><app-support-icon name="check" />Giải quyết</app-button
+                >
+              }
+            </div>
+          </div>
+          <div class="message-list" #messageList (scroll)="messagesScrolled()">
+            @if (current.hasOlder) {
+              <div class="load-older">
+                <app-button
+                  variant="ghost"
+                  size="sm"
+                  [loading]="historyBusy()"
+                  (clicked)="loadOlder()"
+                  >Xem tin nhắn trước đó</app-button
+                >
+              </div>
+            }
+            <div class="conversation-start">
+              Bắt đầu {{ current.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+            </div>
+            @for (message of current.messages; track message.id) {
+              @if (message.role === 'SYSTEM') {
+                <div class="system-message">
+                  <span>{{ message.text }}</span
+                  ><time>{{ message.createdAt | date: 'HH:mm' }}</time>
+                </div>
+              } @else {
+                <article
+                  class="message"
+                  [class.outgoing]="message.role === 'AGENT'"
+                  [class.bot-message]="message.role === 'BOT'"
+                >
+                  <span class="message-avatar" [class.ai-avatar]="message.role === 'BOT'">{{
+                    message.role === 'CUSTOMER'
+                      ? 'K'
+                      : message.role === 'BOT'
+                        ? 'AI'
+                        : message.agent?.name?.slice(0, 1) || 'NV'
+                  }}</span>
+                  <div class="message-content">
+                    <div class="message-author">
+                      {{
+                        message.role === 'CUSTOMER'
+                          ? 'Khách hàng'
+                          : message.role === 'BOT'
+                            ? 'Trợ lý VIAGO · AI'
+                            : message.agent?.name || 'Nhân viên VIAGO'
+                      }}
+                    </div>
+                    <div class="message-bubble">{{ message.text }}</div>
+                    @if (message.originalText) {
+                      <details class="original-message">
+                        <summary>Nội dung gốc trước khi dịch</summary>
+                        <p>{{ message.originalText }}</p>
+                      </details>
+                    }
+                    <time>{{ message.createdAt | date: 'dd/MM HH:mm' }}</time>
+                  </div>
+                </article>
+              }
+            }
+          </div>
+          @if (canReply()) {
+            <div class="composer">
+              @if (suggestion()) {
+                <div class="ai-suggestion">
+                  <div>
+                    <strong
+                      ><app-support-icon name="sparkles" />Gợi ý AI · Kiểm tra trước khi gửi</strong
+                    ><app-button
+                      variant="ghost"
+                      size="sm"
+                      [iconOnly]="true"
+                      ariaLabel="Bỏ gợi ý"
+                      (clicked)="suggestion.set(''); saveDraft()"
+                      ><app-support-icon name="close"
+                    /></app-button>
+                  </div>
+                  <p>{{ suggestion() }}</p>
+                  <app-button
+                    variant="ghost"
+                    size="sm"
+                    (clicked)="useTemplate(suggestion()); suggestion.set(''); saveDraft()"
+                    >Chèn vào nội dung trả lời</app-button
+                  >
+                </div>
+              }
+              <details class="quick-replies">
+                <summary>
+                  <app-support-icon name="chat" />Mẫu trả lời <span>{{ templates.length }}</span>
+                </summary>
+                <div class="template-options">
+                  @for (template of templates; track template.label) {
+                    <app-button
+                      variant="outline"
+                      size="sm"
+                      [disabled]="actionBusy()"
+                      (clicked)="useTemplate(template.text)"
+                      >{{ template.label }}</app-button
+                    >
+                  }
+                </div>
+              </details>
+              <app-textarea
+                [id]="'support-reply'"
+                label="Phản hồi khách hàng"
+                placeholder="Nhập nội dung phản hồi cho khách…"
+                [maxlength]="4000"
+                [rows]="3"
+                [value]="reply"
+                (valueChange)="reply = $event; saveDraft()"
+                [disabled]="actionBusy()"
+                (keydown)="messageKey($event)"
+              />
+              <div class="composer-options">
+                @if (current.language !== 'vi') {
+                  <label
+                    ><input
+                      type="checkbox"
+                      [(ngModel)]="translate"
+                      (ngModelChange)="saveDraft()"
+                      [disabled]="actionBusy()"
+                    />Dịch sang tiếng Anh khi gửi</label
+                  >
+                }
+                <span>{{ reply.length }} / 4.000</span>
+              </div>
+              <footer class="composer-footer">
+                <span class="reply-as"
+                  ><span class="avatar staff-avatar">{{ agent()?.name?.slice(0, 1) }}</span
+                  ><span>{{ agent()?.name }}</span></span
+                >
+                <app-button
+                  variant="outline"
+                  size="sm"
+                  [loading]="aiBusy()"
+                  [disabled]="actionBusy()"
+                  (clicked)="generateDraft()"
+                  ><app-support-icon name="sparkles" />Gợi ý trả lời</app-button
+                ><span>Ctrl + Enter để gửi</span
+                ><app-button
+                  size="sm"
+                  [disabled]="!reply.trim() || reply.length > 4000"
+                  [loading]="actionBusy()"
+                  (clicked)="send()"
+                  >Gửi phản hồi<app-support-icon name="send"
+                /></app-button>
+              </footer>
+            </div>
+          } @else {
+            <div class="readonly-note">
+              <app-support-icon name="info" /><span>{{
+                current.status === 'QUEUED'
+                  ? 'Tiếp nhận hội thoại để bắt đầu trả lời khách.'
+                  : current.status === 'ASSIGNED'
+                    ? 'Hội thoại đang do ' +
+                      (current.assignedAgent?.name || 'nhân viên khác') +
+                      ' phụ trách.'
+                    : current.status === 'CLOSED'
+                      ? 'Hội thoại đã đóng. Lịch sử được lưu để tra cứu.'
+                      : current.status === 'RESOLVED'
+                        ? 'Đã lưu kết quả xử lý. Khách có thể tiếp tục hỏi trợ lý AI.'
+                        : 'Khách đang trao đổi với trợ lý AI.'
+              }}</span>
+            </div>
+          }
+        } @else {
+          <div class="thread-empty">
+            <div class="empty-illustration">
+              <app-support-icon [name]="detailBusy() ? 'clock' : 'chat'" />
+            </div>
+            <h2>{{ detailBusy() ? 'Đang tải cuộc trò chuyện…' : 'Sẵn sàng hỗ trợ khách hàng' }}</h2>
+            <p>
+              {{
+                detailBusy()
+                  ? 'Đang lấy lịch sử và thông tin xử lý.'
+                  : 'Chọn một yêu cầu để xem lịch sử với AI và tiếp tục hỗ trợ khách.'
+              }}
+            </p>
+            @if (selectedId() && !detailBusy()) {
+              <app-button variant="outline" size="sm" (clicked)="loadDetail()"
+                >Thử tải lại</app-button
+              >
+            }
+          </div>
+        }
+      </section>
+
+      @if (detail(); as current) {
+        <aside class="context-panel" [class.open]="showInfo()" aria-label="Thông tin xử lý">
+          <div class="context-heading">
+            <h2>Thông tin yêu cầu</h2>
+            <span class="context-close"
+              ><app-button
+                variant="ghost"
+                size="sm"
+                [iconOnly]="true"
+                ariaLabel="Ẩn thông tin"
+                (clicked)="showInfo.set(false)"
+                ><app-support-icon name="close" /></app-button
+            ></span>
+          </div>
+          <section class="context-section">
+            <span class="context-label">Khách trong phiên chat</span
+            ><strong>{{ customerLabel(current) }}</strong>
+            <p class="anonymous-note">
+              Đối chiếu thông tin khách cung cấp trước khi xử lý vé hoặc thanh toán.
+            </p>
+            <dl>
+              <dt>Mã hội thoại</dt>
+              <dd class="full-code">{{ current.id }}</dd>
+              <dt>Ngôn ngữ</dt>
+              <dd>{{ current.language === 'en' ? 'Tiếng Anh' : 'Tiếng Việt' }}</dd>
+              <dt>Thời điểm tạo</dt>
+              <dd>{{ current.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+              <dt>Số tin nhắn</dt>
+              <dd>{{ current.messageCount }}</dd>
+            </dl>
+          </section>
+          @if (current.request; as request) {
+            <section class="context-section">
+              <h3>Nội dung chuyển tiếp</h3>
+              <div class="item-tags">
+                <app-badge
+                  size="sm"
+                  rounded="sm"
+                  variant="neutral"
+                  [label]="categories[request.category]"
+                /><app-badge
+                  size="sm"
+                  rounded="sm"
+                  [variant]="priorityVariant(request.priority)"
+                  [label]="priorities[request.priority]"
+                />
+              </div>
+              <p class="reason-text">{{ request.reason }}</p>
+              @if (current.priorityAssessment; as assessment) {
+                <div class="priority-basis">
+                  <strong>Cơ sở ưu tiên xử lý</strong>
+                  <ul>
+                    @for (reason of assessment.basis; track reason) {
+                      <li>{{ reason }}</li>
+                    }
+                  </ul>
+                  <small
+                    >Quy tắc {{ assessment.policyVersion }} · Nhãn ưu tiên yêu cầu hỗ trợ</small
+                  >
+                </div>
+              }
+              <small>Gửi yêu cầu {{ request.createdAt | date: 'dd/MM/yyyy HH:mm' }}</small>
+            </section>
+          }
+          @if (current.summary) {
+            <section class="context-section">
+              <h3>Tóm tắt trao đổi với AI</h3>
+              <p class="reason-text">{{ current.summary }}</p>
+              <small>Đọc lại lịch sử để xác nhận thông tin trước khi xử lý.</small>
+            </section>
+          }
+          <section class="context-section">
+            <h3>Người phụ trách</h3>
+            <div class="owner">
+              <span class="avatar staff-avatar">{{
+                current.assignedAgent?.name?.slice(0, 1) || '?'
+              }}</span>
+              <div>
+                <strong>{{ current.assignedAgent?.name || 'Chưa tiếp nhận' }}</strong
+                ><small>{{ current.assignedAgentId || 'Đang chờ nhân viên' }}</small>
+              </div>
+            </div>
+            @if (canReply()) {
+              <app-select
+                [id]="'support-reassign'"
+                label="Chuyển hội thoại"
+                placeholder="Chọn nhân viên nhận"
+                [options]="transferOptions()"
+                [value]="targetAgent"
+                [disabled]="actionBusy()"
+                (valueChange)="targetAgent = $event"
+              />
+              <div class="transfer-actions">
+                <app-button
+                  variant="outline"
+                  size="sm"
+                  [fullWidth]="true"
+                  [disabled]="!targetAgent || actionBusy()"
+                  (clicked)="action('reassign', { staffId: targetAgent })"
+                  >Chuyển người phụ trách</app-button
+                ><app-button
+                  variant="ghost"
+                  size="sm"
+                  [fullWidth]="true"
+                  [disabled]="actionBusy()"
+                  (clicked)="action('release')"
+                  >Trả về hàng chờ</app-button
+                >
+              </div>
+            }
+          </section>
+          <section class="context-section">
+            <h3>Lịch sử xử lý</h3>
+            @for (request of current.requests; track request.id) {
+              <div class="handoff-history">
+                <strong>{{ categories[request.category] || 'Yêu cầu hỗ trợ' }}</strong
+                ><small>{{ request.createdAt | date: 'dd/MM/yyyy HH:mm' }}</small>
+                @for (assignment of request.assignments || []; track assignment.id) {
+                  <p class="assignment-event">
+                    <span class="timeline-dot"></span
+                    ><span
+                      >{{ assignment.agent.name
+                      }}<small
+                        >{{ assignment.assignedAt | date: 'dd/MM HH:mm' }} ·
+                        {{
+                          assignment.status === 'DaChuyen'
+                            ? 'Đã chuyển'
+                            : assignment.status === 'DaHoanThanh'
+                              ? 'Đã hoàn tất'
+                              : 'Tiếp nhận'
+                        }}</small
+                      ></span
+                    >
+                  </p>
+                }
+                @if (request.resolution) {
+                  <div class="resolution-record">
+                    <app-support-icon name="check" />
+                    <div>
+                      <strong>Kết quả xử lý</strong>
+                      <p>{{ request.resolution }}</p>
+                      <small>{{ request.resolvedAt | date: 'dd/MM/yyyy HH:mm' }}</small>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </section>
+        </aside>
+      }
+    </div>
+    <footer class="inbox-footer">
+      <span class="sync-status"
+        >Tự động cập nhật
+        @if (lastSync()) {
+          <span>· {{ lastSync() | date: 'HH:mm:ss' }}</span>
+        }</span
+      ><app-pagination
+        [currentPage]="page"
+        [totalItems]="inbox()?.pagination?.total || 0"
+        [pageSize]="20"
+        [siblingCount]="0"
+        [showSummary]="false"
+        (pageChange)="goToPage($event)"
+      />
+    </footer>
+  </app-card>
+</section>
+
+<app-modal
+  [open]="finishMode() !== null"
+  size="medium"
+  [title]="finishMode() === 'close' ? 'Đóng hội thoại' : 'Đánh dấu đã giải quyết'"
+  [description]="
+    finishMode() === 'close'
+      ? 'Kết thúc hội thoại và lưu lịch sử để tra cứu.'
+      : 'Lưu kết quả hỗ trợ. Khách có thể tiếp tục hỏi trợ lý AI.'
+  "
+  [confirmMode]="true"
+  confirmText="Xác nhận hoàn tất"
+  cancelText="Tiếp tục hỗ trợ"
+  [loading]="actionBusy()"
+  [disableConfirm]="resolution.trim().length < 3"
+  (closed)="closeFinish()"
+  (confirmed)="finish()"
+>
+  <app-textarea
+    [id]="'support-resolution'"
+    label="Kết quả xử lý (lưu nội bộ)"
+    placeholder="Ghi rõ vấn đề đã kiểm tra và kết quả hỗ trợ…"
+    [value]="resolution"
+    (valueChange)="resolution = $event"
+    [rows]="5"
+    [maxlength]="2000"
+    [disabled]="actionBusy()"
+    [required]="true"
+    helperText="Gửi phản hồi cho khách trong cuộc trò chuyện trước khi hoàn tất."
+  />
+</app-modal>

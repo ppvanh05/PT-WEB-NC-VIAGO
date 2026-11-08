@@ -6,6 +6,8 @@ import { AdminTopbar } from '../admin-topbar/admin-topbar';
 import { SidebarStateService } from '../../services/sidebar-state.service';
 import { AdminProfile, AdminProfileData } from '../../../featured/admin/profile/profile';
 import { ToastService } from '../../services/toast.service';
+import { AdminSessionService } from '../../services/admin-session.service';
+import { Router } from '@angular/router';
 
 @Component({
   imports: [CommonModule, AdminSidebar, AdminTopbar, RouterOutlet, AdminProfile],
@@ -14,12 +16,15 @@ import { ToastService } from '../../services/toast.service';
   templateUrl: './admin-layout.html',
 })
 export class AdminLayout {
+  readonly session = inject(AdminSessionService);
+  private readonly router = inject(Router);
+  async logout(): Promise<void> { try { await this.session.logout(); } finally { await this.router.navigateByUrl('/admin/login'); } }
   readonly isCollapsed = inject(SidebarStateService).isCollapsed;
   @ViewChild(AdminProfile) profileDialog!: AdminProfile;
   profile: AdminProfileData = {
-    familyName: 'Nguyễn An', givenName: 'Ninh', displayName: 'Quản trị viên',
-    phone: '0901234567', email: 'ninh.na@viago.vn', gender: 'Nam',
-    birthday: '1985-03-15', address: '123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh', notes: '', avatarUrl: '',
+    familyName: '', givenName: '', displayName: this.session.account()?.name || '',
+    phone: this.session.account()?.phoneNumber || '', email: this.session.account()?.email || '', gender: 'Khác',
+    birthday: '', address: '', notes: '', avatarUrl: this.session.account()?.avatar || '',
   };
   profileSaved = false;
 
