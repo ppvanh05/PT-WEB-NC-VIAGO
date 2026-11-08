@@ -1,3 +1,6 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
+import { Pagination } from '../../../../shared/components/pagination/pagination';
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -33,7 +36,13 @@ export interface RouteDetail {
 @Component({
   selector: 'app-schedules',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    Pagination,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './schedules.html',
   styleUrls: ['./schedules.css']
 })
@@ -158,17 +167,17 @@ export class SchedulesComponent implements OnInit {
     const cars = this.carsList;
     const drivers = this.driversList;
     const codrivers = this.codriversList;
-    
+
     const dates: string[] = [];
     const start = new Date('2026-09-15');
     const end = new Date('2026-11-30');
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       dates.push(d.toISOString().substring(0, 10));
     }
-    
+
     const times = ['05:00', '09:00', '13:30', '17:45', '21:00'];
     let id = 1;
-    
+
     dates.forEach((date, dateIdx) => {
       times.forEach((time, timeIdx) => {
         const route = routes[(dateIdx * 3 + timeIdx) % routes.length];
@@ -247,7 +256,7 @@ export class SchedulesComponent implements OnInit {
       const endTotalMinutes = h * 60 + m + Math.round(durationHours * 60);
       const endH = Math.floor(endTotalMinutes / 60);
       const endM = endTotalMinutes % 60;
-      
+
       // If end time passes midnight, we just assume it's next day for comparison
       // but for simplicity, we can just compare Date objects
       const tripDateTime = new Date(`${tripDate}T${tripTime}:00`);
@@ -309,7 +318,7 @@ export class SchedulesComponent implements OnInit {
           'completed': 3,
           'locked': 4
         };
-        
+
         const rankA = statusRank[a.status] || 5;
         const rankB = statusRank[b.status] || 5;
 
@@ -677,7 +686,7 @@ export class SchedulesComponent implements OnInit {
     const durationNum = parseFloat(this.currentTrip.duration);
     const totalMinutes = h * 60 + m + durationNum * 60;
     const daysOffset = Math.floor(totalMinutes / 1440);
-    
+
     const dateObj = new Date(this.currentTrip.departureDate);
     dateObj.setDate(dateObj.getDate() + daysOffset);
     const d = dateObj.getDate().toString().padStart(2, '0');

@@ -1,3 +1,5 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from '../../../../shared/components/button/button';
@@ -24,7 +26,21 @@ export interface Employee {
 
 @Component({
   selector: 'app-staff-account-management',
-  imports: [FormsModule, Button, Input, Select, Textarea, Badge, Pagination, Toast, ModalComponent, DatePickerComponent, ToastPopup],
+  imports: [
+    FormsModule,
+    Button,
+    Input,
+    Select,
+    Textarea,
+    Badge,
+    Pagination,
+    Toast,
+    ModalComponent,
+    DatePickerComponent,
+    ToastPopup,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './staff-account-management.html', styleUrl: './staff-account-management.css',
 })
 export class StaffAccountManagement implements OnInit {

@@ -1,13 +1,8 @@
 <div class="management-container">
 
   <!-- Header Section -->
-  <div class="header-card-container">
-    <div class="header-titles">
-      <span class="category-tag">QUẢN LÝ ĐIỀU PHỐI</span>
-      <h1 class="main-title">Quản lý Tuyến xe</h1>
-    </div>
-
-    <div class="header-action-banner" (click)="openAddModal()" title="Nhấp để thêm tuyến xe mới">
+  <app-admin-page-header title="Quản lý Tuyến xe" section="QUẢN LÝ ĐIỀU PHỐI">
+<div class="header-action-banner admin-create-action" (click)="openAddModal()" title="Nhấp để thêm tuyến xe mới">
       <div class="action-icon-circle">
         <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="#0f766e"
           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -21,14 +16,14 @@
         <p>Thêm lộ trình, thiết lập điểm đón/trả, dừng nghỉ và trạm trung chuyển.</p>
       </div>
     </div>
-  </div>
+</app-admin-page-header>
 
   <!-- Dashboard Card -->
   <div class="dashboard-card">
 
     <!-- Filter Control Panel -->
     <div class="dashboard-control-panel">
-      <div class="pill-tabs">
+      <app-admin-tabs class="pill-tabs admin-tabs">
         <button class="pill-tab-item" [class.active]="activeTab === 'all'" (click)="setTab('all')">
           Tất cả ({{ allRoutes.length }})
         </button>
@@ -38,7 +33,7 @@
         <button class="pill-tab-item" [class.active]="activeTab === 'locked'" (click)="setTab('locked')">
           Đã khóa ({{ getLockedRoutesCount() }})
         </button>
-      </div>
+      </app-admin-tabs>
     </div>
 
     <!-- Filters Row -->
@@ -95,7 +90,7 @@
             <span>{{ route.status === 'active' ? 'Đang hoạt động' : 'Tạm khóa' }}</span>
           </div>
           <h2 class="card-route-title"
-            style="margin: 0; font-size: 1.05rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+            style="margin: 0; font-size: 1.05rem; font-weight: var(--font-weight-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
             [title]="route.name">{{ route.name }}</h2>
         </div>
 
@@ -133,7 +128,7 @@
           </div>
           <div class="detail-cell price-cell" style="gap: 2px;">
             <span class="cell-label">Giá vé</span>
-            <span class="cell-value" style="font-size: 14px; font-weight: 800;">{{ formatPrice(route.price) }}</span>
+            <span class="cell-value" style="font-size: 14px; font-weight: var(--font-weight-semibold);">{{ formatPrice(route.price) }}</span>
           </div>
         </div>
 
@@ -163,7 +158,7 @@
           </div>
 
           <div style="display: flex; gap: 8px; align-items: center;">
-            <button class="admin-action-btn edit" title="Chỉnh sửa chi tiết" aria-label="Chỉnh sửa chi tiết"
+            <button class="admin-action-btn edit admin-edit-action" title="Chỉnh sửa chi tiết" aria-label="Chỉnh sửa chi tiết"
               (click)="openEditModal(route, $event)">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -184,15 +179,7 @@
         {{ currentPage * pageSize > filteredRoutes.length ? filteredRoutes.length : currentPage * pageSize }}
         của {{ filteredRoutes.length }} tuyến xe
       </div>
-      <div class="pagination-controls">
-        <button class="pagination-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
-        <button class="pagination-btn" *ngFor="let page of getPaginationItems()" [class.active]="currentPage === page"
-          (click)="setPage(page)">
-          {{ page }}
-        </button>
-        <button class="pagination-btn" (click)="setPage(currentPage + 1)"
-          [disabled]="currentPage === totalPages">›</button>
-      </div>
+      <app-pagination [currentPage]="currentPage" [totalItems]="filteredRoutes.length" [pageSize]="pageSize" [showSummary]="false" (pageChange)="setPage($event)" />
     </div>
 
     <!-- Empty State -->
@@ -350,21 +337,15 @@
       </div>
 
       <!-- Modal Footer -->
-      <div class="modal-footer"
+      <div class="modal-footer admin-modal-actions"
         style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <div class="footer-left" *ngIf="isEditMode">
-          <button type="button" class="btn-status-toggle"
-            [style.background-color]="currentRoute.status === 'locked' ? '#f0fdf4' : '#fef2f2'"
-            [style.color]="currentRoute.status === 'locked' ? '#166534' : '#991b1b'"
-            [style.border-color]="currentRoute.status === 'locked' ? '#bbf7d0' : '#fca5a5'"
-            style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; border: 1px solid;"
+        <div class="footer-left admin-modal-actions-start" *ngIf="isEditMode">
+          <button [class.admin-lock-action--unlock]="currentRoute.status === 'locked'" type="button" class="btn-status-toggle admin-lock-action"
             (click)="toggleRouteStatus(currentRoute, $event)">
-            <i *ngIf="currentRoute.status !== 'locked'" class="bi bi-lock-fill" style="font-size: 14px;"></i>
-            <i *ngIf="currentRoute.status === 'locked'" class="bi bi-unlock-fill" style="font-size: 14px;"></i>
             <span>{{ currentRoute.status === 'locked' ? 'Mở khóa tuyến xe' : 'Khóa tuyến xe này' }}</span>
           </button>
         </div>
-        <div class="footer-right" style="margin-left: auto; display: flex; gap: 12px;">
+        <div class="footer-right admin-modal-actions-end" style="margin-left: auto; display: flex; gap: 12px;">
           <button class="btn-cancel-custom" (click)="closeModal()">Hủy</button>
           <button class="btn-save-custom" (click)="saveRoute()">{{ isEditMode ? 'Lưu thay đổi' : 'Thêm tuyến'
             }}</button>

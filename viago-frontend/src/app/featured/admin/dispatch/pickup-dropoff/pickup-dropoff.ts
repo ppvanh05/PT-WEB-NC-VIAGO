@@ -1,3 +1,6 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
+import { Pagination } from '../../../../shared/components/pagination/pagination';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -16,13 +19,19 @@ export interface DiemDonTra {
 @Component({
   selector: 'app-pickup-dropoff',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    Pagination,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './pickup-dropoff.html',
   styleUrls: ['./pickup-dropoff.css']
 })
 export class PickupDropoffComponent implements OnInit {
   activeTab: 'don-tra' | 'dung' | 'locked' = 'don-tra';
-  
+
   // Mock data
   allPoints: DiemDonTra[] = [];
 
@@ -31,7 +40,7 @@ export class PickupDropoffComponent implements OnInit {
   currentPage = 1;
   pageSize = 10;
   totalPages = 1;
-  
+
   searchQueries: { [key: string]: string } = {
     'don-tra': '',
     'dung': '',
@@ -56,7 +65,7 @@ export class PickupDropoffComponent implements OnInit {
   isUploadingImage = false;
   toasts: { id: number; message: string; type: 'success' | 'error' }[] = [];
   toastCounter = 0;
-  
+
   errors: { name?: boolean; city?: boolean; address?: boolean } = {};
 
   citiesList = [
@@ -153,7 +162,7 @@ export class PickupDropoffComponent implements OnInit {
 
       const matchesCity = city === 'all' || p.city === city;
       const matchesSearch = !query || p.name.toLowerCase().includes(query) || p.address.toLowerCase().includes(query);
-      
+
       return matchesTab && matchesCity && matchesSearch;
     });
     this.currentPage = 1;
@@ -194,7 +203,7 @@ export class PickupDropoffComponent implements OnInit {
   openAddModal() {
     this.isEditMode = false;
     this.errors = {};
-    
+
     let defaultType: 'don-tra' | 'dung' = 'don-tra';
     if (this.activeTab === 'dung') defaultType = 'dung';
 

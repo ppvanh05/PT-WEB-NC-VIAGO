@@ -5,13 +5,11 @@
     }</div>
   }
 
-  <section class="lookup-panel review-header-panel">
-    <div class="lookup-heading">
-      <div>
-        <span class="eyebrow">CSKH sau chuyến</span>
-        <h1>Quản lý đánh giá & phản hồi</h1>
-      </div>
-    </div>
+  <app-admin-page-header title="Quản lý đánh giá & phản hồi" section="CSKH sau chuyến">
+
+</app-admin-page-header>
+<section class="lookup-panel review-header-panel">
+
 
     <!-- Rating Insights & Summary Strip section -->
     <div class="lookup-summary-section">
@@ -120,7 +118,7 @@
           <span>{{ LabelLocSao() }}</span>
           <span class="chevron">▼</span>
         </button>
-        
+
         @if (HienDropdownSao()) {
           <div class="star-dropdown-menu" id="review-star-options" (click)="$event.stopPropagation()">
             <div class="star-chip-grid">
@@ -212,7 +210,7 @@
                   <app-badge [variant]="LaDaXuLy(dg) ? 'success' : 'warning'" [label]="getTrangThaiText(dg.TrangThaiXuLy)" />
                 </td>
                 <td class="actions-col" (click)="$event.stopPropagation()">
-                  <button type="button" class="action-btn-icon edit" (click)="ChonVaXuLy(dg)" title="Xử lý và phản hồi" [attr.aria-label]="'Xử lý đánh giá của ' + dg.HoTenKhachHang">
+                  <button type="button" class="action-btn-icon edit admin-edit-action" (click)="ChonVaXuLy(dg)" title="Xử lý và phản hồi" [attr.aria-label]="'Xử lý đánh giá của ' + dg.HoTenKhachHang">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                   </button>
                 </td>
@@ -265,7 +263,7 @@
               <div>Chuyến: <strong>{{ dg.MaLichTrinh }}</strong></div>
             </div>
             <p style="margin: 8px 0 0 0; font-size: var(--font-size-body); font-style: italic; color: var(--color-neutral-600); border-top: 1px dashed var(--color-border-strong); padding-top: 8px; line-height: var(--line-height-body)">“{{ dg.NoiDungDanhGia }}”</p>
-            
+
             <div style="background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); padding: 12px; margin-top: 10px">
               <h4 style="margin: 0 0 8px 0; font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); color: var(--color-primary-500); text-transform: none">Chi tiết điểm tiêu chí</h4>
               <div class="criteria-detail-grid">
@@ -285,7 +283,7 @@
                 }
               </div>
             </div>
-            
+
             <div style="border-top: 1px dashed var(--color-border-strong); padding-top: 12px; margin-top: 12px; display: flex; flex-direction: column; gap: 10px">
               <div style="display: flex; align-items: center; justify-content: space-between">
                 <span style="font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); color: var(--color-neutral-600)">Trạng thái hiển thị: <strong [style.color]="dg.TrangThai === 'hien-thi' ? 'var(--color-success-700)' : 'var(--color-danger-700)'">{{ dg.TrangThai === 'hien-thi' ? 'Hiển thị' : 'Đang ẩn' }}</strong></span>
@@ -293,7 +291,7 @@
                   {{ dg.TrangThai === 'hien-thi' ? 'Ẩn vi phạm' : 'Hiển thị lại' }}
                 </button>
               </div>
-              
+
               <div class="field" style="margin-top: 4px; display: flex; flex-direction: column; gap: 4px">
                 <label for="review-internal-note">Ghi chú nội bộ <small>Chỉ nhân viên nhìn thấy</small></label>
                 <textarea
@@ -365,7 +363,7 @@
 
 <app-modal class="review-confirm-modal" [open]="HienModalXacNhanAn()" title="Xác nhận trạng thái hiển thị"
   size="small" [confirmMode]="true" [danger]="DanhGiaMuonAn()?.TrangThai === 'hien-thi'"
-  confirmText="Xác nhận" cancelText="Quay lại" (confirmed)="XacNhanDaoTrangThai()" (closed)="DongModalXacNhanAn()">
+  confirmText="Xác nhận" cancelText="Quay lại" (confirmed)="XacNhanDaoTrangThai()" (closed)="DongModalXacNhanAn()" [fixedLayout]="true" [fitContent]="true">
   @if (DanhGiaMuonAn(); as target) {
     <p><strong>{{ target.TrangThai === 'hien-thi' ? 'Ẩn đánh giá này?' : 'Hiển thị lại đánh giá này?' }}</strong></p>
     <p>Chỉ ẩn nội dung vi phạm quy định. Đánh giá tiêu cực vẫn cần được tiếp nhận và phản hồi. Nội dung bị ẩn được giữ trong quản trị để đối soát.</p>
@@ -375,6 +373,6 @@
 </app-modal>
 <app-modal class="review-confirm-modal" [open]="!!PhanHoiMuonXoa()" title="Xóa phản hồi" size="small"
   [confirmMode]="true" [danger]="true" confirmText="Xóa phản hồi" cancelText="Quay lại"
-  (confirmed)="XacNhanXoaPhanHoi()" (closed)="PhanHoiMuonXoa.set(null)">
+  (confirmed)="XacNhanXoaPhanHoi()" (closed)="PhanHoiMuonXoa.set(null)" [fixedLayout]="true" [fitContent]="true">
   <p>Bạn có chắc muốn xóa phản hồi đã gửi cho {{ PhanHoiMuonXoa()?.HoTenKhachHang }}?</p>
 </app-modal>

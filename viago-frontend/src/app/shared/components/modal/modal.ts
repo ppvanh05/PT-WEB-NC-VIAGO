@@ -15,6 +15,11 @@ export class ModalComponent implements OnChanges, AfterViewChecked, OnDestroy {
   private focusPending = false;
   private backdropPress: { x: number; y: number } | null = null;
   private moved = false;
+  // Shared dialogs can open above a legacy editor or another shared dialog.
+  get layerStyle(): string {
+    const index = Math.max(0, ModalComponent.stack.indexOf(this));
+    return `calc(var(--z-modal, 1200) + ${40 + index * 10})`;
+  }
   ngOnChanges(): void {
     const registered = ModalComponent.stack.includes(this);
     if (this.open && !registered) {
@@ -57,6 +62,8 @@ export class ModalComponent implements OnChanges, AfterViewChecked, OnDestroy {
   @Input() title = '';
   @Input() description = '';
   @Input() confirmMode = false;
+  @Input() lockAction = false;
+  @Input() lockUnlocked = false;
   @Input() danger = false;
   @Input() loading = false;
   @Input() closeOnBackdrop = true;

@@ -1446,7 +1446,7 @@ h3 {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: var(--z-modal, 1200);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3007,8 +3007,8 @@ h3 {
 
 /* Booking forms follow the shared typography, controls and modal layers. */
 .modal-overlay { z-index: var(--z-modal, 1200); box-sizing: border-box; padding: 24px; }
-.modal-overlay.top-layer, .modal-overlay.print-layer, .modal-overlay.confirm-layer { z-index: 1210; }
-.modal-overlay.verify-layer, .modal-overlay.confirm-changes-layer { z-index: 1220; }
+.modal-overlay.top-layer, .modal-overlay.print-layer, .modal-overlay.confirm-layer { z-index: calc(var(--z-modal, 1200) + 10); }
+.modal-overlay.verify-layer, .modal-overlay.confirm-changes-layer { z-index: calc(var(--z-modal, 1200) + 20); }
 .booking-modal { width: min(1100px, 100%); max-height: calc(100dvh - 48px); }
 .booking-modal .modal-header { flex: 0 0 auto; padding: 20px 24px; }
 .booking-modal .modal-header h2 { font-size: var(--font-size-h3); line-height: var(--line-height-h3); font-weight: var(--font-weight-semibold); margin: 4px 0 0; }

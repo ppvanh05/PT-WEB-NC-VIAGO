@@ -1,3 +1,6 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
+import { Pagination } from '../../../../shared/components/pagination/pagination';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -18,7 +21,13 @@ interface CustomerReportItem {
 @Component({
   selector: 'app-customer-report',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    Pagination,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './customer-report.html',
   styleUrls: ['./customer-report.css']
 })
@@ -135,12 +144,12 @@ export class CustomerReportComponent implements OnInit {
   onViewReport() {
     this.filteredCustomers = this.customers.filter(customer => {
       const listMode = this.cheDoXem === 'danh-sach';
-      const matchSearch = !listMode || !this.filters.searchTerm || 
+      const matchSearch = !listMode || !this.filters.searchTerm ||
         customer.maKH.toLowerCase().includes(this.filters.searchTerm.toLowerCase()) ||
         customer.hoTen.toLowerCase().includes(this.filters.searchTerm.toLowerCase()) ||
         customer.sdt.includes(this.filters.searchTerm) ||
         customer.email.toLowerCase().includes(this.filters.searchTerm.toLowerCase());
-      
+
       const matchStatus = this.filters.status === 'Tất cả' || customer.trangThai === this.filters.status;
       const matchLoaiKH = this.filters.loaiKH === 'Tất cả' || customer.loaiKH === this.filters.loaiKH;
       const matchHangTV = this.filters.hangTV === 'Tất cả' || customer.hangThanhVien === this.filters.hangTV;
@@ -149,7 +158,7 @@ export class CustomerReportComponent implements OnInit {
         (this.filters.chiTieu === '1 - 5 triệu' && customer.tongChiTieu >= 1000000 && customer.tongChiTieu < 5000000) ||
         (this.filters.chiTieu === '5 - 10 triệu' && customer.tongChiTieu >= 5000000 && customer.tongChiTieu < 10000000) ||
         (this.filters.chiTieu === 'Từ 10 triệu' && customer.tongChiTieu >= 10000000);
-      
+
       // Date filtering logic (simplified for mock)
       let matchDate = true;
       if (listMode && (this.filters.fromDate || this.filters.toDate)) {
@@ -201,11 +210,11 @@ export class CustomerReportComponent implements OnInit {
       acc.total++;
       if (curr.trangThai === 'Đang hoạt động') acc.active++;
       else acc.locked++;
-      
+
       acc.totalTickets += curr.tongVeDat;
       if (curr.loaiKH === 'Hội viên') acc.totalMembers++;
       acc.totalSpending += curr.tongChiTieu;
-      
+
       return acc;
     }, {
       total: 0,

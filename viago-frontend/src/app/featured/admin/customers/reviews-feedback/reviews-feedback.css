@@ -178,7 +178,7 @@ button.summary-item {
 
 .table-panel {
   min-height: 0;
-  flex: 1;
+  flex: 0 0 auto;
   overflow: hidden;
 }
 
@@ -204,8 +204,8 @@ button.summary-item {
 }
 
 .table-scroll {
-  flex: 1;
-  overflow: auto;
+  flex: 0 0 auto;
+  overflow-x: auto;
 }
 
 .pagination-bar {
@@ -259,7 +259,7 @@ table {
 }
 
 th {
-  position: sticky;
+  position: static;
   top: 0;
   z-index: 2;
   border-bottom: 1px solid var(--color-border);
@@ -390,7 +390,7 @@ tbody tr.cancelled {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: var(--z-modal);
+  z-index: var(--z-modal, 1200);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -980,7 +980,7 @@ tbody tr.cancelled {
   .filters-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .lookup-summary-section {
     grid-template-columns: 1fr !important;
   }
@@ -1651,7 +1651,7 @@ textarea:focus,
 .star-empty { color: var(--color-neutral-300); }
 .rating-insights-card .crit-label { color: var(--color-text-body); }
 .rating-insights-card .crit-score { color: var(--color-text-primary); font-weight: var(--font-weight-medium); }
-.modal-overlay { z-index: var(--z-modal) !important; box-sizing: border-box; }
+.modal-overlay { z-index: var(--z-modal, 1200) !important; box-sizing: border-box; }
 .review-response-modal { max-height: calc(100dvh - 32px); }
 .review-response-modal .modal-header { padding: 20px 24px; }
 .review-response-modal .modal-header h2 { font-size: var(--font-size-h3) !important; line-height: var(--line-height-h3); font-weight: var(--font-weight-semibold); color: var(--color-text-primary) !important; }

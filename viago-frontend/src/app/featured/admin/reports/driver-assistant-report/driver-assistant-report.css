@@ -1,7 +1,6 @@
 /* ==========================================================================
    DESIGN SYSTEM & GLOBAL VARIABLES (Inter Font and ERP-style Hex Palette)
    ========================================================================== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :host {
   display: block;
@@ -16,7 +15,7 @@
 :host *,
 .report-container,
 .report-container * {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-family: var(--font-family-base) !important;
   box-sizing: border-box;
 }
 

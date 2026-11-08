@@ -2,6 +2,7 @@
   display: block;
   min-width: 0;
   color: var(--color-text-primary);
+  font-family: var(--font-family-base);
 }
 * {
   box-sizing: border-box;
@@ -27,6 +28,7 @@ p {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+  padding: var(--space-6) 30px;
 }
 .eyebrow {
   font-size: 12px;
@@ -105,8 +107,13 @@ td:nth-child(2) {
   max-width: 410px;
 }
 td:last-child {
-  min-width: 190px;
+  min-width: 72px;
+  width: 88px;
+  text-align: center;
 }
+.content-tabs { padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--color-border); }
+.filter-actions, .record-tools { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.record-tools { padding: var(--space-4); margin-bottom: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-neutral-50); }
 .right {
   text-align: right;
 }
@@ -161,12 +168,24 @@ td:last-child {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 .editor-form fieldset {
   border: 0;
   padding: 0;
   margin: 0;
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding-right: var(--space-2);
+}
+:host ::ng-deep app-modal .modal-body:has(.editor-form) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  gap: var(--space-4);
 }
 .form-grid {
   display: grid;
@@ -225,6 +244,7 @@ td:last-child {
   gap: 12px;
   border-top: 1px solid var(--color-border);
   padding-top: 16px;
+  flex-shrink: 0;
 }
 .content-preview {
   padding: 20px;

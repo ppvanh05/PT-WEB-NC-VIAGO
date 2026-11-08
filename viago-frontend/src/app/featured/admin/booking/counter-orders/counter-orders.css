@@ -33,7 +33,7 @@ h2 {
   align-items: end;
 }
 .table-scroll {
-  overflow: auto;
+  overflow-x: auto;
 }
 table {
   min-width: 850px;

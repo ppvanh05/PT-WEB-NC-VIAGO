@@ -1,3 +1,4 @@
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker';
 import { SidebarStateService } from '../../../../core/services/sidebar-state.service';
 import { BookingDialog, printBookingReceipts } from '../booking-dialog';
@@ -8,9 +9,9 @@ import { Button } from '../../../../shared/components/button/button';
 import { Badge } from '../../../../shared/components/badge/badge';
 import { ModalComponent } from '../../../../shared/components/modal/modal';
 import { Pagination } from '../../../../shared/components/pagination/pagination';
-import { AfterViewInit, Component, ElementRef, OnInit, ViewChild, computed, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnInit, ViewChild, computed, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CounterOrders } from '../counter-orders/counter-orders';
+import { CounterOrder, CounterOrders } from '../counter-orders/counter-orders';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -77,19 +78,26 @@ interface HoanTienInfo {
   moTa: string;
 }
 
-interface DonHangTraCuu {
-  MaDonHang: string;
-  DaiDien: VeXe;
-  SoVe: number;
-  SoVeHieuLuc: number;
-  TongHieuLuc: number;
-  Ghe: string;
-}
+type BookingListRow =
+  | { kind: 'ticket'; key: string; ticket: VeXe; time: number }
+  | { kind: 'order'; key: string; order: CounterOrder; time: number };
 
 @Component({
   selector: 'app-booking-management',
   standalone: true,
-  imports: [CounterOrders, DatePickerComponent, Toast, BookingDialog, Button, Badge, ModalComponent, Pagination, CommonModule, FormsModule],
+  imports: [
+    CounterOrders,
+    DatePickerComponent,
+    Toast,
+    BookingDialog,
+    Button,
+    Badge,
+    ModalComponent,
+    Pagination,
+    CommonModule,
+    FormsModule,
+    AdminPageHeader,
+  ],
   templateUrl: './booking-management.html',
   styleUrl: './booking-management.css'
 })
@@ -239,11 +247,6 @@ export class BookingManagement implements OnInit, AfterViewInit {
 
   danhSachVe = signal<VeXe[]>([]);
 
-  traCuuSdt = signal('');
-  traCuuMaDonHang = signal('');
-  loiTraCuuDonHang = signal('');
-  maDonHangDangXem = signal('');
-  maDonHangTimThay = signal<string[]>([]);
 
   tuKhoa = signal('');
   locTuyen = signal('');
@@ -411,7 +414,8 @@ export class BookingManagement implements OnInit, AfterViewInit {
   goiYTuyen = computed(() => {
     const routes = [
       ...this.tuyenList.filter(tuyen => tuyen.id !== 'tat-ca').map(tuyen => this.HienThiTuyen(tuyen.name)),
-      ...this.danhSachVe().map(ve => this.HienThiTuyen(ve.TenTuyenXe))
+      ...this.danhSachVe().map(ve => this.HienThiTuyen(ve.TenTuyenXe)),
+      ...(this.counterOrders()?.rows() ?? []).map(order => `${order.from} → ${order.to}`)
     ];
 
     return Array.from(new Set(routes)).sort((a, b) => a.localeCompare(b, 'vi'));
@@ -424,6 +428,7 @@ export class BookingManagement implements OnInit, AfterViewInit {
   });
 
   danhSachLoc = computed(() => {
+    const persistedIds = new Set(this.counterOrders()?.rows().map(order => order.id) ?? []);
     const query = this.tuKhoa();
     const queryDigits = query.replace(/\D/g, '');
     const tuyen = this.locTuyen();
@@ -433,6 +438,7 @@ export class BookingManagement implements OnInit, AfterViewInit {
 
     return this.danhSachVe()
       .filter(v => {
+        if (v.MaDonHang && persistedIds.has(v.MaDonHang)) return false;
         const keyword = [
           v.MaDonHang,
           v.MaVe,
@@ -453,7 +459,7 @@ export class BookingManagement implements OnInit, AfterViewInit {
           v.MaLichTrinh
         ].join(' ');
         const ticketDigits = [v.SdtNguoiDi, v.MaDonHang, v.MaVe].join(' ').replace(/\D/g, '');
-        const matchSearch = query ? this.MatchSearchText(keyword, query) || (queryDigits ? ticketDigits.includes(queryDigits) : false) : true;
+        const matchSearch = query ? this.MatchSearchText(keyword, query) || (/^[\d\s()+.-]+$/.test(query) && !!queryDigits && ticketDigits.includes(queryDigits)) : true;
         const matchTuyen = tuyen ? this.KhopLocTuyenMotChieu(v.TenTuyenXe, tuyen) : true;
         const matchNgay = ngay ? v.NgayKhoiHanh === ngay : true;
         const matchTrangThai = this.KhopTrangThaiLoc(v, trangThai);
@@ -468,52 +474,46 @@ export class BookingManagement implements OnInit, AfterViewInit {
       .sort((a, b) => this.NewestFirst(a, b));
   });
 
-  veTrongDonDangXem = computed(() => {
-    const maDonHang = this.maDonHangDangXem();
-    if (!maDonHang) return [];
+  readonly counterOrders = viewChild(CounterOrders);
 
-    return this.danhSachVe()
-      .filter(ve => ve.MaDonHang === maDonHang)
-      .sort((a, b) => this.SoThuTuGhe(a.SoGhe) - this.SoThuTuGhe(b.SoGhe));
+  DepartureDate(value: string): string {
+    const time = Date.parse(value);
+    return Number.isFinite(time) ? new Date(time + 7 * 60 * 60 * 1000).toISOString().slice(0, 10) : '';
+  }
+
+  donKhachLoc = computed(() => {
+    const query = this.tuKhoa().trim();
+    const digits = query.replace(/\D/g, '');
+    const statuses: Record<string, string> = {
+      'cho-thanh-toan': 'ChoThanhToanTrucTiep', 'da-thanh-toan': 'DaThanhToan',
+      'da-huy': 'DaHuy', 'het-han': 'HetHanThanhToan',
+    };
+    const payments: Record<string, string> = {
+      pending: 'ChoThanhToanTrucTiep', 'da-thanh-toan': 'DaThanhToan', expired: 'HetHanThanhToan',
+    };
+    return (this.counterOrders()?.rows() ?? []).filter(order => {
+      const route = `${order.from} → ${order.to}`;
+      const date = this.DepartureDate(order.departureAt);
+      const text = [order.id, order.name, order.phone, route, date, this.DinhDangNgay(date)].join(' ');
+      return (!query || this.MatchSearchText(text, query)
+          || (/^[\d\s()+.-]+$/.test(query) && !!digits && order.phone.replace(/\D/g, '').includes(digits)))
+        && (!this.locTuyen() || this.KhopLocTuyenMotChieu(route, this.locTuyen()))
+        && (!this.locNgay() || date === this.locNgay())
+        && (this.locTrangThaiVe() === 'tat-ca' || statuses[this.locTrangThaiVe()] === order.status)
+        && (this.locTrangThaiDonHang() === 'tat-ca' || payments[this.locTrangThaiDonHang()] === order.status)
+        && (this.locNguonDat() === 'tat-ca' || this.locNguonDat() === 'online');
+    });
   });
 
-  donHangDangXem = computed(() => {
-    const tickets = this.veTrongDonDangXem();
-    return tickets.length > 0 ? tickets[0] : null;
-  });
+  danhSachTongHop = computed<BookingListRow[]>(() => [
+    ...this.danhSachLoc().map(ticket => ({ kind: 'ticket' as const, key: `ticket:${ticket.MaVe}`, ticket, time: this.BookingTime(ticket.ThoiGianDat) })),
+    ...this.donKhachLoc().map(order => ({ kind: 'order' as const, key: `order:${order.id}`, order, time: this.BookingTime(order.createdAt || '') })),
+  ].sort((a, b) => b.time - a.time || b.key.localeCompare(a.key, 'vi', { numeric: true })));
 
-  donHangTimThay = computed<DonHangTraCuu[]>(() => {
-    return this.maDonHangTimThay()
-      .map(maDonHang => {
-        const tickets = this.danhSachVe()
-          .filter(ve => ve.MaDonHang === maDonHang)
-          .sort((a, b) => this.SoThuTuGhe(a.SoGhe) - this.SoThuTuGhe(b.SoGhe));
-
-        const daiDien = tickets[0];
-        if (!daiDien) return null;
-
-        const veHieuLuc = tickets.filter(ve => ve.TrangThaiVe !== 'da-huy');
-        return {
-          MaDonHang: maDonHang,
-          DaiDien: daiDien,
-          SoVe: tickets.length,
-          SoVeHieuLuc: veHieuLuc.length,
-          TongHieuLuc: veHieuLuc.reduce((sum, ve) => sum + ve.GiaVe, 0),
-          Ghe: tickets.map(ve => ve.SoGhe).join(', ')
-        };
-      })
-      .filter((item): item is DonHangTraCuu => !!item);
-  });
-
-  tongGiaTriDonDangXem = computed(() => {
-    return this.veTrongDonDangXem().reduce((sum, ve) => sum + ve.GiaVe, 0);
-  });
-
-  tongGiaTriDonHieuLuc = computed(() => {
-    return this.veTrongDonDangXem()
-      .filter(ve => ve.TrangThaiVe !== 'da-huy')
-      .reduce((sum, ve) => sum + ve.GiaVe, 0);
-  });
+  LamMoiDanhSach() {
+    this.TaiDuLieu();
+    void this.counterOrders()?.load();
+  }
 
   thongKe = computed(() => {
     const list = this.danhSachLoc();
@@ -521,16 +521,18 @@ export class BookingManagement implements OnInit, AfterViewInit {
     const refunded = (v: VeXe) => v.refundStatus === 'completed' || v.paymentStatus === 'refunded';
     const refund = (v: VeXe) => v.refundAmount ?? 0;
     const completed = (v: VeXe) => v.refundedAmount ?? (refunded(v) ? refund(v) : 0);
-    return { tong: list.length, daBan: list.filter(v => v.TrangThaiDonHang === 'da-thanh-toan' && v.TrangThaiVe !== 'da-huy').length,
-      giuCho: list.filter(v => v.TrangThaiVe !== 'da-huy' && (v.TrangThaiDonHang !== 'da-thanh-toan' || (v.balanceDue || 0) > 0)).length,
-      daHuy: list.filter(v => v.TrangThaiVe === 'da-huy').length,
-      doanhThu: list.reduce((sum,v) => sum + paid(v) - completed(v), 0),
+    const orders = this.donKhachLoc();
+    const seats = (status?: string) => orders.filter(o => !status || o.status === status).reduce((sum, o) => sum + o.seatCount, 0);
+    return { tong: list.length + seats(), daBan: list.filter(v => v.TrangThaiDonHang === 'da-thanh-toan' && v.TrangThaiVe !== 'da-huy').length + seats('DaThanhToan'),
+      giuCho: list.filter(v => v.TrangThaiVe !== 'da-huy' && (v.TrangThaiDonHang !== 'da-thanh-toan' || (v.balanceDue || 0) > 0)).length + seats('ChoThanhToanTrucTiep'),
+      daHuy: list.filter(v => v.TrangThaiVe === 'da-huy').length + seats('DaHuy'),
+      doanhThu: list.reduce((sum,v) => sum + paid(v) - completed(v), 0) + orders.filter(o => o.status === 'DaThanhToan').reduce((sum, o) => sum + o.total, 0),
       choHoan: list.filter(v => !refunded(v)).reduce((sum,v) => sum + refund(v), 0),
       daHoan: list.reduce((sum,v) => sum + completed(v), 0) };
   });
 
   tongTrang = computed(() => {
-    return Math.max(1, Math.ceil(this.danhSachLoc().length / this.soDongMoiTrang()));
+    return Math.max(1, Math.ceil(this.danhSachTongHop().length / this.soDongMoiTrang()));
   });
 
   trangHopLe = computed(() => {
@@ -539,16 +541,16 @@ export class BookingManagement implements OnInit, AfterViewInit {
 
   danhSachPhanTrang = computed(() => {
     const start = (this.trangHopLe() - 1) * this.soDongMoiTrang();
-    return this.danhSachLoc().slice(start, start + this.soDongMoiTrang());
+    return this.danhSachTongHop().slice(start, start + this.soDongMoiTrang());
   });
 
   chiSoDauTrang = computed(() => {
-    if (this.danhSachLoc().length === 0) return 0;
+    if (this.danhSachTongHop().length === 0) return 0;
     return (this.trangHopLe() - 1) * this.soDongMoiTrang() + 1;
   });
 
   chiSoCuoiTrang = computed(() => {
-    return Math.min(this.trangHopLe() * this.soDongMoiTrang(), this.danhSachLoc().length);
+    return Math.min(this.trangHopLe() * this.soDongMoiTrang(), this.danhSachTongHop().length);
   });
 
 coThayDoiSua = computed(() => {
@@ -624,97 +626,13 @@ coThayDoiSua = computed(() => {
     this.showDetailModal.set(true);
   }
 
-  TraCuuDonHang() {
-    let phone = this.traCuuSdt().replace(/\D/g, '');
-    let orderCode = this.traCuuMaDonHang().trim().toUpperCase();
-    const keyword = this.tuKhoa().trim();
-
-    if (!phone && !orderCode && keyword) {
-      const keywordDigits = keyword.replace(/\D/g, '');
-      if (keywordDigits.length >= 9 && !/[A-Za-zÀ-ỹ]/.test(keyword)) {
-        phone = keywordDigits;
-      } else {
-        orderCode = keyword.toUpperCase();
-      }
-    }
-
-    if (!phone && !orderCode) {
-      this.loiTraCuuDonHang.set('Nhập số điện thoại hoặc mã đơn hàng để tra cứu.');
-      this.maDonHangDangXem.set('');
-      this.maDonHangTimThay.set([]);
-      return;
-    }
-
-    const orderTickets = this.danhSachVe().filter(ve =>
-      (phone ? ve.SdtNguoiDi.replace(/\D/g, '').includes(phone) : true) &&
-      (orderCode ? (ve.MaDonHang || '').toUpperCase() === orderCode || ve.MaVe.toUpperCase() === orderCode : true)
-    );
-
-    if (orderTickets.length === 0) {
-      this.loiTraCuuDonHang.set('Không tìm thấy đơn hàng phù hợp.');
-      this.maDonHangDangXem.set('');
-      this.maDonHangTimThay.set([]);
-      return;
-    }
-
-    const orderCodes = Array.from(new Set(orderTickets.map(ve => ve.MaDonHang || ve.MaVe)));
-    this.loiTraCuuDonHang.set('');
-    this.maDonHangTimThay.set(orderCodes);
-    this.maDonHangDangXem.set(orderCodes.length === 1 ? orderCodes[0] : '');
-    this.tuKhoa.set(orderCode || phone);
-    this.trangHienTai.set(1);
-  }
-
   CapNhatTuKhoa(value: string) {
     this.tuKhoa.set(value);
-    this.loiTraCuuDonHang.set('');
     this.trangHienTai.set(1);
   }
 
   TimKiemTongHop() {
-    const keyword = this.tuKhoa().trim();
-    if (!keyword) {
-      this.trangHienTai.set(1);
-      return;
-    }
-
-    const keywordDigits = keyword.replace(/\D/g, '');
-    const upperKeyword = keyword.toUpperCase();
-    const looksLikeOrder = /^(DH|VE)[A-Z0-9-]+$/.test(upperKeyword);
-    const looksLikePhone = keywordDigits.length >= 4 && !/[A-Za-zÀ-ỹ]/.test(keyword);
-
-    if (looksLikeOrder || looksLikePhone) {
-      this.TraCuuDonHang();
-      return;
-    }
-
-    this.maDonHangDangXem.set('');
-    this.maDonHangTimThay.set([]);
-    this.loiTraCuuDonHang.set('');
-    this.trangHienTai.set(1);
-  }
-
-  ApDungBoLoc() {
-    if (this.traCuuMaDonHang().trim() || this.traCuuSdt().trim()) {
-      this.TraCuuDonHang();
-      return;
-    }
-    this.TimKiemTongHop();
-  }
-
-  ChonDonHangTraCuu(maDonHang: string) {
-    this.maDonHangDangXem.set(maDonHang);
-    this.tuKhoa.set(maDonHang);
-    this.trangHienTai.set(1);
-  }
-
-  DongTraCuuDonHang() {
-    this.maDonHangDangXem.set('');
-    this.maDonHangTimThay.set([]);
-    this.loiTraCuuDonHang.set('');
-    this.traCuuSdt.set('');
-    this.traCuuMaDonHang.set('');
-    this.tuKhoa.set('');
+    this.tuKhoa.update(value => value.trim());
     this.trangHienTai.set(1);
   }
 
@@ -939,7 +857,7 @@ coThayDoiSua = computed(() => {
         ...v,
         TrangThaiVe: 'da-huy' as TrangThaiVe,
         orderStatus: 'cancelled' as const,
-        paymentStatus: v.TrangThaiDonHang === 'da-thanh-toan' ? (refund.soTien > 0 ? 'refund-processing' as const : 'paid' as const) : v.paymentStatus, 
+        paymentStatus: v.TrangThaiDonHang === 'da-thanh-toan' ? (refund.soTien > 0 ? 'refund-processing' as const : 'paid' as const) : v.paymentStatus,
         GhiChu: note,
         NguoiHuy: this.currentUser.name,
         paidAmount: v.paidAmount ?? (v.TrangThaiDonHang === 'da-thanh-toan' ? v.GiaVe : 0),
@@ -1011,11 +929,6 @@ coThayDoiSua = computed(() => {
 
   XoaBoLoc() {
     this.tuKhoa.set('');
-    this.traCuuSdt.set('');
-    this.traCuuMaDonHang.set('');
-    this.maDonHangDangXem.set('');
-    this.maDonHangTimThay.set([]);
-    this.loiTraCuuDonHang.set('');
     this.locTuyen.set('');
     this.showTuyenSuggestions.set(false);
     this.locNgay.set('');

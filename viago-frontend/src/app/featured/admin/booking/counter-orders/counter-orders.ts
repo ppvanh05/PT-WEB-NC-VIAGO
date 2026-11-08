@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, Input as AngularInput, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminContentApi } from '../../../../core/services/content-api.service';
 import { Card } from '../../../../shared/components/card/card';
@@ -9,13 +9,14 @@ import { Input } from '../../../../shared/components/input/input';
 import { Select } from '../../../../shared/components/input/select/select';
 import { Pagination } from '../../../../shared/components/pagination/pagination';
 import { ModalComponent } from '../../../../shared/components/modal/modal';
-interface CounterOrder {
+export interface CounterOrder {
   id: string;
   name: string;
   phone: string;
   from: string;
   to: string;
   departureAt: string;
+  createdAt?: string;
   expiresAt: string;
   total: number;
   seatCount: number;
@@ -39,6 +40,7 @@ interface CounterOrder {
   styleUrl: './counter-orders.css',
 })
 export class CounterOrders implements OnInit {
+  @AngularInput() embedded = false;
   private readonly api = inject(AdminContentApi);
   private readonly destroy = inject(DestroyRef);
   private readonly abort = new AbortController();
@@ -62,6 +64,7 @@ export class CounterOrders implements OnInit {
     this.destroy.onDestroy(() => this.abort.abort());
   }
   ngOnInit() {
+    if (this.embedded) this.status = 'all';
     void this.load();
   }
   label(status: string) {
@@ -86,16 +89,30 @@ export class CounterOrders implements OnInit {
     this.error.set('');
     try {
       const q = new URLSearchParams({
-        page: String(this.page),
-        pageSize: '10',
-        status: this.status,
+        page: String(this.embedded ? 1 : this.page),
+        pageSize: this.embedded ? '100' : '10',
+        status: this.embedded ? 'all' : this.status,
       });
-      if (this.search.trim()) q.set('search', this.search.trim());
+      if (!this.embedded && this.search.trim()) q.set('search', this.search.trim());
       const result = await this.api.request<{
         data: CounterOrder[];
         pagination: { total: number; totalPages: number };
       }>('counter-orders?' + q, 'GET', undefined, this.abort.signal);
       if (version !== this.version || this.abort.signal.aborted) return;
+      if (this.embedded) {
+        // The parent owns filtering and pagination across both data sources.
+        const rows = [...result.data];
+        for (let page = 2; page <= result.pagination.totalPages; page++) {
+          q.set('page', String(page));
+          const next = await this.api.request<typeof result>('counter-orders?' + q, 'GET', undefined, this.abort.signal);
+          if (version !== this.version || this.abort.signal.aborted) return;
+          rows.push(...next.data);
+        }
+        const unique = [...new Map(rows.map(row => [row.id, row])).values()];
+        this.rows.set(unique);
+        this.total.set(unique.length);
+        return;
+      }
       if (this.page > Math.max(1, result.pagination.totalPages)) {
         this.page = Math.max(1, result.pagination.totalPages);
         await this.load();
@@ -114,6 +131,10 @@ export class CounterOrders implements OnInit {
   }
   open(row: CounterOrder) {
     if (!this.canCollect(row) || this.saving()) return;
+    this.inspect(row);
+  }
+  inspect(row: CounterOrder) {
+    if (this.saving()) return;
     this.acknowledged = false;
     this.error.set('');
     this.selected.set(row);

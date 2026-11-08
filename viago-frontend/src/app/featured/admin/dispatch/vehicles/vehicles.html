@@ -1,13 +1,7 @@
 <div class="management-container">
   <!-- Premium Header Container -->
-  <div class="header-card-container">
-    <div class="header-titles">
-      <span class="category-tag">QUẢN LÝ ĐIỀU PHỐI</span>
-      <h1 class="main-title">Phương tiện</h1>
-    </div>
-    
-    <!-- Action Banner & Create Button Box -->
-    <div class="header-action-banner" (click)="openAddModal()" title="Nhấp để thêm phương tiện mới">
+  <app-admin-page-header title="Phương tiện" section="QUẢN LÝ ĐIỀU PHỐI">
+<div class="header-action-banner admin-create-action" (click)="openAddModal()" title="Nhấp để thêm phương tiện mới">
       <div class="action-icon-circle">
         <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
@@ -20,13 +14,13 @@
         <p>Thiết lập thông tin xe, biển số, loại xe và các tiện ích đi kèm.</p>
       </div>
     </div>
-  </div>
+</app-admin-page-header>
 
   <!-- Main Dashboard Card -->
   <div class="dashboard-card">
     <!-- Tabs matching Lịch trình style -->
     <div class="dashboard-control-panel">
-      <div class="pill-tabs">
+      <app-admin-tabs class="pill-tabs admin-tabs">
         <button class="pill-tab-item" [class.active]="activeTab === 'Tất cả'" (click)="setTab('Tất cả')">
           Tất cả phương tiện ({{ getTotalCount() }})
         </button>
@@ -39,7 +33,7 @@
         <button class="pill-tab-item" [class.active]="activeTab === 'Đã khóa'" (click)="setTab('Đã khóa')">
           Đã khóa ({{ getCountByStatus('Đã khóa') }})
         </button>
-      </div>
+      </app-admin-tabs>
     </div>
 
     <!-- Filter Bar & View Options -->
@@ -107,13 +101,13 @@
               </div>
             </td>
           </tr>
-          
+
           <!-- Data Rows -->
           <tr *ngFor="let vehicle of paginatedVehicles; let i = index">
             <td class="col-stt text-center">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
             <td class="col-name">
               <div class="name-with-status">
-                <span class="status-indicator" 
+                <span class="status-indicator"
                   [class.active]="vehicle.status === 'Đang hoạt động'"
                   [class.maintenance]="vehicle.status === 'Bảo trì'"
                   [class.locked]="vehicle.status === 'Đã khóa'"></span>
@@ -139,7 +133,7 @@
               </div>
             </td>
             <td class="col-actions text-center">
-              <button class="admin-action-btn edit" title="Chỉnh sửa chi tiết" aria-label="Chỉnh sửa chi tiết" (click)="openEditModal(vehicle)">
+              <button class="admin-action-btn edit admin-edit-action" title="Chỉnh sửa chi tiết" aria-label="Chỉnh sửa chi tiết" (click)="openEditModal(vehicle)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
               </button>
             </td>
@@ -154,23 +148,7 @@
         {{ currentPage * pageSize > filteredVehicles.length ? filteredVehicles.length : currentPage * pageSize }}
         của {{ filteredVehicles.length }} phương tiện
       </div>
-      <div class="pagination-controls">
-        <button class="pagination-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1" aria-label="Trang trước">
-          <span class="material-symbols-outlined">chevron_left</span>
-        </button>
-        <ng-container *ngFor="let page of getPaginationItems()">
-          <button
-            class="pagination-btn"
-            [class.active]="currentPage === page"
-            (click)="setPage(page)"
-          >
-            {{ page }}
-          </button>
-        </ng-container>
-        <button class="pagination-btn" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages" aria-label="Trang sau">
-          <span class="material-symbols-outlined">chevron_right</span>
-        </button>
-      </div>
+      <app-pagination [currentPage]="currentPage" [totalItems]="filteredVehicles.length" [pageSize]="pageSize" [showSummary]="false" (pageChange)="setPage($event)" />
     </div>
   </div>
 
@@ -203,7 +181,7 @@
               <app-date-picker [(ngModel)]="currentVehicle.registrationExpiry" placeholder="dd/mm/yyyy" [showLunar]="false" />
             </div>
           </div>
-          
+
           <div class="form-item" [class.has-error]="errors.insuranceExpiry">
             <label>Hạn bảo hiểm xe <span class="required">*</span></label>
             <div class="input-with-icon">
@@ -318,9 +296,10 @@
         </div>
       </div>
 
-      <div class="modal-footer">
+      <div class="modal-footer admin-modal-actions">
+        <button [class.admin-lock-action--unlock]="currentVehicle.status === 'Đã khóa'" *ngIf="isEditMode" class="btn-status-new admin-lock-action" type="button" (click)="toggleStatus()">{{ currentVehicle.status === 'Đã khóa' ? 'Mở khóa' : 'Khóa' }}</button>
         <button *ngIf="isEditMode" class="btn-status-new" type="button" (click)="toggleMaintenance()">{{ currentVehicle.status === 'Bảo trì' ? 'Đưa vào hoạt động' : 'Bảo trì' }}</button>
-        <button *ngIf="isEditMode" class="btn-status-new" type="button" (click)="toggleStatus()">{{ currentVehicle.status === 'Đã khóa' ? 'Mở khóa' : 'Khóa' }}</button>
+
         <button class="btn-cancel-new" (click)="closeModal()">Hủy</button>
         <button class="btn-save-new" (click)="saveVehicle()">Lưu</button>
       </div>

@@ -1,13 +1,7 @@
 <div class="management-container">
   <!-- Premium Header Container -->
-  <div class="header-card-container">
-    <div class="header-titles">
-      <span class="category-tag">QUẢN LÝ ĐIỀU PHỐI</span>
-      <h1 class="main-title">Điểm đón, trả, dừng</h1>
-    </div>
-    
-    <!-- Info Banner & Create Button Box -->
-    <div class="header-action-banner" (click)="openAddModal()" title="Nhấp để thêm địa điểm mới">
+  <app-admin-page-header title="Điểm đón, trả, dừng" section="QUẢN LÝ ĐIỀU PHỐI">
+<div class="header-action-banner admin-create-action" (click)="openAddModal()" title="Nhấp để thêm địa điểm mới">
       <div class="action-icon-circle">
         <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
@@ -21,13 +15,13 @@
         <p>Thiết lập thông tin địa điểm, địa chỉ và liên kết bản đồ.</p>
       </div>
     </div>
-  </div>
+</app-admin-page-header>
 
   <!-- Main Dashboard Card -->
   <div class="dashboard-card">
     <!-- Tabs matching Lịch trình style -->
     <div class="dashboard-control-panel">
-      <div class="pill-tabs">
+      <app-admin-tabs class="pill-tabs admin-tabs">
         <button class="pill-tab-item" [class.active]="activeTab === 'don-tra'" (click)='setTab("don-tra")'>
           Điểm đón trả ({{ getCountByType('don-tra') }})
         </button>
@@ -37,7 +31,7 @@
         <button class="pill-tab-item" [class.active]="activeTab === 'locked'" (click)='setTab("locked")'>
           Đã khóa ({{ getLockedCount() }})
         </button>
-      </div>
+      </app-admin-tabs>
     </div>
 
     <!-- Filter Bar & View Options -->
@@ -109,7 +103,7 @@
               </div>
             </td>
           </tr>
-          
+
           <!-- Data Rows -->
           <tr *ngFor="let point of paginatedPoints; let i = index">
             <td class="col-stt text-center">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
@@ -124,14 +118,14 @@
               <span class="city-badge">{{ point.city }}</span>
             </td>
             <td *ngIf="activeTab === 'locked'" class="col-type text-center">
-              <span class="badge" 
-                [class.badge-info]="point.type === 'don-tra'" 
+              <span class="badge"
+                [class.badge-info]="point.type === 'don-tra'"
                 [class.badge-success]="point.type === 'dung'">
                 {{ point.type === 'don-tra' ? 'Đón trả' : 'Dừng chân' }}
               </span>
             </td>
             <td class="col-actions text-center">
-              <button class="admin-action-btn edit" title="Chỉnh sửa chi tiết" aria-label="Chỉnh sửa chi tiết" (click)="openEditModal(point)">
+              <button class="admin-action-btn edit admin-edit-action" title="Chỉnh sửa chi tiết" aria-label="Chỉnh sửa chi tiết" (click)="openEditModal(point)">
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -149,27 +143,7 @@
         {{ currentPage * pageSize > filteredPoints.length ? filteredPoints.length : currentPage * pageSize }}
         của {{ filteredPoints.length }} địa điểm
       </div>
-      <div class="pagination-controls">
-        <button class="pagination-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1" aria-label="Trang trước">
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-        </button>
-        <ng-container *ngFor="let page of getPaginationItems()">
-          <button
-            class="pagination-btn"
-            [class.active]="currentPage === page"
-            (click)="setPage(page)"
-          >
-            {{ page }}
-          </button>
-        </ng-container>
-        <button class="pagination-btn" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages" aria-label="Trang sau">
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m9 18 6-6-6-6" />
-          </svg>
-        </button>
-      </div>
+      <app-pagination [currentPage]="currentPage" [totalItems]="filteredPoints.length" [pageSize]="pageSize" [showSummary]="false" (pageChange)="setPage($event)" />
     </div>
   </div>
 
@@ -178,7 +152,7 @@
     <div class="modal-container" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h2 class="modal-title">
-          {{ isEditMode ? 'Cập nhật' : 'Thêm mới' }} 
+          {{ isEditMode ? 'Cập nhật' : 'Thêm mới' }}
           <span *ngIf="currentPoint.type === 'don-tra'">điểm đón trả</span>
           <span *ngIf="currentPoint.type === 'dung'">điểm dừng chân</span>
         </h2>
@@ -239,7 +213,7 @@
         <div class="form-row">
           <div class="form-item col-12">
             <label>
-              Hình ảnh 
+              Hình ảnh
               <span *ngIf="currentPoint.type === 'don-tra'">điểm đón trả</span>
               <span *ngIf="currentPoint.type === 'dung'">điểm dừng chân</span>
             </label>
@@ -281,21 +255,13 @@
         </div>
       </div>
 
-      <div class="modal-footer">
-        <div class="footer-left">
-          <button class="btn-status-toggle" *ngIf="isEditMode" (click)="toggleStatus()">
-            <svg *ngIf="currentPoint.status === 'active'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-            <svg *ngIf="currentPoint.status !== 'active'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-            </svg>
+      <div class="modal-footer admin-modal-actions">
+        <div class="footer-left admin-modal-actions-start">
+          <button type="button" [class.admin-lock-action--unlock]="currentPoint.status !== 'active'" class="btn-status-toggle admin-lock-action" *ngIf="isEditMode" (click)="toggleStatus()">
             {{ currentPoint.status === 'active' ? 'Khóa địa điểm' : 'Mở khóa' }}
           </button>
         </div>
-        <div class="footer-right">
+        <div class="footer-right admin-modal-actions-end">
           <button class="btn-cancel" (click)="closeModal()">Hủy bỏ</button>
           <button class="btn-save" (click)="savePoint()">Lưu thông tin</button>
         </div>

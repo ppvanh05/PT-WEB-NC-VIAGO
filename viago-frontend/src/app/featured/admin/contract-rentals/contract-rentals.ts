@@ -1,3 +1,6 @@
+import { AdminTabs } from '../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../shared/components/admin-page-header/admin-page-header';
+import { Pagination } from '../../../shared/components/pagination/pagination';
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -82,7 +85,13 @@ interface ContractItem {
 @Component({
   selector: 'app-contract-rentals',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    Pagination,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './contract-rentals.html',
   styleUrls: ['./contract-rentals.css'],
 })
@@ -121,39 +130,39 @@ export class ContractRentalsComponent {
   // Mock Data
   requests: RequestItem[] = [
     {
-      code: 'YC001', customer: 'Nguyễn Minh Anh', phone: '0901234567', vehicleType: 'Limousine 9 chỗ', 
-      guests: 7, vehicles: 1, departure: '25/06/2026', status: 'Chờ xử lý', 
-      email: 'minhanh@example.com', pickup: 'Sân bay Nội Bài', destination: 'Hà Nội', 
+      code: 'YC001', customer: 'Nguyễn Minh Anh', phone: '0901234567', vehicleType: 'Limousine 9 chỗ',
+      guests: 7, vehicles: 1, departure: '25/06/2026', status: 'Chờ xử lý',
+      email: 'minhanh@example.com', pickup: 'Sân bay Nội Bài', destination: 'Hà Nội',
       note: 'Ưu tiên xe có nước uống và wifi.'
     },
     {
-      code: 'YC002', customer: 'Trần Quốc Bảo', phone: '0912345678', vehicleType: 'Giường nằm 34 chỗ', 
-      guests: 30, vehicles: 1, departure: '28/06/2026', status: 'Đã báo giá', 
-      email: 'quocbao@example.com', pickup: 'Bến xe Giáp Bát', destination: 'Thanh Hóa', 
+      code: 'YC002', customer: 'Trần Quốc Bảo', phone: '0912345678', vehicleType: 'Giường nằm 34 chỗ',
+      guests: 30, vehicles: 1, departure: '28/06/2026', status: 'Đã báo giá',
+      email: 'quocbao@example.com', pickup: 'Bến xe Giáp Bát', destination: 'Thanh Hóa',
       note: 'Hành trình có 1 đêm nghỉ, cần chỗ ngủ thoải mái.'
     },
     {
-      code: 'YC003', customer: 'Lê Thu Hà', phone: '0933456789', vehicleType: 'Cabin đôi cao cấp', 
-      guests: 20, vehicles: 1, departure: '02/07/2026', status: 'Chờ xử lý', 
-      email: 'lethuha@example.com', pickup: 'Ga Hà Nội', destination: 'Hạ Long', 
+      code: 'YC003', customer: 'Lê Thu Hà', phone: '0933456789', vehicleType: 'Cabin đôi cao cấp',
+      guests: 20, vehicles: 1, departure: '02/07/2026', status: 'Chờ xử lý',
+      email: 'lethuha@example.com', pickup: 'Ga Hà Nội', destination: 'Hạ Long',
       note: 'Yêu cầu cabin riêng, trưa có ăn nhẹ trên xe.'
     },
     {
-      code: 'YC004', customer: 'Phạm Gia Hưng', phone: '0944567890', vehicleType: 'Giường nằm 40 chỗ', 
-      guests: 75, vehicles: 2, departure: '05/07/2026', status: 'Đã báo giá', 
-      email: 'giahung@example.com', pickup: 'Khách sạn Melia', destination: 'Ninh Bình', 
+      code: 'YC004', customer: 'Phạm Gia Hưng', phone: '0944567890', vehicleType: 'Giường nằm 40 chỗ',
+      guests: 75, vehicles: 2, departure: '05/07/2026', status: 'Đã báo giá',
+      email: 'giahung@example.com', pickup: 'Khách sạn Melia', destination: 'Ninh Bình',
       note: 'Lịch trình tham quan cố định, vui lòng có hướng dẫn viên.'
     },
     {
-      code: 'YC005', customer: 'Võ Thanh Tâm', phone: '0965678901', vehicleType: 'Limousine 9 chỗ', 
-      guests: 15, vehicles: 2, departure: '08/07/2026', status: 'Đã hủy', 
-      email: 'thanhtam@example.com', pickup: 'Nội thành Hà Nội', destination: 'Sân bay Nội Bài', 
+      code: 'YC005', customer: 'Võ Thanh Tâm', phone: '0965678901', vehicleType: 'Limousine 9 chỗ',
+      guests: 15, vehicles: 2, departure: '08/07/2026', status: 'Đã hủy',
+      email: 'thanhtam@example.com', pickup: 'Nội thành Hà Nội', destination: 'Sân bay Nội Bài',
       note: 'Hủy do thay đổi lịch bay.'
     },
     {
-      code: 'YC006', customer: 'Đặng Hoài Nam', phone: '0976789012', vehicleType: 'Cabin đôi cao cấp', 
-      guests: 42, vehicles: 2, departure: '12/07/2026', status: 'Chờ xử lý', 
-      email: 'hoanam@example.com', pickup: 'Bến xe Mỹ Đình', destination: 'Sapa', 
+      code: 'YC006', customer: 'Đặng Hoài Nam', phone: '0976789012', vehicleType: 'Cabin đôi cao cấp',
+      guests: 42, vehicles: 2, departure: '12/07/2026', status: 'Chờ xử lý',
+      email: 'hoanam@example.com', pickup: 'Bến xe Mỹ Đình', destination: 'Sapa',
       note: 'Đi theo đoàn, cần lịch trình linh hoạt.'
     }
   ];
@@ -166,57 +175,57 @@ export class ContractRentalsComponent {
   ];
 
   customerQuotes: CustomerQuoteItem[] = [
-    { 
-      code: 'BG001', requestCode: 'YC002', customer: 'Trần Quốc Bảo', phone: '0912345678', vehicleType: 'Giường nằm 34 chỗ', 
-      vehicles: 1, price: '6.200.000đ', sent: '22/06/2026', status: 'Chờ phản hồi', guests: 30, 
+    {
+      code: 'BG001', requestCode: 'YC002', customer: 'Trần Quốc Bảo', phone: '0912345678', vehicleType: 'Giường nằm 34 chỗ',
+      vehicles: 1, price: '6.200.000đ', sent: '22/06/2026', status: 'Chờ phản hồi', guests: 30,
       pickup: 'Bến xe Giáp Bát', destination: 'Thanh Hóa', basePrice: '5.500.000đ', fees: '700.000đ', discount: '0đ', total: '6.200.000đ'
     },
-    { 
-      code: 'BG002', requestCode: 'YC004', customer: 'Phạm Gia Hưng', phone: '0944567890', vehicleType: 'Giường nằm 40 chỗ', 
-      vehicles: 2, price: '13.800.000đ', sent: '23/06/2026', status: 'Đã chấp nhận', guests: 75, 
+    {
+      code: 'BG002', requestCode: 'YC004', customer: 'Phạm Gia Hưng', phone: '0944567890', vehicleType: 'Giường nằm 40 chỗ',
+      vehicles: 2, price: '13.800.000đ', sent: '23/06/2026', status: 'Đã chấp nhận', guests: 75,
       pickup: 'Khách sạn Melia', destination: 'Ninh Bình', basePrice: '13.000.000đ', fees: '800.000đ', discount: '0đ', total: '13.800.000đ'
     },
-    { 
-      code: 'BG003', requestCode: 'YC005', customer: 'Võ Thanh Tâm', phone: '0965678901', vehicleType: 'Limousine 9 chỗ', 
-      vehicles: 2, price: '5.300.000đ', sent: '20/06/2026', status: 'Đã từ chối', guests: 15, 
+    {
+      code: 'BG003', requestCode: 'YC005', customer: 'Võ Thanh Tâm', phone: '0965678901', vehicleType: 'Limousine 9 chỗ',
+      vehicles: 2, price: '5.300.000đ', sent: '20/06/2026', status: 'Đã từ chối', guests: 15,
       pickup: 'Nội thành Hà Nội', destination: 'Sân bay Nội Bài', basePrice: '5.000.000đ', fees: '300.000đ', discount: '0đ', total: '5.300.000đ'
     },
-    { 
-      code: 'BG004', requestCode: 'YC003', customer: 'Lê Thu Hà', phone: '0933456789', vehicleType: 'Cabin đôi cao cấp', 
-      vehicles: 1, price: '8.800.000đ', sent: '24/06/2026', status: 'Chờ phản hồi', guests: 20, 
+    {
+      code: 'BG004', requestCode: 'YC003', customer: 'Lê Thu Hà', phone: '0933456789', vehicleType: 'Cabin đôi cao cấp',
+      vehicles: 1, price: '8.800.000đ', sent: '24/06/2026', status: 'Chờ phản hồi', guests: 20,
       pickup: 'Ga Hà Nội', destination: 'Hạ Long', basePrice: '8.500.000đ', fees: '300.000đ', discount: '0đ', total: '8.800.000đ'
     }
   ];
 
   contracts: ContractItem[] = [
-    { 
-      code: 'HD001', quoteCode: 'BG002', created: '24/06/2026', customer: 'Phạm Gia Hưng', phone: '0944567890', 
-      email: 'giahung@example.com', vehicleType: 'Giường nằm 40 chỗ', vehicles: 2, guests: 75, 
-      departure: '05/07/2026', amount: '13.800.000đ', status: 'Chờ thực hiện', 
+    {
+      code: 'HD001', quoteCode: 'BG002', created: '24/06/2026', customer: 'Phạm Gia Hưng', phone: '0944567890',
+      email: 'giahung@example.com', vehicleType: 'Giường nằm 40 chỗ', vehicles: 2, guests: 75,
+      departure: '05/07/2026', amount: '13.800.000đ', status: 'Chờ thực hiện',
       pickup: 'Khách sạn Melia', destination: 'Ninh Bình', price: '13.000.000đ', fees: '800.000đ', discount: '0đ', total: '13.800.000đ',
       terms: ['Có tài xế đi kèm', 'Giá có thể thay đổi nếu phát sinh lộ trình', 'Khách cần xác nhận trước ngày khởi hành', 'Hợp đồng có thể bị hủy theo chính sách hủy'],
       history: ['Khách gửi yêu cầu', 'Nhân viên gửi báo giá', 'Khách xác nhận', 'Tạo hợp đồng']
     },
-    { 
-      code: 'HD002', quoteCode: 'BG005', created: '26/06/2026', customer: 'Nguyễn Hoàng Phúc', phone: '0988881234', 
-      email: 'hoangphuc@example.com', vehicleType: 'Limousine 9 chỗ', vehicles: 1, guests: 7, 
-      departure: '26/06/2026', amount: '2.800.000đ', status: 'Đang thực hiện', 
+    {
+      code: 'HD002', quoteCode: 'BG005', created: '26/06/2026', customer: 'Nguyễn Hoàng Phúc', phone: '0988881234',
+      email: 'hoangphuc@example.com', vehicleType: 'Limousine 9 chỗ', vehicles: 1, guests: 7,
+      departure: '26/06/2026', amount: '2.800.000đ', status: 'Đang thực hiện',
       pickup: 'Sân bay Nội Bài', destination: 'Hà Nội', price: '2.500.000đ', fees: '300.000đ', discount: '0đ', total: '2.800.000đ',
       terms: ['Có tài xế đi kèm', 'Giá có thể thay đổi nếu phát sinh lộ trình', 'Khách cần xác nhận trước ngày khởi hành', 'Hợp đồng có thể bị hủy theo chính sách hủy'],
       history: ['Khách gửi yêu cầu', 'Nhân viên gửi báo giá', 'Khách xác nhận', 'Tạo hợp đồng']
     },
-    { 
-      code: 'HD003', quoteCode: 'BG004', created: '18/06/2026', customer: 'Mai Thanh Trúc', phone: '0977774567', 
-      email: 'maitruc@example.com', vehicleType: 'Cabin đôi cao cấp', vehicles: 1, guests: 20, 
-      departure: '18/06/2026', amount: '9.200.000đ', status: 'Hoàn thành', 
+    {
+      code: 'HD003', quoteCode: 'BG004', created: '18/06/2026', customer: 'Mai Thanh Trúc', phone: '0977774567',
+      email: 'maitruc@example.com', vehicleType: 'Cabin đôi cao cấp', vehicles: 1, guests: 20,
+      departure: '18/06/2026', amount: '9.200.000đ', status: 'Hoàn thành',
       pickup: 'Ga Hà Nội', destination: 'Hạ Long', price: '9.000.000đ', fees: '200.000đ', discount: '0đ', total: '9.200.000đ',
       terms: ['Có tài xế đi kèm', 'Giá có thể thay đổi nếu phát sinh lộ trình', 'Khách cần xác nhận trước ngày khởi hành', 'Hợp đồng có thể bị hủy theo chính sách hủy'],
       history: ['Khách gửi yêu cầu', 'Nhân viên gửi báo giá', 'Khách xác nhận', 'Tạo hợp đồng']
     },
-    { 
-      code: 'HD004', quoteCode: 'BG003', created: '20/06/2026', customer: 'Đỗ Quốc Huy', phone: '0966667890', 
-      email: 'quochuy@example.com', vehicleType: 'Giường nằm 34 chỗ', vehicles: 1, guests: 30, 
-      departure: '20/06/2026', amount: '5.900.000đ', status: 'Đã hủy', 
+    {
+      code: 'HD004', quoteCode: 'BG003', created: '20/06/2026', customer: 'Đỗ Quốc Huy', phone: '0966667890',
+      email: 'quochuy@example.com', vehicleType: 'Giường nằm 34 chỗ', vehicles: 1, guests: 30,
+      departure: '20/06/2026', amount: '5.900.000đ', status: 'Đã hủy',
       pickup: 'Bến xe Giáp Bát', destination: 'Hà Nội', price: '5.500.000đ', fees: '400.000đ', discount: '0đ', total: '5.900.000đ',
       terms: ['Có tài xế đi kèm', 'Giá có thể thay đổi nếu phát sinh lộ trình', 'Khách cần xác nhận trước ngày khởi hành', 'Hợp đồng có thể bị hủy theo chính sách hủy'],
       history: ['Khách gửi yêu cầu', 'Nhân viên gửi báo giá', 'Khách xác nhận', 'Tạo hợp đồng']
@@ -231,7 +240,7 @@ export class ContractRentalsComponent {
   // Filter Logic
   get filteredRequests() {
     const s = this.requestSearch.toLowerCase();
-    return this.requests.filter(r => 
+    return this.requests.filter(r =>
       (r.code.toLowerCase().includes(s) || r.customer.toLowerCase().includes(s) || r.phone.includes(s)) &&
       (this.requestTypeFilter === 'Tất cả loại xe' || r.vehicleType === this.requestTypeFilter) &&
       (this.requestStatusFilter === 'Tất cả trạng thái' || r.status === this.requestStatusFilter) &&
@@ -241,7 +250,7 @@ export class ContractRentalsComponent {
 
   get filteredStandardPrices() {
     const s = this.standardPriceSearch.toLowerCase();
-    return this.standardPrices.filter(p => 
+    return this.standardPrices.filter(p =>
       p.vehicleType.toLowerCase().includes(s) &&
       (this.standardPriceStatus === 'Tất cả' || p.status === this.standardPriceStatus)
     );
@@ -249,7 +258,7 @@ export class ContractRentalsComponent {
 
   get filteredCustomerQuotes() {
     const s = this.customerQuoteSearch.toLowerCase();
-    return this.customerQuotes.filter(q => 
+    return this.customerQuotes.filter(q =>
       (q.code.toLowerCase().includes(s) || q.requestCode.toLowerCase().includes(s) || q.customer.toLowerCase().includes(s)) &&
       (this.customerQuoteStatus === 'Tất cả' || q.status === this.customerQuoteStatus)
     );
@@ -257,7 +266,7 @@ export class ContractRentalsComponent {
 
   get filteredContracts() {
     const s = this.contractSearch.toLowerCase();
-    return this.contracts.filter(c => 
+    return this.contracts.filter(c =>
       (c.code.toLowerCase().includes(s) || c.customer.toLowerCase().includes(s) || c.phone.includes(s)) &&
       (this.contractStatus === 'Tất cả' || c.status === this.contractStatus) &&
       (!this.contractDateFilter || c.departure === this.contractDateFilter)
@@ -413,16 +422,16 @@ export class ContractRentalsComponent {
 
   createQuoteFromRequest(request: RequestItem) {
     if (!request) return;
-    
+
     // 1. Update request status
     request.status = 'Đã báo giá';
-    
+
     // 2. Generate new quote
     const newQuoteCode = 'BG' + Math.floor(100 + Math.random() * 900);
     const basePriceNum = request.vehicleType.includes('Limousine') ? 2500000 : 5500000;
     const feesNum = 300000;
     const totalNum = basePriceNum * request.vehicles + feesNum;
-    
+
     const newQuote: CustomerQuoteItem = {
       code: newQuoteCode,
       requestCode: request.code,
@@ -441,9 +450,9 @@ export class ContractRentalsComponent {
       discount: '0đ',
       total: totalNum.toLocaleString('vi-VN') + 'đ'
     };
-    
+
     this.customerQuotes.unshift(newQuote);
-    
+
     // 3. Switch tab and open quote detail
     this.setTab('quote');
     this.setSubTab('customer');
@@ -452,10 +461,10 @@ export class ContractRentalsComponent {
 
   convertQuoteToContract(quote: CustomerQuoteItem) {
     if (!quote) return;
-    
+
     // 1. Update quote status
     quote.status = 'Đã chấp nhận';
-    
+
     // 2. Generate new contract
     const newContractCode = 'HD' + Math.floor(100 + Math.random() * 900);
     const newContract: ContractItem = {
@@ -490,9 +499,9 @@ export class ContractRentalsComponent {
         'Tạo hợp đồng'
       ]
     };
-    
+
     this.contracts.unshift(newContract);
-    
+
     // 3. Switch tab and open contract detail
     this.setTab('contract');
     this.viewDetail(newContract, 'contract');
@@ -500,7 +509,7 @@ export class ContractRentalsComponent {
 
   updateContractStatus(contract: ContractItem) {
     if (!contract) return;
-    
+
     if (contract.status === 'Chờ thực hiện') {
       contract.status = 'Đang thực hiện';
       contract.history.push('Bắt đầu thực hiện chuyến đi');

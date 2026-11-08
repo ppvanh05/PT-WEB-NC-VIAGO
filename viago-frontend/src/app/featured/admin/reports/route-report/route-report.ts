@@ -1,3 +1,5 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -42,7 +44,12 @@ export interface RouteReportItem {
 @Component({
   selector: 'app-route-report',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './route-report.html',
   styleUrls: ['./route-report.css']
 })
@@ -200,7 +207,7 @@ export class RouteReportComponent implements OnInit {
     this.filteredRoutes = this.routesReport.filter(r => {
       // Status Filter
       const matchStatus = this.filters.trangThai === 'Tất cả trạng thái' || r.trangThai === this.filters.trangThai;
-      
+
       // Specific Route Filter
       const matchRoute = this.filters.maTuyen === 'Tất cả các tuyến' || r.tenTuyen === this.filters.maTuyen;
 

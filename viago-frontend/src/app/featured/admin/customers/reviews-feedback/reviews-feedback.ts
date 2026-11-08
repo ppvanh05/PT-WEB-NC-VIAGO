@@ -1,3 +1,4 @@
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker';
 import { SidebarStateService } from '../../../../core/services/sidebar-state.service';
 import { Component, OnInit, signal, computed, HostListener } from '@angular/core';
@@ -32,7 +33,7 @@ interface DanhGia {
   PhanHoi?: string;
   ThoiGianPhanHoi?: string;
   TenNhanVienPhanHoi?: string;
-  
+
   // CSKH workflow properties
   TrangThaiXuLy: 'moi' | 'dang-xu-ly' | 'da-xong' | 'dong';
   MucDoKhanCap: 'thap' | 'trung-binh' | 'cao';
@@ -59,7 +60,18 @@ type LocTrangThaiDonGian = 'tat-ca' | 'chua-xu-ly' | 'da-xu-ly';
 @Component({
   selector: 'app-reviews-feedback',
   standalone: true,
-  imports: [DatePickerComponent, Toast, BookingDialog, CommonModule, FormsModule, Button, Badge, Pagination, ModalComponent],
+  imports: [
+    DatePickerComponent,
+    Toast,
+    BookingDialog,
+    CommonModule,
+    FormsModule,
+    Button,
+    Badge,
+    Pagination,
+    ModalComponent,
+    AdminPageHeader,
+  ],
   templateUrl: './reviews-feedback.html',
   styleUrls: ['./reviews-feedback.css']
 })
@@ -69,7 +81,7 @@ export class ReviewsFeedback implements OnInit {
   // State
   DanhSachDanhGia = signal<DanhGia[]>([]);
   TuKhoaTimKiem = signal('');
-  
+
   // Quick Filter Chips State
   LocTrangThaiXuLy = signal<LocTrangThaiDonGian>('tat-ca');
   LocTuyenXe = signal('tat-ca');
@@ -142,7 +154,7 @@ export class ReviewsFeedback implements OnInit {
     return Math.min(this.trangHopLe() * this.soDongMoiTrang(), this.DanhSachLoc().length);
   });
 
-  
+
 
   ToggleDropdownSao() {
     this.HienDropdownSao.update(v => !v);
@@ -262,7 +274,7 @@ export class ReviewsFeedback implements OnInit {
         SoFeedbackCungChuyen: 0,
         SlaTimeLimit: new Date(Date.now() + 1000 * 60 * 60 * 2).toISOString(),
         GhiChuNoiBo: 'Khách hàng thân thiết VIP. Đã phản hồi đầy đủ.',
-        DiemAnToan: 5, DiemSachSe: 5, DiemThaiDo: 5, DiemDungGio: 5, DiemThongTin: 5, DiemTienNghi: 5 
+        DiemAnToan: 5, DiemSachSe: 5, DiemThaiDo: 5, DiemDungGio: 5, DiemThongTin: 5, DiemTienNghi: 5
       },
       {
         MaDanhGia: 'DG-002',
@@ -285,7 +297,7 @@ export class ReviewsFeedback implements OnInit {
         GhiChuNoiBo: 'Đang chờ bộ phận kho bổ sung mền đệm chuyến sau.',
         TagNguyenNhan: 'van-hanh',
         XacThuc: 'cao',
-        DiemAnToan: 4, DiemSachSe: 3.5, DiemThaiDo: 3, DiemDungGio: 3, DiemThongTin: 2.5, DiemTienNghi: 3 
+        DiemAnToan: 4, DiemSachSe: 3.5, DiemThaiDo: 3, DiemDungGio: 3, DiemThongTin: 2.5, DiemTienNghi: 3
       },
       {
         MaDanhGia: 'DG-003',
@@ -308,7 +320,7 @@ export class ReviewsFeedback implements OnInit {
         SlaTimeLimit: new Date(Date.now() + 1000 * 60 * 20).toISOString(),
         TagNguyenNhan: 'tai-xe',
         XacThuc: 'cao',
-        DiemAnToan: 1.0, DiemSachSe: 2.0, DiemThaiDo: 1.0, DiemDungGio: 1.0, DiemThongTin: 1.5, DiemTienNghi: 1.0 
+        DiemAnToan: 1.0, DiemSachSe: 2.0, DiemThaiDo: 1.0, DiemDungGio: 1.0, DiemThongTin: 1.5, DiemTienNghi: 1.0
       },
       {
         MaDanhGia: 'DG-004',
@@ -331,7 +343,7 @@ export class ReviewsFeedback implements OnInit {
         LichSuLoiTaiXe: 'Không có lỗi',
         SoFeedbackCungChuyen: 0,
         SlaTimeLimit: new Date(Date.now() + 1000 * 60 * 60 * 4).toISOString(),
-        DiemAnToan: 4, DiemSachSe: 4, DiemThaiDo: 4, DiemDungGio: 4, DiemThongTin: 4, DiemTienNghi: 4 
+        DiemAnToan: 4, DiemSachSe: 4, DiemThaiDo: 4, DiemDungGio: 4, DiemThongTin: 4, DiemTienNghi: 4
       },
       {
         MaDanhGia: 'DG-005',
@@ -352,7 +364,7 @@ export class ReviewsFeedback implements OnInit {
         LichSuLoiTaiXe: '3 lần khởi hành trễ lịch trình quy định',
         SoFeedbackCungChuyen: 2,
         SlaTimeLimit: new Date(Date.now() + 1000 * 60 * 25).toISOString(),
-        DiemAnToan: 2.5, DiemSachSe: 2.0, DiemThaiDo: 2.0, DiemDungGio: 1.0, DiemThongTin: 2.5, DiemTienNghi: 2.0 
+        DiemAnToan: 2.5, DiemSachSe: 2.0, DiemThaiDo: 2.0, DiemDungGio: 1.0, DiemThongTin: 2.5, DiemTienNghi: 2.0
       }
     ];
 
@@ -455,7 +467,7 @@ export class ReviewsFeedback implements OnInit {
         TrangThaiXuLy === 'tat-ca' ? true :
         TrangThaiXuLy === 'da-xu-ly' ? this.LaDaXuLy(dg) :
         this.LaChuaXuLy(dg);
-      
+
       const KhopTuyen = TenTuyenXe === 'tat-ca' ? true : dg.TenTuyenXe === TenTuyenXe;
       const KhopGio = GioKhoiHanh === 'tat-ca' ? true : dg.GioKhoiHanh === GioKhoiHanh;
       const KhopNgay = NgayTao ? dg.ThoiGianDanhGia.slice(0, 10) === NgayTao : true;
@@ -507,7 +519,7 @@ export class ReviewsFeedback implements OnInit {
 
     let lowestAvg = 5.0;
     let chuyenXeTeNhat = 'Không có';
-    
+
     Object.keys(tripScores).forEach(maChuyen => {
       const avg = tripScores[maChuyen].total / tripScores[maChuyen].count;
       if (avg < lowestAvg) {
@@ -536,7 +548,7 @@ export class ReviewsFeedback implements OnInit {
         tienNghi: 0
       };
     }
-    
+
     let totalScore = 0;
     let sumAnToan = 0;
     let sumSachSe = 0;
@@ -544,7 +556,7 @@ export class ReviewsFeedback implements OnInit {
     let sumDungGio = 0;
     let sumThongTin = 0;
     let sumTienNghi = 0;
-    
+
     list.forEach(dg => {
       totalScore += dg.SoSao;
       sumAnToan += dg.DiemAnToan;
@@ -554,7 +566,7 @@ export class ReviewsFeedback implements OnInit {
       sumThongTin += dg.DiemThongTin;
       sumTienNghi += dg.DiemTienNghi;
     });
-    
+
     const avg = Math.round((totalScore / count) * 10) / 10;
     const avgAnToan = Math.round((sumAnToan / count) * 10) / 10;
     const avgSachSe = Math.round((sumSachSe / count) * 10) / 10;
@@ -562,11 +574,11 @@ export class ReviewsFeedback implements OnInit {
     const avgDungGio = Math.round((sumDungGio / count) * 10) / 10;
     const avgThongTin = Math.round((sumThongTin / count) * 10) / 10;
     const avgTienNghi = Math.round((sumTienNghi / count) * 10) / 10;
-    
+
     // Generate stars representation
     const starsCount = Math.round(avg);
     const saoString = '★'.repeat(starsCount) + '☆'.repeat(5 - starsCount);
-    
+
     return {
       trungBinh: avg.toFixed(1),
       saoString,

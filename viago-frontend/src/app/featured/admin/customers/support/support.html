@@ -13,13 +13,11 @@
     >
   </div>
 
-  <app-card class="header-card" radius="sm" padding="lg" shadow="none" [bordered]="true">
-    <header class="lookup-heading">
-      <div>
-        <span class="eyebrow">Chăm sóc khách hàng</span>
-        <h1>Hộp thư hỗ trợ</h1>
-      </div>
-    </header>
+  <app-admin-page-header title="Hộp thư hỗ trợ" section="Chăm sóc khách hàng">
+
+</app-admin-page-header>
+<app-card class="header-card" radius="sm" padding="lg" shadow="none" [bordered]="true">
+
     <div class="summary-strip" aria-label="Thống kê hội thoại">
       @for (tab of summaryCards; track tab.id) {
         <div class="summary-item" [class]="'summary-item ' + tab.id.toLowerCase()">
@@ -46,7 +44,7 @@
 
   <app-card class="inbox-card" radius="sm" padding="none" shadow="none" [bordered]="true">
     <div class="table-control-panel">
-      <nav class="pill-tabs" aria-label="Nhóm hội thoại">
+      <app-admin-tabs class="pill-tabs admin-tabs" aria-label="Nhóm hội thoại">
         @for (tab of lanes; track tab.id) {
           <button
             type="button"
@@ -58,7 +56,7 @@
             {{ tab.label }} ({{ inbox()?.counts?.[tab.id] ?? 0 }})
           </button>
         }
-      </nav>
+      </app-admin-tabs>
       <app-button variant="outline" size="sm" [loading]="queueBusy()" (clicked)="loadInbox()"
         ><app-support-icon name="refresh" />Làm mới</app-button
       >
@@ -673,7 +671,7 @@
   [disableConfirm]="resolution.trim().length < 3"
   (closed)="closeFinish()"
   (confirmed)="finish()"
->
+ [fixedLayout]="true" [fitContent]="true">
   <app-textarea
     [id]="'support-resolution'"
     label="Kết quả xử lý (lưu nội bộ)"

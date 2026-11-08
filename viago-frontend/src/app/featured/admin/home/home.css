@@ -89,7 +89,7 @@
   position: relative;
   width: fit-content;
   margin-top: -1px;
-  font-family: "Inter", Helvetica;
+  font-family: var(--font-family-base);
   font-weight: 700;
   color: #002664;
   font-size: 30px;
@@ -113,7 +113,7 @@
   position: relative;
   width: fit-content;
   margin-top: -1px;
-  font-family: "Inter", Helvetica;
+  font-family: var(--font-family-base);
   font-weight: 400;
   color: #6b7280;
   font-size: 16px;
@@ -188,7 +188,7 @@
   justify-content: center;
   width: fit-content;
   margin-top: -1px;
-  font-family: "Inter", Helvetica;
+  font-family: var(--font-family-base);
   font-weight: 700;
   color: #1f2937;
   font-size: 16px;
@@ -250,7 +250,7 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  font-family: "Inter", Helvetica;
+  font-family: var(--font-family-base);
   font-weight: 400;
   color: #6b7280;
   font-size: 12px;
@@ -264,7 +264,7 @@
   position: relative;
   width: 100%;
   margin-top: -1px;
-  font-family: "Inter", Helvetica;
+  font-family: var(--font-family-base);
   font-weight: 400;
   color: #6b7280;
   font-size: 12px;

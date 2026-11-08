@@ -1,3 +1,5 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -5,7 +7,12 @@ import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-customer-account-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './customer-account-management.html',
   styleUrl: './customer-account-management.css',
 })

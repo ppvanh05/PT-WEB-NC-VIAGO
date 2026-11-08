@@ -1,6 +1,312 @@
 /* Shared Admin UI styles */
 :root {
+  --admin-font-family: var(--font-family-base);
+}
+
+/* Admin primitives. Keep these scoped so customer pages retain their theme. */
+.admin-layout {
+  --font-family-base: 'Inter', sans-serif;
   --admin-font-family: 'Inter', sans-serif;
+  font-family: var(--admin-font-family);
+  color: var(--color-text-body);
+}
+.admin-layout :not(.material-symbols-outlined):not(.material-icons):not(.bi) {
+  font-family: var(--admin-font-family) !important;
+}
+/* Routed pages must grow inside the outer page scroller, not shrink to its height. */
+.admin-layout .admin-content > router-outlet + :not(app-customer-support) {
+  display: block !important;
+  flex: 0 0 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+.admin-layout :is(.management-container, .news-page-container, .content-page, .intake-page, .jobs-page, .staff-page, .log-page, .report-container, .baocao-container, .ticket-list-page, .booking-counter, .support-page) {
+  min-width: 0;
+  padding: var(--space-3) !important;
+  gap: var(--space-3) !important;
+}
+.admin-layout h1 {
+  font-family: var(--admin-font-family) !important;
+  font-size: var(--font-size-h2) !important;
+  line-height: var(--line-height-h2) !important;
+  font-weight: var(--font-weight-semibold) !important;
+  color: var(--color-primary-700);
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+.admin-layout .admin-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  min-width: 0;
+}
+.admin-layout .admin-page-heading > div:first-child { min-width: 0; }
+.admin-layout .admin-page-heading :is(.category-tag, .eyebrow, .header-subtitle, .page-subtitle) {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.admin-layout .admin-create-action.admin-create-action {
+  display: flex !important;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0 !important;
+  max-width: 100% !important;
+  padding: var(--space-3) var(--space-4) !important;
+  border: 1px solid #a7f3d0 !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--color-success-50) !important;
+  color: var(--color-success-700) !important;
+  font-family: var(--admin-font-family) !important;
+  white-space: normal !important;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none !important;
+}
+.admin-layout .admin-create-action:hover { border-color: var(--color-success-500) !important; }
+.admin-layout .admin-create-action:focus-visible { outline: 2px solid var(--color-success-700); outline-offset: 3px; }
+.admin-layout .admin-create-action :is(.action-icon-circle, .admin-create-icon) {
+  flex: 0 0 28px;
+  display: grid;
+  place-items: center;
+  color: var(--color-success-700);
+  background: transparent;
+}
+.admin-layout .admin-create-action :is(svg) { width: 24px; height: 24px; flex-shrink: 0; }
+.admin-layout .admin-create-action :is(h3, strong) {
+  display: block;
+  margin: 0;
+  color: inherit;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  font-weight: var(--font-weight-semibold);
+}
+.admin-layout .admin-create-action :is(p, .action-banner-text > span, .admin-create-text > span) {
+  display: block;
+  margin: var(--space-1) 0 0;
+  color: var(--color-success-700);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body-sm);
+  font-weight: var(--font-weight-regular);
+}
+.admin-layout .admin-edit-action.admin-edit-action {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 var(--control-height-sm);
+  width: var(--control-height-sm) !important;
+  height: var(--control-height-sm) !important;
+  padding: 0 !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
+  color: var(--color-neutral-600) !important;
+  cursor: pointer;
+}
+.admin-layout .admin-edit-action:hover:not(:disabled) {
+  background: var(--color-primary-50) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-primary-600) !important;
+}
+.admin-layout .admin-edit-action:focus-visible { outline: 2px solid var(--color-primary-500); outline-offset: 2px; }
+.admin-layout .admin-edit-action:disabled { opacity: .5; cursor: not-allowed; }
+.admin-layout .admin-edit-action svg { width: 18px; height: 18px; }
+
+/* Lock actions stay at the start of dialog footers, separate from save/cancel. */
+.admin-layout .admin-modal-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: var(--space-3);
+  box-sizing: border-box;
+  width: 100%;
+}
+.admin-layout .admin-modal-actions > .admin-lock-action,
+.admin-layout .admin-modal-actions > .admin-modal-actions-start {
+  flex: 0 0 auto !important;
+  margin: 0 auto 0 0 !important;
+}
+.admin-layout .admin-modal-actions > .admin-modal-actions-start,
+.admin-layout .admin-modal-actions > .admin-modal-actions-end {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.admin-layout .admin-modal-actions > .admin-modal-actions-end { margin-left: auto; }
+.admin-layout :is(button.admin-lock-action, app-button.admin-lock-action > button) {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex: 0 0 auto !important;
+  min-height: var(--control-height-md);
+  height: auto !important;
+  padding: var(--space-2) var(--space-4) !important;
+  border: 1px solid var(--color-border-strong) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--color-surface) !important;
+  color: var(--color-text-body) !important;
+  font: var(--font-weight-medium) var(--font-size-body)/var(--line-height-body) var(--admin-font-family) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  cursor: pointer;
+  transition: color .15s, background-color .15s, border-color .15s;
+}
+.admin-layout :is(button.admin-lock-action, app-button.admin-lock-action > button)::before {
+  content: '';
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='11' width='16' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3Cpath d='M12 15v2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.admin-layout :is(button.admin-lock-action--unlock, app-button.admin-lock-action--unlock > button)::before {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='11' width='16' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8-1'/%3E%3Cpath d='M12 15v2'/%3E%3C/svg%3E");
+}
+.admin-layout :is(button.admin-lock-action, app-button.admin-lock-action > button):hover:not(:disabled),
+.admin-layout :is(button.admin-lock-action, app-button.admin-lock-action > button):focus-visible {
+  background: var(--color-danger-50) !important;
+  border-color: var(--color-danger-500) !important;
+  color: var(--color-danger-700) !important;
+}
+.admin-layout :is(button.admin-lock-action, app-button.admin-lock-action > button):focus-visible {
+  outline: 2px solid var(--color-danger-500);
+  outline-offset: 2px;
+}
+.admin-layout :is(button.admin-lock-action, app-button.admin-lock-action > button):disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+/* Native tabs and projected shared buttons use one pill treatment. */
+.admin-layout .admin-tabs.admin-tabs {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  gap: var(--space-1) !important;
+  padding: var(--space-1) !important;
+  margin: 0;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--color-surface) !important;
+}
+.admin-layout .admin-tabs.admin-tabs > button,
+.admin-layout .admin-tabs.admin-tabs > app-button > button {
+  min-height: var(--control-height-md) !important;
+  height: auto;
+  padding: var(--space-2) var(--space-5) !important;
+  border: 0 !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
+  color: var(--color-text-body) !important;
+  font-family: var(--admin-font-family) !important;
+  font-size: var(--font-size-body) !important;
+  font-weight: var(--font-weight-medium) !important;
+  line-height: var(--line-height-body) !important;
+  white-space: normal;
+  cursor: pointer;
+  box-shadow: none !important;
+}
+.admin-layout .admin-tabs.admin-tabs > button:is(.active, [aria-selected="true"]),
+.admin-layout .admin-tabs.admin-tabs > app-button > .viago-button--primary {
+  background: var(--color-primary-600) !important;
+  color: var(--color-text-inverse) !important;
+}
+.admin-layout .admin-tabs > button:focus-visible { outline: 2px solid var(--color-primary-500); outline-offset: 2px; }
+.admin-layout .admin-tabs > button:not(.active):hover { background: var(--color-primary-50) !important; }
+
+/* Lists grow with the document. Modal bodies and chat messages keep their own scroll. */
+.admin-layout :is(.table-scroll, .table-wrapper, .table-outer-wrapper, .table-responsive) {
+  flex: 0 0 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-x: auto !important;
+}
+.admin-layout :is(.management-container, .dashboard-card, .table-panel) {
+  flex: 0 0 auto !important;
+  height: auto !important;
+  max-height: none !important;
+}
+.admin-layout :is(table thead, table th) { position: static !important; }
+/* Native dialogs use the viewport; scrolling belongs to the body, not the title/actions. */
+.admin-layout :is(.modal-overlay, .modal-backdrop-overlay, .centered-modal-overlay) {
+  box-sizing: border-box;
+  padding: var(--space-4);
+}
+.admin-layout :is(.modal-container, .modal-main-container, .detail-modal, .edit-modal, .cancel-modal, .confirm-modal, .booking-modal) {
+  min-height: 0;
+  max-height: calc(100dvh - var(--space-8)) !important;
+}
+.admin-layout :is(.modal-header, .modal-header-panel, .modal-footer, .modal-footer-panel, .modal-footer-actions) {
+  flex-shrink: 0;
+}
+.admin-layout :is(.modal-body, .modal-body-content, .detail-modal-body, .edit-modal-body, .cancel-modal-body) {
+  min-height: 0;
+}
+@media screen {
+  app-admin-layout:has(.modal-overlay, .modal-backdrop-overlay, .centered-modal-overlay, .modal-backdrop, .drawer-overlay.open) .admin-content {
+    overflow-y: hidden;
+  }
+}
+.admin-layout table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--admin-font-family);
+}
+.admin-layout table th {
+  padding: var(--space-4) !important;
+  background: var(--color-surface) !important;
+  color: var(--color-text-secondary) !important;
+  font-family: var(--admin-font-family) !important;
+  font-size: var(--font-size-body-sm) !important;
+  line-height: var(--line-height-body-sm) !important;
+  font-weight: var(--font-weight-medium) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  border-bottom: 1px solid var(--color-border);
+}
+.admin-layout table td {
+  padding: var(--space-4);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  vertical-align: middle;
+}
+.admin-layout :is(.pagination-footer, .pagination-bar) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+}
+.admin-layout app-pagination { display: block; margin-left: auto; }
+.admin-layout app-pagination .pagination {
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+.admin-layout app-pagination .pagination__controls {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
+}
+.admin-layout :is(.pagination-controls, .pagination-footer) > app-pagination { margin-left: auto; }
+@media (max-width: 767px) {
+  .admin-layout .admin-page-heading { flex-wrap: wrap; align-items: flex-start; }
+  .admin-layout .admin-create-action.admin-create-action { width: 100%; }
+  .admin-layout .admin-tabs.admin-tabs > button,
+  .admin-layout .admin-tabs.admin-tabs > app-button > button { padding-inline: var(--space-3) !important; }
 }
 
 @media (max-width: 767px) {

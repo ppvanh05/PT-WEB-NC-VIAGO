@@ -1,3 +1,4 @@
+import { AdminPageHeader } from '../../../shared/components/admin-page-header/admin-page-header';
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -72,6 +73,7 @@ const blank = (): Job => ({
     Badge,
     ModalComponent,
     DatePickerComponent,
+    AdminPageHeader,
   ],
   templateUrl: './jobs.html',
   styleUrls: ['../../../shared/styles/intake-management.css', './jobs.css'],

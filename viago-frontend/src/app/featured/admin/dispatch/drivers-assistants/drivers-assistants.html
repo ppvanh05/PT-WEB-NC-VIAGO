@@ -1,13 +1,7 @@
 <div class="management-container">
   <!-- Premium Header Container -->
-  <div class="header-card-container">
-    <div class="header-titles">
-      <span class="category-tag">QUẢN LÝ ĐIỀU PHỐI</span>
-      <h1 class="main-title">Tài xế và Phụ xe</h1>
-    </div>
-    
-    <!-- Action Banner & Create Button Box -->
-    <div class="header-action-banner" role="button" tabindex="0" (keydown.enter)="openAddModal()" (keydown.space)="$event.preventDefault(); openAddModal()" (click)="openAddModal()" title="Nhấp để thêm tài xế & phụ xe">
+  <app-admin-page-header title="Tài xế và Phụ xe" section="QUẢN LÝ ĐIỀU PHỐI">
+<div class="header-action-banner admin-create-action" role="button" tabindex="0" (keydown.enter)="openAddModal()" (keydown.space)="$event.preventDefault(); openAddModal()" (click)="openAddModal()" title="Nhấp để thêm tài xế & phụ xe">
       <div class="action-icon-circle">
         <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
@@ -20,13 +14,13 @@
         <p>Thiết lập thông tin tài xế, phụ xe, bằng lái và hồ sơ nhân sự.</p>
       </div>
     </div>
-  </div>
+</app-admin-page-header>
 
   <!-- Main Dashboard Card -->
   <div class="dashboard-card">
     <!-- Tabs matching Lịch trình style -->
     <div class="dashboard-control-panel">
-      <div class="pill-tabs">
+      <app-admin-tabs class="pill-tabs admin-tabs">
         <button type="button" class="pill-tab-item" [class.active]="activeTab === 'Tất cả'" (click)="setTab('Tất cả')">
           Tất cả ({{ getTotalCount() }})
         </button>
@@ -39,7 +33,7 @@
         <button class="pill-tab-item" [class.active]="activeTab === 'Đã khóa'" (click)="setTab('Đã khóa')">
           Đã khóa ({{ getLockedCount() }})
         </button>
-      </div>
+      </app-admin-tabs>
     </div>
 
     <!-- Filter Bar & View Options -->
@@ -114,13 +108,13 @@
               </div>
             </td>
           </tr>
-          
+
           <!-- Data Rows -->
           <tr *ngFor="let p of paginatedPersonnel; let i = index">
             <td class="col-stt text-center">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
             <td class="col-name">
               <div class="name-with-status">
-                <span class="status-indicator" 
+                <span class="status-indicator"
                   [class.active]="p.status === 'Đang hoạt động'"
                   [class.locked]="p.status === 'Đã khóa'"></span>
                 <div><span class="text-semibold">{{ p.name }}</span><small class="personnel-status" [class.status-locked]="p.status === 'Đã khóa'">{{ getDisplayStatus(p) }}</small></div>
@@ -137,7 +131,7 @@
             <td class="col-expiry text-center">{{ p.licenseExpiry }}</td>
             <td class="col-actions text-center">
               <div class="action-buttons">
-                <button class="admin-action-btn edit" title="Chỉnh sửa chi tiết" aria-label="Chỉnh sửa chi tiết" (click)="openEditModal(p)">
+                <button class="admin-action-btn edit admin-edit-action" title="Chỉnh sửa chi tiết" aria-label="Chỉnh sửa chi tiết" (click)="openEditModal(p)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 </button>
               </div>
@@ -317,17 +311,13 @@
         </div>
       </div>
 
-      <div class="modal-footer">
-        <div class="footer-left">
-          <button *ngIf="isEditMode" type="button" class="btn-status-toggle" [class.unlock]="currentPersonnel.status === 'Đã khóa'" [disabled]="isSaving" (click)="toggleLock(currentPersonnel)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
+      <div class="modal-footer admin-modal-actions">
+        <div class="footer-left admin-modal-actions-start">
+          <button [class.admin-lock-action--unlock]="currentPersonnel.status === 'Đã khóa'" *ngIf="isEditMode" type="button" class="btn-status-toggle admin-lock-action" [class.unlock]="currentPersonnel.status === 'Đã khóa'" [disabled]="isSaving" (click)="toggleLock(currentPersonnel)">
             {{ currentPersonnel.status === 'Đã khóa' ? 'Mở khóa nhân sự' : 'Khóa nhân sự' }}
           </button>
         </div>
-        <div class="footer-right">
+        <div class="footer-right admin-modal-actions-end">
           <app-button variant="outline" [disabled]="isSaving" (clicked)="closeModal()">Hủy bỏ</app-button>
           <app-button [loading]="isSaving" (clicked)="savePersonnel()">{{ isEditMode ? 'Lưu thay đổi' : 'Lưu' }}</app-button>
         </div>
@@ -339,6 +329,6 @@
     <app-toast *ngFor="let toast of toasts" [variant]="toast.type" [message]="toast.message" [duration]="3000" (closed)="removeToast(toast.id)" />
   </div>
 </div>
-<app-modal [open]="!!lockTarget" size="small" [confirmMode]="true" [danger]="lockTarget?.status !== 'Đã khóa'" title="Xác nhận trạng thái nhân sự" confirmText="Xác nhận" cancelText="Quay lại" (confirmed)="confirmLock()" (closed)="lockTarget = null">
+<app-modal [open]="!!lockTarget" [lockAction]="true" [lockUnlocked]="lockTarget?.status === 'Đã khóa'" size="small" [confirmMode]="true" [danger]="lockTarget?.status !== 'Đã khóa'" title="Xác nhận trạng thái nhân sự" confirmText="Xác nhận" cancelText="Quay lại" (confirmed)="confirmLock()" (closed)="lockTarget = null" [fixedLayout]="true" [fitContent]="true">
   <p>Bạn có muốn {{ lockTarget?.status === 'Đã khóa' ? 'mở khóa' : 'khóa' }} nhân sự <strong>{{ lockTarget?.name }}</strong>?</p>
 </app-modal>

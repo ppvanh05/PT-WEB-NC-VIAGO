@@ -1,28 +1,20 @@
 <div class="baocao-container">
   <!-- Main Report Panel (Header, Stats, and Filters wrapped inside one card) -->
-  <div class="main-report-panel-container">
-    <!-- Header -->
-    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
-      <div>
-        <span class="report-subtitle">BÁO CÁO QUẢN TRỊ</span>
-        <h1 class="page-title" style="margin: 0;">Báo cáo thống kê doanh thu chuyến xe</h1>
-      </div>
-      <!-- Switcher Button Group -->
-      <div style="background-color: #f1f5f9; border-radius: 8px; padding: 4px; display: flex; gap: 4px; border: 1px solid #e2e8f0; align-items: center;">
-        <button (click)="activeReportTab = 'charts'"
-                [style.background-color]="activeReportTab === 'charts' ? '#1E3A8A' : 'transparent'"
-                [style.color]="activeReportTab === 'charts' ? '#ffffff' : '#64748b'"
+  <app-admin-page-header title="Báo cáo thống kê doanh thu chuyến xe" section="BÁO CÁO QUẢN TRỊ">
+<app-admin-tabs class="admin-tabs" style="background-color: #f1f5f9; border-radius: 8px; padding: 4px; display: flex; gap: 4px; border: 1px solid #e2e8f0; align-items: center;">
+        <button type="button" [class.active]="activeReportTab === 'charts'" (click)="activeReportTab = 'charts'"
                 style="border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; outline: none; line-height: 1;">
           Xem biểu đồ
         </button>
-        <button (click)="activeReportTab = 'table'"
-                [style.background-color]="activeReportTab === 'table' ? '#1E3A8A' : 'transparent'"
-                [style.color]="activeReportTab === 'table' ? '#ffffff' : '#64748b'"
+        <button type="button" [class.active]="activeReportTab === 'table'" (click)="activeReportTab = 'table'"
                 style="border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; outline: none; line-height: 1;">
           Xem danh sách
         </button>
-      </div>
-    </div>
+      </app-admin-tabs>
+</app-admin-page-header>
+<div class="main-report-panel-container">
+    <!-- Header -->
+
 
     <!-- Stats Grid -->
     <div class="stats-grid">
@@ -141,10 +133,10 @@
           </div>
           <span class="ratio-label">Tỷ suất lợi nhuận ròng</span>
         </div>
-        
+
         <div class="cost-ratio-badge">
           <span style="font-size: 13px; color: #64748b; font-weight: 500; display: block; margin-bottom: 2px;">Tỷ lệ chi phí vận hành trên doanh thu</span>
-          <strong style="color: #FF6A00; font-size: 18px; font-weight: 800;">{{ getPercentage(summary.totalOperatingCost, summary.totalRevenue) }}%</strong>
+          <strong style="color: #FF6A00; font-size: 18px; font-weight: var(--font-weight-semibold);">{{ getPercentage(summary.totalOperatingCost, summary.totalRevenue) }}%</strong>
         </div>
       </div>
     </div>
@@ -159,7 +151,7 @@
       </svg>
       <span>Bộ lọc báo cáo doanh thu chuyến xe</span>
     </div>
-    
+
     <div class="filter-grid">
       <!-- From Date -->
       <div class="filter-control">
@@ -273,21 +265,21 @@
                 <div class="fill-rate">
                   <span>{{ item.soKhach }}/{{ item.tongGhe }}</span>
                   <div class="mini-progress">
-                    <div class="mini-fill" 
+                    <div class="mini-fill"
                          [class.fill-high]="getPercentage(item.soKhach, item.tongGhe) >= 80"
                          [class.fill-medium]="getPercentage(item.soKhach, item.tongGhe) >= 50 && getPercentage(item.soKhach, item.tongGhe) < 80"
                          [class.fill-low]="getPercentage(item.soKhach, item.tongGhe) < 50"
                          [style.width.%]="getPercentage(item.soKhach, item.tongGhe)">
                     </div>
                   </div>
-                  <span style="font-size: 12px; font-weight: 600;" 
+                  <span style="font-size: 12px; font-weight: 600;"
                         [style.color]="getPercentage(item.soKhach, item.tongGhe) >= 80 ? '#10b981' : (getPercentage(item.soKhach, item.tongGhe) >= 50 ? '#f59e0b' : '#ef4444')">
                     {{ getPercentage(item.soKhach, item.tongGhe) }}%
                   </span>
                 </div>
               </td>
               <td style="font-weight: 700; color: #1e293b;">{{ formatCurrency(item.doanhThuVe) }}</td>
-              
+
               <!-- Operating cost cell with expand/collapse trigger -->
               <td>
                 <span class="cost-cell-expandable">
@@ -302,7 +294,7 @@
               <td class="profit-text" [class.profit-negative]="getTripProfit(item) < 0">
                 {{ formatCurrency(getTripProfit(item)) }}
               </td>
-              
+
               <td style="font-weight: 500;">{{ item.taiXeChinh }}</td>
               <td style="color: #64748b;">{{ item.phuXe || 'N/A' }}</td>
             </tr>
@@ -397,8 +389,8 @@
     <!-- Pagination Footer -->
     <div style="padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #64748b; background-color: #f8fafc;">
       <div>
-        Hiển thị {{ filteredTrips.length > 0 ? (currentPage - 1) * pageSize + 1 : 0 }} - 
-        {{ currentPage * pageSize > filteredTrips.length ? filteredTrips.length : currentPage * pageSize }} 
+        Hiển thị {{ filteredTrips.length > 0 ? (currentPage - 1) * pageSize + 1 : 0 }} -
+        {{ currentPage * pageSize > filteredTrips.length ? filteredTrips.length : currentPage * pageSize }}
         của {{ filteredTrips.length }} chuyến xe
       </div>
       <div style="display: flex; gap: 6px; align-items: center;">

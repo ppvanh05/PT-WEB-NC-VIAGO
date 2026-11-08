@@ -407,7 +407,7 @@ h1 {
 .item-top small {
   display: block;
   font-size: 11px;
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-base);
 }
 .item-top time {
   font-size: 10px;
@@ -935,7 +935,7 @@ dd {
 }
 .full-code {
   overflow-wrap: anywhere;
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-base);
   font-size: 10px;
 }
 .reason-text {

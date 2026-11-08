@@ -1,3 +1,7 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
+import { Card } from '../../../../shared/components/card/card';
+import { Pagination } from '../../../../shared/components/pagination/pagination';
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -299,7 +303,15 @@ const MOCK_LOST_ITEMS: LostItem[] = [
 @Component({
   selector: 'app-lost-and-found',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePickerComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    DatePickerComponent,
+    Pagination,
+    AdminPageHeader,
+    Card,
+    AdminTabs,
+  ],
   templateUrl: './lost-and-found.html',
   styleUrl: './lost-and-found.css'
 })
@@ -756,7 +768,7 @@ export class LostAndFound implements OnInit {
     // Search filter
     if (this.searchText.trim()) {
       const search = this.searchText.toLowerCase().trim();
-      result = result.filter(i => 
+      result = result.filter(i =>
         i.ma_do_that_lac.toLowerCase().includes(search) ||
         (i.ma_don_hang && i.ma_don_hang.toLowerCase().includes(search)) ||
         (i.ma_ve && i.ma_ve.toLowerCase().includes(search)) ||

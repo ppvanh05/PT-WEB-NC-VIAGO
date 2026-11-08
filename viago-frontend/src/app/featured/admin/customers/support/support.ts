@@ -1,3 +1,5 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import {
   Component,
   computed,
@@ -53,6 +55,8 @@ import {
     Pagination,
     ModalComponent,
     Toast,
+    AdminPageHeader,
+    AdminTabs,
   ],
   templateUrl: './support.html',
   styleUrl: './support.css',

@@ -12,16 +12,10 @@
       >Menu quản trị</app-button
     >
   </div>
-  <app-card class="header-card" radius="sm" padding="none" shadow="sm" [bordered]="true">
-    <header class="page-heading">
-      <div>
-        <p class="eyebrow">
-          {{ applications ? 'Nhân viên / Tuyển dụng' : 'Khách hàng / Liên hệ' }}
-        </p>
-        <h1>{{ title }}</h1>
-      </div>
-    </header>
-  </app-card>
+  <app-admin-page-header title="{{ title }}" section="{{ applications ? 'Nhân viên / Tuyển dụng' : 'Khách hàng / Liên hệ' }}">
+
+</app-admin-page-header>
+
 
   <div class="stats" aria-label="Thống kê trạng thái">
     <app-card
@@ -179,7 +173,7 @@
                     <div class="row-actions">
                       <button
                         type="button"
-                        class="admin-action-btn edit"
+                        class="admin-action-btn edit admin-edit-action"
                         [attr.aria-label]="'Xem và xử lý ' + row.id"
                         title="Xem và xử lý"
                         [disabled]="saving()"
@@ -232,7 +226,7 @@
     [title]="applications ? 'Xử lý hồ sơ ứng tuyển' : 'Xử lý yêu cầu liên hệ'"
     [loading]="saving()"
     (closed)="close()"
-  >
+   [fitContent]="true">
     @if (selected(); as detail) {
       <div class="detail dialog-workspace" aria-label="Chi tiết hồ sơ">
         <section class="profile-summary" aria-label="Thông tin tóm tắt">

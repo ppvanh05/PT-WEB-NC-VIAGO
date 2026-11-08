@@ -1,3 +1,5 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -29,7 +31,12 @@ export interface ChuyenXeReportItem {
 @Component({
   selector: 'app-detailed-report',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './detailed-report.html',
   styleUrls: ['./detailed-report.css']
 })
@@ -137,7 +144,7 @@ export class DetailedReportComponent implements OnInit {
       const vehicle = vehicles[i % vehicles.length];
       const driver = drivers[i % drivers.length];
       const codriver = codrivers[i % codrivers.length];
-      
+
       const seats = vehicle.seats;
       const soKhach = Math.floor(seats * 0.5) + Math.floor(Math.random() * (seats * 0.5 + 1));
       const revenue = soKhach * route.price;

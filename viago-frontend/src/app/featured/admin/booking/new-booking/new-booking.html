@@ -5,12 +5,9 @@
     }</div>
   }
 
-  <section class="counter-topbar">
-    <div class="page-heading">
-      <span class="eyebrow">Quầy bán vé</span>
-      <h1>Đặt vé xe</h1>
-    </div>
-  </section>
+  <app-admin-page-header title="Đặt vé xe" section="Quầy bán vé">
+
+</app-admin-page-header>
 
   <section class="trip-control-panel">
     <div class="filters-grid">
@@ -81,13 +78,13 @@
     @if (dateError()) { <p class="booking-error" role="alert">{{ dateError() }}</p> }
     @if (tripsLoading()) { <p class="booking-helper" role="status">Đang tải chuyến...</p> }
     <div class="schedule-toolbar">
-      <div class="time-segments" aria-label="Lọc khung giờ">
+      <app-admin-tabs class="time-segments" aria-label="Lọc khung giờ">
         <button type="button" [class.active]="boLocGio() === 'tat-ca'" (click)="CapNhatBoLocGio('tat-ca')">Tất cả</button>
         <button type="button" [class.active]="boLocGio() === 'sang'" (click)="CapNhatBoLocGio('sang')">Sáng</button>
         <button type="button" [class.active]="boLocGio() === 'chieu'" (click)="CapNhatBoLocGio('chieu')">Chiều</button>
         <button type="button" [class.active]="boLocGio() === 'toi'" (click)="CapNhatBoLocGio('toi')">Tối</button>
         <button type="button" [class.active]="boLocGio() === 'dem'" (click)="CapNhatBoLocGio('dem')">Đêm</button>
-      </div>
+      </app-admin-tabs>
     </div>
 
     <div class="time-strip" aria-label="Khung giờ chạy">
@@ -910,13 +907,13 @@
 </div>
 
 
-<app-modal [open]="showPaymentConfirmModal()" title="Xác nhận đã thu tiền" size="small" [confirmMode]="true" [loading]="processing()" confirmText="Xác nhận đã thu tiền" cancelText="Quay lại" (confirmed)="XacNhanThanhToan()" (closed)="showPaymentConfirmModal.set(false)">
+<app-modal [open]="showPaymentConfirmModal()" title="Xác nhận đã thu tiền" size="small" [confirmMode]="true" [loading]="processing()" confirmText="Xác nhận đã thu tiền" cancelText="Quay lại" (confirmed)="XacNhanThanhToan()" (closed)="showPaymentConfirmModal.set(false)" [fixedLayout]="true" [fitContent]="true">
   <p>Chỉ xác nhận sau khi đã nhận đủ tiền từ khách.</p>
   <p>Số tiền: <strong>{{ veDangSua() ? TongGiaTriVeHieuLuc(veDangSua()) : tongTien() | number }}đ</strong></p>
 </app-modal>
 <app-modal class="booking-discard-confirm" [open]="closeConfirm()" title="Thông tin chưa hoàn tất" size="small"
   [closeOnBackdrop]="false" [closeOnEscape]="false" [showCloseButton]="false" [confirmMode]="true" [danger]="true"
-  confirmText="Hủy thao tác" cancelText="Tiếp tục chỉnh sửa" (confirmed)="DiscardDraft()" (closed)="ContinueDraft()">
+  confirmText="Hủy thao tác" cancelText="Tiếp tục chỉnh sửa" (confirmed)="DiscardDraft()" (closed)="ContinueDraft()" [fixedLayout]="true" [fitContent]="true">
   <p>Thông tin đặt vé chưa được lưu. Bạn có muốn hủy thao tác không?</p>
   @if (holdDeadline()) { <p>Còn <strong>{{ remaining() }}</strong> giữ ghế.</p> }
 </app-modal>

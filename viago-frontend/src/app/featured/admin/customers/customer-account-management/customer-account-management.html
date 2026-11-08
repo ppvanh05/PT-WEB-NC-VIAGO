@@ -1,11 +1,6 @@
 <div class="ticket-list-page">
-  <section class="lookup-panel account-header-panel">
-    <div class="lookup-heading">
-      <div>
-        <span class="eyebrow">Quản lý hệ thống</span>
-        <h1>Quản lý tài khoản khách hàng</h1>
-      </div>
-      <div class="admin-create-banner" role="button" tabindex="0" (click)="openCreateModal()" title="Thêm tài khoản khách hàng mới">
+  <app-admin-page-header title="Quản lý tài khoản khách hàng" section="Quản lý hệ thống">
+<div class="admin-create-banner admin-create-action" role="button" tabindex="0" (click)="openCreateModal()" title="Thêm tài khoản khách hàng mới">
         <span class="admin-create-icon">
           <svg class="account-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
         </span>
@@ -14,7 +9,9 @@
           <span>Tạo hồ sơ khách hàng, cập nhật thông tin liên hệ và trạng thái tài khoản.</span>
         </span>
       </div>
-    </div>
+</app-admin-page-header>
+<section class="lookup-panel account-header-panel">
+
   <!-- Summary Strip -->
     <section class="account-summary-section">
     <div class="summary-strip">
@@ -36,7 +33,7 @@
 
   <section class="table-panel">
     <div class="table-control-panel">
-      <div class="pill-tabs account-status-tabs">
+      <app-admin-tabs class="pill-tabs account-status-tabs admin-tabs">
       <button type="button" class="pill-tab-item" [class.active]="activeTab === 'all'" (click)="setTab('all')">
         Tất cả ({{ customers.length }})
       </button>
@@ -46,7 +43,7 @@
       <button type="button" class="pill-tab-item" [class.active]="activeTab === 'locked'" (click)="setTab('locked')">
         Đã khóa ({{ lockedCount }})
       </button>
-      </div>
+      </app-admin-tabs>
     </div>
 
     <!-- Filters Grid -->
@@ -114,7 +111,7 @@
                 <div class="avatar-badge" style="width: 32px; height: 32px; border-radius: 9999px; background-color: #1E3A8A; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; text-transform: uppercase;">
                   {{ item.initials }}
                 </div>
-                <strong style="color: #0f172a; font-weight: 800;">{{ item.name }}</strong>
+                <strong style="color: #0f172a; font-weight: var(--font-weight-semibold);">{{ item.name }}</strong>
               </div>
             </td>
             <td>
@@ -137,12 +134,12 @@
               <span style="font-size: 13px; color: #334155; font-weight: 500;">{{ item.date }}</span>
             </td>
             <td style="text-align: center;">
-              <span class="badge payment da-thanh-toan" style="font-size: 12px; font-weight: 800; padding: 4px 10px; background-color: #eff6ff; color: #1E3A8A; border: 1px solid #dbe8ff;">
+              <span class="badge payment da-thanh-toan" style="font-size: 12px; font-weight: var(--font-weight-semibold); padding: 4px 10px; background-color: #eff6ff; color: #1E3A8A; border: 1px solid #dbe8ff;">
                 {{ item.tickets.replace('vé', '').replace('-', '').trim() }}
               </span>
             </td>
             <td class="actions-col">
-              <button type="button" class="action-btn-icon edit" (click)="openEditModal(item)" title="Chỉnh sửa tài khoản">
+              <button type="button" class="action-btn-icon edit admin-edit-action" (click)="openEditModal(item)" title="Chỉnh sửa tài khoản">
                 <svg class="account-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M4 10h7M4 14h5M13 20l-3 1 1-3 7-7 2 2-7 7Z"/></svg>
               </button>
             </td>
@@ -197,11 +194,11 @@
     </header>
 
     <!-- Tab Buttons (Horizontal at Top of Body) -->
-    <div class="modal-horizontal-tabs" style="display: flex; gap: 16px; padding: 12px 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
-      <button type="button" class="horizontal-tab-btn" [class.active]="editSubTab === 'profile'" (click)="setEditSubTab('profile')" style="background: none; border: none; padding: 8px 12px; font-weight: 800; font-size: 13px; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent;" [style.border-bottom-color]="editSubTab === 'profile' ? '#1E3A8A' : 'transparent'" [style.color]="editSubTab === 'profile' ? '#1E3A8A' : '#64748b'">Thông tin cơ bản</button>
-      <button type="button" class="horizontal-tab-btn" [class.active]="editSubTab === 'history'" (click)="setEditSubTab('history')" style="background: none; border: none; padding: 8px 12px; font-weight: 800; font-size: 13px; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent;" [style.border-bottom-color]="editSubTab === 'history' ? '#1E3A8A' : 'transparent'" [style.color]="editSubTab === 'history' ? '#1E3A8A' : '#64748b'">Lịch sử đặt vé ({{ selectedCustomer.bookings?.length || 0 }})</button>
-      <button type="button" class="horizontal-tab-btn" [class.active]="editSubTab === 'logs'" (click)="setEditSubTab('logs')" style="background: none; border: none; padding: 8px 12px; font-weight: 800; font-size: 13px; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent;" [style.border-bottom-color]="editSubTab === 'logs' ? '#1E3A8A' : 'transparent'" [style.color]="editSubTab === 'logs' ? '#1E3A8A' : '#64748b'">Nhật ký hoạt động</button>
-    </div>
+    <app-admin-tabs class="modal-horizontal-tabs admin-tabs" style="display: flex; gap: 16px; padding: 12px 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+      <button type="button" class="horizontal-tab-btn" [class.active]="editSubTab === 'profile'" (click)="setEditSubTab('profile')" style="background: none; border: none; padding: 8px 12px; font-weight: var(--font-weight-semibold); font-size: 13px; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent;" [style.border-bottom-color]="editSubTab === 'profile' ? '#1E3A8A' : 'transparent'" [style.color]="editSubTab === 'profile' ? '#1E3A8A' : '#64748b'">Thông tin cơ bản</button>
+      <button type="button" class="horizontal-tab-btn" [class.active]="editSubTab === 'history'" (click)="setEditSubTab('history')" style="background: none; border: none; padding: 8px 12px; font-weight: var(--font-weight-semibold); font-size: 13px; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent;" [style.border-bottom-color]="editSubTab === 'history' ? '#1E3A8A' : 'transparent'" [style.color]="editSubTab === 'history' ? '#1E3A8A' : '#64748b'">Lịch sử đặt vé ({{ selectedCustomer.bookings?.length || 0 }})</button>
+      <button type="button" class="horizontal-tab-btn" [class.active]="editSubTab === 'logs'" (click)="setEditSubTab('logs')" style="background: none; border: none; padding: 8px 12px; font-weight: var(--font-weight-semibold); font-size: 13px; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent;" [style.border-bottom-color]="editSubTab === 'logs' ? '#1E3A8A' : 'transparent'" [style.color]="editSubTab === 'logs' ? '#1E3A8A' : '#64748b'">Nhật ký hoạt động</button>
+    </app-admin-tabs>
 
     <!-- Modal Body Layout -->
     <div class="detail-modal-body" style="grid-template-columns: 1fr; display: flex; flex-direction: column; gap: 16px; padding: 20px; overflow-y: auto; max-height: 60vh;">
@@ -216,7 +213,7 @@
           </div>
           <div class="field">
             <label>Trạng thái hoạt động</label>
-            <div style="display: flex; align-items: center; min-height: 40px; font-weight: 800; font-size: 13px;" [style.color]="selectedCustomer.status === 'Đang hoạt động' ? '#10B981' : '#EF4444'">
+            <div style="display: flex; align-items: center; min-height: 40px; font-weight: var(--font-weight-semibold); font-size: 13px;" [style.color]="selectedCustomer.status === 'Đang hoạt động' ? '#10B981' : '#EF4444'">
               <span style="width: 8px; height: 8px; border-radius: 999px; background: currentColor; margin-right: 8px;"></span>
               <span>{{ selectedCustomer.status.toUpperCase() }}</span>
             </div>
@@ -284,7 +281,7 @@
             <label>Ảnh đại diện</label>
             <div style="width: 100px; height: 100px; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; cursor: pointer;">
               <svg class="account-icon" style="font-size: 28px; color: #64748b;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18H5a4 4 0 0 1-1-8 7 7 0 0 1 13-2 5 5 0 0 1 2 10h-2M12 20V10m-4 4 4-4 4 4"/></svg>
-              <span style="font-size: 11px; font-weight: 800; color: #64748b; margin-top: 4px;">Tải ảnh lên</span>
+              <span style="font-size: 11px; font-weight: var(--font-weight-semibold); color: #64748b; margin-top: 4px;">Tải ảnh lên</span>
             </div>
           </div>
         </div>
@@ -293,7 +290,7 @@
       <!-- SUBTAB 2: Booking History -->
       <div *ngIf="editSubTab === 'history'" style="display: flex; flex-direction: column; gap: 16px;">
         <div>
-          <h3 style="font-size: 14px; font-weight: 900; color: #1e3a8a; text-transform: uppercase; margin-bottom: 4px;">Lịch sử đặt mua vé xe</h3>
+          <h3 style="font-size: 14px; font-weight: var(--font-weight-semibold); color: #1e3a8a; text-transform: uppercase; margin-bottom: 4px;">Lịch sử đặt mua vé xe</h3>
           <p style="font-size: 12px; color: #64748b; margin: 0;">Lịch sử giao dịch đặt ghế/chuyến xe vật lý trên hệ thống VIAGO của khách hàng.</p>
         </div>
 
@@ -314,12 +311,12 @@
                 <td><strong class="code" style="font-size: 13px;">{{ booking.code }}</strong></td>
                 <td style="font-size: 13px; font-weight: 600; word-break: break-word;">{{ booking.route }}</td>
                 <td style="text-align: center;">
-                  <span class="badge payment da-thanh-toan" style="font-size: 12px; font-weight: 800; padding: 4px 10px; background-color: #eff6ff; color: #1E3A8A; border: 1px solid #dbe8ff; display: inline-block; width: 100%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" [title]="booking.seat">
+                  <span class="badge payment da-thanh-toan" style="font-size: 12px; font-weight: var(--font-weight-semibold); padding: 4px 10px; background-color: #eff6ff; color: #1E3A8A; border: 1px solid #dbe8ff; display: inline-block; width: 100%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" [title]="booking.seat">
                     {{ booking.seat.includes('_GHE_') ? booking.seat.split('_GHE_')[1] : booking.seat }}
                   </span>
                 </td>
                 <td style="font-size: 13px; color: #475569; white-space: nowrap;">{{ booking.date }}</td>
-                <td style="font-size: 13px; font-weight: 800; color: #0f172a;">{{ booking.price }}</td>
+                <td style="font-size: 13px; font-weight: var(--font-weight-semibold); color: #0f172a;">{{ booking.price }}</td>
                 <td>
                   <span class="badge payment {{ booking.status === 'Thành công' ? 'da-thanh-toan' : 'cho-thanh-toan' }}" style="display: inline-block; width: 100%; text-align: center;">
                     {{ booking.status }}
@@ -339,7 +336,7 @@
       <!-- SUBTAB 3: Activity Log Timeline -->
       <div *ngIf="editSubTab === 'logs'" style="display: flex; flex-direction: column; gap: 16px;">
         <div>
-          <h3 style="font-size: 14px; font-weight: 900; color: #1e3a8a; text-transform: uppercase; margin-bottom: 4px;">Nhật ký hoạt động hệ thống</h3>
+          <h3 style="font-size: 14px; font-weight: var(--font-weight-semibold); color: #1e3a8a; text-transform: uppercase; margin-bottom: 4px;">Nhật ký hoạt động hệ thống</h3>
           <p style="font-size: 12px; color: #64748b; margin: 0;">Lịch sử thao tác đăng nhập, sửa đổi hồ sơ, đặt vé và xác thực tài khoản của khách hàng.</p>
         </div>
 
@@ -363,8 +360,8 @@
                   </span>
                 </td>
                 <td style="font-size: 13px; color: #334155; line-height: 1.4; word-break: break-word;">{{ log.desc }}</td>
-                <td style="font-family: monospace; font-size: 12px; white-space: nowrap;">{{ log.ip }}</td>
-                <td style="font-family: monospace; font-size: 12px; color: #64748b; cursor: help;" [title]="log.code">{{ log.code.slice(-8) }}</td>
+                <td style="font-family: var(--font-family-base); font-size: 12px; white-space: nowrap;">{{ log.ip }}</td>
+                <td style="font-family: var(--font-family-base); font-size: 12px; color: #64748b; cursor: help;" [title]="log.code">{{ log.code.slice(-8) }}</td>
               </tr>
             </tbody>
           </table>
@@ -378,9 +375,9 @@
     </div>
 
     <!-- Modal Footer Controls -->
-    <footer class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+    <footer class="modal-footer admin-modal-actions" style="display: flex; justify-content: space-between; align-items: center;">
       <!-- Danger Lock/Unlock action -->
-      <button type="button" class="danger-button" (click)="toggleCustomerStatus()">
+      <button [class.admin-lock-action--unlock]="selectedCustomer.status !== 'Đang hoạt động'" type="button" class="danger-button admin-lock-action" (click)="toggleCustomerStatus()">
         {{ selectedCustomer.status === 'Đang hoạt động' ? 'Khóa tài khoản' : 'Mở khóa tài khoản' }}
       </button>
 
@@ -410,9 +407,9 @@
         <textarea [(ngModel)]="lockReason" placeholder="Nhập lý do khóa tài khoản khách hàng này..." rows="3"></textarea>
       </div>
     </div>
-    <footer class="modal-footer">
+    <footer class="modal-footer admin-modal-actions">
+      <button type="button" class="admin-lock-action" (click)="confirmLockCustomer()">Xác nhận khóa</button>
       <button type="button" class="secondary-button" (click)="closeLockConfirmModal()">Hủy thao tác</button>
-      <button type="button" class="danger-button solid" (click)="confirmLockCustomer()">Xác nhận khóa</button>
     </footer>
   </div>
 </div>
@@ -438,7 +435,7 @@
         </div>
         <div class="field">
           <label>Trạng thái hoạt động</label>
-          <div style="display: flex; align-items: center; min-height: 40px; font-weight: 800; font-size: 13px; color: #10B981;">
+          <div style="display: flex; align-items: center; min-height: 40px; font-weight: var(--font-weight-semibold); font-size: 13px; color: #10B981;">
             <span style="width: 8px; height: 8px; border-radius: 999px; background: currentColor; margin-right: 8px;"></span>
             <span>ĐANG HOẠT ĐỘNG</span>
           </div>
@@ -500,7 +497,7 @@
           <label>Ảnh đại diện</label>
           <div style="width: 100px; height: 100px; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; cursor: pointer;">
             <svg class="account-icon" style="font-size: 28px; color: #64748b;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18H5a4 4 0 0 1-1-8 7 7 0 0 1 13-2 5 5 0 0 1 2 10h-2M12 20V10m-4 4 4-4 4 4"/></svg>
-            <span style="font-size: 11px; font-weight: 800; color: #64748b; margin-top: 4px;">Tải ảnh lên</span>
+            <span style="font-size: 11px; font-weight: var(--font-weight-semibold); color: #64748b; margin-top: 4px;">Tải ảnh lên</span>
           </div>
         </div>
       </div>

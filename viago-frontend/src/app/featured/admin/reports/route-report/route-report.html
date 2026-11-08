@@ -1,28 +1,20 @@
 <div class="baocao-container">
   <!-- Main Report Panel (Header, Stats, and Filters wrapped inside one card) -->
-  <div class="main-report-panel-container">
-    <!-- Header -->
-    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
-      <div>
-        <span class="report-subtitle">BÁO CÁO QUẢN TRỊ</span>
-        <h1 class="page-title" style="margin: 0;">Báo cáo tổng hợp theo tuyến xe</h1>
-      </div>
-      <!-- Switcher Button Group -->
-      <div style="background-color: #f1f5f9; border-radius: 8px; padding: 4px; display: flex; gap: 4px; border: 1px solid #e2e8f0; align-items: center;">
-        <button (click)="activeReportTab = 'charts'"
-                [style.background-color]="activeReportTab === 'charts' ? '#1E3A8A' : 'transparent'"
-                [style.color]="activeReportTab === 'charts' ? '#ffffff' : '#64748b'"
+  <app-admin-page-header title="Báo cáo tổng hợp theo tuyến xe" section="BÁO CÁO QUẢN TRỊ">
+<app-admin-tabs class="admin-tabs" style="background-color: #f1f5f9; border-radius: 8px; padding: 4px; display: flex; gap: 4px; border: 1px solid #e2e8f0; align-items: center;">
+        <button type="button" [class.active]="activeReportTab === 'charts'" (click)="activeReportTab = 'charts'"
                 style="border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; outline: none; line-height: 1;">
           Xem biểu đồ
         </button>
-        <button (click)="activeReportTab = 'table'"
-                [style.background-color]="activeReportTab === 'table' ? '#1E3A8A' : 'transparent'"
-                [style.color]="activeReportTab === 'table' ? '#ffffff' : '#64748b'"
+        <button type="button" [class.active]="activeReportTab === 'table'" (click)="activeReportTab = 'table'"
                 style="border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; outline: none; line-height: 1;">
           Xem danh sách
         </button>
-      </div>
-    </div>
+      </app-admin-tabs>
+</app-admin-page-header>
+<div class="main-report-panel-container">
+    <!-- Header -->
+
 
     <!-- Stats Grid -->
     <div class="stats-grid">
@@ -81,13 +73,13 @@
           <span class="chart-subtitle">Tỷ trọng đóng góp doanh thu của các tuyến chính</span>
         </div>
       </div>
-      
+
       <div class="progress-list">
         <div class="progress-item interactive-chart-item" *ngFor="let item of filteredRoutes; let i = index" tabindex="0" [attr.data-tip]="item.tenTuyen + ': ' + formatCurrency(item.doanhThu.tongDoanhThu) + ' · ' + getPercentage(item.doanhThu.tongDoanhThu, summary.totalRevenue) + '%'">
           <div class="progress-label-row">
             <span class="progress-label-name">{{ item.tenTuyen }}</span>
             <span class="progress-label-val">
-              {{ formatCurrency(item.doanhThu.tongDoanhThu) }} 
+              {{ formatCurrency(item.doanhThu.tongDoanhThu) }}
               ({{ getPercentage(item.doanhThu.tongDoanhThu, summary.totalRevenue) }}%)
             </span>
           </div>
@@ -122,10 +114,10 @@
           </div>
           <span class="ratio-label">Tỷ lệ chuyến đúng giờ</span>
         </div>
-        
+
         <div class="cost-ratio-badge-blue">
           <span style="font-size: 13px; color: #1E3A8A; font-weight: 500; display: block; margin-bottom: 2px;">Tỷ lệ lấp đầy ghế trung bình</span>
-          <strong style="color: #10B981; font-size: 18px; font-weight: 800;">{{ summary.averageFillRate }}%</strong>
+          <strong style="color: #10B981; font-size: 18px; font-weight: var(--font-weight-semibold);">{{ summary.averageFillRate }}%</strong>
         </div>
       </div>
     </div>
@@ -146,7 +138,7 @@
             <span class="progress-label-val text-teal-val">{{ item.lapDay.tyLeLapDayTrungBinh }}%</span>
           </div>
           <div class="progress-track">
-            <div class="progress-fill" 
+            <div class="progress-fill"
                  [style.width.%]="item.lapDay.tyLeLapDayTrungBinh"
                  [style.background-color]="chartColors[i % chartColors.length]" style="opacity: 0.85;"></div>
           </div>
@@ -175,14 +167,14 @@
           </div>
           <div class="stacked-bar-container">
             <!-- Cost bar portion -->
-            <div class="bar-segment cost-segment" 
-                 [style.width.%]="item.doanhThu.tongDoanhThu > 0 ? 55 : 0" 
+            <div class="bar-segment cost-segment"
+                 [style.width.%]="item.doanhThu.tongDoanhThu > 0 ? 55 : 0"
                  title="Chi phí vận hành: 55%">
               <span class="segment-txt">CP: 55%</span>
             </div>
             <!-- Profit bar portion -->
-            <div class="bar-segment profit-segment" 
-                 [style.width.%]="item.doanhThu.tongDoanhThu > 0 ? 45 : 0" 
+            <div class="bar-segment profit-segment"
+                 [style.width.%]="item.doanhThu.tongDoanhThu > 0 ? 45 : 0"
                  title="Lợi nhuận: 45%">
               <span class="segment-txt">LN: 45%</span>
             </div>
@@ -204,19 +196,19 @@
           <div class="quality-label-row">
             <span class="quality-name">{{ item.tenTuyen }}</span>
             <span class="quality-status">
-              Trễ: <strong class="text-orange-val">{{ item.hieuSuat.soChuyenTre }}</strong> | 
+              Trễ: <strong class="text-orange-val">{{ item.hieuSuat.soChuyenTre }}</strong> |
               Hủy: <strong style="color: #EF4444;">{{ item.hieuSuat.soChuyenHuy }}</strong>
             </span>
           </div>
           <div class="quality-track">
             <!-- Green segment: On-time -->
-            <div class="quality-fill ontime-fill" 
+            <div class="quality-fill ontime-fill"
                  [style.width.%]="getPercentage(item.hieuSuat.soChuyenDungGio, item.lapDay.soChuyenChay || 1)"></div>
             <!-- Orange segment: Late -->
-            <div class="quality-fill late-fill" 
+            <div class="quality-fill late-fill"
                  [style.width.%]="getPercentage(item.hieuSuat.soChuyenTre, item.lapDay.soChuyenChay || 1)"></div>
             <!-- Red segment: Canceled -->
-            <div class="quality-fill canceled-fill" 
+            <div class="quality-fill canceled-fill"
                  [style.width.%]="getPercentage(item.hieuSuat.soChuyenHuy, item.lapDay.soChuyenChay || 1)"></div>
           </div>
         </div>
@@ -353,7 +345,7 @@
               <td style="font-weight: 700; color: #FF6A00;">{{ formatCurrency(item.doanhThu.tongDoanhThu * 0.55) }}</td>
               <td style="font-weight: 700; color: #10b981;">{{ formatCurrency(item.doanhThu.tongDoanhThu * 0.45) }}</td>
               <td>
-                <span class="badge-status" 
+                <span class="badge-status"
                       [class.badge-status-active]="item.trangThai === 'Hoạt động'"
                       [class.badge-status-suspended]="item.trangThai === 'Tạm ngưng'">
                   {{ item.trangThai }}
@@ -379,7 +371,7 @@
                     <!-- Column Left: Fill Rate Details -->
                     <div class="drawer-col border-col-left">
                       <div class="col-title">DỮ LIỆU LẤP ĐẦY GHẾ</div>
-                      
+
                       <div class="meta-info-row">
                         <span class="meta-label">Số chuyến chạy (Tổng)</span>
                         <span class="meta-val">{{ item.lapDay.soChuyenChay }} chuyến</span>
@@ -413,7 +405,7 @@
                       <div class="meta-info-row">
                         <span class="meta-label">Đúng giờ / Trễ chuyến</span>
                         <span class="meta-val text-green">
-                          {{ item.hieuSuat.soChuyenDungGio }} chuyến đúng giờ / 
+                          {{ item.hieuSuat.soChuyenDungGio }} chuyến đúng giờ /
                           <span class="text-orange">{{ item.hieuSuat.soChuyenTre }} trễ</span>
                         </span>
                       </div>
@@ -431,7 +423,7 @@
                       <div class="meta-info-row">
                         <span class="meta-label">Đánh giá sao trung bình</span>
                         <span class="meta-val">
-                          <span style="font-weight: 800; font-size: 16px; margin-right: 6px;">{{ item.hieuSuat.danhGiaSaoTrungBinh }} / 5.0</span>
+                          <span style="font-weight: var(--font-weight-semibold); font-size: 16px; margin-right: 6px;">{{ item.hieuSuat.danhGiaSaoTrungBinh }} / 5.0</span>
                           <span class="star-rating">
                             <span class="star-gold">★</span>
                             <span class="star-gold">★</span>
@@ -465,8 +457,8 @@
     <!-- Pagination Footer -->
     <div style="padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #64748b; background-color: #f8fafc;">
       <div>
-        Hiển thị {{ filteredRoutes.length > 0 ? (currentPage - 1) * pageSize + 1 : 0 }} - 
-        {{ currentPage * pageSize > filteredRoutes.length ? filteredRoutes.length : currentPage * pageSize }} 
+        Hiển thị {{ filteredRoutes.length > 0 ? (currentPage - 1) * pageSize + 1 : 0 }} -
+        {{ currentPage * pageSize > filteredRoutes.length ? filteredRoutes.length : currentPage * pageSize }}
         của {{ filteredRoutes.length }} tuyến xe
       </div>
       <div style="display: flex; gap: 6px; align-items: center;">

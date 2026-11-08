@@ -1,8 +1,8 @@
 /* PREMIUM DESIGN SYSTEM - VIAGO BRAND VALUES */
 :host {
-  display: flex;
+  display: block;
   flex-direction: column;
-  flex: 1;
+  flex: 0 0 auto;
   align-self: stretch;
   width: 100%;
   min-height: 0;
@@ -11,7 +11,7 @@
   --primary: #1E3A8A; /* VIAGO Premium Dark Blue */
   --primary-hover: #152C68;
   --primary-light: #EEF2FF;
-  
+
   --secondary: #FF6A00; /* VIAGO Brand Orange */
   --secondary-light: #FFF3EB;
 
@@ -22,19 +22,19 @@
   --navy: #0f172a;
   --slate: #475569;
   --slate-light: #f8fafc;
-  
+
   /* Semantic Statuses */
   --success: #10B981;
   --success-bg: #E6FBF4;
   --danger: #EF4444;
   --danger-bg: #FEF2F2;
   --danger-text: #991B1B;
-  
+
   /* Outline & Surface */
   --surface: #FFFFFF;
   --background: #F1F5F9;
   --border: #e2e8f0;
-  
+
   /* Typography & Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
@@ -52,7 +52,7 @@
 }
 
 .management-container {
-  font-family: "Be Vietnam Pro", "Inter", sans-serif;
+  font-family: var(--font-family-base);
   color: var(--slate);
   background-color: var(--background);
   min-height: 100%;
@@ -105,7 +105,7 @@
 
 .category-tag {
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.1em;
   color: #64748b;
   text-transform: uppercase;
@@ -113,7 +113,7 @@
 
 .main-title {
   font-size: 26px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   color: var(--navy);
   margin: 0;
   letter-spacing: -0.02em;
@@ -158,7 +158,7 @@
 .action-banner-text h3 {
   margin: 0 0 2px 0;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--font-weight-semibold);
   color: #166534;
 }
 
@@ -280,7 +280,7 @@
 
 .input-mini-label {
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -442,7 +442,7 @@
 
 .card-route-title {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   color: var(--navy);
   margin: 0 0 16px 0;
   letter-spacing: -0.01em;
@@ -505,7 +505,7 @@
 .connector-line {
   position: absolute;
   top: 8px; /* Positioned exactly at the vertical center of the node-dot */
-  left: 0; 
+  left: 0;
   right: 0;
   height: 2px;
   background: repeating-linear-gradient(90deg, var(--primary) 0, var(--primary) 4px, transparent 4px, transparent 8px);
@@ -521,7 +521,7 @@
 
 .metrics-dist {
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   color: var(--primary);
   background-color: var(--primary-light);
   padding: 1px 6px;
@@ -552,7 +552,7 @@
 
 .cell-label {
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   color: #94a3b8;
   text-transform: uppercase;
 }
@@ -566,7 +566,7 @@
 .price-cell .cell-value {
   color: var(--teal-green);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* Stops Summary Footer */
@@ -665,7 +665,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal, 1200);
   backdrop-filter: blur(4px);
 }
 
@@ -697,7 +697,7 @@
 .modal-title {
   margin: 0;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   color: var(--navy);
 }
 
@@ -840,7 +840,7 @@
 
 .config-section-title {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   color: var(--navy);
   margin-top: 0;
   margin-bottom: 16px;
@@ -903,7 +903,7 @@
   align-items: center;
 }
 
-.footer-left, 
+.footer-left,
 .footer-right {
   display: flex;
   gap: 12px;
@@ -1048,7 +1048,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 10000;
+  z-index: calc(var(--z-modal, 1200) + 20);
   background-color: rgba(15, 23, 42, 0.4); /* SPEC: Nền đen mờ bg-black/40 */
   backdrop-filter: blur(4px); /* SPEC: backdrop-blur-sm */
   display: flex;
@@ -1094,7 +1094,7 @@
 .centered-modal-title {
   margin: 0;
   font-size: 22px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   color: #1E3A8A; /* Brand Dark Blue VIAGO */
   letter-spacing: -0.01em;
 }
@@ -1196,7 +1196,7 @@
   background: #ffffff;
   color: #1e3a8a;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
@@ -1230,7 +1230,7 @@
   border: 1px solid #cbd5e1;
   background: #ffffff;
   color: #475569;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
 }
 
 .btn-cancel:hover {
@@ -1301,7 +1301,7 @@
 }
 
 .management-container {
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
   color: var(--admin-text);
   background: var(--admin-bg);
 }
@@ -1321,7 +1321,7 @@
 .cell-label {
   color: var(--admin-text-muted);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1329,7 +1329,7 @@
 .main-title {
   color: var(--admin-primary);
   font-size: 22px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0;
 }
 
@@ -1365,7 +1365,7 @@
   border-radius: 6px;
   color: #475569;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .pill-tab-item:hover {
@@ -1385,7 +1385,7 @@
   border-color: var(--admin-border-strong);
   border-radius: var(--admin-radius);
   color: var(--admin-text);
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
   font-size: 14px;
   box-shadow: none;
 }
@@ -1405,9 +1405,9 @@
   border-radius: var(--admin-radius);
   background: #ffffff;
   color: var(--admin-primary);
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .btn-clear-filters:hover,
@@ -1423,9 +1423,9 @@
   border-radius: var(--admin-radius);
   background: var(--admin-secondary);
   color: #ffffff;
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   box-shadow: 0 8px 18px rgba(255, 106, 0, 0.18);
 }
 
@@ -1438,7 +1438,7 @@
   top: 24px;
   right: 24px;
   gap: 12px;
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
 }
 
 .toast-card {
@@ -1495,7 +1495,7 @@
 .stop-badge {
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .status-indicator-badge.active {
@@ -1518,7 +1518,7 @@
 .card-route-title {
   color: var(--admin-text);
   font-size: 18px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0;
 }
 
@@ -1590,7 +1590,7 @@
 
 .management-container,
 .management-container * {
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
 }
 
 .management-container .material-symbols-outlined {
@@ -1632,7 +1632,7 @@
   color: var(--admin-text-body);
   font: inherit;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   line-height: 1;
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
@@ -1736,7 +1736,7 @@
 .input-mini-label {
   color: var(--admin-text-muted, #64748b) !important;
   font-size: 11px !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
   letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
 }
@@ -1793,7 +1793,7 @@
   align-items: center !important;
   gap: 12px !important;
   width: auto !important;
-  min-width: 520px !important;
+  min-width: 0 !important;
   max-width: 100% !important;
   min-height: 58px !important;
   border: 1px solid #bbf7d0 !important;
@@ -1801,14 +1801,14 @@
   padding: 10px 12px !important;
   background: #f0fdf4 !important;
   box-shadow: none !important;
-  white-space: nowrap !important;
+  white-space: normal !important;
 }
 
 .header-action-banner .action-icon-circle { width: 34px !important; height: 34px !important; }
 .header-action-banner .action-banner-text,
 .header-action-banner .action-banner-text h3,
-.header-action-banner .action-banner-text p { overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
-.header-action-banner .action-banner-text h3 { margin: 0 !important; color: #14532d !important; font-size: 14px !important; font-weight: 900 !important; }
+.header-action-banner .action-banner-text p { overflow: visible !important; text-overflow: clip !important; white-space: normal !important; }
+.header-action-banner .action-banner-text h3 { margin: 0 !important; color: #14532d !important; font-size: 14px !important; font-weight: var(--font-weight-semibold) !important; }
 .header-action-banner .action-banner-text p { margin: 2px 0 0 !important; color: #166534 !important; font-size: 12px !important; font-weight: 500 !important; line-height: 1.25 !important; }
 
 /* Custom Modal Styles (Image A & Image B) */

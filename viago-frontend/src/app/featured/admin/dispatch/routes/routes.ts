@@ -1,3 +1,6 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
+import { Pagination } from '../../../../shared/components/pagination/pagination';
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -25,7 +28,13 @@ export interface TuyenXe {
 @Component({
   selector: 'app-admin-routes',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    Pagination,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './routes.html',
   styleUrl: './routes.css'
 })
@@ -609,7 +618,7 @@ export class RoutesComponent implements OnInit {
     const r1 = this.getRegion(p1);
     const r2 = this.getRegion(p2);
     if (r1 === r2) return r1 === 'MB' ? 140 : 130;
-    
+
     const pair = [r1, r2].sort().join('_');
     switch (pair) {
       case 'MN_TN': return 310;

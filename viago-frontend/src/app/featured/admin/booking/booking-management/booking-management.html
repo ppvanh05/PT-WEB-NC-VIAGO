@@ -5,13 +5,12 @@
     }</div>
   }
 
-  <section class="lookup-panel">
-    <div class="lookup-heading">
-      <div>
-        <span class="eyebrow">Quản lý vé đã đặt</span>
-        <h1>Danh sách vé đã đặt</h1>
-      </div>
-    </div>
+  <app-admin-page-header title="Danh sách vé đã đặt" section="Quản lý vé đã đặt">
+
+</app-admin-page-header>
+<section class="table-panel">
+  <div class="lookup-panel">
+
 
     <div class="summary-strip">
       <div class="summary-item"><span>{{ thongKe().tong }}</span><small>Tổng số vé</small></div>
@@ -74,6 +73,7 @@
           <option value="huy-mot-phan">Hủy một phần</option>
           <option value="da-hoan-thanh">Đã hoàn thành</option>
           <option value="da-huy">Đã hủy</option>
+          <option value="het-han">Hết hạn</option>
         </select>
       </div>
 
@@ -91,117 +91,42 @@
       <div class="field"><label>Nguồn đặt vé</label><select aria-label="Nguồn đặt vé" [ngModel]="locNguonDat()" (ngModelChange)="locNguonDat.set($event); trangHienTai.set(1)"><option value="tat-ca">Tất cả nguồn</option><option value="hotline">Hotline</option><option value="tai-quay">Tại quầy</option><option value="online">Website</option></select></div>
       <div class="field filter-actions">
         <app-button variant="outline" type="button" (clicked)="XoaBoLoc()">Xóa bộ lọc</app-button>
+        <app-button variant="outline" type="button" [loading]="!!counterOrders()?.loading()" (clicked)="LamMoiDanhSach()">Làm mới</app-button>
       </div>
 
-      @if (loiTraCuuDonHang()) {
-      <div class="lookup-error filter-message">{{ loiTraCuuDonHang() }}</div>
-      }
     </div>
-
-    @if (donHangTimThay().length > 1 && !maDonHangDangXem()) {
-    <section class="order-matches-panel">
-      <header>
-        <span class="eyebrow">Kết quả theo số điện thoại</span>
-        <strong>{{ donHangTimThay().length }} đơn hàng phù hợp</strong>
-      </header>
-      <div class="order-match-list">
-        @for (order of donHangTimThay(); track order.MaDonHang) {
-        <button type="button" class="order-match-card" (click)="ChonDonHangTraCuu(order.MaDonHang)">
-          <span>
-            <strong>{{ order.MaDonHang }}</strong>
-            <small>{{ order.DaiDien.HoTenNguoiDi }} - {{ order.DaiDien.SdtNguoiDi }}</small>
-          </span>
-          <span>
-            <strong>{{ order.SoVeHieuLuc }}/{{ order.SoVe }} vé</strong>
-            <small>Ghế {{ order.Ghe }} - {{ order.TongHieuLuc | number }} đ</small>
-          </span>
-          <span class="material-symbols-outlined">chevron_right</span>
-        </button>
-        }
-      </div>
-    </section>
-    }
-
-    @if (donHangDangXem(); as donHang) {
-    <section class="order-result-panel">
-      <header class="order-result-header">
-        <div>
-          <span class="eyebrow">Đơn hàng</span>
-          <h2>{{ donHang.MaDonHang }}</h2>
-          <p>{{ donHang.HoTenNguoiDi }} - {{ donHang.SdtNguoiDi }}</p>
-        </div>
-        <div class="order-result-actions">
-          <app-button variant="outline" type="button" (clicked)="MoInDonHang(donHang)">
-            <span class="material-symbols-outlined">print</span>
-            In vé
-          </app-button>
-          <app-button variant="primary" type="button" [disabled]="!CoTheSua(donHang)" [title]="EditReason(donHang)" (clicked)="MoSuaDonHangTuVe(donHang)">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-            Sửa thông tin đơn
-          </app-button>
-        </div>
-      </header>
-
-      <div class="order-summary-grid"><div><span>Email người đặt</span><strong>{{ donHang.EmailNguoiDi || 'Chưa cung cấp' }}</strong></div><div><span>Nguồn đặt vé</span><app-badge variant="neutral" [label]="LabelNguonDat(donHang.NguonDat)" /></div><div><span>Đơn hàng</span><app-badge [variant]="OrderVariant(donHang)" [label]="OrderLabel(donHang)" /></div><div><span>Số vé</span><strong>{{ veTrongDonDangXem().length }} vé · {{ SoVeHieuLucTrongDon(donHang) }} hiệu lực</strong></div><div><span>Tổng tiền đơn hàng</span><strong>{{ tongGiaTriDonDangXem() | number }} đ</strong></div><div><span>Cần thu</span><strong>{{ PaymentDue(donHang) | number }} đ</strong></div></div>
-
-      <div class="order-ticket-list">
-        @for (item of veTrongDonDangXem(); track item.MaVe) {
-        <article class="order-ticket-card" [class.cancelled]="item.TrangThaiVe === 'da-huy'">
-          <div class="order-ticket-main">
-            <div class="ticket-seat">
-              <strong>{{ item.SoGhe }}</strong>
-              <span>{{ item.MaVe }}</span>
-            </div>
-            <div>
-              <span class="ticket-route">{{ HienThiTuyen(item.TenTuyenXe, item.ChieuTuyen) }} · {{ item.GioKhoiHanh }} {{ DinhDangNgay(item.NgayKhoiHanh) }}</span><span class="ticket-meta">{{ PassengerName(item) }} · {{ item.MaDiemDon }} → {{ item.MaDiemTra }}</span>
-              <span class="ticket-meta">{{ item.LoaiXe || 'Xe khách' }} · {{ MoTaGheNgan(item) }} · {{
-                PaymentLabel(item) }} - {{ item.GiaVe | number }} đ</span>
-              <span class="ticket-meta">{{ item.TenXe || TenXeTheoVe(item) }} · {{ LayBienSoTheoVe(item) }}</span>
-            </div>
-            <app-badge variant="neutral" [label]="TicketLabel(item)" />
-          </div>
-          <div class="ticket-qr-box">
-            <img [src]="MaQr(item)" [alt]="'Mã QR ' + item.MaVe" />
-
-          </div>
-          <div class="ticket-row-actions">
-            <button type="button" class="icon-action" title="Sửa thông tin đơn" [disabled]="!CoTheSua(item)" (click)="MoSuaDonHangTuVe(item)">
-              <span class="material-symbols-outlined">edit</span>
-            </button>
-            <button type="button" class="icon-action" title="In vé này" [disabled]="item.TrangThaiVe === 'da-huy'"
-              (click)="MoInVeRieng(item)">
-              <span class="material-symbols-outlined">print</span>
-            </button>
-            <button type="button" class="icon-action danger" [title]="item.TrangThaiDonHang === 'da-thanh-toan' ? 'Hủy vé / Hoàn tiền' : 'Hủy giữ chỗ'" [disabled]="!CoTheHuy(item)"
-              (click)="MoHuyTungVe(item)">
-              <span class="material-symbols-outlined">cancel</span>
-            </button>
-          </div>
-        </article>
-        }
-      </div>
-    </section>
-    }
-  </section>
-
-  <app-counter-orders />
-  <section class="table-panel">
+  </div>
+  <app-counter-orders [embedded]="true" />
     <div class="table-header">
       <strong>Danh sách vé</strong><small class="sort-note">Mới nhất trước</small>
-      <span>{{ danhSachLoc().length }} bản ghi</span>
+      <span>{{ danhSachTongHop().length }} bản ghi</span>
     </div>
 
+    @if (counterOrders(); as orders) {
+      @if (orders.loading()) {
+        <p class="list-message" role="status">Đang tải đơn khách đặt…</p>
+      }
+      @if (orders.error() && !orders.selected()) {
+        <p class="list-message list-message--error" role="alert">Không tải được đầy đủ đơn khách đặt: {{ orders.error() }} Vui lòng thử làm mới.</p>
+      }
+      @if (orders.notice()) {
+        <p class="list-message list-message--success" role="status">{{ orders.notice() }}</p>
+      }
+    }
+
     <div class="table-scroll">
-      @if (danhSachLoc().length === 0) {
+      @if (danhSachTongHop().length === 0 && !counterOrders()?.loading()) {
       <div class="empty-table">
         <h3>Không có kết quả</h3>
         <p>Thử đổi từ khóa hoặc trạng thái lọc.</p>
       </div>
       } @else {
       <table class="booking-table">
-        <thead><tr><th>Mã đơn / vé</th><th>Khách hàng</th><th>Chuyến đi</th><th>Ghế</th><th>Giá vé</th><th>Nguồn đặt</th><th>Trạng thái đơn</th><th class="actions-col">Chức năng</th></tr></thead>
+        <thead><tr><th>Mã đơn / vé</th><th>Khách hàng</th><th>Chuyến đi</th><th>Ghế</th><th>Số tiền</th><th>Nguồn đặt</th><th>Trạng thái đơn</th><th class="actions-col">Chức năng</th></tr></thead>
         <tbody>
-          @for (ve of danhSachPhanTrang(); track ve.MaVe) {
+          @for (item of danhSachPhanTrang(); track item.key) {
+          @if (item.kind === 'ticket') {
+          @let ve = item.ticket;
           <tr [class.cancelled]="ve.TrangThaiVe === 'da-huy'">
             <td class="code"><strong>{{ ve.MaDonHang || '-' }}</strong><small>{{ ve.MaVe }}</small></td>
             <td class="customer-cell"><strong>{{ PassengerName(ve) }}</strong><small>{{ ve.SdtNguoiDi }}</small></td>
@@ -212,8 +137,24 @@
             <td class="ticket-status-cell"><app-badge [variant]="OrderVariant(ve)" [label]="OrderLabel(ve)" />
               @if (PaymentLabel(ve) !== OrderLabel(ve)) { <small class="payment-caption">Thanh toán: {{ PaymentLabel(ve) }}</small> }
             </td>
-            <td class="actions-col"><button type="button" class="admin-action-btn edit" [attr.aria-label]="'Xem chi tiết vé ' + ve.MaVe" title="Xem chi tiết" (click)="ChonVe(ve)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button></td>
+            <td class="actions-col"><button type="button" class="admin-action-btn edit admin-edit-action" [attr.aria-label]="'Xem chi tiết vé ' + ve.MaVe" title="Xem chi tiết" (click)="ChonVe(ve)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button></td>
           </tr>
+          } @else {
+          @let order = item.order;
+          <tr [class.cancelled]="order.status === 'DaHuy' || order.status === 'HetHanThanhToan'">
+            <td class="code"><strong>{{ order.id }}</strong><small>Đơn khách đặt</small></td>
+            <td class="customer-cell"><strong>{{ order.name }}</strong><small>{{ order.phone }}</small></td>
+            <td class="journey-cell"><span>{{ order.from }} → {{ order.to }}</span><small>{{ order.departureAt | date: 'HH:mm · dd/MM/yyyy' : '+0700' }}</small></td>
+            <td class="seat"><strong>{{ order.seatCount }} ghế</strong></td>
+            <td class="price-cell">{{ order.total | number }} đ<small>Tổng đơn</small></td>
+            <td><app-badge variant="neutral" label="Website" /></td>
+            <td class="ticket-status-cell">
+              <app-badge [label]="counterOrders()!.label(order.status)" [variant]="order.status === 'DaThanhToan' ? 'success' : order.status === 'ChoThanhToanTrucTiep' ? 'info' : 'neutral'" />
+              @if (order.status === 'ChoThanhToanTrucTiep') { <small class="payment-caption">Hạn thu: {{ order.expiresAt | date: 'HH:mm dd/MM' : '+0700' }}</small> }
+            </td>
+            <td class="actions-col"><button type="button" class="admin-edit-action" [attr.aria-label]="'Xem và xử lý đơn ' + order.id" title="Xem và xử lý đơn" (click)="counterOrders()!.inspect(order)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></td>
+          </tr>
+          }
           }
         </tbody>
       </table>
@@ -222,7 +163,7 @@
 
     <div class="pagination-bar">
       <span>
-        Hiển thị {{ chiSoDauTrang() }}-{{ chiSoCuoiTrang() }} / {{ danhSachLoc().length }} vé
+        Hiển thị {{ chiSoDauTrang() }}-{{ chiSoCuoiTrang() }} / {{ danhSachTongHop().length }} bản ghi
       </span>
       <div class="pagination-controls">
         <label>
@@ -235,7 +176,7 @@
         </label>
         <app-pagination
           [currentPage]="trangHopLe()"
-          [totalItems]="danhSachLoc().length"
+          [totalItems]="danhSachTongHop().length"
           [pageSize]="soDongMoiTrang()"
           [showSummary]="false"
           (pageChange)="ChuyenTrang($event)"
@@ -857,4 +798,4 @@
   }
 
 </div>
-<app-modal [open]="closeConfirm()" title="Thông tin chưa lưu" size="small" [confirmMode]="true" [danger]="true" confirmText="Hủy thay đổi" cancelText="Tiếp tục chỉnh sửa" [closeOnBackdrop]="false" (confirmed)="DiscardChanges()" (closed)="closeConfirm.set(false)"><p>Bạn đang có dữ liệu chưa lưu. Bạn có muốn hủy thay đổi?</p></app-modal>
+<app-modal [open]="closeConfirm()" title="Thông tin chưa lưu" size="small" [confirmMode]="true" [danger]="true" confirmText="Hủy thay đổi" cancelText="Tiếp tục chỉnh sửa" [closeOnBackdrop]="false" (confirmed)="DiscardChanges()" (closed)="closeConfirm.set(false)" [fixedLayout]="true" [fitContent]="true"><p>Bạn đang có dữ liệu chưa lưu. Bạn có muốn hủy thay đổi?</p></app-modal>

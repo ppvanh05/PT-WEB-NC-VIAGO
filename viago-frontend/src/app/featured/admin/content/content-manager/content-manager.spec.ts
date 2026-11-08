@@ -144,4 +144,45 @@ describe('Supabase-backed admin content', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(page.editorError()).toBe('Detail unavailable');
   });
+
+  for (const kind of ['news', 'policies', 'promotions'] as ContentKind[]) {
+    it('opens ' + kind + ' management from one pencil without stacking dialogs or losing the draft', async () => {
+      const row: ContentRow = {
+        id: 'DB001', maCS: 'DB001', name: 'Database title', tieuDe: 'Database title',
+        tenChinhSach: 'Database title', statusCode: 'HoatDong', status: 'running',
+        trangThaiCode: kind === 'news' ? 'DangHienThi' : 'DangApDung',
+      };
+      vi.stubGlobal('fetch', vi.fn(async (url: string) => json(
+        url.endsWith('/DB001') ? row
+          : url.endsWith('/statistics') ? { total: 1 }
+          : url.endsWith('/options') ? { memberTiers: [], routes: [] }
+          : { data: url.includes('/comments?') || url.includes('/usages?') ? [] : [row], pagination: { total: 1, totalPages: 1 } },
+      )));
+      const fixture = TestBed.createComponent(ContentManager);
+      const page = fixture.componentInstance;
+      page.kind = kind;
+      fixture.detectChanges();
+      await vi.waitFor(() => expect(page.loaded()).toBe(true));
+      fixture.detectChanges();
+      const actions = fixture.nativeElement.querySelectorAll('tbody tr td:last-child button');
+      expect(actions.length).toBe(1);
+      expect(actions[0].getAttribute('aria-label')).toContain('Chỉnh sửa');
+      actions[0].click();
+      await vi.waitFor(() => expect(page.editorLoading()).toBe(false));
+      fixture.detectChanges();
+      page.draft.title = 'Unsaved draft';
+      const tools: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll(kind === 'policies' ? '.editor-actions .admin-lock-action button' : '.record-tools button'));
+      const label = kind === 'news' ? 'Bình luận' : kind === 'policies' ? 'Khóa' : 'Lượt sử dụng';
+      tools.find((button) => button.textContent?.trim() === label)!.click();
+      fixture.detectChanges();
+      if (kind !== 'policies') await vi.waitFor(() => expect(page.detailBusy()).toBe(false));
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelectorAll('[role="dialog"]').length).toBe(1);
+      (fixture.nativeElement.querySelector('[role="dialog"] .modal-close') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelectorAll('[role="dialog"]').length).toBe(1);
+      expect(page.editorOpen()).toBe(true);
+      expect(page.draft.title).toBe('Unsaved draft');
+    });
+  }
 });

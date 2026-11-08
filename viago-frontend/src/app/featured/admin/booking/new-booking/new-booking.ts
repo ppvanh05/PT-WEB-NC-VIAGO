@@ -1,3 +1,5 @@
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
 import { SidebarStateService } from '../../../../core/services/sidebar-state.service';
 import { BookingDialog, printBookingReceipts } from '../booking-dialog';
 import { BookingState, HOLD_MS, normalizeTicket, paymentLabel, ticketLabel, paymentVariant, normalizedName, validName, validPhone, validEmail, countdown, couponResult, localQr, mockSchedule } from '../booking-rules';
@@ -118,7 +120,18 @@ interface TenTuyenXe {
 @Component({
   selector: 'app-new-booking',
   standalone: true,
-  imports: [Toast, DatePickerComponent, BookingDialog, Button, Badge, ModalComponent, CommonModule, FormsModule],
+  imports: [
+    Toast,
+    DatePickerComponent,
+    BookingDialog,
+    Button,
+    Badge,
+    ModalComponent,
+    CommonModule,
+    FormsModule,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './new-booking.html',
   styleUrl: './new-booking.css'
 })
@@ -1109,7 +1122,7 @@ export class NewBooking implements OnInit {
     const maChuyen = this.TaoMaChuyen();
     const tongGiaVe = this.tongTien();
     const soLuongVeDaDat = seats.length;
-    
+
     const totalDiscount = this.soTienGiam();
     const baseDiscount = seats.length > 0 ? Math.floor(totalDiscount / seats.length) : 0;
     const remainder = seats.length > 0 ? (totalDiscount - (baseDiscount * seats.length)) : 0;
@@ -1280,7 +1293,7 @@ export class NewBooking implements OnInit {
         ...v,
         TrangThaiVe: 'da-huy' as TrangThaiVe,
         orderStatus: 'cancelled' as const,
-        paymentStatus: v.TrangThaiDonHang === 'da-thanh-toan' ? (refund.soTien > 0 ? 'refund-processing' as const : 'paid' as const) : v.paymentStatus, 
+        paymentStatus: v.TrangThaiDonHang === 'da-thanh-toan' ? (refund.soTien > 0 ? 'refund-processing' as const : 'paid' as const) : v.paymentStatus,
         TrangThaiGiaoDich: v.TrangThaiDonHang === 'da-thanh-toan' ? 'chua-hoan' as const : 'da-hoan' as const,
         GhiChu: note,
         NguoiHuy: 'Nguyen An Ninh',
@@ -1402,7 +1415,7 @@ export class NewBooking implements OnInit {
     const xeDauTien = this.danhSachXe.find(xe => xe.loaiXe === loaiXeHopLe);
     if (xeDauTien) this.maXeDuocChon.set(xeDauTien.maXe);
     this.BoChonTatCa();
-  
+
     });
   }
 
@@ -1413,7 +1426,7 @@ export class NewBooking implements OnInit {
     this.loaiXeDuocChon.set(xe.loaiXe);
     this.maXeDuocChon.set(xe.maXe);
     this.BoChonTatCa();
-  
+
     });
   }
 
@@ -1612,15 +1625,15 @@ export class NewBooking implements OnInit {
             const veChuan = this.ChuanHoaVeXe(ve);
             let note = veChuan.GhiChu || '';
             note = note.split(' | ')
-              .filter(part => 
-                !part.includes('Cập nhật thông tin lúc') && 
-                !part.includes('Đổi ghế từ') && 
+              .filter(part =>
+                !part.includes('Cập nhật thông tin lúc') &&
+                !part.includes('Đổi ghế từ') &&
                 !part.includes('Xác nhận thanh toán qua')
               )
               .join(' | ');
 
-            return { 
-              ...veChuan, 
+            return {
+              ...veChuan,
               GhiChu: note
             };
           });

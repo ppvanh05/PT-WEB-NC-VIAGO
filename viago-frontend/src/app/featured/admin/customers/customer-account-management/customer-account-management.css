@@ -26,7 +26,7 @@
   padding: 12px;
   background: #f6f8fb;
   color: #0f172a;
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
 }
 
 .toast-message {
@@ -90,7 +90,7 @@
 .eyebrow {
   color: #64748b;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -105,7 +105,7 @@ h3 {
 .lookup-heading h1 {
   margin-top: 2px;
   font-size: 22px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .filters-grid {
@@ -127,7 +127,7 @@ h3 {
 .field label {
   color: #475569;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
 }
 
 .field input,
@@ -211,13 +211,13 @@ button.summary-item {
 .summary-item span {
   color: #0f172a;
   font-size: 18px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .summary-item small {
   color: #64748b;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   margin-top: 2px;
 }
@@ -244,7 +244,7 @@ button.summary-item {
 .table-panel {
   display: flex;
   min-height: 0;
-  flex: 1;
+  flex: 0 0 auto;
   flex-direction: column;
   overflow: hidden;
 }
@@ -261,18 +261,18 @@ button.summary-item {
 
 .table-header strong {
   font-size: 15px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .table-header span {
   color: #64748b;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
 }
 
 .table-scroll {
-  flex: 1;
-  overflow: auto;
+  flex: 0 0 auto;
+  overflow-x: auto;
 }
 
 .pagination-bar {
@@ -285,7 +285,7 @@ button.summary-item {
   background: #ffffff;
   color: #64748b;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
 }
 
 .pagination-controls {
@@ -319,7 +319,7 @@ button.summary-item {
   color: #334155;
   font: inherit;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
 }
 
@@ -335,14 +335,14 @@ table {
 }
 
 th {
-  position: sticky;
+  position: static;
   top: 0;
   z-index: 2;
   border-bottom: 1px solid #d9e2ef;
   background: #ffffff;
   color: #64748b;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   padding: 10px 12px;
   text-align: left;
   text-transform: uppercase;
@@ -371,12 +371,12 @@ tbody tr.cancelled {
 
 .code {
   color: #ea580c;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .name {
   color: #0f172a;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
 }
 
 .name strong,
@@ -395,7 +395,7 @@ tbody tr.cancelled {
   border-radius: 999px;
   padding: 4px 8px;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
 }
 
@@ -420,7 +420,7 @@ tbody tr.cancelled {
   padding: 8px 12px;
   font: inherit;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
 }
 
@@ -489,7 +489,7 @@ tbody tr.cancelled {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: var(--z-modal, 1200);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -546,7 +546,7 @@ tbody tr.cancelled {
 .modal-header h2 {
   margin-top: 3px;
   font-size: 20px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .cancel-header h2 {
@@ -762,7 +762,7 @@ tbody tr.cancelled {
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   padding: 5px 12px;
   border-radius: 8px;
   white-space: nowrap;
@@ -812,7 +812,7 @@ tbody tr.cancelled {
 
 :host,
 :host * {
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
 }
 
 :host .material-symbols-outlined {
@@ -844,7 +844,7 @@ tbody tr.cancelled {
 .lookup-heading h1,
 .modal-header h2 {
   color: var(--admin-primary);
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0;
 }
 
@@ -879,7 +879,7 @@ textarea:focus {
   background: var(--admin-success) !important;
   color: #ffffff !important;
   border-radius: var(--admin-radius) !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
 }
 
 .primary-button:hover,
@@ -894,7 +894,7 @@ textarea:focus {
   background: var(--admin-secondary) !important;
   color: #ffffff !important;
   border-radius: var(--admin-radius) !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
 }
 
 .save-button:hover,
@@ -908,7 +908,7 @@ textarea:focus {
   background: #ffffff !important;
   color: var(--admin-primary) !important;
   border-radius: var(--admin-radius) !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
 }
 
 .secondary-button:hover,
@@ -961,7 +961,7 @@ textarea:focus {
   background: #ffffff !important;
   color: var(--admin-text-body) !important;
   font-size: 12px !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
   line-height: 1;
 }
 
@@ -1022,7 +1022,7 @@ textarea:focus {
   margin: 2px 0 0 !important;
   color: var(--admin-primary) !important;
   font-size: 22px !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
   line-height: 1.25 !important;
   letter-spacing: 0 !important;
 }
@@ -1030,7 +1030,7 @@ textarea:focus {
 .eyebrow {
   color: var(--admin-text-muted) !important;
   font-size: 11px !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
   letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
 }
@@ -1038,14 +1038,14 @@ textarea:focus {
 .summary-item span {
   color: var(--admin-text) !important;
   font-size: 24px !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
   line-height: 1.1 !important;
 }
 
 .summary-item small {
   color: var(--admin-text-muted) !important;
   font-size: 11px !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
   letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
 }
@@ -1090,7 +1090,7 @@ textarea:focus {
   display: block !important;
   color: #166534 !important;
   font-size: 14px !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
 }
 
 .admin-create-text span {
@@ -1098,7 +1098,7 @@ textarea:focus {
   margin-top: 3px !important;
   color: var(--admin-success-text) !important;
   font-size: 13px !important;
-  font-weight: 700 !important;
+  font-weight: var(--font-weight-semibold) !important;
   line-height: 1.35 !important;
 }
 
@@ -1153,9 +1153,9 @@ textarea:focus {
   padding: 8px 20px !important;
   background: transparent !important;
   color: #475569 !important;
-  font-family: Inter, Arial, sans-serif !important;
+  font-family: var(--font-family-base) !important;
   font-size: 13px !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
   white-space: nowrap !important;
   cursor: pointer !important;
   transition: background 0.2s ease, color 0.2s ease !important;
@@ -1226,7 +1226,7 @@ textarea:focus {
   background: transparent !important;
   color: #475569 !important;
   font-size: 13px !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
 }
 
 .table-control-panel .pill-tab-item.active {
@@ -1249,7 +1249,7 @@ textarea:focus {
 .table-panel > .filters-grid .field label {
   color: var(--admin-text-muted) !important;
   font-size: 11px !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
   letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
 }

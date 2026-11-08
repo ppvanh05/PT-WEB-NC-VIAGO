@@ -1,21 +1,12 @@
 <div class="report-container">
   <!-- Page Header Title Card (Top Card, no print) -->
-  <div class="header-card no-print">
-    <div class="header-left">
-      <span class="header-subtitle">BÁO CÁO QUẢN TRỊ</span>
-      <h1 class="header-title">Báo cáo tài xế và phụ xe</h1>
-    </div>
-    
-    <div class="header-right">
-      <!-- Tab switcher buttons right-aligned in header card -->
-      <div class="tab-buttons">
+  <app-admin-page-header class="no-print" title="Báo cáo tài xế và phụ xe" section="BÁO CÁO QUẢN TRỊ">
+<app-admin-tabs class="tab-buttons admin-tabs">
         <button class="tab-btn" [class.active]="activeTab === 'bieu-do'" (click)="setActiveTab('bieu-do')">Xem biểu đồ</button>
         <button class="tab-btn" [class.active]="activeTab === 'danh-sach'" (click)="setActiveTab('danh-sach')">Xem danh sách</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Statistics Dashboard Cards -->
+      </app-admin-tabs>
+</app-admin-page-header>
+<!-- Statistics Dashboard Cards -->
   <div class="stats-row">
     <!-- Card 1: Tổng số nhân sự -->
     <div class="stats-card purple-card">
@@ -48,10 +39,10 @@
       <!-- Tìm kiếm -->
       <div class="filter-group">
         <label for="search-input">TÌM KIẾM</label>
-        <input 
+        <input
           id="search-input"
-          type="text" 
-          placeholder="Mã, họ tên, số điện thoại, CCCD..." 
+          type="text"
+          placeholder="Mã, họ tên, số điện thoại, CCCD..."
           [(ngModel)]="filterSearchQuery"
           (ngModelChange)="onApplyFilters()"
         />
@@ -101,7 +92,7 @@
 
   <!-- UNIFIED MAIN CONTAINER CARD -->
   <div class="main-dashboard-card">
-    
+
     <!-- Container Header -->
     <div class="dashboard-card-header no-print">
       <div class="header-left-title">
@@ -110,7 +101,7 @@
         </h2>
         <span class="main-card-subtitle">{{ filteredPersonnel.length }} bản ghi theo bộ lọc hiện tại</span>
       </div>
-      
+
       <div class="header-right-actions">
         <!-- Print & PDF Action Buttons -->
         <div class="action-buttons-group" *ngIf="activeTab === 'bieu-do'">
@@ -132,13 +123,13 @@
 
     <!-- Container Content Area -->
     <div class="main-card-content">
-      
+
       <!-- VIEW A: CHARTS GRID -->
       <div class="charts-grid-wrapper" *ngIf="activeTab === 'bieu-do'">
         <div class="analytics-grid">
-          
+
           <!-- === ROW 1 === -->
-          
+
           <!-- CARD 1: CƠ CẤU NHÂN SỰ VẬN HÀNH -->
           <div class="chart-card">
             <div class="card-header-row">
@@ -175,7 +166,7 @@
                     </g>
                   </svg>
                 </div>
-                
+
                 <!-- Right: Legends -->
                 <div class="chart-right-legends-simple" style="padding-left: 10px; max-width: 160px;">
                   <div class="legend-row-simple" style="margin-bottom: 12px;">
@@ -227,7 +218,7 @@
                     </g>
                   </svg>
                 </div>
-                
+
                 <!-- Right: Legends -->
                 <div class="chart-right-legends-simple" style="padding-left: 10px; max-width: 160px;">
                   <div class="legend-row-simple" style="margin-bottom: 12px;">
@@ -264,7 +255,7 @@
                   </div>
                   <span class="grade-subtext">Xe lớn (Giường nằm, 45 chỗ)</span>
                 </div>
-                
+
                 <!-- Hạng D -->
                 <div class="grade-bar-item">
                   <div class="grade-bar-meta">
@@ -296,7 +287,7 @@
                   </div>
                   <span class="v-bar-label font-bold">Trong 30 ngày</span>
                 </div>
-                
+
                 <!-- Bar 2: Trong 3 tháng -->
                 <div class="vertical-bar-col">
                   <span class="v-bar-value text-orange font-bold">{{ expiring90DaysCount }}</span>
@@ -305,7 +296,7 @@
                   </div>
                   <span class="v-bar-label font-bold">Trong 3 tháng</span>
                 </div>
-                
+
                 <!-- Bar 3: Trong 6 tháng -->
                 <div class="vertical-bar-col">
                   <span class="v-bar-value text-yellow font-bold">{{ expiring180DaysCount }}</span>
@@ -325,9 +316,9 @@
             <div class="card-header-row">
               <h3 class="chart-title">HIỆU SUẤT VẬN HÀNH TRONG THÁNG</h3>
               <div class="month-selector-wrapper">
-                <input 
-                  type="month" 
-                  class="styled-month-input" 
+                <input
+                  type="month"
+                  class="styled-month-input"
                   [(ngModel)]="selectedMonthYear"
                   title="Chọn tháng và năm"
                 />
@@ -415,7 +406,7 @@
                   Không tìm thấy nhân sự nào khớp với bộ lọc hiện tại.
                 </td>
               </tr>
-              
+
               <!-- Data Row -->
               <tr *ngFor="let p of paginatedPersonnel" [class.warning-row]="isLicenseExpiringSoon(p)">
                 <td class="bold-text">
@@ -440,7 +431,7 @@
                       }">{{ p.hangBangLai }}</strong>
                     </div>
                     <div class="license-exp" [class.text-danger-bold]="isLicenseExpiringSoon(p)">Hạn: {{ p.thoiHanBangLai }}</div>
-                    
+
                     <!-- Hiển thị lịch sử nhắc SMS nếu có -->
                     <div class="sms-sent-history" *ngIf="p.smsSentCount">
                       <span class="sms-badge-tag">✓ Đã nhắc SMS ({{ p.smsSentCount }} lần)</span>
@@ -460,7 +451,7 @@
                 </td>
                 <!-- Action Column with SMS button & Feedback -->
                 <td class="action-cell text-center no-print">
-                  <button 
+                  <button
                     *ngIf="isLicenseExpiringSoon(p)"
                     class="btn-sms-remind"
                     [class.btn-sms-again]="(p.smsSentCount || 0) > 0"
@@ -481,41 +472,7 @@
           <div class="pagination-info">
             Hiển thị {{ filteredPersonnel.length === 0 ? 0 : startIndex + 1 }} - {{ endIndex }} của {{ filteredPersonnel.length }} nhân sự
           </div>
-          <div class="pagination-controls" *ngIf="totalPages > 1">
-            <!-- Prev Button -->
-            <button 
-              class="page-btn prev-btn" 
-              (click)="prevPage()" 
-              [disabled]="currentPage === 1"
-              aria-label="Trang trước"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="pagination-arrow">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-            </button>
-
-            <!-- Page Numbers -->
-            <button 
-              *ngFor="let page of [].constructor(totalPages); let i = index" 
-              class="page-btn number-btn"
-              [class.active-page]="currentPage === (i + 1)"
-              (click)="goToPage(i + 1)"
-            >
-              {{ i + 1 }}
-            </button>
-
-            <!-- Next Button -->
-            <button 
-              class="page-btn next-btn" 
-              (click)="nextPage()" 
-              [disabled]="currentPage === totalPages"
-              aria-label="Trang sau"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="pagination-arrow">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </button>
-          </div>
+          <app-pagination [currentPage]="currentPage" [totalItems]="filteredPersonnel.length" [pageSize]="pageSize" [showSummary]="false" (pageChange)="goToPage($event)" />
         </div>
       </div>
 
@@ -532,7 +489,7 @@
     (closed)="closeSmsModal()"
     (confirmed)="confirmSendSms()"
     class="custom-sms-modal-wrapper"
-  >
+   [fixedLayout]="true" [fitContent]="true">
     <div class="sms-modal-body" *ngIf="selectedDriverForSms">
       <p class="sms-intro-text">
         Hệ thống sẽ gửi tin nhắn SMS thông báo nhắc nhở gia hạn bằng lái xe đến số điện thoại của tài xế:

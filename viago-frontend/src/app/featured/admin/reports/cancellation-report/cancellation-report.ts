@@ -1,3 +1,5 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -186,7 +188,19 @@ interface LoaiXeChart {
 @Component({
   selector: 'app-cancellation-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, Pagination, Button, Input, Select, Badge, Toast, DatePickerComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    Pagination,
+    Button,
+    Input,
+    Select,
+    Badge,
+    Toast,
+    DatePickerComponent,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './cancellation-report.html',
   styleUrl: './cancellation-report.css'
 })
@@ -1103,7 +1117,7 @@ export class CancellationReport implements OnInit {
 <head>
   <meta charset="utf-8" />
   <style>
-    table { border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11pt; }
+    table { border-collapse: collapse; font-family: Inter, sans-serif; font-size: 11pt; }
     th { background: #1e3a8a; color: #ffffff; font-weight: 700; }
     th, td { border: 1px solid #cbd5e1; padding: 6px 8px; vertical-align: top; }
     .text-cell { mso-number-format:"\\@"; }

@@ -1,3 +1,4 @@
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { Component, OnInit, HostListener, inject, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from '../../../../shared/components/button/button';
@@ -10,7 +11,18 @@ import { DatePickerComponent } from '../../../../shared/components/date-picker/d
 import { Toast } from '../../../../shared/components/toast/toast';
 import { ActivityLogService, SystemLog } from '../../../../core/services/activity-log.service';
 
-@Component({ selector: 'app-activity-log', imports: [FormsModule, Button, Input, Select, Badge, Pagination, ModalComponent, DatePickerComponent, Toast], templateUrl: './activity-log.html', styleUrl: './activity-log.css' })
+@Component({ selector: 'app-activity-log', imports: [
+    FormsModule,
+    Button,
+    Input,
+    Select,
+    Badge,
+    Pagination,
+    ModalComponent,
+    DatePickerComponent,
+    Toast,
+    AdminPageHeader,
+  ], templateUrl: './activity-log.html', styleUrl: './activity-log.css' })
 export class ActivityLog implements OnInit, OnDestroy {
   private readonly source = inject(ActivityLogService);
   private readonly cd = inject(ChangeDetectorRef);

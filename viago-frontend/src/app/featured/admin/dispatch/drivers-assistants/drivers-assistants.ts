@@ -1,3 +1,5 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { Component, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -39,7 +41,18 @@ const IDENTITY_BACK_IMAGE_URL = '/assets/customer/cccdmatsau.jpg';
 @Component({
   selector: 'app-drivers-assistants',
   standalone: true,
-  imports: [Toast, Badge, ModalComponent, BookingDialog, CommonModule, FormsModule, Pagination, Button],
+  imports: [
+    Toast,
+    Badge,
+    ModalComponent,
+    BookingDialog,
+    CommonModule,
+    FormsModule,
+    Pagination,
+    Button,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './drivers-assistants.html',
   styleUrls: ['./drivers-assistants.css']
 })
@@ -130,8 +143,8 @@ export class DriversAssistants implements OnInit {
       else if (this.activeTab === 'Đã khóa') matchesTab = p.status === 'Đã khóa';
       else matchesTab = true;
 
-      const matchesSearch = !this.searchQuery || 
-        p.name.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
+      const matchesSearch = !this.searchQuery ||
+        p.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
         p.phone.includes(this.searchQuery) ||
         !!p.identityNumber?.includes(this.searchQuery);
 

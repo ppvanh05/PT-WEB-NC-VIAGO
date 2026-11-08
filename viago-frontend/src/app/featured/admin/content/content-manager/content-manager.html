@@ -1,18 +1,11 @@
 <section class="content-page">
-  <app-card radius="sm" padding="lg" shadow="none" [bordered]="true">
-    <header class="heading">
-      <div>
-        <p class="eyebrow">Nội dung</p>
-        <h1>{{ title }}</h1>
-        <p class="description">Quản lý nội dung hiển thị và các thay đổi đã lưu trên hệ thống.</p>
-      </div>
-      <div class="actions">
-        <app-button variant="outline" size="sm" [loading]="loading()" (clicked)="load()"
-          >Làm mới</app-button
-        ><app-button (clicked)="openEditor()">Thêm {{ singular }}</app-button>
-      </div>
-    </header>
-  </app-card>
+  <app-admin-page-header title="{{ title }}" section="Nội dung">
+<button type="button" class="admin-create-action" (click)="openEditor()">
+        <span class="action-icon-circle" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg></span>
+        <span class="action-banner-text"><strong>Tạo {{ singular }} mới</strong><span>Thiết lập nội dung và trạng thái hiển thị trên hệ thống.</span></span>
+      </button>
+</app-admin-page-header>
+
   <div class="stats" aria-label="Thống kê nội dung">
     @for (metric of metrics; track metric.key) {
       <app-card
@@ -38,6 +31,11 @@
     </div>
   }
   <app-card radius="sm" padding="none" shadow="none" [bordered]="true">
+    <div class="content-tabs"><app-admin-tabs class="admin-tabs" aria-label="Trạng thái nội dung">
+      @for (tab of filterStatuses; track tab.value) {
+        <button type="button" [class.active]="statusFilter === tab.value" [attr.aria-pressed]="statusFilter === tab.value" (click)="statusFilter = tab.value; load(true)">{{ tab.label }}</button>
+      }
+    </app-admin-tabs></div>
     <form class="filters" (ngSubmit)="load(true)">
       <app-input
         [id]="'content-search'"
@@ -61,7 +59,7 @@
         [value]="statusFilter"
         (valueChange)="statusFilter = $event; load(true)"
       />
-      <app-button type="submit" [disabled]="loading()">Tìm kiếm</app-button>
+      <div class="filter-actions"><app-button type="submit" [disabled]="loading()">Tìm kiếm</app-button><app-button variant="outline" [disabled]="loading()" (clicked)="clearFilters()">Xóa bộ lọc</app-button><app-button variant="outline" [loading]="loading()" (clicked)="load()">Làm mới</app-button></div>
     </form>
     @if (loading()) {
       <p class="empty" role="status">Đang tải dữ liệu…</p>
@@ -112,59 +110,9 @@
                   }
                 </td>
                 <td>
-                  <div class="row-actions">
-                    <app-button variant="outline" size="sm" (clicked)="openEditor(row)"
-                      >Chỉnh sửa</app-button
-                    >
-                    @if (kind === 'news') {
-                      <app-button variant="ghost" size="sm" (clicked)="openDetails(row)"
-                        >Bình luận</app-button
-                      ><app-button
-                        variant="ghost"
-                        size="sm"
-                        (clicked)="
-                          requestStatus(
-                            row,
-                            row.trangThaiCode === 'DangHienThi' ? 'DaAn' : 'DangHienThi'
-                          )
-                        "
-                        >{{
-                          row.trangThaiCode === 'DangHienThi' ? 'Ẩn bài' : 'Đăng ngay'
-                        }}</app-button
-                      >
-                    } @else if (kind === 'policies') {
-                      <app-button
-                        variant="ghost"
-                        size="sm"
-                        (clicked)="
-                          requestStatus(
-                            row,
-                            row.trangThaiCode === 'DangApDung' ? 'DaKhoa' : 'DangApDung'
-                          )
-                        "
-                        >{{ row.trangThaiCode === 'DangApDung' ? 'Khóa' : 'Mở khóa' }}</app-button
-                      >
-                    } @else {
-                      <app-button variant="ghost" size="sm" (clicked)="openDetails(row)"
-                        >Lượt sử dụng</app-button
-                      ><app-button
-                        variant="ghost"
-                        size="sm"
-                        (clicked)="
-                          requestStatus(row, row.statusCode === 'HoatDong' ? 'paused' : 'running')
-                        "
-                        >{{ row.statusCode === 'HoatDong' ? 'Tạm dừng' : 'Kích hoạt' }}</app-button
-                      >
-                      @if (row.statusCode !== 'NgungHoatDong') {
-                        <app-button
-                          variant="ghost"
-                          size="sm"
-                          (clicked)="requestStatus(row, 'locked')"
-                          >Khóa</app-button
-                        >
-                      }
-                    }
-                  </div>
+                  <button type="button" class="admin-edit-action" [attr.aria-label]="'Chỉnh sửa ' + name(row)" title="Chỉnh sửa" (click)="openEditor(row)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
                 </td>
               </tr>
             }
@@ -209,15 +157,48 @@
 </section>
 
 <app-modal
-  [open]="editorOpen()"
+  [open]="editorOpen() && !statusAction && !detailTarget"
   [title]="(editing ? 'Chỉnh sửa ' : 'Thêm ') + singular"
   size="large"
   [loading]="saving()"
   (closed)="closeEditor()"
->
+ [fixedLayout]="true" [fitContent]="true">
   @if (editorLoading()) {
     <p class="empty" role="status">Đang tải chi tiết…</p>
   } @else {
+    @if (kind !== 'policies' && editing; as record) {
+      <div class="record-tools" aria-label="Thao tác với nội dung đang chỉnh sửa">
+        @if (kind === 'news') {
+                      <app-button variant="ghost" size="sm" (clicked)="openDetails(record)"
+                        >Bình luận</app-button
+                      ><app-button
+                        variant="ghost"
+                        size="sm"
+                        (clicked)="
+                          requestStatus(
+                            record,
+                            record.trangThaiCode === 'DangHienThi' ? 'DaAn' : 'DangHienThi'
+                          )
+                        "
+                        >{{
+                          record.trangThaiCode === 'DangHienThi' ? 'Ẩn bài' : 'Đăng ngay'
+                        }}</app-button
+                      >
+                    } @else if (kind === 'promotions') {
+                      <app-button variant="ghost" size="sm" (clicked)="openDetails(record)"
+                        >Lượt sử dụng</app-button
+                      ><app-button
+                        variant="ghost"
+                        size="sm"
+                        (clicked)="
+                          requestStatus(record, record.statusCode === 'HoatDong' ? 'paused' : 'running')
+                        "
+                        >{{ record.statusCode === 'HoatDong' ? 'Tạm dừng' : 'Kích hoạt' }}</app-button
+                      >
+                    }
+
+      </div>
+    }
     <form (ngSubmit)="save()" class="editor-form">
       @if (editorError()) {
         <p role="alert" class="alert error">{{ editorError() }}</p>
@@ -628,7 +609,18 @@
           }
         </div>
       </fieldset>
-      <footer class="editor-actions">
+      <footer class="editor-actions admin-modal-actions">
+        @if (editing; as record) {
+          @if (kind === 'policies') {
+            <app-button class="admin-lock-action" variant="outline" [disabled]="saving()"
+              [class.admin-lock-action--unlock]="record.trangThaiCode !== 'DangApDung'"
+              (clicked)="requestStatus(record, record.trangThaiCode === 'DangApDung' ? 'DaKhoa' : 'DangApDung')"
+              >{{ record.trangThaiCode === 'DangApDung' ? 'Khóa' : 'Mở khóa' }}</app-button>
+          } @else if (kind === 'promotions' && record.statusCode !== 'NgungHoatDong') {
+            <app-button class="admin-lock-action" variant="outline" [disabled]="saving()"
+              (clicked)="requestStatus(record, 'locked')">Khóa</app-button>
+          }
+        }
         <app-button variant="outline" [disabled]="saving()" (clicked)="closeEditor()"
           >Hủy</app-button
         ><app-button type="submit" [loading]="saving()" [disabled]="!editorReady()"
@@ -642,12 +634,14 @@
 <app-modal
   [open]="!!statusAction"
   title="Xác nhận thay đổi trạng thái"
+  [lockAction]="statusAction?.status === 'locked' || (kind === 'policies' && (statusAction?.status === 'DaKhoa' || statusAction?.status === 'DangApDung'))"
+  [lockUnlocked]="statusAction?.status === 'DangApDung'"
   size="small"
   [confirmMode]="true"
   [loading]="saving()"
   (confirmed)="confirmStatus()"
   (closed)="statusAction = null"
->
+ [fixedLayout]="true" [fitContent]="true">
   @if (statusAction; as action) {
     <p>
       Chuyển “{{ name(action.row) }}” sang <strong>{{ action.label }}</strong
@@ -664,7 +658,7 @@
   [title]="kind === 'news' ? 'Bình luận bài viết' : 'Lịch sử sử dụng ưu đãi'"
   size="large"
   (closed)="closeDetails()"
->
+ [fixedLayout]="true" [fitContent]="true">
   @if (detailTarget; as target) {
     <h3>{{ name(target) }}</h3>
     @if (kind === 'news') {

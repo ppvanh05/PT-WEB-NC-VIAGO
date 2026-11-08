@@ -19,7 +19,7 @@
   padding: 24px;
   background-color: var(--viago-bg);
   min-height: 100vh;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-family-base);
   color: #1e293b;
 }
 
@@ -424,7 +424,7 @@
 .ratio-circle-text {
   position: absolute;
   font-size: 26px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   color: var(--viago-primary);
 }
 
@@ -821,14 +821,14 @@
 .stat-title {
   color: #64748b;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
 }
 
 .stat-val {
   color: #0f172a;
   font-size: 18px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .filter-control input,
@@ -878,14 +878,14 @@
 .chart-title {
   color: var(--viago-primary);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
 }
 
 .chart-subtitle {
   color: #64748b;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
 }
 
 .progress-item,
@@ -950,7 +950,7 @@
 }
 
 .table-wrapper {
-  overflow: auto;
+  overflow-x: auto;
 }
 
 .report-table th {
@@ -958,7 +958,7 @@
   background: #ffffff;
   color: #64748b;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .report-table td {
@@ -979,7 +979,7 @@
 
 .badge-count {
   background: #eff6ff;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .expand-detail-cell:hover {
@@ -1065,7 +1065,7 @@
   color: #334155;
   content: attr(data-tip);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   line-height: 1.35;
   opacity: 0;
   pointer-events: none;
@@ -1164,7 +1164,7 @@
   overflow: hidden !important;
   color: #0f172a !important;
   font-size: 18px !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
   line-height: 1.1 !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
@@ -1174,7 +1174,7 @@
   margin-top: 3px !important;
   color: #64748b !important;
   font-size: 11px !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
   line-height: 1.15 !important;
   text-transform: uppercase !important;
 }

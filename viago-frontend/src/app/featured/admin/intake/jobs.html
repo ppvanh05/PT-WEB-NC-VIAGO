@@ -12,13 +12,8 @@
       >Menu quản trị</app-button
     >
   </div>
-  <app-card class="header-card" radius="sm" padding="none" shadow="sm" [bordered]="true">
-    <header class="page-heading">
-      <div>
-        <p class="eyebrow">Nhân viên / Tuyển dụng</p>
-        <h1>Vị trí tuyển dụng</h1>
-      </div>
-      <button type="button" class="header-action-banner" (click)="open()">
+  <app-admin-page-header title="Vị trí tuyển dụng" section="Nhân viên / Tuyển dụng">
+<button type="button" class="header-action-banner admin-create-action" (click)="open()">
         <span class="action-icon-circle" aria-hidden="true"
           ><svg
             width="24"
@@ -37,8 +32,8 @@
           ><span>Thiết lập nội dung, yêu cầu ứng viên và thời hạn nhận hồ sơ.</span></span
         >
       </button>
-    </header>
-  </app-card>
+</app-admin-page-header>
+
   @if (notice()) {
     <p class="alert" role="status">{{ notice() }}</p>
   }
@@ -120,7 +115,7 @@
                 <td class="actions-column">
                   <button
                     type="button"
-                    class="admin-action-btn edit"
+                    class="admin-action-btn edit admin-edit-action"
                     [attr.aria-label]="'Xem và chỉnh sửa ' + row.id"
                     title="Xem và chỉnh sửa"
                     (click)="open(row)"
@@ -169,7 +164,7 @@
     [fixedLayout]="true"
     [loading]="saving()"
     (closed)="close()"
-  >
+   [fitContent]="true">
     @if (detailLoading()) {
       <p class="empty" role="status">Đang tải nội dung…</p>
     } @else {

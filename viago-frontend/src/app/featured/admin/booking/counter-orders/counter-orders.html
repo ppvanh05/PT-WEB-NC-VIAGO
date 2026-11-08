@@ -1,3 +1,4 @@
+@if (!embedded) {
 <app-card padding="none" radius="sm" shadow="sm" [bordered]="true">
   <header class="heading">
     <div>
@@ -76,9 +77,9 @@
               </td>
               <td>
                 @if (canCollect(row)) {
-                  <app-button variant="outline" size="sm" (clicked)="open(row)"
-                    >Thu tiền</app-button
-                  >
+                  <button type="button" class="admin-edit-action" [attr.aria-label]="'Xem và xử lý đơn ' + row.id" title="Xem và xử lý đơn" (click)="open(row)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
                 }
               </td>
             </tr>
@@ -98,17 +99,18 @@
     />
   </footer>
 </app-card>
+}
 <app-modal
   [open]="!!selected()"
-  title="Xác nhận thu tiền tại quầy"
+  [title]="selected() && canCollect(selected()!) ? 'Xác nhận thu tiền tại quầy' : 'Chi tiết đơn đặt vé'"
   size="small"
-  [confirmMode]="true"
+  [confirmMode]="!!selected() && canCollect(selected()!)"
   confirmText="Xác nhận đã thu tiền"
   [disableConfirm]="!acknowledged || saving()"
   [loading]="saving()"
   (confirmed)="confirm()"
   (closed)="close()"
->
+ [fixedLayout]="true" [fitContent]="true">
   @if (selected(); as row) {
     <dl>
       <div>
@@ -120,16 +122,29 @@
         <dd>{{ row.name }} · {{ row.phone }}</dd>
       </div>
       <div>
-        <dt>Số tiền phải thu</dt>
+        <dt>Tổng tiền đơn</dt>
         <dd>
           <strong>{{ row.total | number }}đ</strong>
         </dd>
+      </div>
+      <div>
+        <dt>Chuyến đi</dt>
+        <dd>{{ row.from }} → {{ row.to }} · {{ row.departureAt | date: 'HH:mm dd/MM/yyyy' : '+0700' }}</dd>
+      </div>
+      <div>
+        <dt>Số lượng ghế</dt>
+        <dd>{{ row.seatCount }} ghế</dd>
+      </div>
+      <div>
+        <dt>Trạng thái</dt>
+        <dd><app-badge [label]="label(row.status)" [variant]="row.status === 'DaThanhToan' ? 'success' : 'neutral'" /></dd>
       </div>
       <div>
         <dt>Phương thức</dt>
         <dd>Tiền mặt tại quầy</dd>
       </div>
     </dl>
+    @if (canCollect(row)) {
     <label class="acknowledgement"
       ><input type="checkbox" [(ngModel)]="acknowledged" [disabled]="saving()" />Tôi đã nhận đủ tiền
       từ khách hàng.</label
@@ -138,6 +153,7 @@
       Xác nhận sẽ ghi nhận nhân viên thu tiền, chuyển ghế sang đã bán và xuất vé. Chỉ xác nhận sau
       khi nhận tiền.
     </p>
+    }
     @if (error()) {
       <p role="alert" class="error">{{ error() }}</p>
     }

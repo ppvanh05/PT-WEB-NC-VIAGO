@@ -1,3 +1,6 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
+import { Pagination } from '../../../../shared/components/pagination/pagination';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -22,7 +25,15 @@ export interface Personnel {
 @Component({
   selector: 'app-driver-assistant-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent, Toast],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ModalComponent,
+    Toast,
+    Pagination,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './driver-assistant-report.html',
   styleUrl: './driver-assistant-report.css'
 })

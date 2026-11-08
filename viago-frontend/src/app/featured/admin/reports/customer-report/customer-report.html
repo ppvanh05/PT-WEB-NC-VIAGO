@@ -1,11 +1,6 @@
 <div class="ticket-list-page">
-  <section class="lookup-panel">
-    <div class="lookup-heading">
-      <div>
-        <span class="eyebrow">Báo cáo quản trị</span>
-        <h1>Báo cáo khách hàng</h1>
-      </div>
-      <div class="header-actions">
+  <app-admin-page-header title="Báo cáo khách hàng" section="Báo cáo quản trị">
+<app-admin-tabs class="header-actions admin-tabs">
         <button
           type="button"
           class="view-toggle-btn"
@@ -22,8 +17,10 @@
         >
           Xem danh sách
         </button>
-      </div>
-    </div>
+      </app-admin-tabs>
+</app-admin-page-header>
+<section class="lookup-panel">
+
 
     <!-- KPI Summary Strip -->
     <div class="summary-strip management-summary">
@@ -429,23 +426,7 @@
         {{ currentPage * pageSize > filteredCustomers.length ? filteredCustomers.length : currentPage * pageSize }}
         của {{ filteredCustomers.length }} khách hàng
       </div>
-      <div class="pagination-controls">
-        <button class="pagination-btn" type="button" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1" aria-label="Trang trước">
-          <span class="material-symbols-outlined">chevron_left</span>
-        </button>
-        <button
-          class="pagination-btn"
-          type="button"
-          *ngFor="let page of getVisiblePages()"
-          [class.active]="currentPage === page"
-          (click)="setPage(page)"
-        >
-          {{ page }}
-        </button>
-        <button class="pagination-btn" type="button" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages" aria-label="Trang sau">
-          <span class="material-symbols-outlined">chevron_right</span>
-        </button>
-      </div>
+      <app-pagination [currentPage]="currentPage" [totalItems]="filteredCustomers.length" [pageSize]="pageSize" [showSummary]="false" (pageChange)="setPage($event)" />
     </div>
   </section>
 </div>

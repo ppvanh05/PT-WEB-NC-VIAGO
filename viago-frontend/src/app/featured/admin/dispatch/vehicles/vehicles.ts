@@ -1,3 +1,6 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
+import { Pagination } from '../../../../shared/components/pagination/pagination';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -24,7 +27,14 @@ const INSURANCE_IMAGE_URL = 'asset/images/customer/baohiemxe.jpg';
 @Component({
   selector: 'app-vehicles',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePickerComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    DatePickerComponent,
+    Pagination,
+    AdminPageHeader,
+    AdminTabs,
+  ],
   templateUrl: './vehicles.html',
   styleUrls: ['./vehicles.css']
 })
@@ -110,8 +120,8 @@ export class VehiclesComponent implements OnInit {
   filterVehicles() {
     this.filteredVehicles = this.allVehicles.filter(v => {
       const matchesTab = this.activeTab === 'Tất cả' || v.status === this.activeTab;
-      const matchesSearch = !this.searchQuery || 
-        v.name.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
+      const matchesSearch = !this.searchQuery ||
+        v.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
         v.licensePlate.toLowerCase().includes(this.searchQuery.toLowerCase());
       const matchesType = this.selectedType === 'Tất cả loại xe' || v.type === this.selectedType;
       const matchesStatus = this.selectedStatus === 'Tất cả trạng thái' || v.status === this.selectedStatus;

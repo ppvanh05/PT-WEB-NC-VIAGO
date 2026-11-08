@@ -4,13 +4,8 @@
       [message]="t.msg" (closed)="toast.set(null)" />
   }
 
-  <section class="lookup-panel">
-    <div class="lookup-heading">
-      <div>
-        <span class="eyebrow">Báo cáo quản trị</span>
-        <h1>Báo cáo hoàn hủy</h1>
-      </div>
-      <div class="header-actions" role="group" aria-label="Chế độ xem báo cáo">
+  <app-admin-page-header title="Báo cáo hoàn hủy" section="Báo cáo quản trị">
+<app-admin-tabs class="header-actions admin-tabs" role="group" aria-label="Chế độ xem báo cáo">
         <button
           type="button"
           class="view-toggle-btn"
@@ -27,8 +22,10 @@
         >
           Xem danh sách
         </button>
-      </div>
-    </div>
+      </app-admin-tabs>
+</app-admin-page-header>
+<section class="lookup-panel">
+
 
     <div class="summary-strip management-summary">
       <div class="summary-item cancelled">

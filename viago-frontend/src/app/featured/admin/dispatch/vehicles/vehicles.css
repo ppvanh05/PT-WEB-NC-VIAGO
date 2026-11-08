@@ -1,8 +1,8 @@
 /* PREMIUM DESIGN SYSTEM - VIAGO VEHICLE MANAGEMENT SYNCED WITH SCHEDULE STYLE */
 :host {
-  display: flex;
+  display: block;
   flex-direction: column;
-  flex: 1;
+  flex: 0 0 auto;
   align-self: stretch;
   width: 100%;
   min-height: 0;
@@ -11,7 +11,7 @@
   --primary: var(--color-primary-500);
   --primary-hover: var(--color-primary-700);
   --primary-light: var(--color-primary-50);
-  
+
   --secondary: var(--color-accent-600);
   --secondary-light: var(--color-accent-50);
 
@@ -22,7 +22,7 @@
   --navy: var(--color-neutral-900);
   --slate: var(--color-neutral-600);
   --slate-light: var(--color-neutral-50);
-  
+
   /* Semantic Statuses */
   --success: var(--color-success-500);
   --success-bg: var(--color-success-50);
@@ -33,12 +33,12 @@
   --danger-text: var(--color-danger-700);
   --info: var(--color-info-500);
   --info-light: var(--color-info-50);
-  
+
   /* Outline & Surface */
   --surface: var(--color-surface);
   --background: var(--color-background);
   --border: var(--color-border);
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
@@ -54,7 +54,7 @@
 }
 
 .management-container {
-  font-family: "Be Vietnam Pro", "Inter", sans-serif;
+  font-family: var(--font-family-base);
   color: var(--slate);
   background-color: var(--background);
   min-height: 100%;
@@ -88,7 +88,7 @@
 
 .category-tag {
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.1em;
   color: #64748b;
   text-transform: uppercase;
@@ -96,15 +96,15 @@
 
 .main-title {
   font-size: 26px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   color: var(--navy);
   margin: 0;
   letter-spacing: -0.02em;
 }
 
 .header-action-banner {
-  background-color: #f0fdf4; 
-  border: 1px solid #bbf7d0; 
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
   border-radius: var(--radius-lg);
   padding: 12px 24px;
   display: flex;
@@ -140,7 +140,7 @@
 .action-banner-text h3 {
   margin: 0 0 2px 0;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--font-weight-semibold);
   color: #166534;
 }
 
@@ -198,7 +198,7 @@
 }
 
 .pill-tab-item.active {
-  background-color: var(--primary); 
+  background-color: var(--primary);
   color: white;
   box-shadow: var(--shadow-sm);
 }
@@ -225,7 +225,7 @@
 
 .input-mini-label {
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -527,7 +527,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal, 1200);
   backdrop-filter: blur(4px);
 }
 
@@ -559,7 +559,7 @@
 .modal-title {
   margin: 0;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   color: var(--navy);
 }
 
@@ -624,7 +624,7 @@
   box-shadow: var(--shadow-sm);
 }
 
-.form-item input:focus, 
+.form-item input:focus,
 .form-item select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-light);
@@ -743,7 +743,7 @@
   gap: 20px;
 }
 
-.upload-dropzone, 
+.upload-dropzone,
 .upload-dropzone-large {
   border: 2px dashed #cbd5e1;
   border-radius: var(--radius-lg);
@@ -760,7 +760,7 @@
 .upload-dropzone { height: 160px; }
 .upload-dropzone-large { height: 120px; }
 
-.upload-dropzone:hover, 
+.upload-dropzone:hover,
 .upload-dropzone-large:hover {
   border-color: var(--primary);
   background-color: var(--primary-light);
@@ -898,7 +898,7 @@
   padding: 12px;
   background: var(--admin-bg);
   color: var(--admin-text);
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
 }
 
 .header-card-container,
@@ -919,7 +919,7 @@
 .input-mini-label {
   color: var(--admin-text-muted);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -927,7 +927,7 @@
 .main-title {
   color: var(--admin-primary);
   font-size: 22px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0;
 }
 
@@ -954,7 +954,7 @@
 .action-banner-text p {
   color: var(--admin-success-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--font-weight-semibold);
 }
 
 .dashboard-card {
@@ -992,7 +992,7 @@
   border-radius: 6px;
   color: #475569;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .pill-tab-item:hover {
@@ -1013,7 +1013,7 @@
   border-radius: var(--admin-radius);
   background: #ffffff;
   color: var(--admin-text);
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
   font-size: 14px;
   box-shadow: none;
 }
@@ -1031,7 +1031,7 @@
   background: #ffffff;
   color: var(--admin-text-muted);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .data-table td {
@@ -1061,7 +1061,7 @@
   background: #ffffff;
   color: #64748b;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
 }
 
 .pagination-btn:hover:not(:disabled):not(.active) {
@@ -1084,9 +1084,9 @@
   border-radius: var(--admin-radius);
   background: #ffffff;
   color: var(--admin-primary);
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .btn-clear-filters:hover,
@@ -1102,9 +1102,9 @@
   border-radius: var(--admin-radius);
   background: var(--admin-secondary);
   color: #ffffff;
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   box-shadow: 0 8px 18px rgba(255, 106, 0, 0.18);
 }
 
@@ -1148,12 +1148,12 @@
 .license-badge {
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
 }
 
 .management-container,
 .management-container * {
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
 }
 
 .management-container .material-symbols-outlined {
@@ -1169,7 +1169,7 @@
   flex-direction: column;
   gap: 12px;
   pointer-events: none;
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-family-base);
 }
 
 .toast-card {
@@ -1257,7 +1257,7 @@
   color: #334155;
   font: inherit;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--font-weight-semibold);
   line-height: 1;
   cursor: pointer;
 }
@@ -1354,7 +1354,7 @@
 .input-mini-label {
   color: var(--admin-text-muted, #64748b) !important;
   font-size: 11px !important;
-  font-weight: 900 !important;
+  font-weight: var(--font-weight-semibold) !important;
   letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
 }
@@ -1408,7 +1408,7 @@
   align-items: center !important;
   gap: 12px !important;
   width: auto !important;
-  min-width: 520px !important;
+  min-width: 0 !important;
   max-width: 100% !important;
   min-height: 58px !important;
   border: 1px solid #bbf7d0 !important;
@@ -1416,12 +1416,12 @@
   padding: 10px 12px !important;
   background: #f0fdf4 !important;
   box-shadow: none !important;
-  white-space: nowrap !important;
+  white-space: normal !important;
 }
 
 .header-action-banner .action-icon-circle { width: 34px !important; height: 34px !important; }
 .header-action-banner .action-banner-text,
 .header-action-banner .action-banner-text h3,
-.header-action-banner .action-banner-text p { overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
-.header-action-banner .action-banner-text h3 { margin: 0 !important; color: #14532d !important; font-size: 14px !important; font-weight: 900 !important; }
+.header-action-banner .action-banner-text p { overflow: visible !important; text-overflow: clip !important; white-space: normal !important; }
+.header-action-banner .action-banner-text h3 { margin: 0 !important; color: #14532d !important; font-size: 14px !important; font-weight: var(--font-weight-semibold) !important; }
 .header-action-banner .action-banner-text p { margin: 2px 0 0 !important; color: #166534 !important; font-size: 12px !important; font-weight: 500 !important; line-height: 1.25 !important; }

@@ -1,3 +1,5 @@
+import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
+import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, Input, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -42,6 +44,8 @@ import {
     Pagination,
     DatePickerComponent,
     ModalComponent,
+    AdminPageHeader,
+    AdminTabs,
   ],
   templateUrl: './content-manager.html',
   styleUrl: './content-manager.css',
@@ -248,6 +252,12 @@ export class ContentManager implements OnInit {
       this.page = page;
       void this.load();
     }
+  }
+  clearFilters() {
+    this.search = '';
+    this.typeFilter = 'all';
+    this.statusFilter = 'all';
+    void this.load(true);
   }
   private blankDraft(): ContentDraft {
     return {
@@ -524,6 +534,9 @@ export class ContentManager implements OnInit {
         this.kind === 'promotions' ? { status: action.status } : { trangThai: action.status },
       );
       this.statusAction = null;
+      this.editorOpen.set(false);
+      this.editorVersion++;
+      this.editing = null;
       this.notice.set('Đã cập nhật trạng thái.');
       await this.load();
     } catch (e) {
