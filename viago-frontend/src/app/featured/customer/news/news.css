@@ -10,7 +10,11 @@
   width: 100%;
   box-sizing: border-box;
   padding: 32px 16px 64px;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .news-container {
@@ -71,7 +75,9 @@
 .tab-icon {
   font-size: 16px;
   color: #ea580c;
-  transition: transform 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
 }
 
 .nav-tab-btn:hover {
@@ -666,5 +672,25 @@
   }
 }
 
-.news-toast-container { position: fixed; top: 24px; right: 24px; width: min(420px, calc(100vw - 32px)); z-index: var(--z-toast, 1400); }
-.comment-error { color: var(--color-danger-700); font: var(--font-size-body-sm)/var(--line-height-body-sm) var(--font-family-base); margin: 0; }
+.news-toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  width: min(420px, calc(100vw - 32px));
+  z-index: var(--z-toast, 1400);
+}
+.comment-error {
+  color: var(--color-danger-700);
+  font: var(--font-size-body-sm)/var(--line-height-body-sm) var(--font-family-base);
+  margin: 0;
+}
+.news-api-error {
+  padding: 16px;
+  margin: 16px 0;
+  color: var(--color-danger-700);
+  background: var(--color-danger-50);
+  border-radius: var(--radius-md);
+}
+.pagination-wrapper {
+  justify-content: flex-end !important;
+}

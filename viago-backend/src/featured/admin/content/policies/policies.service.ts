@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { randomUUID } from 'node:crypto';
+import { nextBusinessId, nextBusinessIds } from '../../../../shared/business-id';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import {
   CancellationRuleDto,
@@ -33,8 +33,6 @@ type Version = Prisma.chinh_sach_huyGetPayload<{
   include: typeof versionInclude;
 }>;
 type Tx = Prisma.TransactionClient;
-const id = (prefix: string) =>
-  prefix + randomUUID().replaceAll('-', '').toUpperCase();
 const dateOnly = (value: Date) =>
   new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Ho_Chi_Minh',
@@ -137,7 +135,7 @@ export class AdminPoliciesService {
       const now = new Date();
       const policy = await tx.chinh_sach.create({
         data: {
-          machinhsach: id('CS'),
+          machinhsach: await nextBusinessId(tx, 'CS'),
           tieude: dto.tenChinhSach,
           loaichinhsach: dto.loaiChinhSach,
           noidung: dto.noiDungChinhSach,
@@ -423,9 +421,10 @@ export class AdminPoliciesService {
         thoigiancapnhat: now,
       },
     });
+    const ruleIds = await nextBusinessIds(tx, 'MCS', rules.length);
     return tx.chinh_sach_huy.create({
       data: {
-        machinhsach: id('CSH'),
+        machinhsach: await nextBusinessId(tx, 'CSH'),
         manhomchinhsach: policy.machinhsach,
         phienban: (latest?.phienban ?? 0) + 1,
         tenchinhsach: policy.tieude,
@@ -438,7 +437,7 @@ export class AdminPoliciesService {
         thoigiancapnhat: now,
         chi_tiet_chinh_sach_huy: {
           create: rules.map((rule, index) => ({
-            mamucchinhsach: id('MCS'),
+            mamucchinhsach: ruleIds[index],
             sogiotoithieu: rule.truocGio,
             sogiotoida: index === 0 ? null : rules[index - 1].truocGio,
             chophephuy: rule.choPhepHuy ?? true,
@@ -482,7 +481,7 @@ export class AdminPoliciesService {
     });
   }
 
-  private audit(
+  private async audit(
     tx: Tx,
     actor: { manhanvien: string; mataikhoan: string },
     policy: Policy,
@@ -491,7 +490,7 @@ export class AdminPoliciesService {
   ) {
     return tx.nhat_ky_he_thong.create({
       data: {
-        manhatky: id('NK'),
+        manhatky: await nextBusinessId(tx, 'NK'),
         mataikhoan: actor.mataikhoan,
         manhanvien: actor.manhanvien,
         hanhdong: action,

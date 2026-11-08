@@ -153,32 +153,23 @@ describe('Booking API connection', () => {
   it('does not confirm a payment while the server still reports pending', async () => {
     await service.fetchSearch(query);
     const d = draft();
-    handler = (url) =>
-      url.includes('/payment')
-        ? {
-            qrUrl: 'https://img.vietqr.io/image/test.png',
-            content: 'VG_SERVER',
-            accountName: 'Bank',
-            accountNumber: '123',
-            amount: 220000,
-            bankId: 'BANK',
-          }
-        : {
-            ...d,
-            id: 'DH_SERVER',
-            status: 'pending',
-            createdAt: new Date(now).toISOString(),
-            expiresAt: new Date(now + 600000).toISOString(),
-            serverTime: new Date(now).toISOString(),
-            subtotal: 220000,
-            discount: 0,
-            total: 220000,
-            method: 'vietqr',
-            legs: [{ ...d.legs[0], seats: ['GC_DATABASE'], trip }],
-            tickets: [],
-          };
-    const order = await service.create(d, 'vietqr');
-    await expect(service.pay(order)).rejects.toThrow('Chưa ghi nhận thanh toán');
+    handler = () => ({
+      ...d,
+      id: 'DH_SERVER',
+      status: 'pending',
+      createdAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + 600000).toISOString(),
+      serverTime: new Date(now).toISOString(),
+      subtotal: 220000,
+      discount: 0,
+      total: 220000,
+      method: 'counter',
+      legs: [{ ...d.legs[0], seats: ['GC_DATABASE'], trip }],
+      tickets: [],
+    });
+    const order = await service.create(d, 'counter');
+    await expect(service.pay(order)).rejects.toThrow('chờ thanh toán tại quầy');
+    expect(fetcher.mock.calls.some(([url]) => String(url).endsWith('/payment'))).toBe(false);
     expect(order.status).toBe('pending');
     expect(order.ticketToken).toBeUndefined();
   });
@@ -195,6 +186,44 @@ describe('Booking API connection', () => {
       'Kết nối dữ liệu chưa đúng cấu hình',
     );
     expect(fetcher.mock.calls[0][1].headers.Accept).toBe('application/json');
+  });
+  it('loads the server QR for VietQR orders and waits for bank confirmation', async () => {
+    await service.fetchSearch(query);
+    const d = draft();
+    handler = (url) =>
+      url.endsWith('/payment')
+        ? {
+            qrUrl: 'https://img.vietqr.io/image/test.png',
+            content: 'VGTEST',
+            accountName: 'Test',
+            accountNumber: 'TEST0001',
+            bankId: 'TESTBANK',
+            amount: 220000,
+          }
+        : {
+            ...d,
+            id: 'DH_ONLINE',
+            status: 'pending',
+            createdAt: new Date(now).toISOString(),
+            expiresAt: new Date(now + 600000).toISOString(),
+            serverTime: new Date(now).toISOString(),
+            subtotal: 220000,
+            discount: 0,
+            total: 220000,
+            method: 'vietqr',
+            legs: [{ ...d.legs[0], seats: ['GC_DATABASE'], trip }],
+            tickets: [],
+          };
+    const order = await service.create(d, 'vietqr');
+    expect(order.paymentDetails?.content).toBe('VGTEST');
+    const create = fetcher.mock.calls.find(
+      ([url, init]) => String(url).endsWith('/orders') && init.method === 'POST',
+    )!;
+    expect(JSON.parse(create[1].body).method).toBe('vietqr');
+    await expect(service.pay(order)).rejects.toThrow('ngân hàng xác nhận');
+    expect(order.status).toBe('pending');
+    expect(order.ticketToken).toBeUndefined();
+    await expect(service.setMethod(order.id, 'counter')).rejects.toThrow('đổi phương thức');
   });
   it('preserves the server business error for JSON error responses', async () => {
     fetcher.mockResolvedValueOnce({

@@ -975,3 +975,4 @@
   .form-field.full-width { grid-column: auto; }
   .application-form { padding: var(--space-6); }
 }
+.submission-error { color: #b42336; background: #fff1f2; padding: 12px; border-radius: 8px; }

@@ -8,7 +8,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { Prisma, trang_thai_tin_tuc_enum } from '@prisma/client';
-import { randomUUID } from 'node:crypto';
+import { nextBusinessId } from '../../../../shared/business-id';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import {
   COMMENT_STATUSES,
@@ -53,8 +53,6 @@ type Detail = Prisma.tin_tucGetPayload<{ select: typeof detailSelect }>;
 type Comment = Prisma.binh_luan_tin_tucGetPayload<object>;
 type Tx = Prisma.TransactionClient;
 type Actor = { manhanvien: string; mataikhoan: string };
-const id = (prefix: string) =>
-  prefix + randomUUID().replaceAll('-', '').toUpperCase();
 const displayDate = (date: Date) =>
   new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Asia/Ho_Chi_Minh',
@@ -183,7 +181,7 @@ export class AdminNewsService implements OnModuleInit, OnModuleDestroy {
     return this.write(async (tx) => {
       const actor = await this.actor(tx, dto.maNhanVien);
       const now = new Date();
-      const articleId = id('TT');
+      const articleId = await nextBusinessId(tx, 'TT');
       const status = dto.trangThai ?? 'BanNhap';
       const publishedAt = this.publication(
         status,
@@ -517,7 +515,7 @@ export class AdminNewsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  private audit(
+  private async audit(
     tx: Tx,
     actor: Actor | null,
     article: { matintuc: string; tieude: string },
@@ -527,7 +525,7 @@ export class AdminNewsService implements OnModuleInit, OnModuleDestroy {
   ) {
     return tx.nhat_ky_he_thong.create({
       data: {
-        manhatky: id('NK'),
+        manhatky: await nextBusinessId(tx, 'NK'),
         mataikhoan: actor?.mataikhoan,
         manhanvien: actor?.manhanvien,
         hanhdong: action,

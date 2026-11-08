@@ -1,0 +1,83 @@
+<main class="legal-page">
+  <section class="page-hero">
+    <div>
+      <h1>{{ title }}</h1>
+      <p>Nội dung đang áp dụng được công bố bởi VIAGO.</p>
+    </div>
+  </section>
+  <div class="legal-container">
+    @if (loading) {
+      <p role="status" class="state">Đang tải nội dung…</p>
+    }
+    @if (error) {
+      <div role="alert" class="state error">
+        {{ error }} <app-button variant="outline" size="sm" (clicked)="load()">Thử lại</app-button>
+      </div>
+    }
+    @if (!loading && !error && !documents.length) {
+      <p class="state">Chưa có nội dung đang áp dụng được công bố.</p>
+    }
+    @if (documents.length) {
+      <div class="legal-layout">
+        <nav aria-label="Mục lục chính sách">
+          <app-card radius="lg" padding="md" shadow="none" [bordered]="true"
+            ><h2>Mục lục</h2>
+            @for (doc of documents; track doc.id) {
+              <app-button variant="ghost" [fullWidth]="true" [wrap]="true" (clicked)="scrollTo(doc.id)">{{
+                doc.title
+              }}</app-button>
+            }
+          </app-card>
+        </nav>
+        <div class="documents">
+          @for (doc of documents; track doc.id) {
+            <app-card radius="lg" padding="lg" shadow="none" [bordered]="true">
+              <article [id]="'legal-' + doc.id">
+                <p class="type">{{ doc.typeLabel }}</p>
+                <h2>{{ doc.title }}</h2>
+                <p class="metadata">
+                  Áp dụng từ {{ doc.effectiveDate | date: 'dd/MM/yyyy' }} · Cập nhật
+                  {{ doc.updatedAt | date: 'dd/MM/yyyy' : '+0700' }}
+                </p>
+                <div class="document-body" [innerHTML]="doc.content"></div>
+                @if (doc.cancellationRules.length) {
+                  <section class="cancellation">
+                    <h3>Phí hủy theo thời gian trước khởi hành</h3>
+                    <div class="table-scroll">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Thời gian</th>
+                            <th>Phí hủy</th>
+                            <th>Hoàn lại</th>
+                            <th>Cho phép hủy</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (rule of doc.cancellationRules; track rule.minHours) {
+                            <tr>
+                              <td>
+                                {{
+                                  rule.maxHours === null
+                                    ? 'Từ ' + rule.minHours + ' giờ'
+                                    : 'Từ ' + rule.minHours + ' đến dưới ' + rule.maxHours + ' giờ'
+                                }}
+                              </td>
+                              <td>{{ rule.feePercent }}%</td>
+                              <td>{{ rule.refundPercent }}%</td>
+                              <td>{{ rule.cancellationAllowed ? 'Có' : 'Không' }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                }
+              </article>
+            </app-card>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</main>

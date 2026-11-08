@@ -1,21 +1,28 @@
 @if (toast(); as t) {
-  <div class="news-toast-container">@for (notification of [t]; track notification) {
-    <app-toast [variant]="notification.variant" [message]="notification.message" [duration]="3200" (closed)="toast.set(null)" />
-  }</div>
+  <div class="news-toast-container">
+    @for (notification of [t]; track notification) {
+      <app-toast
+        [variant]="notification.variant"
+        [message]="notification.message"
+        [duration]="3200"
+        (closed)="toast.set(null)"
+      />
+    }
+  </div>
 }
 
 <div class="news-page">
   <div class="news-container">
-
     <!-- 1. INTEGRATED SINGLE-ROW HEADER BAR (CATEGORY TABS + SEARCH PILL) -->
     <div class="news-header-bar">
       <!-- CATEGORY TABS NAV -->
       <div class="news-tabs-nav">
-        <button 
-          *ngFor="let cat of categories" 
-          class="nav-tab-btn" 
+        <button
+          *ngFor="let cat of categories"
+          class="nav-tab-btn"
           [class.active]="selectedCategory === cat.id"
-          (click)="onCategoryChange(cat.id)">
+          (click)="onCategoryChange(cat.id)"
+        >
           <span class="tab-label">{{ cat.label }}</span>
         </button>
       </div>
@@ -23,23 +30,34 @@
       <!-- SEARCH PILL -->
       <div class="news-search-pill">
         <i class="bi bi-search search-icon" (click)="onFilterChange()"></i>
-        <input 
-          type="text" 
-          class="search-input-pill" 
-          placeholder="Tìm kiếm tin tức..." 
-          [(ngModel)]="searchTerm" 
+        <input
+          type="text"
+          class="search-input-pill"
+          placeholder="Tìm kiếm tin tức..."
+          [(ngModel)]="searchTerm"
           (input)="onFilterChange()"
-          (keyup.enter)="onFilterChange()">
-        <i 
-          class="bi bi-x-circle-fill clear-icon" 
-          *ngIf="searchTerm" 
-          (click)="clearSearch()" 
-          title="Xóa tìm kiếm"></i>
+          (keyup.enter)="onFilterChange()"
+        />
+        <i
+          class="bi bi-x-circle-fill clear-icon"
+          *ngIf="searchTerm"
+          (click)="clearSearch()"
+          title="Xóa tìm kiếm"
+        ></i>
       </div>
     </div>
 
     <!-- WRAPPER WITH FADE IN ANIMATION FOR SMOOTH TRANSITION -->
     <div class="news-content-wrapper fade-in-animation">
+      @if (loading) {
+        <p class="empty-state" role="status">Đang tải tin tức…</p>
+      }
+      @if (error) {
+        <div class="news-api-error" role="alert">
+          {{ error }}
+          <app-button variant="outline" size="sm" (clicked)="refresh()">Thử lại</app-button>
+        </div>
+      }
 
       <!-- 3. FEATURED NEWS SECTION (HIDDEN WHEN SEARCHING) -->
       <section class="featured-section" *ngIf="!searchTerm && featuredData && featuredData.main">
@@ -51,9 +69,17 @@
         <!-- ROW 1: MAIN HERO CARD + GRID CARDS -->
         <div class="featured-top-grid">
           <!-- BIG HERO CARD LEFT -->
-          <div class="featured-hero-card" *ngIf="featuredData.main" (click)="goToDetail(featuredData.main.id)">
+          <div
+            class="featured-hero-card"
+            *ngIf="featuredData.main"
+            (click)="goToDetail(featuredData.main.id)"
+          >
             <div class="hero-image-wrapper">
-              <img [src]="featuredData.main.image" [alt]="featuredData.main.title" (error)="onImageError($event)">
+              <img
+                [src]="featuredData.main.image"
+                [alt]="featuredData.main.title"
+                (error)="onImageError($event)"
+              />
             </div>
             <div class="hero-card-content">
               <h3 class="hero-title">{{ featuredData.main.title }}</h3>
@@ -64,12 +90,13 @@
 
           <!-- CARDS GRID RIGHT -->
           <div class="featured-grid-4" *ngIf="featuredData.grid && featuredData.grid.length > 0">
-            <div 
-              class="mini-featured-card" 
-              *ngFor="let item of featuredData.grid" 
-              (click)="goToDetail(item.id)">
+            <div
+              class="mini-featured-card"
+              *ngFor="let item of featuredData.grid"
+              (click)="goToDetail(item.id)"
+            >
               <div class="mini-card-img">
-                <img [src]="item.image" [alt]="item.title" (error)="onImageError($event)">
+                <img [src]="item.image" [alt]="item.title" (error)="onImageError($event)" />
               </div>
               <div class="mini-card-body">
                 <h4 class="mini-card-title">{{ item.title }}</h4>
@@ -80,7 +107,12 @@
         </div>
 
         <!-- ROW 2: ORANGE SPOTLIGHT CARD + SUB GRID CARDS -->
-        <div class="featured-bottom-grid" *ngIf="featuredData.subHighlight || (featuredData.subGrid && featuredData.subGrid.length > 0)">
+        <div
+          class="featured-bottom-grid"
+          *ngIf="
+            featuredData.subHighlight || (featuredData.subGrid && featuredData.subGrid.length > 0)
+          "
+        >
           <!-- SPOTLIGHT INFORMATIONAL CARD (NON-CLICKABLE) -->
           <div class="orange-spotlight-card" *ngIf="featuredData.subHighlight">
             <div class="spotlight-content">
@@ -92,12 +124,13 @@
           </div>
 
           <!-- 3 CARDS RIGHT -->
-          <div 
-            class="mini-featured-card" 
-            *ngFor="let item of featuredData.subGrid" 
-            (click)="goToDetail(item.id)">
+          <div
+            class="mini-featured-card"
+            *ngFor="let item of featuredData.subGrid"
+            (click)="goToDetail(item.id)"
+          >
             <div class="mini-card-img">
-              <img [src]="item.image" [alt]="item.title" (error)="onImageError($event)">
+              <img [src]="item.image" [alt]="item.title" (error)="onImageError($event)" />
             </div>
             <div class="mini-card-body">
               <h4 class="mini-card-title">{{ item.title }}</h4>
@@ -114,13 +147,16 @@
             <span class="heading-accent"></span>
             <h2>{{ sectionTitle }}</h2>
           </div>
-          <span class="total-count-badge">{{ filteredArticles.length }} tin tức</span>
+          <span class="total-count-badge">{{ totalItems }} tin tức</span>
         </div>
 
         <!-- EMPTY STATE IF NO ARTICLES MATCH FILTER -->
-        <div class="empty-state" *ngIf="filteredArticles.length === 0">
+        <div class="empty-state" *ngIf="!loading && !error && filteredArticles.length === 0">
           <i class="bi bi-search empty-icon"></i>
-          <p *ngIf="searchTerm">Không tìm thấy bài viết nào phù hợp với từ khóa "<strong>{{ searchTerm }}</strong>".</p>
+          <p *ngIf="searchTerm">
+            Không tìm thấy bài viết nào phù hợp với từ khóa "<strong>{{ searchTerm }}</strong
+            >".
+          </p>
           <p *ngIf="!searchTerm">Không có bài viết nào trong danh mục này.</p>
           <button class="btn-reset-search" (click)="clearSearch()" *ngIf="searchTerm">
             <i class="bi bi-arrow-counterclockwise"></i> Xóa từ khóa tìm kiếm
@@ -129,15 +165,20 @@
 
         <!-- ARTICLES GRID (3 COLUMNS) -->
         <div class="news-cards-grid" *ngIf="filteredArticles.length > 0">
-          <div 
-            class="news-card-item" 
-            *ngFor="let item of paginatedArticles" 
-            (click)="goToDetail(item.id)">
-            
+          <app-card
+            padding="none"
+            radius="lg"
+            shadow="sm"
+            [bordered]="true"
+            class="news-card-item"
+            *ngFor="let item of paginatedArticles"
+            (cardClick)="goToDetail(item.slug || item.id)"
+            (keydown.enter)="goToDetail(item.slug || item.id)"
+          >
             <div class="news-card-img">
-              <img [src]="item.image" [alt]="item.title" (error)="onImageError($event)">
+              <img [src]="item.image" [alt]="item.title" (error)="onImageError($event)" />
             </div>
-            
+
             <div class="news-card-content">
               <h3 class="news-card-title">{{ item.title }}</h3>
               <p class="news-card-summary">{{ item.summary }}</p>
@@ -145,22 +186,21 @@
                 <span class="news-card-date">{{ item.date }}</span>
               </div>
             </div>
-          </div>
+          </app-card>
         </div>
 
         <!-- CENTERED PAGINATION BAR -->
-        <div class="pagination-wrapper" *ngIf="filteredArticles.length > pageSize">
-          <app-pagination 
+        <div class="pagination-wrapper" *ngIf="totalItems > pageSize">
+          <app-pagination
             [currentPage]="currentPage"
-            [totalItems]="filteredArticles.length"
+            [totalItems]="totalItems"
             [pageSize]="pageSize"
             [showSummary]="false"
-            (pageChange)="setPage($event)">
+            (pageChange)="setPage($event)"
+          >
           </app-pagination>
         </div>
       </section>
-
     </div>
-
   </div>
 </div>

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, trang_thai_khuyen_mai_enum } from '@prisma/client';
-import { randomUUID } from 'node:crypto';
+import { nextBusinessId } from '../../../../shared/business-id';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import {
   AssignedCustomerDto,
@@ -63,8 +63,6 @@ type Totals = {
   gross: Prisma.Decimal;
   discount: Prisma.Decimal;
 };
-const id = (prefix: string) =>
-  prefix + randomUUID().replaceAll('-', '').toUpperCase();
 const dateOnly = (value: Date) =>
   new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Ho_Chi_Minh',
@@ -349,7 +347,7 @@ export class AdminPromotionsService {
       const promotion = await tx.khuyen_mai.create({
         data: {
           ...config.data,
-          makhuyenmai: id('KM'),
+          makhuyenmai: await nextBusinessId(tx, 'KM'),
           nguoitao: actor.mataikhoan,
           thoigiantao: now,
           thoigiancapnhat: now,
@@ -781,7 +779,7 @@ export class AdminPromotionsService {
     }
     await tx.voucher_khach_hang.create({
       data: {
-        mavoucherkhachhang: id('VKH'),
+        mavoucherkhachhang: await nextBusinessId(tx, 'VKH'),
         makhuyenmai: promotion.makhuyenmai,
         makhachhang: assigned.customerId,
         nguoncap: 'CapBu',
@@ -930,7 +928,7 @@ export class AdminPromotionsService {
       return { trangthai: 'HoatDong', ngaybatdau: { gt: now } };
     if (status === 'expired')
       return { trangthai: 'HoatDong', ngayketthuc: { lt: now } };
-    return { trangthai: { not: 'NgungHoatDong' } };
+    return {};
   }
 
   private response(row: Promotion, totals = zeroTotals(), now = new Date()) {
@@ -1015,7 +1013,7 @@ export class AdminPromotionsService {
     };
   }
 
-  private audit(
+  private async audit(
     tx: Tx,
     actor: Actor,
     promotion: Promotion,
@@ -1024,7 +1022,7 @@ export class AdminPromotionsService {
   ) {
     return tx.nhat_ky_he_thong.create({
       data: {
-        manhatky: id('NK'),
+        manhatky: await nextBusinessId(tx, 'NK'),
         mataikhoan: actor.mataikhoan,
         manhanvien: actor.manhanvien,
         hanhdong: action,

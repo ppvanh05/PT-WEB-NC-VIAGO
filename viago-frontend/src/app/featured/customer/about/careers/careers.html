@@ -13,20 +13,20 @@
       <div class="container">
         <div class="stats-grid">
           <div class="stat-card">
-            <h3 class="stat-number">100+</h3>
+            <h3 class="stat-number">{{ jobs.length }}</h3>
             <p class="stat-label">Vị trí đang tuyển</p>
           </div>
           <div class="stat-card">
-            <h3 class="stat-number">15+</h3>
-            <p class="stat-label">Tỉnh thành</p>
+            <h3 class="stat-number">{{ locations.length }}</h3>
+            <p class="stat-label">Địa điểm tuyển dụng</p>
           </div>
           <div class="stat-card">
-            <h3 class="stat-number">2k+</h3>
-            <p class="stat-label">Nhân viên đồng hành</p>
+            <h3 class="stat-number">{{ departments.length }}</h3>
+            <p class="stat-label">Phòng ban tuyển dụng</p>
           </div>
           <div class="stat-card">
-            <h3 class="stat-number">5+</h3>
-            <p class="stat-label">Năm phát triển</p>
+            <h3 class="stat-number">Online</h3>
+            <p class="stat-label">Nộp hồ sơ trực tuyến</p>
           </div>
         </div>
       </div>
@@ -48,9 +48,7 @@
           </svg>
           <select [(ngModel)]="filters.location" (change)="filterJobs()">
             <option value="">Tất cả địa điểm</option>
-            <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
-            <option value="Hà Nội">Hà Nội</option>
-            <option value="Đà Nẵng">Đà Nẵng</option>
+            <option *ngFor="let location of locations" [value]="location">{{ location }}</option>
           </select>
         </div>
         <button class="filter-btn" (click)="filterJobs()">Tìm kiếm</button>
@@ -60,12 +58,13 @@
         <h2 class="section-title">Vị trí ứng tuyển</h2>
         <div class="filter-tabs">
           <button [class.active]="filters.department === ''" (click)="filters.department = ''; filterJobs()">Tất cả</button>
-          <button [class.active]="filters.department === 'Vận tải'" (click)="filters.department = 'Vận tải'; filterJobs()">Vận tải</button>
-          <button [class.active]="filters.department === 'Văn phòng'" (click)="filters.department = 'Văn phòng'; filterJobs()">Văn phòng</button>
+          <button *ngFor="let department of departments" [class.active]="filters.department === department" (click)="filters.department = department; filterJobs()">{{ department }}</button>
         </div>
       </div>
 
-      <div class="job-grid" *ngIf="filteredJobs.length > 0">
+      <p *ngIf="loading || loadingDetail" class="empty-state" role="status">{{ loading ? 'Đang tải vị trí tuyển dụng…' : 'Đang tải chi tiết…' }}</p>
+      <p *ngIf="loadError" class="submission-error" role="alert">{{ loadError }} <button type="button" (click)="loadJobs()">Tải lại danh sách</button></p>
+      <div class="job-grid" *ngIf="!loading && filteredJobs.length > 0">
         <div class="job-card" *ngFor="let job of filteredJobs">
           <div class="job-card-top">
             <div class="job-title-row">
@@ -85,15 +84,15 @@
             <p class="job-excerpt">{{ job.description }}</p>
           </div>
           <div class="job-card-bottom">
-            <span class="job-deadline">Hạn nộp: {{ job.deadline }}</span>
-            <button class="job-detail-btn" (click)="openJobDetail(job)">
+            <span class="job-deadline">Hạn nộp: {{ job.deadline | date:'dd/MM/yyyy' }}</span>
+            <button class="job-detail-btn" (click)="openJobDetail(job)" [disabled]="loadingDetail">
               Xem chi tiết <span class="page-icon">→</span>
             </button>
           </div>
         </div>
       </div>
 
-      <div class="empty-state" *ngIf="filteredJobs.length === 0">
+      <div class="empty-state" *ngIf="!loading && !loadError && filteredJobs.length === 0">
         <span class="page-icon">⌕</span>
         <p>Không tìm thấy vị trí phù hợp</p>
       </div>
@@ -268,7 +267,7 @@
                 <span class="page-icon">•</span>
                 <div>
                   <label>Hạn nộp</label>
-                  <span>{{ selectedJob.deadline }}</span>
+                  <span>{{ selectedJob.deadline | date:'dd/MM/yyyy' }}</span>
                 </div>
               </div>
             </div>
@@ -278,8 +277,8 @@
           <div class="contact-card">
             <h4 class="card-label">Thông tin liên hệ</h4>
             <p>Bộ phận Nhân sự VIAGO</p>
-            <p>Email: hr@viago.vn</p>
-            <p>Hotline: 1900 1234</p>
+            <p *ngIf="selectedJob.email">Email: {{ selectedJob.email }}</p>
+            <p *ngIf="selectedJob.hotline">Hotline: {{ selectedJob.hotline }}</p>
           </div>
         </div>
       </aside>
@@ -304,7 +303,7 @@
       <div class="application-layout">
         <div class="application-main">
           <header class="application-header">
-            <h1 class="application-title">Ứng tuyển vị trí {{ applicationForm.position }}</h1>
+            <h1 class="application-title">Ứng tuyển vị trí {{ positionTitle }}</h1>
             <p>Vui lòng điền đầy đủ thông tin bên dưới để ứng tuyển.</p>
           </header>
 
@@ -371,7 +370,7 @@
                   <label>Vị trí ứng tuyển <span class="required">*</span></label>
                   <select [(ngModel)]="applicationForm.position" name="position">
                     <option value="">Chọn vị trí</option>
-                    <option *ngFor="let job of jobs" [value]="job.title">{{ job.title }}</option>
+                    <option *ngFor="let job of jobs" [value]="job.id">{{ job.title }}</option>
                   </select>
                   <span class="error-msg" *ngIf="formErrors['position']">{{ formErrors['position'] }}</span>
                 </div>
@@ -418,9 +417,10 @@
               <span class="error-msg block" *ngIf="formErrors['agreeTerms']">{{ formErrors['agreeTerms'] }}</span>
               
               <div class="form-actions">
-                <button type="button" class="cancel-btn" (click)="backToList()">Hủy bỏ</button>
-                <button type="submit" class="submit-btn">Gửi hồ sơ ứng tuyển</button>
+                <button type="button" class="cancel-btn" (click)="backToList()" [disabled]="submitting">Hủy bỏ</button>
+                <button type="submit" class="submit-btn" [disabled]="submitting">{{ submitting ? 'Đang gửi…' : 'Gửi hồ sơ ứng tuyển' }}</button>
               </div>
+              <p *ngIf="submitError" class="submission-error" role="alert">{{ submitError }}</p>
             </div>
           </form>
         </div>
@@ -454,9 +454,8 @@
       <div class="status-icon success">
         <span class="page-icon">✓</span>
       </div>
-      <h2>Hồ sơ đã sẵn sàng!</h2>
-      <p>Để hoàn tất ứng tuyển, hãy gửi hồ sơ và đính kèm CV đến email hr&#64;viago.vn.</p>
-      <a class="btn-primary" href="mailto:hr@viago.vn">Gửi hồ sơ qua email</a>
+      <h2>Đã tiếp nhận hồ sơ!</h2>
+      <p>Hồ sơ và CV của bạn đã được gửi đến bộ phận tuyển dụng VIAGO.</p>
       <button (click)="closeSuccessModal()">Về trang tuyển dụng</button>
     </div>
   </div>

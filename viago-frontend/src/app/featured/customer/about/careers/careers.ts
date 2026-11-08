@@ -1,9 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  HostListener,
+  inject,
+  OnInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { aboutRequest } from '../about-api';
+import { ActivatedRoute } from '@angular/router';
 
 interface Job {
-  id: number;
+  id: string;
   title: string;
   department: string;
   location: string;
@@ -16,6 +25,8 @@ interface Job {
   workHours: string;
   workEnvironment: string;
   howToApply: string;
+  email?: string;
+  hotline?: string;
 }
 
 @Component({
@@ -23,111 +34,32 @@ interface Job {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './careers.html',
-  styleUrls: ['../../customer-pages.css', './careers.css', '../../customer-page-theme.css']
+  styleUrls: ['../../customer-pages.css', './careers.css', '../../customer-page-theme.css'],
 })
 export class Careers implements OnInit {
   // --- View States ---
   currentView: 'list' | 'detail' | 'apply' = 'list';
   showStatusModal: boolean = false;
 
-  // --- Mock Data ---
-  jobs: Job[] = [
-    {
-      id: 1,
-      title: 'Tài xế xe khách (Hạng E)',
-      department: 'Vận tải',
-      location: 'TP. Hồ Chí Minh',
-      workType: 'Toàn thời gian',
-      salary: '15 - 25 Triệu',
-      deadline: '30/12/2024',
-      description: 'Điều khiển xe khách giường nằm tuyến cố định, đảm bảo an toàn cho hành khách và tuân thủ quy định giao thông.',
-      requirements: [
-        'Có bằng lái xe hạng E, kinh nghiệm lái xe trên 3 năm.',
-        'Tuổi từ 25 - 45, sức khỏe tốt.',
-        'Nhanh nhẹn, có trách nhiệm và tâm huyết với nghề.',
-        'Thông thạo các tuyến đường trong và ngoài tỉnh.'
-      ],
-      benefits: [
-        'Mức lương cạnh tranh + Thưởng doanh số tháng.',
-        'Đóng bảo hiểm đầy đủ sau khi kết thúc thử việc.',
-        'Chế độ nghỉ phép, lễ tết theo quy định.',
-        'Du lịch teambuilding hàng năm.'
-      ],
-      workHours: 'Xoay ca linh hoạt (Ca 1: 06:00 - 14:00, Ca 2: 14:00 - 22:00)',
-      workEnvironment: 'Văn phòng hiện đại, trẻ trung tại trung tâm thành phố.',
-      howToApply: 'Gửi CV về email hr@viago.vn hoặc điền form trực tuyến.'
-    },
-    {
-      id: 2,
-      title: 'Nhân viên Điều phối vận hành',
-      department: 'Văn phòng',
-      location: 'Đà Nẵng',
-      workType: 'Toàn thời gian',
-      salary: '10 - 15 Triệu',
-      deadline: '15/01/2025',
-      description: 'Quản lý lịch trình xe, giám sát lộ trình di chuyển và xử lý các tình huống phát sinh trong ca trực.',
-      requirements: [
-        'Tốt nghiệp Cao đẳng trở lên chuyên ngành liên quan.',
-        'Kỹ năng điều phối, xử lý tình huống tốt.',
-        'Sử dụng thành thạo máy tính và phần mềm quản lý.',
-        'Ưu tiên có kinh nghiệm trong ngành vận tải.'
-      ],
-      benefits: [
-        'Lương cơ bản + Thưởng hiệu quả công việc.',
-        'Môi trường làm việc năng động, chuyên nghiệp.',
-        'Cơ hội thăng tiến lên cấp quản lý.'
-      ],
-      workHours: 'Hành chính: 08:00 - 17:00 (Nghỉ Chủ nhật)',
-      workEnvironment: 'Làm việc tại văn phòng điều hành trung tâm Đà Nẵng.',
-      howToApply: 'Nộp hồ sơ trực tiếp tại văn phòng hoặc qua website.'
-    },
-    {
-      id: 3,
-      title: 'Nhân viên Chăm sóc khách hàng',
-      department: 'Vận hành',
-      location: 'Hà Nội',
-      workType: 'Xoay ca',
-      salary: '8 - 12 Triệu',
-      deadline: '20/12/2024',
-      description: 'Tiếp nhận cuộc gọi đặt vé, tư vấn lịch trình và hỗ trợ hành khách qua các kênh hotline, fanpage.',
-      requirements: [
-        'Giọng nói truyền cảm, không nói ngọng, nói lắp.',
-        'Kỹ năng giao tiếp và thuyết phục tốt.',
-        'Nhanh nhẹn, chịu được áp lực công việc cao.'
-      ],
-      benefits: [
-        'Lương cứng + Hoa hồng doanh thu.',
-        'Được đào tạo kỹ năng CSKH chuyên nghiệp.',
-        'Ưu đãi vé xe nội bộ cho bản thân và gia đình.'
-      ],
-      workHours: 'Xoay ca (Ca sáng: 07:00 - 15:00, Ca chiều: 14:00 - 22:00)',
-      workEnvironment: 'Phòng tổng đài hiện đại, máy lạnh, đầy đủ trang thiết bị.',
-      howToApply: 'Điền form ứng tuyển trên trang Tuyển dụng VIAGO.'
-    },
-    {
-      id: 4,
-      title: 'Nhân viên Bán vé tại quầy',
-      department: 'Vận hành',
-      location: 'Bến xe Miền Đông',
-      workType: 'Xoay ca',
-      salary: '7 - 10 Triệu',
-      deadline: '05/01/2025',
-      description: 'Trực tiếp xuất vé, thu tiền và sắp xếp hành khách lên xe tại quầy vé khu vực bến xe.',
-      requirements: [
-        'Trung thực, cẩn thận, có kỹ năng tính toán tốt.',
-        'Giao tiếp lịch sự, niềm nở với khách hàng.',
-        'Có khả năng làm việc theo ca.'
-      ],
-      benefits: [
-        'Lương tháng 13, thưởng lễ tết.',
-        'Phụ cấp ăn ca và đồng phục.',
-        'Môi trường làm việc tiếp xúc nhiều khách hàng.'
-      ],
-      workHours: 'Xoay ca linh hoạt theo lịch bến xe.',
-      workEnvironment: 'Làm việc trực tiếp tại quầy vé VIAGO ở bến xe.',
-      howToApply: 'Nộp hồ sơ tại quầy vé hoặc qua website.'
-    }
-  ];
+  jobs: Job[] = [];
+  loading = true;
+  loadingDetail = false;
+  loadError = '';
+  submitError = '';
+  submitting = false;
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroy = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute, { optional: true });
+  private readonly abort = new AbortController();
+  constructor() {
+    this.destroy.onDestroy(() => this.abort.abort());
+  }
+  get locations() {
+    return [...new Set(this.jobs.map((j) => j.location))];
+  }
+  get departments() {
+    return [...new Set(this.jobs.map((j) => j.department))];
+  }
 
   selectedJob: Job | null = null;
   filteredJobs: Job[] = [];
@@ -137,7 +69,7 @@ export class Careers implements OnInit {
     keyword: '',
     department: '',
     location: '',
-    workType: ''
+    workType: '',
   };
 
   // --- Application Form Object ---
@@ -152,7 +84,7 @@ export class Careers implements OnInit {
     experience: '',
     portfolioLink: '',
     introduction: '',
-    agreeTerms: false
+    agreeTerms: false,
   };
 
   // --- Form Error States ---
@@ -161,17 +93,57 @@ export class Careers implements OnInit {
   cvError: string = '';
 
   ngOnInit() {
-    this.filteredJobs = [...this.jobs];
+    void this.loadJobs().then(() => {
+      const id = this.route?.snapshot.queryParamMap.get('job');
+      if (id && !this.abort.signal.aborted) void this.openJobDetail({ id });
+    });
+  }
+  @HostListener('window:focus') refreshAvailableJobs() {
+    if (this.currentView === 'list' && !this.loading) void this.loadJobs();
+  }
+  async loadJobs() {
+    this.loading = true;
+    this.loadError = '';
+    try {
+      const rows: Job[] = [];
+      let pages = 1;
+      for (let page = 1; page <= pages; page++) {
+        const result = await aboutRequest<{ data: Job[]; pagination: { totalPages: number } }>(
+          '/careers?pageSize=100&page=' + page,
+          undefined,
+          this.abort.signal,
+        );
+        if (
+          !Array.isArray(result.data) ||
+          !Number.isInteger(result.pagination?.totalPages) ||
+          result.pagination.totalPages > 20
+        )
+          throw new Error('Dữ liệu tuyển dụng không hợp lệ.');
+        rows.push(...result.data);
+        pages = result.pagination.totalPages;
+      }
+      this.jobs = rows;
+      this.filterJobs();
+    } catch (e) {
+      if (!this.abort.signal.aborted)
+        this.loadError = e instanceof Error ? e.message : 'Chưa tải được vị trí tuyển dụng.';
+    } finally {
+      if (!this.abort.signal.aborted) {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
+    }
   }
 
   // --- Logic Methods ---
 
   filterJobs() {
-    this.filteredJobs = this.jobs.filter(job => {
-      const matchKeyword = !this.filters.keyword || 
+    this.filteredJobs = this.jobs.filter((job) => {
+      const matchKeyword =
+        !this.filters.keyword ||
         job.title.toLowerCase().includes(this.filters.keyword.toLowerCase()) ||
         job.description.toLowerCase().includes(this.filters.keyword.toLowerCase());
-      
+
       const matchDept = !this.filters.department || job.department === this.filters.department;
       const matchLoc = !this.filters.location || job.location.includes(this.filters.location);
       const matchType = !this.filters.workType || job.workType === this.filters.workType;
@@ -180,16 +152,35 @@ export class Careers implements OnInit {
     });
   }
 
-  openJobDetail(job: Job) {
-    this.selectedJob = job;
-    this.currentView = 'detail';
-    window.scrollTo(0, 0);
+  async openJobDetail(job: Pick<Job, 'id'>) {
+    if (this.loadingDetail) return;
+    this.loadingDetail = true;
+    this.loadError = '';
+    try {
+      const detail = await aboutRequest<Job>(
+        '/careers/' + encodeURIComponent(job.id),
+        undefined,
+        this.abort.signal,
+      );
+      this.selectedJob = detail;
+      this.currentView = 'detail';
+      window.scrollTo(0, 0);
+    } catch (e) {
+      if (!this.abort.signal.aborted)
+        this.loadError = e instanceof Error ? e.message : 'Chưa tải được chi tiết tuyển dụng.';
+    } finally {
+      if (!this.abort.signal.aborted) {
+        this.loadingDetail = false;
+        this.cdr.markForCheck();
+      }
+    }
   }
 
   openApplicationForm(job?: Job) {
+    this.submitError = '';
     if (job) {
       this.selectedJob = job;
-      this.applicationForm.position = job.title;
+      this.applicationForm.position = job.id;
     }
     this.currentView = 'apply';
     this.formErrors = {};
@@ -198,6 +189,7 @@ export class Careers implements OnInit {
   }
 
   backToList() {
+    if (this.submitting) return;
     this.currentView = 'list';
     this.selectedJob = null;
     window.scrollTo(0, 0);
@@ -270,10 +262,34 @@ export class Careers implements OnInit {
     return isValid;
   }
 
-  submitApplication() {
-    if (this.validateApplicationForm()) {
-      // Logic gửi hồ sơ (giả lập)
-      this.showStatusModal = true;
+  get positionTitle() {
+    return this.jobs.find((j) => j.id === this.applicationForm.position)?.title || '';
+  }
+  async submitApplication() {
+    if (this.submitting || !this.validateApplicationForm()) return;
+    this.submitting = true;
+    this.submitError = '';
+    try {
+      const body = new FormData();
+      for (const [key, value] of Object.entries(this.applicationForm)) {
+        if (key !== 'position' && value !== '') body.append(key, String(value));
+      }
+      body.append('cv', this.selectedCvFile!);
+      const response = await aboutRequest<{ received: boolean }>(
+        '/careers/' + encodeURIComponent(this.applicationForm.position) + '/applications',
+        body,
+        this.abort.signal,
+      );
+      if (!response.received) throw new Error('Chưa thể xác nhận hồ sơ. Vui lòng thử lại.');
+      if (!this.abort.signal.aborted) this.showStatusModal = true;
+    } catch (e) {
+      if (!this.abort.signal.aborted)
+        this.submitError = e instanceof Error ? e.message : 'Không gửi được hồ sơ.';
+    } finally {
+      if (!this.abort.signal.aborted) {
+        this.submitting = false;
+        this.cdr.markForCheck();
+      }
     }
   }
 
@@ -292,7 +308,7 @@ export class Careers implements OnInit {
       experience: '',
       portfolioLink: '',
       introduction: '',
-      agreeTerms: false
+      agreeTerms: false,
     };
     this.selectedCvFile = null;
   }

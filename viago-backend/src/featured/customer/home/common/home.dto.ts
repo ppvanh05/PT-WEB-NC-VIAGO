@@ -159,6 +159,7 @@ export class HomeQuoteDto extends HomeHoldDto {
   voucher?: string;
 }
 export class HomeOrderDto extends HomeQuoteDto {
+  @IsIn(['counter', 'vietqr']) method: 'counter' | 'vietqr' = 'counter';
   @IsUUID() key: string;
   @Equals(true) terms: boolean;
 }

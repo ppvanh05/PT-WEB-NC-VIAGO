@@ -26,6 +26,7 @@ export class Button {
   loading = input(false);
   iconOnly = input(false);
   fullWidth = input(false);
+  wrap = input(false);
 
   ariaLabel = input<string | undefined>(undefined);
 

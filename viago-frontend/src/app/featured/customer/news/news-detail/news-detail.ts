@@ -1,97 +1,246 @@
 import { CommonModule, Location } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ToastVariant } from '../../../../shared/components/toast/toast';
-import { NewsItem, NewsService } from '../../../../core/services/news.service';
-
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CommentItem, NewsItem, NewsService } from '../../../../core/services/news.service';
+import { Card } from '../../../../shared/components/card/card';
+import { Button } from '../../../../shared/components/button/button';
+import { Input } from '../../../../shared/components/input/input';
+import { Textarea } from '../../../../shared/components/input/textarea/textarea';
+import { Pagination } from '../../../../shared/components/pagination/pagination';
 @Component({
   selector: 'app-news-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, Card, Button, Input, Textarea, Pagination],
   templateUrl: './news-detail.html',
   styleUrl: './news-detail.css',
 })
 export class NewsDetail implements OnInit {
-  toast = signal<{ message: string; variant: ToastVariant } | null>(null);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly api = inject(NewsService);
+  private readonly location = inject(Location);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroy = inject(DestroyRef);
+  private abort = new AbortController();
+  private version = 0;
+  private commentVersion = 0;
+  private replyPages = new Map<string, number>();
   article?: NewsItem;
-  sidebarRelatedNews: NewsItem[] = [];
   bottomRelatedNews: NewsItem[] = [];
-  showToast = false;
-  toastMessage = '';
-  toastVariant: 'success' | 'info' = 'success';
+  comments: CommentItem[] = [];
+  commentTotal = 0;
+  commentPage = 1;
+  loading = false;
+  error = '';
+  commentError = '';
+  notice = '';
+  sending = false;
+  commentsLoading = false;
   commentAuthor = '';
   commentText = '';
   replyingCommentId: string | null = null;
   replyAuthor = '';
   replyText = '';
-
-  constructor(private route: ActivatedRoute, private router: Router, private newsService: NewsService, private location: Location) {}
-
-  ngOnInit(): void {
-    this.route.params.subscribe(params => this.loadArticle(params['id']));
+  readonly busy = signal<string[]>([]);
+  private articleKey = '';
+  constructor() {
+    this.destroy.onDestroy(() => this.abort.abort());
   }
-
-  loadArticle(id: string): void {
-    this.article = this.newsService.getNewsById(id) ?? this.newsService.getAllNews()[0];
-    if (this.article) {
-      this.sidebarRelatedNews = this.newsService.getRelatedNews(this.article.id, this.article.category, 4);
-      this.bottomRelatedNews = this.newsService.getRelatedNews(this.article.id, this.article.category, 3);
-      this.article.viewCount += 1;
+  ngOnInit() {
+    this.route.params
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe((params) => void this.loadArticle(params['id']));
+  }
+  async loadArticle(id: string) {
+    this.abort.abort();
+    this.abort = new AbortController();
+    const version = ++this.version;
+    this.articleKey = id;
+    this.loading = true;
+    this.error = '';
+    this.article = undefined;
+    this.comments = [];
+    this.commentTotal = 0;
+    this.commentPage = 1;
+    this.bottomRelatedNews = [];
+    this.commentError = '';
+    this.notice = '';
+    this.replyingCommentId = null;
+    this.replyPages.clear();
+    this.busy.set([]);
+    this.sending = false;
+    this.commentText = '';
+    this.replyText = '';
+    try {
+      const [article, related] = await Promise.all([
+        this.api.article(id, this.abort.signal),
+        this.api.related(id, this.abort.signal),
+      ]);
+      if (version !== this.version || this.abort.signal.aborted) return;
+      this.article = article;
+      this.bottomRelatedNews = related.data;
+      try {
+        const view = await this.api.view(id, this.abort.signal);
+        if (version === this.version && this.article) this.article.viewCount = view.viewCount;
+      } catch (e) {
+        if (version === this.version && !this.abort.signal.aborted)
+          this.commentError = this.message(e);
+      }
+      if (version === this.version && !this.abort.signal.aborted) await this.loadComments(1);
+    } catch (e) {
+      if (version === this.version && !this.abort.signal.aborted) this.error = this.message(e);
+    } finally {
+      if (version === this.version && !this.abort.signal.aborted) {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
     }
-    window.scrollTo(0, 0);
   }
-
-  shareArticle(): void {
-    const url = window.location.href;
-    navigator.clipboard?.writeText(url).then(
-      () => this.triggerToast('Đã sao chép đường dẫn bài viết vào bộ nhớ tạm!'),
-      () => this.triggerToast('Đường dẫn: ' + url, 'info'),
-    );
+  async loadComments(page = this.commentPage) {
+    const version = ++this.commentVersion,
+      articleVersion = this.version;
+    this.commentsLoading = true;
+    this.commentError = '';
+    try {
+      const result = await this.api.comments(this.articleKey, page, this.abort.signal);
+      if (
+        articleVersion !== this.version ||
+        version !== this.commentVersion ||
+        this.abort.signal.aborted
+      )
+        return;
+      this.comments = result.data;
+      this.commentTotal = result.pagination.total;
+      this.commentPage = page;
+      this.replyPages.clear();
+    } catch (e) {
+      if (articleVersion === this.version && !this.abort.signal.aborted)
+        this.commentError = this.message(e);
+    } finally {
+      if (
+        articleVersion === this.version &&
+        version === this.commentVersion &&
+        !this.abort.signal.aborted
+      ) {
+        this.commentsLoading = false;
+        this.cdr.markForCheck();
+      }
+    }
   }
-
-  triggerToast(message: string, variant: 'success' | 'info' = 'success'): void {
-    this.toastMessage = message;
-    this.toastVariant = variant;
-    this.showToast = true;
-    setTimeout(() => (this.showToast = false), 3500);
-  }
-
-  onAddComment(): void {
-    if (!this.commentText.trim() || !this.article) return;
-    const comment = this.newsService.addComment(this.article.id, this.commentAuthor.trim() || 'Hành khách Viago', this.commentText);
-    if (comment) {
-      this.commentAuthor = '';
+  async onAddComment() {
+    if (!this.commentText.trim() || !this.article || this.sending) return;
+    this.sending = true;
+    this.commentError = '';
+    const version = this.version;
+    try {
+      await this.api.addComment(
+        this.articleKey,
+        this.commentAuthor,
+        this.commentText,
+        this.abort.signal,
+      );
+      if (version !== this.version) return;
       this.commentText = '';
-      this.triggerToast('Đã đăng bình luận thành công!');
+      this.notice = 'Đã gửi bình luận.';
+      await this.loadComments(1);
+    } catch (e) {
+      if (version === this.version && !this.abort.signal.aborted)
+        this.commentError = this.message(e);
+    } finally {
+      if (version === this.version && !this.abort.signal.aborted) {
+        this.sending = false;
+        this.cdr.markForCheck();
+      }
     }
   }
-
-  toggleLikeComment(id: string): void { if (this.article) this.newsService.toggleLikeComment(this.article.id, id); }
-
-  toggleReplyForm(id: string): void {
+  toggleReplyForm(id: string) {
+    if (this.sending) return;
     this.replyingCommentId = this.replyingCommentId === id ? null : id;
     this.replyAuthor = '';
     this.replyText = '';
   }
-
-  onAddReply(id: string): void {
-    if (!this.replyText.trim() || !this.article) return;
-    const reply = this.newsService.addReply(this.article.id, id, this.replyAuthor.trim() || 'Hành khách Viago', this.replyText);
-    if (reply) {
-      this.replyAuthor = '';
+  async onAddReply(id: string) {
+    if (!this.replyText.trim() || this.sending) return;
+    this.sending = true;
+    this.commentError = '';
+    const version = this.version;
+    try {
+      await this.api.addReply(
+        this.articleKey,
+        id,
+        this.replyAuthor,
+        this.replyText,
+        this.abort.signal,
+      );
+      if (version !== this.version) return;
       this.replyText = '';
       this.replyingCommentId = null;
-      this.triggerToast('Đã gửi phản hồi thành công!');
+      this.notice = 'Đã gửi phản hồi.';
+      await this.loadComments();
+    } catch (e) {
+      if (version === this.version && !this.abort.signal.aborted)
+        this.commentError = this.message(e);
+    } finally {
+      if (version === this.version && !this.abort.signal.aborted) {
+        this.sending = false;
+        this.cdr.markForCheck();
+      }
     }
   }
-
-  goToDetail(id: string): void { this.router.navigate(['/customer/tin-tuc', id]); }
-  goToHome(): void { this.router.navigate(['/customer']); }
-  goBack(): void { window.history.length > 1 ? this.location.back() : this.goToNewsList(this.article?.category); }
-  goToNewsList(category?: string): void {
-    category && category !== 'all'
-      ? this.router.navigate(['/customer/tin-tuc'], { queryParams: { category } })
-      : this.router.navigate(['/customer/tin-tuc']);
+  async toggleLikeComment(comment: CommentItem) {
+    if (this.busy().includes(comment.id)) return;
+    const version = this.version;
+    this.busy.update((ids) => [...ids, comment.id]);
+    this.commentError = '';
+    try {
+      const result = await this.api.toggleLike(this.articleKey, comment, this.abort.signal);
+      if (version === this.version) {
+        comment.likes = result.likes;
+        comment.isLiked = result.isLiked;
+      }
+    } catch (e) {
+      if (version === this.version && !this.abort.signal.aborted)
+        this.commentError = this.message(e);
+    } finally {
+      if (version === this.version && !this.abort.signal.aborted) {
+        this.busy.update((ids) => ids.filter((id) => id !== comment.id));
+        this.cdr.markForCheck();
+      }
+    }
+  }
+  async loadMoreReplies(comment: CommentItem) {
+    if (this.busy().includes(comment.id)) return;
+    const version = this.version;
+    this.busy.update((ids) => [...ids, comment.id]);
+    const page = (this.replyPages.get(comment.id) || 0) + 1;
+    try {
+      const result = await this.api.replies(this.articleKey, comment.id, page, this.abort.signal);
+      if (version === this.version) {
+        comment.replies = page === 1 ? result.data : [...(comment.replies || []), ...result.data];
+        comment.replyCount = result.pagination.total;
+        this.replyPages.set(comment.id, page);
+      }
+    } catch (e) {
+      if (version === this.version && !this.abort.signal.aborted)
+        this.commentError = this.message(e);
+    } finally {
+      if (version === this.version && !this.abort.signal.aborted) {
+        this.busy.update((ids) => ids.filter((id) => id !== comment.id));
+        this.cdr.markForCheck();
+      }
+    }
+  }
+  goToDetail(id: string) {
+    void this.router.navigate(['/customer/tin-tuc', id]);
+  }
+  goBack() {
+    window.history.length > 1
+      ? this.location.back()
+      : void this.router.navigate(['/customer/tin-tuc']);
+  }
+  private message(e: unknown) {
+    return e instanceof Error ? e.message : 'Chưa thực hiện được yêu cầu.';
   }
 }

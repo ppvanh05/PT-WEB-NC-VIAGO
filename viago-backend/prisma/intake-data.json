@@ -1,0 +1,27 @@
+{
+  "applications": [
+    { "name": "Nguyễn Minh Khôi", "jobId": "TD001", "education": "Trung cấp", "experience": "5 năm lái xe khách, bằng lái hạng E.", "status": "Moi" },
+    { "name": "Lê Gia Hân", "jobId": "TD002", "education": "Đại học", "experience": "3 năm điều phối vận tải và quản lý ca trực.", "status": "DaXem" },
+    { "name": "Trần Bảo Ngọc", "jobId": "TD003", "education": "Cao đẳng", "experience": "2 năm chăm sóc khách hàng qua điện thoại.", "status": "MoiPhongVan" },
+    { "name": "Phạm Đức Anh", "jobId": "TD004", "education": "Cao đẳng", "experience": "1 năm bán vé và đối soát tiền mặt tại quầy.", "status": "Moi" },
+    { "name": "Võ Hoàng Nam", "jobId": "TD001", "education": "THPT", "experience": "7 năm lái xe đường dài, bằng lái hạng E.", "status": "TrungTuyen" },
+    { "name": "Đặng Thu Hà", "jobId": "TD002", "education": "Đại học", "experience": "2 năm lập lịch xe, sử dụng phần mềm vận tải.", "status": "MoiPhongVan" },
+    { "name": "Bùi Ngọc Lan", "jobId": "TD003", "education": "Đại học", "experience": "3 năm hỗ trợ khách hàng, xử lý hoàn hủy.", "status": "DaXem" },
+    { "name": "Huỳnh Thanh Tâm", "jobId": "TD004", "education": "THPT", "experience": "6 tháng làm thu ngân, có thể làm ca tối.", "status": "TuChoi" },
+    { "name": "Ngô Tuấn Kiệt", "jobId": "TD001", "education": "Trung cấp", "experience": "4 năm lái xe khách, bằng lái hạng E.", "status": "Moi" },
+    { "name": "Đỗ Mỹ Linh", "jobId": "TD002", "education": "Đại học", "experience": "1 năm điều phối giao nhận và tổng hợp báo cáo.", "status": "Moi" },
+    { "name": "Phan Hồng Nhung", "jobId": "TD003", "education": "Cao đẳng", "experience": "2 năm tổng đài, hỗ trợ khách hàng qua email.", "status": "TrungTuyen" },
+    { "name": "Dương Quang Huy", "jobId": "TD004", "education": "Trung cấp", "experience": "2 năm bán vé, hướng dẫn hành khách tại bến.", "status": "DaXem" }
+  ],
+  "contacts": [
+    { "name": "Nguyễn Hải Yến", "subject": "HoTroDatVe", "message": "Tôi cần tư vấn cách đặt hai vé khứ hồi và chọn vị trí ghế cạnh nhau.", "status": "Moi" },
+    { "name": "Lê Đức Minh", "subject": "HoanHuyVe", "message": "Nhờ hướng dẫn điều kiện đổi ngày khởi hành và mức phí hủy trước chuyến đi.", "status": "DangXuLy" },
+    { "name": "Trần Thảo Vy", "subject": "GopYPhatTrien", "message": "Mong website bổ sung hướng dẫn điểm đón và thời gian cần có mặt trước khi xe chạy.", "status": "DaXuLy" },
+    { "name": "Phạm Gia Bảo", "subject": "HoTroDatVe", "message": "Tôi chưa rõ cách sử dụng mã khuyến mãi khi đặt vé cho nhiều hành khách.", "status": "Moi" },
+    { "name": "Võ Ngọc Ánh", "subject": "KhieuNaiDichVu", "message": "Nhờ bộ phận chăm sóc khách hàng hướng dẫn cách gửi phản hồi về chất lượng chuyến đi.", "status": "DangXuLy" },
+    { "name": "Đặng Hoài Phương", "subject": "Khac", "message": "Tôi muốn tìm hiểu thủ tục thuê xe cho đoàn công ty và cách nhận báo giá.", "status": "Moi" },
+    { "name": "Bùi Quốc Thịnh", "subject": "HoanHuyVe", "message": "Nhờ giải thích thời gian xử lý hoàn tiền sau khi gửi yêu cầu hủy vé.", "status": "DaXuLy" },
+    { "name": "Huỳnh Mai Chi", "subject": "GopYPhatTrien", "message": "Phần tìm kiếm sẽ thuận tiện hơn nếu lưu được các tuyến đường thường đi.", "status": "DangXuLy" },
+    { "name": "Ngô Thành Đạt", "subject": "HoTroDatVe", "message": "Nhờ tư vấn quy định hành lý và thông tin cần cung cấp khi đặt vé cho trẻ em.", "status": "Moi" }
+  ]
+}

@@ -15,9 +15,10 @@ import { SupportKnowledgeService } from './knowledge/knowledge.service';
 import { CustomerChatbotService } from './conversation/chatbot.service';
 import { CustomerHomeModule } from '../home/home.module';
 import { ChatbotRagService } from './knowledge/rag.service';
+import { SharedModule } from '../../../shared/shared.module';
 
 @Module({
-  imports: [PrismaModule, ChatbotIntegrationModule, CustomerHomeModule],
+  imports: [PrismaModule, ChatbotIntegrationModule, CustomerHomeModule, SharedModule],
   controllers: [CustomerChatbotController, SupportKnowledgeController],
   providers: [
     CustomerChatbotService,

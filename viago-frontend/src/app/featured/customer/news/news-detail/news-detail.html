@@ -1,25 +1,181 @@
-@if (article) {
-  <main class="news-detail-page">
-    <nav class="breadcrumb-bar"><button type="button" (click)="goBack()">← Quay lại</button><span>{{article.categoryLabel}}</span></nav>
-    <article class="article-main">
-      <h1>{{article.title}}</h1><div class="meta-info">{{article.date}} · {{article.author}} · {{article.viewCount}} lượt xem</div>
-      <p class="highlight-callout">{{article.summary}}</p>
-      <img class="article-hero-img" [src]="article.image" [alt]="article.title">
-      <div class="article-tags"><span *ngFor="let tag of article.tags">{{tag}}</span></div>
-      <div class="article-body" [innerHTML]="article.content"></div>
-    </article>
-    <section class="comments-section">
-      <h2>Bình luận ({{article.comments.length}})</h2>
-      <input [(ngModel)]="commentAuthor" placeholder="Họ và tên">
-      <textarea [(ngModel)]="commentText" placeholder="Viết bình luận"></textarea>
-      <button type="button" (click)="onAddComment()" [disabled]="!commentText.trim()">Gửi bình luận</button>
-      <div *ngFor="let comment of article.comments" class="comment-item">
-        <strong>{{comment.authorName}}</strong><small>{{comment.createdAt}}</small><p>{{comment.content}}</p>
-        <button type="button" (click)="toggleLikeComment(comment.id)">Thích ({{comment.likes}})</button>
-        <button type="button" (click)="toggleReplyForm(comment.id)">Trả lời</button>
-        <div *ngIf="replyingCommentId === comment.id"><input [(ngModel)]="replyAuthor" placeholder="Tên"><input [(ngModel)]="replyText" placeholder="Nội dung"><button type="button" (click)="onAddReply(comment.id)">Gửi</button></div>
-      </div>
-    </section>
-    <section class="related-articles-section"><h2>Bài viết liên quan</h2><div *ngFor="let item of bottomRelatedNews" (click)="goToDetail(item.id)"><img [src]="item.image" [alt]="item.title"><h3>{{item.title}}</h3></div></section>
-  </main>
-}
+<main class="news-detail-page">
+  <div class="detail-container">
+    <nav class="breadcrumb-bar">
+      <app-button variant="ghost" size="sm" (clicked)="goBack()">← Quay lại</app-button>
+    </nav>
+    @if (loading) {
+      <p class="api-state" role="status">Đang tải bài viết…</p>
+    }
+    @if (error) {
+      <div class="api-state api-error" role="alert">{{ error }}</div>
+    }
+    @if (article; as item) {
+      <app-card radius="lg" padding="md" shadow="none" [bordered]="true">
+        <article class="article-main">
+          <span class="category-tag">{{ item.categoryLabel }}</span>
+          <h1 class="article-title">{{ item.title }}</h1>
+          <div class="meta-info">
+            {{ item.date }} · {{ item.author }} · {{ item.viewCount }} lượt xem
+          </div>
+          <p class="highlight-callout">{{ item.summary }}</p>
+          <img class="article-hero-img" [src]="item.image" [alt]="item.title" />
+          <div class="article-tags">
+            @for (tag of item.tags; track tag) {
+              <span class="tag-pill">{{ tag }}</span>
+            }
+          </div>
+          <div class="article-body" [innerHTML]="item.content"></div>
+        </article>
+      </app-card>
+      <app-card class="comments-card" radius="lg" padding="md" shadow="none" [bordered]="true">
+        <section class="comments-section">
+          <h2>Bình luận ({{ commentTotal }})</h2>
+          @if (commentError) {
+            <p class="api-state api-error" role="alert">
+              {{ commentError }}
+              <app-button variant="ghost" size="sm" (clicked)="loadComments()">Tải lại</app-button>
+            </p>
+          }
+          @if (notice) {
+            <p class="api-state" role="status">{{ notice }}</p>
+          }
+          <form class="comment-form-fields" (ngSubmit)="onAddComment()">
+            <app-input
+              [id]="'comment-name'"
+              label="Họ và tên"
+              placeholder="Tên hiển thị (không bắt buộc)"
+              [maxlength]="150"
+              [value]="commentAuthor"
+              (valueChange)="commentAuthor = $event"
+              [disabled]="sending"
+            />
+            <app-textarea
+              [id]="'comment-text'"
+              label="Nội dung bình luận"
+              [maxlength]="5000"
+              [rows]="3"
+              [value]="commentText"
+              (valueChange)="commentText = $event"
+              [disabled]="sending"
+            />
+            <app-button type="submit" [disabled]="!commentText.trim()" [loading]="sending"
+              >Gửi bình luận</app-button
+            >
+          </form>
+          @if (commentsLoading) {
+            <p class="api-state" role="status">Đang tải bình luận…</p>
+          }
+          @for (comment of comments; track comment.id) {
+            <article class="database-comment">
+              <header>
+                <strong>{{ comment.authorName }}</strong
+                ><time>{{ comment.createdAt | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</time>
+              </header>
+              <p>{{ comment.content }}</p>
+              <div class="comment-actions">
+                <app-button
+                  [variant]="comment.isLiked ? 'primary' : 'ghost'"
+                  size="sm"
+                  [disabled]="busy().includes(comment.id)"
+                  [attr.aria-pressed]="comment.isLiked"
+                  (clicked)="toggleLikeComment(comment)"
+                  >{{ comment.isLiked ? 'Đã thích' : 'Thích' }} ({{ comment.likes }})</app-button
+                >
+                <app-button
+                  variant="ghost"
+                  size="sm"
+                  (clicked)="toggleReplyForm(comment.id)"
+                  [disabled]="sending"
+                  >Trả lời</app-button
+                >
+              </div>
+              @for (reply of comment.replies || []; track reply.id) {
+                <div class="database-reply">
+                  <header>
+                    <strong>{{ reply.authorName }}</strong
+                    ><time>{{ reply.createdAt | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</time>
+                  </header>
+                  <p>{{ reply.content }}</p>
+                  <app-button
+                    [variant]="reply.isLiked ? 'primary' : 'ghost'"
+                    size="sm"
+                    [disabled]="busy().includes(reply.id)"
+                    (clicked)="toggleLikeComment(reply)"
+                    >{{ reply.isLiked ? 'Đã thích' : 'Thích' }} ({{ reply.likes }})</app-button
+                  >
+                </div>
+              }
+              @if ((comment.replies?.length || 0) < (comment.replyCount || 0)) {
+                <app-button
+                  variant="ghost"
+                  size="sm"
+                  [disabled]="busy().includes(comment.id)"
+                  (clicked)="loadMoreReplies(comment)"
+                  >Xem thêm phản hồi</app-button
+                >
+              }
+              @if (replyingCommentId === comment.id) {
+                <form class="comment-form-fields" (ngSubmit)="onAddReply(comment.id)">
+                  <app-input
+                    [id]="'reply-name-' + comment.id"
+                    label="Tên hiển thị"
+                    [maxlength]="150"
+                    [value]="replyAuthor"
+                    (valueChange)="replyAuthor = $event"
+                    [disabled]="sending"
+                  />
+                  <app-textarea
+                    [id]="'reply-text-' + comment.id"
+                    label="Nội dung phản hồi"
+                    [maxlength]="5000"
+                    [rows]="2"
+                    [value]="replyText"
+                    (valueChange)="replyText = $event"
+                    [disabled]="sending"
+                  />
+                  <app-button type="submit" [disabled]="!replyText.trim()" [loading]="sending"
+                    >Gửi phản hồi</app-button
+                  >
+                </form>
+              }
+            </article>
+          } @empty {
+            @if (!commentsLoading && !commentError) {
+              <p class="api-state">Chưa có bình luận. Hãy chia sẻ ý kiến của bạn.</p>
+            }
+          }
+          <div class="comments-pagination">
+            <app-pagination
+              [currentPage]="commentPage"
+              [totalItems]="commentTotal"
+              [pageSize]="10"
+              [showSummary]="false"
+              (pageChange)="loadComments($event)"
+            />
+          </div>
+        </section>
+      </app-card>
+      @if (bottomRelatedNews.length) {
+        <section class="related-articles-section">
+          <h2>Bài viết liên quan</h2>
+          <div class="related-database-grid">
+            @for (related of bottomRelatedNews; track related.id) {
+              <app-card
+                type="info"
+                radius="lg"
+                padding="md"
+                shadow="none"
+                [bordered]="true"
+                [image]="related.image"
+                [title]="related.title"
+                [description]="related.summary"
+                (cardClick)="goToDetail(related.slug || related.id)"
+                (keydown.enter)="goToDetail(related.slug || related.id)"
+              />
+            }
+          </div>
+        </section>
+      }
+    }
+  </div>
+</main>

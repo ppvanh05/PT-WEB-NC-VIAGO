@@ -1,5 +1,10 @@
 {
+  "/api/**": { "target": "http://127.0.0.1:3000", "secure": false, "changeOrigin": false, "pathRewrite": { "^/api": "" } },
   "/admin/auth/**": { "target": "http://127.0.0.1:3000", "secure": false, "changeOrigin": false },
+  "/admin/contacts": { "target": "http://127.0.0.1:3000", "secure": false, "changeOrigin": false },
+  "/admin/contacts/**": { "target": "http://127.0.0.1:3000", "secure": false, "changeOrigin": false },
+  "/admin/applications": { "target": "http://127.0.0.1:3000", "secure": false, "changeOrigin": false },
+  "/admin/applications/**": { "target": "http://127.0.0.1:3000", "secure": false, "changeOrigin": false },
   "/admin/support/**": {
     "target": "http://127.0.0.1:3000",
     "secure": false,

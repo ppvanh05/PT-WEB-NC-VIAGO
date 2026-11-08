@@ -13,6 +13,7 @@ import { CustomerHomeModule } from './featured/customer/home/home.module';
 import { CustomerChatbotModule } from './featured/customer/chatbot/chatbot.module';
 import { AdminCustomerSupportModule } from './featured/admin/customers/support/support.module';
 import { AdminAuthModule } from './featured/admin/auth/admin-auth.module';
+import { AdminIntakeModule } from './featured/admin/intake/intake.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AdminAuthModule } from './featured/admin/auth/admin-auth.module';
     CustomerChatbotModule,
     AdminCustomerSupportModule,
     AdminAuthModule,
+    AdminIntakeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

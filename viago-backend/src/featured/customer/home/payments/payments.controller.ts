@@ -21,7 +21,7 @@ import { SepayWebhookGuard } from '../common/home.guard';
 )
 export class HomePaymentWebhookController {
   constructor(private readonly booking: HomeBookingService) {}
-  @Post('sepay') @HttpCode(200) webhook(@Body() dto: SepayWebhookDto) {
+  @Post('sepay') @HttpCode(201) webhook(@Body() dto: SepayWebhookDto) {
     return this.booking.webhook(dto);
   }
 }

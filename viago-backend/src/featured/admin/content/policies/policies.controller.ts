@@ -7,9 +7,11 @@ import {
   Post,
   Query,
   UsePipes,
+  UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
 import { AdminPoliciesService } from './policies.service';
+import { ContentAdminGuard } from '../content-access.module';
 import {
   CreatePolicyDto,
   ListPoliciesDto,
@@ -18,6 +20,7 @@ import {
 } from './policies.dto';
 
 @Controller('admin/policies')
+@UseGuards(ContentAdminGuard)
 @UsePipes(
   new ValidationPipe({
     transform: true,

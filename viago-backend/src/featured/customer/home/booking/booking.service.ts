@@ -7,13 +7,13 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { createHash, randomBytes } from 'node:crypto';
+import { nextBusinessId } from '../../../../shared/business-id';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import {
   HomeHoldDto,
   HomeLegDto,
   HomeOrderDto,
   HomeQuoteDto,
-  homeId,
   SepayWebhookDto,
 } from '../common/home.dto';
 import {
@@ -25,6 +25,7 @@ import {
   tripIsOpen,
 } from '../catalog/home.service';
 import { HomePromotionsService } from '../promotions/promotions.service';
+import type { CounterActor, CounterQueryDto } from './counter.controller';
 
 type Tx = Prisma.TransactionClient;
 type Leg = { dto: HomeLegDto; trip: HomeTrip; subtotal: number };
@@ -290,7 +291,7 @@ export class HomeBookingService {
         };
         const row = await tx.don_hang.create({
           data: {
-            madonhang: homeId('DH'),
+            madonhang: await nextBusinessId(tx, 'DH'),
             khoachonglap: prefix(session) + dto.key + ':' + index,
             makhachhang: p.customer?.makhachhang,
             malichtrinh: leg.trip.malichtrinh,
@@ -315,7 +316,10 @@ export class HomeBookingService {
             tienbaohiem: 0,
             sotiengiam: discount,
             tongthanhtoan: leg.subtotal - discount,
-            trangthaidonhang: 'ChoThanhToanOnline',
+            trangthaidonhang:
+              dto.method === 'vietqr'
+                ? 'ChoThanhToanOnline'
+                : 'ChoThanhToanTrucTiep',
             ghichu: JSON.stringify(note),
             thoigiantao: now,
             thoigiancapnhat: now,
@@ -360,7 +364,7 @@ export class HomeBookingService {
       if (p.promotionId) {
         await tx.su_dung_khuyen_mai.create({
           data: {
-            masudungkhuyenmai: homeId('SD'),
+            masudungkhuyenmai: await nextBusinessId(tx, 'SD'),
             makhuyenmai: p.promotionId,
             mavoucherkhachhang: p.walletId,
             makhachhang: p.customer?.makhachhang,
@@ -381,26 +385,28 @@ export class HomeBookingService {
           });
       }
       if (
+        dto.method === 'vietqr' &&
         subtotal > p.discount &&
         !this.home
           .options()
-          .paymentMethods.some(
-            (method) => method.id === 'vietqr' && method.configured,
-          )
+          .paymentMethods.some((m) => m.id === 'vietqr' && m.configured)
       )
         throw new ServiceUnavailableException(
-          'Thanh toán trực tuyến chưa sẵn sàng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.',
+          'Thanh toán chuyển khoản chưa sẵn sàng. Vui lòng chọn thanh toán tại quầy.',
         );
       const payment = await tx.thanh_toan.create({
         data: {
-          mathanhtoan: homeId('TT'),
+          mathanhtoan: await nextBusinessId(tx, 'TT'),
           madonhang: orders[0].madonhang,
           khoachonglap: 'HOMEPAY:' + orders[0].madonhang,
-          phuongthucthanhtoan: 'VIETQR',
-          kenhthanhtoan: 'SePay',
+          phuongthucthanhtoan: dto.method === 'vietqr' ? 'VIETQR' : 'TIEN_MAT',
+          kenhthanhtoan: dto.method === 'vietqr' ? 'SePay' : 'TaiQuay',
           sotienthanhtoan: subtotal - p.discount,
           trangthaithanhtoan: 'ChoThanhToan',
-          mathamchieuyeucau: homeId('VG').slice(0, 22),
+          mathamchieuyeucau:
+            dto.method === 'vietqr'
+              ? 'VG' + randomBytes(10).toString('hex').toUpperCase()
+              : orders[0].madonhang,
           thoigiantao: now,
           thoigianhethan: expires,
           thoigiancapnhat: now,
@@ -615,7 +621,7 @@ export class HomeBookingService {
       if (reason) {
         await tx.thanh_toan.create({
           data: {
-            mathanhtoan: homeId('TT'),
+            mathanhtoan: await nextBusinessId(tx, 'TT'),
             madonhang: root.madonhang,
             khoachonglap: eventKey,
             phuongthucthanhtoan: 'VIETQR',
@@ -653,6 +659,158 @@ export class HomeBookingService {
         eventKey,
       );
       return { success: true, processed: true };
+    });
+  }
+  async counterOrders(q: CounterQueryDto) {
+    return this.write(async (tx) => {
+      await this.expire(tx);
+      const where: Prisma.don_hangWhereInput = {
+        khoachonglap: { startsWith: 'HOME:' },
+        loaichuyen: { not: 'KhuHoiChieuVe' },
+        thanh_toan: {
+          some: { phuongthucthanhtoan: 'TIEN_MAT', kenhthanhtoan: 'TaiQuay' },
+        },
+        ...(q.status === 'pending' && {
+          trangthaidonhang: 'ChoThanhToanTrucTiep',
+        }),
+        ...(q.search?.trim() && {
+          OR: ['madonhang', 'hotennguoidat', 'sodienthoainguoidat'].map(
+            (k) => ({
+              [k]: { contains: q.search!.trim(), mode: 'insensitive' },
+            }),
+          ),
+        }),
+      };
+      const total = await tx.don_hang.count({ where });
+      const rows = await tx.don_hang.findMany({
+        where,
+        orderBy: { thoigiantao: 'desc' },
+        skip: (q.page - 1) * q.pageSize,
+        take: q.pageSize,
+        include: {
+          lich_trinh: {
+            select: {
+              thoigiankhoihanh: true,
+              tuyen_xe: { select: { diemdi: true, diemden: true } },
+            },
+          },
+        },
+      });
+      const linked = await tx.don_hang.findMany({
+        where: {
+          madonhang: {
+            in: rows.flatMap((r) =>
+              r.madonhangkhuhoi ? [r.madonhangkhuhoi] : [],
+            ),
+          },
+        },
+      });
+      return {
+        data: rows.map((r) => ({
+          id: r.madonhang,
+          name: r.hotennguoidat,
+          phone: r.sodienthoainguoidat,
+          from: r.lich_trinh.tuyen_xe.diemdi,
+          to: r.lich_trinh.tuyen_xe.diemden,
+          departureAt: r.lich_trinh.thoigiankhoihanh,
+          createdAt: r.thoigiantao,
+          expiresAt: r.thoigianhethangiucho,
+          status: r.trangthaidonhang,
+          seatCount:
+            this.note(r).leg.seats.length +
+            (r.madonhangkhuhoi
+              ? this.note(
+                  linked.find((l) => l.madonhang === r.madonhangkhuhoi)!,
+                ).leg.seats.length
+              : 0),
+          total:
+            Number(r.tongthanhtoan) +
+            Number(
+              linked.find((l) => l.madonhang === r.madonhangkhuhoi)
+                ?.tongthanhtoan ?? 0,
+            ),
+        })),
+        pagination: {
+          page: q.page,
+          total,
+          totalPages: Math.ceil(total / q.pageSize),
+        },
+      };
+    });
+  }
+  async confirmCounter(id: string, actor: CounterActor) {
+    return this.write(async (tx) => {
+      await tx.$queryRaw`SELECT madonhang FROM public.don_hang WHERE madonhang=${id} FOR UPDATE`;
+      await this.expire(tx);
+      const root = await tx.don_hang.findFirst({
+        where: {
+          madonhang: id,
+          khoachonglap: { startsWith: 'HOME:' },
+          loaichuyen: { not: 'KhuHoiChieuVe' },
+        },
+      });
+      if (!root) throw new NotFoundException('Không tìm thấy đơn khách đặt.');
+      const orders = await this.group(tx, root),
+        session = root.khoachonglap.split(':')[1];
+      const payment = await tx.thanh_toan.findFirst({
+        where: {
+          madonhang: id,
+          phuongthucthanhtoan: 'TIEN_MAT',
+          kenhthanhtoan: 'TaiQuay',
+          maloi: null,
+        },
+      });
+      if (!payment)
+        throw new ConflictException('Đơn không thanh toán tại quầy.');
+      if (
+        payment.trangthaithanhtoan === 'ThanhCong' &&
+        orders.every((o) => o.trangthaidonhang === 'DaThanhToan')
+      )
+        return this.orderResponse(tx, root, session);
+      if (
+        payment.trangthaithanhtoan !== 'ChoThanhToan' ||
+        orders.some(
+          (o) =>
+            o.trangthaidonhang !== 'ChoThanhToanTrucTiep' ||
+            o.thoigianhethangiucho <= new Date(),
+        )
+      )
+        throw new ConflictException(
+          'Đơn đã hết hạn, bị hủy hoặc không còn chờ thu tiền.',
+        );
+      for (const order of orders) {
+        const trip = await readTrip(tx, order.malichtrinh);
+        if (
+          !trip ||
+          !tripIsOpen(trip) ||
+          this.note(order).leg.seats.some(
+            (id) =>
+              !trip.ghe_chuyen.some(
+                (s) =>
+                  s.maghechuyen === id &&
+                  s.madonhanggiu === order.madonhang &&
+                  seatState(s, trip, session) === 'selected',
+              ),
+          )
+        )
+          throw new ConflictException(
+            'Chuyến hoặc ghế không còn hợp lệ để thu tiền.',
+          );
+      }
+      await this.confirm(
+        tx,
+        orders,
+        payment.mathanhtoan,
+        session,
+        new Date(),
+        'COUNTER:' + id,
+        actor,
+      );
+      return this.orderResponse(
+        tx,
+        await tx.don_hang.findUniqueOrThrow({ where: { madonhang: id } }),
+        session,
+      );
     });
   }
   async ticket(token: string) {
@@ -982,7 +1140,11 @@ export class HomeBookingService {
     });
     const payment = await tx.thanh_toan.findFirst({
       where: { madonhang: root.madonhang, maloi: null },
-      select: { mathamchieuyeucau: true, trangthaithanhtoan: true },
+      select: {
+        mathamchieuyeucau: true,
+        trangthaithanhtoan: true,
+        phuongthucthanhtoan: true,
+      },
       orderBy: { thoigiantao: 'asc' },
     });
     const legs = [];
@@ -1028,7 +1190,7 @@ export class HomeBookingService {
       subtotal: orders.reduce((sum, row) => sum + Number(row.tonggiave), 0),
       discount: orders.reduce((sum, row) => sum + Number(row.sotiengiam), 0),
       total: orders.reduce((sum, row) => sum + Number(row.tongthanhtoan), 0),
-      method: 'vietqr',
+      method: payment?.phuongthucthanhtoan === 'VIETQR' ? 'vietqr' : 'counter',
       paymentCode: payment?.mathamchieuyeucau,
       paymentStatus: payment?.trangthaithanhtoan,
       tickets: tickets.map((row) => ({
@@ -1049,6 +1211,7 @@ export class HomeBookingService {
     session: string,
     receivedAt: Date,
     eventKey: string,
+    actor?: { id: string; staffId: string },
   ) {
     const now = new Date(),
       total = orders.reduce((sum, row) => sum + Number(row.tongthanhtoan), 0);
@@ -1080,7 +1243,7 @@ export class HomeBookingService {
         const token = randomBytes(32).toString('hex');
         const ticket = await tx.ve_xe.create({
           data: {
-            mave: homeId('VE'),
+            mave: await nextBusinessId(tx, 'VE'),
             madonhang: order.madonhang,
             maghechuyen: seat.maghechuyen,
             hotenhanhkhach: order.hotennguoidat,
@@ -1165,6 +1328,7 @@ export class HomeBookingService {
       where: { mathanhtoan: paymentId },
       data: {
         trangthaithanhtoan: 'ThanhCong',
+        manhanvienthu: actor?.staffId,
         sotienthanhtoan: total,
         thoigianthanhtoan: receivedAt,
         thoigiancapnhat: now,
@@ -1172,8 +1336,14 @@ export class HomeBookingService {
     });
     await tx.nhat_ky_he_thong.create({
       data: {
-        manhatky: homeId('NK'),
-        hanhdong: 'XacNhanThanhToanOnline',
+        manhatky: await nextBusinessId(tx, 'NK'),
+        hanhdong: actor
+          ? 'XacNhanThuTienTaiQuay'
+          : eventKey.startsWith('SEPAY:')
+            ? 'XacNhanThanhToanOnline'
+            : 'XacNhanDonMienPhi',
+        mataikhoan: actor?.id,
+        manhanvien: actor?.staffId,
         banglienquan: 'don_hang',
         madoituong: orders[0].madonhang,
         tendoituong: orders[0].madonhang,

@@ -11,7 +11,7 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { normalize } from '../../../../integrations/chatbot/chatbot.analysis';
 import { cleanKnowledgeText, knowledgeTerms } from './faq-retrieval';
 import { projectKnowledge } from './project-knowledge';
-import { guides } from '../../about/guide/guide.service';
+import { SiteContentService } from '../../../../shared/site-content.service';
 
 const EMBEDDING_MODEL = 'text-embedding-3-small';
 export function chunkKnowledge(text: string) {
@@ -25,7 +25,7 @@ export function chunkKnowledge(text: string) {
 @Injectable()
 export class ChatbotRagService {
   private readonly logger = new Logger(ChatbotRagService.name);
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly content: SiteContentService) {}
 
   private async embed(input: string[]) {
     if (
@@ -175,7 +175,7 @@ export class ChatbotRagService {
           category: doc.category,
         }),
       );
-    for (const guide of guides) {
+    for (const guide of await this.content.guides()) {
       result.push(
         await this.save({
           title: guide.title,

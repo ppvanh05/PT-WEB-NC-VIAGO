@@ -1,0 +1,456 @@
+<section class="jobs-page">
+  @if (!sidebarCollapsed()) {
+    <button
+      type="button"
+      class="navigation-backdrop"
+      aria-label="Đóng menu quản trị"
+      (click)="closeNavigation()"
+    ></button>
+  }
+  <div class="mobile-navigation">
+    <app-button variant="outline" size="sm" (clicked)="toggleNavigation()"
+      >Menu quản trị</app-button
+    >
+  </div>
+  <app-card class="header-card" radius="sm" padding="none" shadow="sm" [bordered]="true">
+    <header class="page-heading">
+      <div>
+        <p class="eyebrow">Nhân viên / Tuyển dụng</p>
+        <h1>Vị trí tuyển dụng</h1>
+      </div>
+      <button type="button" class="header-action-banner" (click)="open()">
+        <span class="action-icon-circle" aria-hidden="true"
+          ><svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 8v8M8 12h8"></path></svg
+        ></span>
+        <span class="action-banner-text"
+          ><strong>Thêm vị trí tuyển dụng</strong
+          ><span>Thiết lập nội dung, yêu cầu ứng viên và thời hạn nhận hồ sơ.</span></span
+        >
+      </button>
+    </header>
+  </app-card>
+  @if (notice()) {
+    <p class="alert" role="status">{{ notice() }}</p>
+  }
+  @if (error()) {
+    <div class="alert error" role="alert">
+      {{ error() }} <app-button variant="ghost" size="sm" (clicked)="load()">Thử lại</app-button>
+    </div>
+  }
+  <app-card class="records" radius="sm" padding="none" shadow="none" [bordered]="true">
+    <div class="list-heading">
+      <h2>Danh sách vị trí</h2>
+      <span>{{ total() }} kết quả</span>
+    </div>
+    <form class="filters" (ngSubmit)="load(true)">
+      <app-input
+        id="jobs-search"
+        label="Tìm kiếm vị trí"
+        [value]="search"
+        (valueChange)="searchChanged($event)"
+        placeholder="Mã tin, chức danh, phòng ban, địa điểm…"
+        [maxlength]="150"
+      />
+      <app-select
+        id="jobs-status"
+        label="Trạng thái"
+        [options]="statusFilters"
+        [value]="status || 'all'"
+        (valueChange)="filter($event)"
+      />
+      <div class="filter-actions">
+        <app-button variant="outline" (clicked)="clearFilters()" [disabled]="loading()"
+          >Xóa bộ lọc</app-button
+        >
+        <app-button variant="outline" (clicked)="load()" [loading]="loading()">Làm mới</app-button>
+      </div>
+    </form>
+    @if (loading()) {
+      <p class="empty" role="status">Đang tải vị trí tuyển dụng…</p>
+    } @else if (!rows().length && !error()) {
+      <p class="empty">Chưa có vị trí phù hợp. Tạo vị trí mới để bắt đầu tuyển dụng.</p>
+    } @else {
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Danh sách vị trí tuyển dụng">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Mã tin</th>
+              <th scope="col">Vị trí / Phòng ban</th>
+              <th scope="col">Địa điểm / Hình thức</th>
+              <th scope="col">Hạn nộp</th>
+              <th scope="col">Tiếp nhận</th>
+              <th scope="col">Hồ sơ</th>
+              <th scope="col" class="actions-column">Chức năng</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.id) {
+              <tr>
+                <td>{{ row.id }}</td>
+                <td>
+                  <strong>{{ row.title }}</strong
+                  ><span>{{ row.department }}</span>
+                </td>
+                <td>
+                  {{ row.location }}<span>{{ typeLabel(row.workType) }}</span>
+                </td>
+                <td>{{ row.deadline | date: 'dd/MM/yyyy' }}</td>
+                <td>
+                  <app-badge
+                    [variant]="row.acceptingApplications ? 'success' : 'neutral'"
+                    [label]="
+                      row.status === 'DangTuyen' && !row.acceptingApplications
+                        ? 'Hết hạn'
+                        : label(row.status)
+                    "
+                    size="sm"
+                  />
+                </td>
+                <td>{{ row.applications }}</td>
+                <td class="actions-column">
+                  <button
+                    type="button"
+                    class="admin-action-btn edit"
+                    [attr.aria-label]="'Xem và chỉnh sửa ' + row.id"
+                    title="Xem và chỉnh sửa"
+                    (click)="open(row)"
+                    [disabled]="saving()"
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    <footer class="pagination-footer">
+      <span
+        >Hiển thị {{ total() ? (page - 1) * 20 + 1 : 0 }} – {{ lastItem() }} của {{ total() }} vị
+        trí</span
+      >
+      <app-pagination
+        [currentPage]="page"
+        [totalItems]="total()"
+        [pageSize]="20"
+        [showSummary]="false"
+        (pageChange)="setPage($event)"
+      />
+    </footer>
+  </app-card>
+  <app-modal
+    [open]="editorOpen()"
+    [title]="form.id ? 'Chỉnh sửa vị trí ' + form.id : 'Tạo vị trí tuyển dụng'"
+    size="large"
+    [fixedLayout]="true"
+    [loading]="saving()"
+    (closed)="close()"
+  >
+    @if (detailLoading()) {
+      <p class="empty" role="status">Đang tải nội dung…</p>
+    } @else {
+      <form class="job-editor dialog-workspace" (ngSubmit)="save()">
+        @if (editorError()) {
+          <p class="alert error" role="alert">{{ editorError() }}</p>
+        }
+        <div class="editor-intro">
+          <span class="intro-icon" aria-hidden="true">i</span>
+          <p>
+            Hoàn thiện nội dung trước khi đăng tuyển. Các trường có dấu
+            <span class="required-mark" aria-hidden="true">*</span> là bắt buộc.
+          </p>
+          @if (form.id && form.acceptingApplications) {
+            <a
+              [routerLink]="['/customer/tuyen-dung']"
+              [queryParams]="{ job: form.id }"
+              target="_blank"
+              rel="noopener"
+              >Xem tin đã đăng ↗</a
+            >
+          }
+        </div>
+        <div class="job-editor-grid">
+          <div class="editor-main">
+            <app-card
+              class="section-panel"
+              padding="none"
+              radius="sm"
+              shadow="none"
+              [bordered]="true"
+            >
+              <header class="panel-heading">
+                <span class="panel-step" aria-hidden="true">01</span>
+                <div>
+                  <h3>Thông tin vị trí</h3>
+                  <p>Chức danh và điều kiện làm việc</p>
+                </div>
+              </header>
+              <div class="panel-body form-grid">
+                <app-input
+                  id="job-title"
+                  label="Tên vị trí"
+                  [value]="form.title"
+                  (valueChange)="form.title = $event"
+                  [required]="true"
+                  placeholder="Ví dụ: Nhân viên chăm sóc khách hàng"
+                  [maxlength]="200"
+                  [disabled]="saving()"
+                />
+                <app-input
+                  id="job-department"
+                  label="Phòng ban"
+                  [value]="form.department"
+                  (valueChange)="form.department = $event"
+                  [required]="true"
+                  placeholder="Ví dụ: Chăm sóc khách hàng"
+                  [maxlength]="150"
+                  [disabled]="saving()"
+                />
+                <app-input
+                  id="job-location"
+                  label="Địa điểm làm việc"
+                  [value]="form.location"
+                  (valueChange)="form.location = $event"
+                  [required]="true"
+                  placeholder="Tỉnh, thành phố hoặc văn phòng"
+                  [maxlength]="500"
+                  [disabled]="saving()"
+                />
+                <app-select
+                  id="job-work-type"
+                  label="Hình thức làm việc"
+                  [required]="true"
+                  [options]="workTypes"
+                  [value]="form.workType"
+                  (valueChange)="form.workType = $event"
+                  [disabled]="saving()"
+                />
+                <app-input
+                  class="full-span"
+                  id="job-salary"
+                  label="Mức lương"
+                  [value]="form.salary"
+                  (valueChange)="form.salary = $event"
+                  placeholder="Ví dụ: 10 – 15 triệu/tháng hoặc thỏa thuận"
+                  [maxlength]="150"
+                  [disabled]="saving()"
+                />
+              </div>
+            </app-card>
+            <app-card
+              class="section-panel"
+              padding="none"
+              radius="sm"
+              shadow="none"
+              [bordered]="true"
+            >
+              <header class="panel-heading">
+                <span class="panel-step" aria-hidden="true">02</span>
+                <div>
+                  <h3>Nội dung tuyển dụng</h3>
+                  <p>Mô tả rõ công việc và những gì ứng viên cần đáp ứng</p>
+                </div>
+              </header>
+              <div class="panel-body editor-fields">
+                <app-textarea
+                  id="job-description"
+                  label="Mô tả công việc"
+                  [required]="true"
+                  [value]="form.description"
+                  (valueChange)="form.description = $event"
+                  placeholder="Các công việc và trách nhiệm chính của vị trí…"
+                  [rows]="4"
+                  [maxlength]="20000"
+                  [disabled]="saving()"
+                />
+                <app-textarea
+                  id="job-requirements"
+                  label="Yêu cầu ứng viên"
+                  [required]="true"
+                  [value]="form.requirements"
+                  (valueChange)="form.requirements = $event"
+                  placeholder="Kinh nghiệm, học vấn, kỹ năng hoặc chứng chỉ cần thiết…"
+                  [rows]="4"
+                  [maxlength]="20000"
+                  [disabled]="saving()"
+                />
+                <app-textarea
+                  id="job-benefits"
+                  label="Quyền lợi"
+                  [value]="form.benefits"
+                  (valueChange)="form.benefits = $event"
+                  placeholder="Chế độ đãi ngộ, bảo hiểm, đào tạo và các quyền lợi khác…"
+                  [rows]="3"
+                  [maxlength]="20000"
+                  [disabled]="saving()"
+                />
+              </div>
+            </app-card>
+            <app-card
+              class="section-panel"
+              padding="none"
+              radius="sm"
+              shadow="none"
+              [bordered]="true"
+            >
+              <header class="panel-heading">
+                <span class="panel-step" aria-hidden="true">03</span>
+                <h3>Thông tin bổ sung</h3>
+                <span class="optional-label">Không bắt buộc</span>
+              </header>
+              <div class="panel-body form-grid">
+                <app-textarea
+                  id="job-hours"
+                  label="Thời gian làm việc"
+                  [value]="form.workHours"
+                  (valueChange)="form.workHours = $event"
+                  [rows]="3"
+                  [maxlength]="5000"
+                  [disabled]="saving()"
+                />
+                <app-textarea
+                  id="job-environment"
+                  label="Môi trường làm việc"
+                  [value]="form.workEnvironment"
+                  (valueChange)="form.workEnvironment = $event"
+                  [rows]="3"
+                  [maxlength]="5000"
+                  [disabled]="saving()"
+                />
+              </div>
+            </app-card>
+          </div>
+          <aside class="editor-sidebar" aria-label="Thiết lập tin tuyển dụng">
+            <app-card
+              class="section-panel publish-panel"
+              padding="none"
+              radius="sm"
+              shadow="none"
+              [bordered]="true"
+            >
+              <header class="panel-heading">
+                <span class="panel-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <path d="M12 16V3m-5 5 5-5 5 5M4 15v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5" /></svg
+                ></span>
+                <h3>Thiết lập đăng tin</h3>
+              </header>
+              <div class="panel-body editor-fields">
+                <app-select
+                  id="job-publish-status"
+                  label="Trạng thái đăng tin"
+                  [required]="true"
+                  [options]="statuses"
+                  [value]="form.status"
+                  (valueChange)="form.status = $event"
+                  [disabled]="saving()"
+                />
+                <app-date-picker
+                  label="Hạn nộp hồ sơ"
+                  [required]="true"
+                  name="job-deadline"
+                  [(ngModel)]="form.deadline"
+                  [disabled]="saving()"
+                />
+                <div class="publish-hint">
+                  <span
+                    class="publish-indicator"
+                    [class.is-live]="form.status === 'DangTuyen'"
+                    aria-hidden="true"
+                  ></span>
+                  <p>
+                    {{
+                      form.status === 'DangTuyen'
+                        ? 'Tin sẽ hiển thị trên trang tuyển dụng khi hạn nộp hợp lệ.'
+                        : form.status === 'TamDung'
+                          ? 'Tin tạm dừng sẽ chưa hiển thị để nhận hồ sơ mới.'
+                          : 'Tin đã đóng sẽ ngừng nhận hồ sơ mới.'
+                    }}
+                  </p>
+                </div>
+              </div>
+            </app-card>
+            <app-card
+              class="section-panel"
+              padding="none"
+              radius="sm"
+              shadow="none"
+              [bordered]="true"
+            >
+              <header class="panel-heading">
+                <span class="panel-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                    <path d="m3 6 9 7 9-7" /></svg
+                ></span>
+                <h3>Liên hệ tuyển dụng</h3>
+              </header>
+              <div class="panel-body editor-fields">
+                <app-input
+                  id="job-email"
+                  label="Email tuyển dụng"
+                  type="email"
+                  [value]="form.email"
+                  (valueChange)="form.email = $event"
+                  placeholder="Email nhận câu hỏi từ ứng viên"
+                  [maxlength]="200"
+                  [disabled]="saving()"
+                />
+                <app-input
+                  id="job-hotline"
+                  label="Số điện thoại tuyển dụng"
+                  type="tel"
+                  [value]="form.hotline"
+                  (valueChange)="form.hotline = $event"
+                  [maxlength]="30"
+                  [disabled]="saving()"
+                />
+                <app-textarea
+                  id="job-apply"
+                  label="Hướng dẫn ứng tuyển"
+                  [value]="form.howToApply"
+                  (valueChange)="form.howToApply = $event"
+                  placeholder="Lưu ý về hồ sơ hoặc cách liên hệ…"
+                  [rows]="4"
+                  [maxlength]="5000"
+                  [disabled]="saving()"
+                />
+              </div>
+            </app-card>
+          </aside>
+        </div>
+        <footer class="editor-actions">
+          <span class="help">Kiểm tra nội dung và thời hạn trước khi lưu.</span
+          ><app-button variant="outline" (clicked)="close()" [disabled]="saving()">Hủy</app-button
+          ><app-button type="submit" [loading]="saving()" [disabled]="!editorReady()">{{
+            form.status === 'DangTuyen' ? 'Lưu và đăng tuyển' : 'Lưu vị trí'
+          }}</app-button>
+        </footer>
+      </form>
+    }
+  </app-modal>
+</section>

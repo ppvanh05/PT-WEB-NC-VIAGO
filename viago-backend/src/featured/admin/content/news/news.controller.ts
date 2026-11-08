@@ -8,9 +8,11 @@ import {
   Post,
   Query,
   UsePipes,
+  UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
 import { AdminNewsService } from './news.service';
+import { ContentAdminGuard } from '../content-access.module';
 import {
   CreateNewsDto,
   ListNewsCommentsDto,
@@ -22,6 +24,7 @@ import {
 } from './news.dto';
 
 @Controller('admin/news')
+@UseGuards(ContentAdminGuard)
 @UsePipes(
   new ValidationPipe({
     transform: true,

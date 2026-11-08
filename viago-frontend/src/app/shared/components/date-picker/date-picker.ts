@@ -32,6 +32,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnChanges, Aft
     calendar.style.position = 'fixed'; calendar.style.left = `${Math.max(left, Math.min(anchor.left, right - width))}px`; calendar.style.top = `${Math.max(top, Math.min(preferredTop, bottom - height))}px`;
   }
   @Input() label = '';
+  @Input() required = false;
   @Input() placeholder = 'dd/mm/yyyy';
   @Input() format = 'dd/MM/yyyy';
   @Input() disabled = false;

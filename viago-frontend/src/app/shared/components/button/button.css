@@ -163,3 +163,19 @@
   }
 }
 :host.viago-button-host--full-width, .viago-button--full-width { width: 100%; }
+
+.viago-button--wrap {
+  height: auto;
+  min-height: var(--control-height-md);
+  padding-block: var(--space-3);
+  white-space: normal;
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.viago-button--wrap .viago-button__content {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}

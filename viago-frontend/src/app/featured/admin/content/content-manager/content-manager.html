@@ -1,0 +1,743 @@
+<section class="content-page">
+  <app-card radius="sm" padding="lg" shadow="none" [bordered]="true">
+    <header class="heading">
+      <div>
+        <p class="eyebrow">Nội dung</p>
+        <h1>{{ title }}</h1>
+        <p class="description">Quản lý nội dung hiển thị và các thay đổi đã lưu trên hệ thống.</p>
+      </div>
+      <div class="actions">
+        <app-button variant="outline" size="sm" [loading]="loading()" (clicked)="load()"
+          >Làm mới</app-button
+        ><app-button (clicked)="openEditor()">Thêm {{ singular }}</app-button>
+      </div>
+    </header>
+  </app-card>
+  <div class="stats" aria-label="Thống kê nội dung">
+    @for (metric of metrics; track metric.key) {
+      <app-card
+        type="stat"
+        radius="sm"
+        padding="sm"
+        shadow="none"
+        [bordered]="true"
+        [title]="metric.label"
+        [value]="loaded() ? (statistics()[metric.key] ?? 0) : '—'"
+      />
+    }
+  </div>
+  @if (error()) {
+    <div role="alert" class="alert error">
+      {{ error() }} <app-button variant="ghost" size="sm" (clicked)="load()">Thử lại</app-button>
+    </div>
+  }
+  @if (notice()) {
+    <div role="status" class="alert">
+      {{ notice() }}
+      <app-button variant="ghost" size="sm" (clicked)="notice.set('')">Đóng</app-button>
+    </div>
+  }
+  <app-card radius="sm" padding="none" shadow="none" [bordered]="true">
+    <form class="filters" (ngSubmit)="load(true)">
+      <app-input
+        [id]="'content-search'"
+        label="Tìm kiếm"
+        placeholder="Nhập mã, tên hoặc nội dung…"
+        [maxlength]="200"
+        [value]="search"
+        (valueChange)="search = $event"
+      />
+      <app-select
+        [id]="'content-type'"
+        label="Phân loại"
+        [options]="filterTypes"
+        [value]="typeFilter"
+        (valueChange)="typeFilter = $event; load(true)"
+      />
+      <app-select
+        [id]="'content-status'"
+        label="Trạng thái"
+        [options]="filterStatuses"
+        [value]="statusFilter"
+        (valueChange)="statusFilter = $event; load(true)"
+      />
+      <app-button type="submit" [disabled]="loading()">Tìm kiếm</app-button>
+    </form>
+    @if (loading()) {
+      <p class="empty" role="status">Đang tải dữ liệu…</p>
+    } @else if (!rows().length) {
+      <p class="empty">
+        {{ error() ? 'Chưa tải được danh sách.' : 'Không có nội dung phù hợp với bộ lọc.' }}
+      </p>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã</th>
+              <th>{{ kind === 'promotions' ? 'Mã ưu đãi / Tên' : 'Tiêu đề' }}</th>
+              <th>Phân loại</th>
+              <th>Trạng thái</th>
+              <th>{{ kind === 'promotions' ? 'Hiệu lực / Sử dụng' : 'Thông tin cập nhật' }}</th>
+              <th class="right">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track id(row)) {
+              <tr>
+                <td class="code">{{ id(row) }}</td>
+                <td>
+                  <strong>{{ kind === 'promotions' ? row.code : name(row) }}</strong>
+                  @if (kind === 'promotions') {
+                    <p class="muted">{{ row.name }}</p>
+                  } @else if (kind === 'news') {
+                    <p class="excerpt">{{ row.moTa }}</p>
+                  }
+                </td>
+                <td>{{ type(row) }}</td>
+                <td><app-badge [variant]="badge(row)" [label]="status(row)" size="sm" /></td>
+                <td>
+                  @if (kind === 'promotions') {
+                    <span
+                      >{{ row.startDate | date: 'dd/MM/yyyy' }} –
+                      {{ row.endDate | date: 'dd/MM/yyyy' }}</span
+                    >
+                    <p class="muted">Đã dùng {{ row.usageCount || 0 }} lượt</p>
+                  } @else if (kind === 'policies') {
+                    <span>{{ row.ngayApDung | date: 'dd/MM/yyyy' }}</span>
+                    <p class="muted">{{ row.nguoiThucHien }}</p>
+                  } @else {
+                    <span>{{ row.ngayDang }}</span>
+                    <p class="muted">{{ row.nguoiDang }}</p>
+                  }
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <app-button variant="outline" size="sm" (clicked)="openEditor(row)"
+                      >Chỉnh sửa</app-button
+                    >
+                    @if (kind === 'news') {
+                      <app-button variant="ghost" size="sm" (clicked)="openDetails(row)"
+                        >Bình luận</app-button
+                      ><app-button
+                        variant="ghost"
+                        size="sm"
+                        (clicked)="
+                          requestStatus(
+                            row,
+                            row.trangThaiCode === 'DangHienThi' ? 'DaAn' : 'DangHienThi'
+                          )
+                        "
+                        >{{
+                          row.trangThaiCode === 'DangHienThi' ? 'Ẩn bài' : 'Đăng ngay'
+                        }}</app-button
+                      >
+                    } @else if (kind === 'policies') {
+                      <app-button
+                        variant="ghost"
+                        size="sm"
+                        (clicked)="
+                          requestStatus(
+                            row,
+                            row.trangThaiCode === 'DangApDung' ? 'DaKhoa' : 'DangApDung'
+                          )
+                        "
+                        >{{ row.trangThaiCode === 'DangApDung' ? 'Khóa' : 'Mở khóa' }}</app-button
+                      >
+                    } @else {
+                      <app-button variant="ghost" size="sm" (clicked)="openDetails(row)"
+                        >Lượt sử dụng</app-button
+                      ><app-button
+                        variant="ghost"
+                        size="sm"
+                        (clicked)="
+                          requestStatus(row, row.statusCode === 'HoatDong' ? 'paused' : 'running')
+                        "
+                        >{{ row.statusCode === 'HoatDong' ? 'Tạm dừng' : 'Kích hoạt' }}</app-button
+                      >
+                      @if (row.statusCode !== 'NgungHoatDong') {
+                        <app-button
+                          variant="ghost"
+                          size="sm"
+                          (clicked)="requestStatus(row, 'locked')"
+                          >Khóa</app-button
+                        >
+                      }
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    <footer class="pagination-footer">
+      <span class="muted">{{ total() }} {{ singular }}</span
+      ><app-pagination
+        [currentPage]="page"
+        [totalItems]="total()"
+        [pageSize]="20"
+        [showSummary]="false"
+        (pageChange)="setPage($event)"
+      />
+    </footer>
+  </app-card>
+  @if (kind === 'promotions' && options().memberTiers.length) {
+    <app-card radius="sm" padding="md" shadow="none" [bordered]="true"
+      ><h2>Hạng thành viên và quyền lợi</h2>
+      <div class="tier-grid">
+        @for (tier of options().memberTiers; track tier.id) {
+          <section>
+            <h3>{{ tier.label }}</h3>
+            <p class="muted">
+              Chi tiêu tối thiểu {{ tier.minSpend | number }}đ · {{ tier.minTickets }} vé
+            </p>
+            <ul>
+              @for (p of tier.privileges; track p.title) {
+                <li>
+                  <strong>{{ p.title }}</strong>
+                  <p>{{ p.description }}</p>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      </div></app-card
+    >
+  }
+</section>
+
+<app-modal
+  [open]="editorOpen()"
+  [title]="(editing ? 'Chỉnh sửa ' : 'Thêm ') + singular"
+  size="large"
+  [loading]="saving()"
+  (closed)="closeEditor()"
+>
+  @if (editorLoading()) {
+    <p class="empty" role="status">Đang tải chi tiết…</p>
+  } @else {
+    <form (ngSubmit)="save()" class="editor-form">
+      @if (editorError()) {
+        <p role="alert" class="alert error">{{ editorError() }}</p>
+      }
+      <fieldset [disabled]="saving()">
+        <div class="form-grid">
+          <app-input
+            class="wide"
+            [id]="'editor-title'"
+            [label]="kind === 'promotions' ? 'Tên chương trình' : 'Tiêu đề'"
+            [required]="true"
+            [maxlength]="255"
+            [value]="draft.title"
+            (valueChange)="draft.title = $event"
+            [disabled]="saving()"
+          />
+          @if (kind !== 'promotions') {
+            <app-select
+              [id]="'editor-category'"
+              label="Phân loại"
+              [required]="true"
+              [options]="types"
+              [value]="draft.category"
+              (valueChange)="draft.category = $event"
+              [disabled]="saving()"
+            />
+            @if (kind === 'news' || !editing) {
+              <app-select
+                [id]="'editor-status'"
+                label="Trạng thái"
+                [options]="editStatuses"
+                [value]="draft.status"
+                (valueChange)="draft.status = $event"
+                [disabled]="saving()"
+              />
+            }
+            @if (kind === 'policies') {
+              <app-date-picker
+                label="Ngày áp dụng"
+                [showLunar]="false"
+                [(ngModel)]="draft.effectiveDate"
+                name="effectiveDate"
+                [disabled]="saving()"
+              />
+            }
+          }
+          @if (kind === 'news') {
+            <app-input
+              class="wide"
+              [id]="'editor-image'"
+              label="Ảnh bìa (URL hoặc đường dẫn ảnh)"
+              [required]="true"
+              [maxlength]="2048"
+              [value]="draft.image"
+              (valueChange)="draft.image = $event"
+              [disabled]="saving()"
+            />
+            <app-textarea
+              class="wide"
+              [id]="'editor-summary'"
+              label="Tóm tắt"
+              [required]="true"
+              [maxlength]="200"
+              [rows]="3"
+              [value]="draft.summary"
+              (valueChange)="draft.summary = $event"
+              [disabled]="saving()"
+            />
+            <app-input
+              [id]="'editor-author'"
+              label="Bộ phận đăng"
+              [maxlength]="128"
+              [value]="draft.author"
+              (valueChange)="draft.author = $event"
+              [disabled]="saving()"
+            />
+            <app-input
+              [id]="'editor-tags'"
+              label="Thẻ bài viết (cách nhau bằng dấu phẩy)"
+              [value]="draft.tags"
+              (valueChange)="draft.tags = $event"
+              [disabled]="saving()"
+            />
+            <label class="check wide"
+              ><input type="checkbox" [(ngModel)]="draft.featured" name="featured" />Bài viết nổi
+              bật</label
+            >
+            @if (draft.status === 'LichHenDang') {
+              <app-date-picker
+                label="Ngày hẹn đăng"
+                [showLunar]="false"
+                [(ngModel)]="draft.scheduleDate"
+                name="scheduleDate"
+                [disabled]="saving()"
+              /><app-input
+                [id]="'editor-time'"
+                label="Giờ đăng (giờ Việt Nam)"
+                placeholder="HH:mm"
+                [value]="draft.scheduleTime"
+                (valueChange)="draft.scheduleTime = $event"
+                [disabled]="saving()"
+              />
+            }
+          }
+          @if (kind !== 'promotions') {
+            <app-textarea
+              class="wide"
+              [id]="'editor-content'"
+              label="Nội dung"
+              helperText="Có thể dùng HTML để định dạng đoạn văn, tiêu đề, danh sách và liên kết."
+              [required]="true"
+              [maxlength]="100000"
+              [rows]="12"
+              [value]="draft.content"
+              (valueChange)="draft.content = $event"
+              [disabled]="saving()"
+            />
+            <div class="wide">
+              <app-button variant="outline" size="sm" (clicked)="showPreview.set(!showPreview())">{{
+                showPreview() ? 'Đóng xem trước' : 'Xem trước nội dung'
+              }}</app-button>
+              @if (showPreview()) {
+                <article class="content-preview" [innerHTML]="draft.content"></article>
+              }
+            </div>
+          }
+          @if (kind === 'policies' && draft.category === 'HoanHuy') {
+            <section class="wide fee-rules">
+              <h3>Mốc phí hủy</h3>
+              <p class="muted">Nhập số giờ trước khởi hành và phần trăm phí. Cần có mốc 0 giờ.</p>
+              @for (rule of draft.rules; track $index) {
+                <div class="rule-row">
+                  <app-input
+                    [id]="'rule-hours-' + $index"
+                    type="number"
+                    label="Trước giờ khởi hành"
+                    [value]="rule.hours"
+                    (valueChange)="rule.hours = $event"
+                    [disabled]="saving()"
+                  /><app-input
+                    [id]="'rule-fee-' + $index"
+                    type="number"
+                    label="Phí hủy (%)"
+                    [value]="rule.fee"
+                    (valueChange)="rule.fee = $event"
+                    [disabled]="saving()"
+                  /><app-button
+                    variant="ghost"
+                    size="sm"
+                    (clicked)="removeRule($index)"
+                    [disabled]="saving()"
+                    >Bỏ mốc</app-button
+                  >
+                </div>
+              }
+              <app-button
+                variant="outline"
+                size="sm"
+                (clicked)="draft.rules.push({ hours: '', fee: '' })"
+                [disabled]="saving()"
+                >Thêm mốc phí</app-button
+              >
+            </section>
+          }
+          @if (kind === 'promotions') {
+            <app-input
+              [id]="'promotion-code'"
+              label="Mã ưu đãi"
+              [required]="true"
+              [maxlength]="50"
+              [value]="draft.code"
+              (valueChange)="draft.code = $event.toUpperCase()"
+              [disabled]="saving()"
+            />
+            <app-select
+              [id]="'promotion-type'"
+              label="Loại ưu đãi"
+              [options]="discountTypes"
+              [value]="draft.discountType"
+              (valueChange)="
+                draft.discountType = $event;
+                draft.maximum = '';
+                draft.value = $event === 'gift' ? '0' : ''
+              "
+              [disabled]="saving()"
+            />
+            <app-input
+              [id]="'promotion-value'"
+              type="number"
+              [label]="draft.discountType === 'percentage' ? 'Giảm (%)' : 'Giá trị giảm (đ)'"
+              [value]="draft.value"
+              (valueChange)="draft.value = $event"
+              [disabled]="saving() || draft.discountType === 'gift'"
+            />
+            @if (draft.discountType === 'percentage') {
+              <app-input
+                [id]="'promotion-max'"
+                type="number"
+                label="Mức giảm tối đa (đ)"
+                helperText="Để trống nếu không giới hạn."
+                [value]="draft.maximum"
+                (valueChange)="draft.maximum = $event"
+                [disabled]="saving()"
+              />
+            }
+            <app-input
+              [id]="'promotion-min'"
+              type="number"
+              label="Giá trị đơn tối thiểu (đ)"
+              [value]="draft.minimum"
+              (valueChange)="draft.minimum = $event"
+              [disabled]="saving()"
+            />
+            <app-select
+              [id]="'promotion-scope'"
+              label="Phạm vi dịch vụ"
+              [options]="services"
+              [value]="draft.serviceScope"
+              (valueChange)="draft.serviceScope = $event"
+              [disabled]="saving()"
+            />
+            <app-select
+              [id]="'promotion-status'"
+              label="Trạng thái"
+              [options]="editStatuses"
+              [value]="draft.status"
+              (valueChange)="draft.status = $event"
+              [disabled]="saving()"
+            />
+            <app-date-picker
+              label="Ngày bắt đầu"
+              [showLunar]="false"
+              [(ngModel)]="draft.start"
+              name="promotionStart"
+              [disabled]="saving()"
+            /><app-date-picker
+              label="Ngày kết thúc"
+              [showLunar]="false"
+              [(ngModel)]="draft.end"
+              name="promotionEnd"
+              [disabled]="saving()"
+            />
+            <app-textarea
+              class="wide"
+              [id]="'promotion-description'"
+              label="Mô tả và quyền lợi"
+              [maxlength]="5000"
+              [value]="draft.summary"
+              (valueChange)="draft.summary = $event"
+              [disabled]="saving()"
+            />
+            <app-input
+              [id]="'promotion-max-usage'"
+              type="number"
+              label="Giới hạn tổng lượt dùng"
+              helperText="Để trống nếu không giới hạn."
+              [value]="draft.maxUsage"
+              (valueChange)="draft.maxUsage = $event"
+              [disabled]="saving()"
+            />
+            <app-input
+              [id]="'promotion-per-user'"
+              type="number"
+              label="Giới hạn mỗi khách"
+              [value]="draft.perUser"
+              (valueChange)="draft.perUser = $event"
+              [disabled]="saving()"
+            />
+            <app-select
+              [id]="'promotion-limit-subject'"
+              label="Tính giới hạn theo"
+              [options]="[
+                { value: 'KhachHang', label: 'Tài khoản khách hàng' },
+                { value: 'SoDienThoai', label: 'Số điện thoại' },
+              ]"
+              [value]="draft.limitSubject"
+              (valueChange)="draft.limitSubject = $event"
+              [disabled]="saving()"
+            />
+            <app-select
+              [id]="'promotion-priority'"
+              label="Mức ưu tiên"
+              [options]="[
+                { value: 'normal', label: 'Bình thường' },
+                { value: 'high', label: 'Cao' },
+              ]"
+              [value]="draft.priority"
+              (valueChange)="draft.priority = $event"
+              [disabled]="saving()"
+            />
+            <section class="wide choices">
+              <h3>Hạng thành viên áp dụng</h3>
+              <p class="muted">Không chọn hạng cụ thể để áp dụng cho tất cả.</p>
+              @for (tier of options().memberTiers; track tier.id) {
+                <label class="check"
+                  ><input
+                    type="checkbox"
+                    [checked]="draft.tiers.includes(tier.id)"
+                    (change)="toggleChoice('tiers', tier.id, $any($event.target).checked)"
+                  />{{ tier.label }}</label
+                >
+              }
+            </section>
+            <app-select
+              class="wide"
+              [id]="'promotion-route-scope'"
+              label="Phạm vi tuyến"
+              [options]="routeScopes"
+              [value]="draft.routesType"
+              (valueChange)="draft.routesType = $event"
+              [disabled]="saving()"
+            />
+            @if (draft.routesType !== 'all') {
+              <div class="wide choices scroll-options">
+                @for (route of options().routes; track route.id) {
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      [checked]="draft.routes.includes(route.id)"
+                      (change)="toggleChoice('routes', route.id, $any($event.target).checked)"
+                    />{{ route.label }}</label
+                  >
+                }
+              </div>
+            }
+            <section class="wide choices">
+              <h3>Ngày trong tuần</h3>
+              <p class="muted">Không chọn để áp dụng tất cả các ngày.</p>
+              @for (day of weekdays; track day; let i = $index) {
+                <label class="check"
+                  ><input
+                    type="checkbox"
+                    [checked]="draft.days.includes(day)"
+                    (change)="toggleChoice('days', day, $any($event.target).checked)"
+                  />{{ i === 6 ? 'Chủ nhật' : 'Thứ ' + (i + 2) }}</label
+                >
+              }
+            </section>
+            <label class="check"
+              ><input type="checkbox" [(ngModel)]="draft.firstOrder" name="firstOrder" />Chỉ đơn
+              hàng đầu tiên</label
+            ><label class="check"
+              ><input type="checkbox" [(ngModel)]="draft.birthdayOnly" name="birthdayOnly" />Chỉ
+              trong tháng sinh nhật</label
+            >
+            <label class="check"
+              ><input type="checkbox" [(ngModel)]="draft.referral" name="referral" />Yêu cầu giới
+              thiệu bạn bè</label
+            ><label class="check"
+              ><input type="checkbox" [(ngModel)]="draft.followEmail" name="followEmail" />Yêu cầu
+              theo dõi email</label
+            >
+            <section class="wide choices">
+              <h3>Tháng sinh nhật áp dụng</h3>
+              <p class="muted">Không chọn để không giới hạn tháng sinh nhật.</p>
+              @for (month of months; track month) {
+                <label class="check"
+                  ><input
+                    type="checkbox"
+                    [checked]="draft.months.includes(month)"
+                    (change)="toggleChoice('months', month, $any($event.target).checked)"
+                  />Tháng {{ +month }}</label
+                >
+              }
+            </section>
+            <label class="check wide"
+              ><input type="checkbox" [(ngModel)]="draft.assigned" name="assigned" />Cấp riêng cho
+              một khách hàng</label
+            >
+            @if (draft.assigned) {
+              <app-input
+                [id]="'promotion-customer'"
+                label="Email hoặc số điện thoại khách hàng"
+                [value]="draft.customerContact"
+                (valueChange)="draft.customerContact = $event"
+                [disabled]="saving()"
+              /><app-select
+                [id]="'promotion-reason'"
+                label="Lý do cấp"
+                [options]="reasons"
+                [value]="draft.assignmentReason"
+                (valueChange)="draft.assignmentReason = $event"
+                [disabled]="saving()"
+              /><app-textarea
+                class="wide"
+                [id]="'promotion-note'"
+                label="Ghi chú cấp ưu đãi"
+                [value]="draft.assignmentNote"
+                (valueChange)="draft.assignmentNote = $event"
+                [disabled]="saving()"
+              />
+            }
+            @if (draft.discountType === 'gift') {
+              <app-input
+                [id]="'promotion-gift-title'"
+                label="Tên quyền lợi quà tặng"
+                [value]="draft.giftName"
+                (valueChange)="draft.giftName = $event"
+                [disabled]="saving()"
+              /><app-textarea
+                [id]="'promotion-gift-description'"
+                label="Chi tiết quà tặng"
+                [value]="draft.giftDescription"
+                (valueChange)="draft.giftDescription = $event"
+                [disabled]="saving()"
+              />
+            }
+          }
+        </div>
+      </fieldset>
+      <footer class="editor-actions">
+        <app-button variant="outline" [disabled]="saving()" (clicked)="closeEditor()"
+          >Hủy</app-button
+        ><app-button type="submit" [loading]="saving()" [disabled]="!editorReady()"
+          >Lưu {{ singular }}</app-button
+        >
+      </footer>
+    </form>
+  }
+</app-modal>
+
+<app-modal
+  [open]="!!statusAction"
+  title="Xác nhận thay đổi trạng thái"
+  size="small"
+  [confirmMode]="true"
+  [loading]="saving()"
+  (confirmed)="confirmStatus()"
+  (closed)="statusAction = null"
+>
+  @if (statusAction; as action) {
+    <p>
+      Chuyển “{{ name(action.row) }}” sang <strong>{{ action.label }}</strong
+      >?
+    </p>
+  }
+  @if (editorError()) {
+    <p role="alert" class="alert error">{{ editorError() }}</p>
+  }
+</app-modal>
+
+<app-modal
+  [open]="!!detailTarget"
+  [title]="kind === 'news' ? 'Bình luận bài viết' : 'Lịch sử sử dụng ưu đãi'"
+  size="large"
+  (closed)="closeDetails()"
+>
+  @if (detailTarget; as target) {
+    <h3>{{ name(target) }}</h3>
+    @if (kind === 'news') {
+      <div class="detail-filter">
+        <app-select
+          [id]="'comment-status'"
+          label="Trạng thái bình luận"
+          [options]="[
+            { value: 'HienThi', label: 'Đang hiển thị' },
+            { value: 'DaAn', label: 'Đã ẩn' },
+          ]"
+          [value]="commentStatus"
+          (valueChange)="commentStatus = $event; detailPage = 1; loadDetails()"
+        />
+      </div>
+    }
+    @if (detailError()) {
+      <p role="alert" class="alert error">{{ detailError() }}</p>
+    }
+    @if (detailBusy()) {
+      <p class="empty" role="status">Đang tải…</p>
+    } @else if (!detailRows().length) {
+      <p class="empty">Chưa có dữ liệu trong mục này.</p>
+    } @else if (kind === 'news') {
+      @for (row of detailRows(); track row.id) {
+        <article class="comment">
+          <div>
+            <strong>{{ comment(row).author }}</strong
+            ><span class="muted">{{ comment(row).date }}</span>
+          </div>
+          <p>{{ comment(row).content }}</p>
+          <app-button variant="outline" size="sm" (clicked)="moderate(row)">{{
+            comment(row).trangThaiCode === 'HienThi' ? 'Ẩn bình luận' : 'Khôi phục'
+          }}</app-button>
+        </article>
+      }
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Khách hàng</th>
+              <th>Liên hệ</th>
+              <th>Thời gian</th>
+              <th>Đơn hàng</th>
+              <th>Giá trị đơn</th>
+              <th>Giảm giá</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of detailRows(); track row.id) {
+              <tr>
+                <td>{{ usage(row).name }}</td>
+                <td>{{ usage(row).emailOrPhone }}</td>
+                <td>{{ usage(row).time | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</td>
+                <td>{{ usage(row).orderId }}</td>
+                <td>{{ usage(row).orderVal | number }}đ</td>
+                <td>{{ usage(row).savedVal | number }}đ</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    <div class="pagination-footer">
+      <span class="muted">{{ detailTotal() }} kết quả</span
+      ><app-pagination
+        [currentPage]="detailPage"
+        [totalItems]="detailTotal()"
+        [pageSize]="20"
+        [showSummary]="false"
+        (pageChange)="detailPage = $event; loadDetails()"
+      />
+    </div>
+  }
+</app-modal>

@@ -1,0 +1,145 @@
+<app-card padding="none" radius="sm" shadow="sm" [bordered]="true">
+  <header class="heading">
+    <div>
+      <h2>Đơn đặt vé từ khách hàng</h2>
+      <p>Tiếp nhận đơn khách đặt và xác nhận thu tiền tại quầy.</p>
+    </div>
+    <app-button variant="outline" size="sm" [loading]="loading()" (clicked)="load()"
+      >Làm mới</app-button
+    >
+  </header>
+  @if (error() && !selected()) {
+    <p role="alert" class="error">{{ error() }}</p>
+  }
+  @if (notice()) {
+    <p role="status" class="notice">{{ notice() }}</p>
+  }
+  <form class="filters" (ngSubmit)="load(true)">
+    <app-input
+      id="counter-search"
+      label="Tìm đơn"
+      placeholder="Mã đơn, tên hoặc số điện thoại"
+      [value]="search"
+      (valueChange)="search = $event"
+      [maxlength]="100"
+    /><app-select
+      id="counter-status"
+      label="Trạng thái"
+      [options]="statuses"
+      [value]="status"
+      (valueChange)="status = $event; load(true)"
+    /><app-button type="submit" [disabled]="loading()">Tìm kiếm</app-button>
+  </form>
+  @if (loading()) {
+    <p class="empty" role="status">Đang tải đơn…</p>
+  } @else if (!rows().length) {
+    <p class="empty">Chưa có đơn phù hợp.</p>
+  } @else {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Mã đơn</th>
+            <th scope="col">Khách hàng</th>
+            <th scope="col">Chuyến đi</th>
+            <th scope="col">Ghế</th>
+            <th scope="col">Cần thu</th>
+            <th scope="col">Trạng thái</th>
+            <th scope="col">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td>{{ row.id }}</td>
+              <td>
+                {{ row.name }}<small>{{ row.phone }}</small>
+              </td>
+              <td>
+                {{ row.from }} → {{ row.to
+                }}<small>{{ row.departureAt | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</small>
+              </td>
+              <td>{{ row.seatCount }}</td>
+              <td>{{ row.total | number }}đ</td>
+              <td>
+                <app-badge
+                  [variant]="
+                    row.status === 'DaThanhToan'
+                      ? 'success'
+                      : canCollect(row)
+                        ? 'warning'
+                        : 'neutral'
+                  "
+                  [label]="label(row.status)"
+                  size="sm"
+                /><small>Hạn: {{ row.expiresAt | date: 'HH:mm dd/MM' : '+0700' }}</small>
+              </td>
+              <td>
+                @if (canCollect(row)) {
+                  <app-button variant="outline" size="sm" (clicked)="open(row)"
+                    >Thu tiền</app-button
+                  >
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  <footer>
+    <span>{{ total() }} đơn</span
+    ><app-pagination
+      [currentPage]="page"
+      [totalItems]="total()"
+      [pageSize]="10"
+      [showSummary]="false"
+      (pageChange)="page = $event; load()"
+    />
+  </footer>
+</app-card>
+<app-modal
+  [open]="!!selected()"
+  title="Xác nhận thu tiền tại quầy"
+  size="small"
+  [confirmMode]="true"
+  confirmText="Xác nhận đã thu tiền"
+  [disableConfirm]="!acknowledged || saving()"
+  [loading]="saving()"
+  (confirmed)="confirm()"
+  (closed)="close()"
+>
+  @if (selected(); as row) {
+    <dl>
+      <div>
+        <dt>Mã đơn</dt>
+        <dd>{{ row.id }}</dd>
+      </div>
+      <div>
+        <dt>Khách hàng</dt>
+        <dd>{{ row.name }} · {{ row.phone }}</dd>
+      </div>
+      <div>
+        <dt>Số tiền phải thu</dt>
+        <dd>
+          <strong>{{ row.total | number }}đ</strong>
+        </dd>
+      </div>
+      <div>
+        <dt>Phương thức</dt>
+        <dd>Tiền mặt tại quầy</dd>
+      </div>
+    </dl>
+    <label class="acknowledgement"
+      ><input type="checkbox" [(ngModel)]="acknowledged" [disabled]="saving()" />Tôi đã nhận đủ tiền
+      từ khách hàng.</label
+    >
+    <p class="help">
+      Xác nhận sẽ ghi nhận nhân viên thu tiền, chuyển ghế sang đã bán và xuất vé. Chỉ xác nhận sau
+      khi nhận tiền.
+    </p>
+    @if (error()) {
+      <p role="alert" class="error">{{ error() }}</p>
+    }
+  }
+</app-modal>

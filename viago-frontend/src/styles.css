@@ -3,6 +3,8 @@
 
 @media (max-width: 767px) {
   .admin-layout:has(app-customer-support) { padding-left: 0 !important; transition: none; }
+  .admin-layout:has(app-admin-intake, app-admin-jobs) { padding-left: 0 !important; transition: none; }
+  .admin-layout:has(app-admin-intake, app-admin-jobs) .admin-page-container { padding: 0 0 20px; min-width: 0; }
 }
 
 :root {

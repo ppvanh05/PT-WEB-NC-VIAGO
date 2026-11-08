@@ -482,9 +482,7 @@
             <div>
               <h2>
                 {{ resultLeg ? appliedSearch.to : appliedSearch.from }} →
-                {{ resultLeg ? appliedSearch.from : appliedSearch.to }} ({{
-                  filteredTrips.length
-                }}
+                {{ resultLeg ? appliedSearch.from : appliedSearch.to }} ({{ filteredTrips.length }}
                 chuyến)
               </h2>
               <p>Ngày đi: {{ date(resultLeg ? appliedSearch.returnDate : appliedSearch.date) }}</p>
@@ -721,9 +719,9 @@
                 step === 'success'
                   ? 'Đặt vé thành công'
                   : step === 'failure'
-                    ? 'Thanh toán chưa hoàn tất'
+                    ? 'Đặt vé chưa hoàn tất'
                     : step === 'payment'
-                      ? 'Thanh toán vé xe'
+                      ? 'Đơn đặt vé của bạn'
                       : step === 'review'
                         ? 'Tổng quan đặt vé'
                         : 'Thông tin đặt vé'
@@ -759,7 +757,7 @@
             [class.active]="step === 'payment' || step === 'failure'"
             [class.done]="step === 'success'"
           >
-            Thanh toán
+            Xác nhận đặt vé
           </li>
         </ol>
       </div>
@@ -912,7 +910,9 @@
                         role="status"
                         aria-live="polite"
                         [class.lookup-found]="!!lookupNote && !!foundCustomer"
-                        [class.lookup-missing]="!!lookupNote && !foundCustomer"
+                        [class.lookup-missing]="
+                          !!lookupNote && !foundCustomer && homeApiAuthenticated
+                        "
                         >{{ lookupNote || 'Điền nhanh thông tin đã lưu' }}</span
                       ><app-button
                         variant="outline"
@@ -1099,6 +1099,7 @@
                   [value]="voucherInput"
                   (valueChange)="updateVoucher($event)"
                   [error]="voucherError"
+                  helperText="Không bắt buộc. Nếu mã không hợp lệ, bạn vẫn có thể đặt vé với giá hiện tại."
                 /><app-button variant="outline" (clicked)="applyVoucher()">Áp dụng</app-button>
               </div>
               @if (draft.voucher) {
@@ -1141,7 +1142,7 @@
                 <app-button variant="outline" [disabled]="seatBusy" (clicked)="backToResults()"
                   >Hủy</app-button
                 ><app-button variant="secondary" [disabled]="!canReview" (clicked)="review()"
-                  >Thanh toán</app-button
+                  >Kiểm tra đặt vé</app-button
                 >
               </div>
             </section>
@@ -1221,7 +1222,7 @@
             <header class="review-heading">
               <div>
                 <h2>Kiểm tra thông tin đặt vé</h2>
-                <p>Xác nhận thông tin trước khi thanh toán.</p>
+                <p>Kiểm tra thông tin trước khi xác nhận đặt vé.</p>
               </div>
               <app-button
                 variant="outline"
@@ -1336,6 +1337,19 @@
           </section>
           <aside class="panel summary review-payment">
             <h2>Chi tiết thanh toán</h2>
+            <app-select
+              id="payment-method"
+              label="Phương thức thanh toán"
+              [options]="paymentMethodOptions"
+              [value]="method"
+              (valueChange)="method = $event"
+              [disabled]="submitting"
+            />
+            @if (!paymentReady) {
+              <p class="payment-setup-notice" role="status">
+                Thanh toán chuyển khoản chưa sẵn sàng. Bạn có thể chọn thanh toán tại quầy.
+              </p>
+            }
             <div class="amount-row">
               <span
                 >Tiền vé <small>{{ seatCount }} vé</small></span
@@ -1369,123 +1383,115 @@
               [loading]="submitting"
               [disabled]="!canReview"
               (clicked)="createOrder()"
-              >Tiến hành thanh toán</app-button
+              >{{ method === 'vietqr' ? 'Tiến hành thanh toán' : 'Xác nhận đặt vé' }}</app-button
             >
           </aside>
         </div>
       }
       @if (step === 'payment' && order) {
-        <div class="payment-layout">
-          <section class="panel payment-methods">
-            <h2>Phương thức thanh toán</h2>
-            @for (item of methods; track item.id) {
-              <button
-                class="method"
-                type="button"
-                [class.chosen]="method === item.id"
-                [disabled]="paymentBusy"
-                [attr.aria-pressed]="method === item.id"
-                (click)="chooseMethod(item.id)"
-              >
-                <img [src]="'/assets/customer/' + item.image" [alt]="item.name" />
-                <span>{{
-                  item.id === 'vietqr'
-                    ? 'Thanh toán qua VietQR'
-                    : item.id === 'momo'
-                      ? 'Ví MoMo'
-                      : item.id === 'zalopay'
-                        ? 'Ví ZaloPay'
-                        : item.name
-                }}</span>
-              </button>
+        <div class="counter-reservation-layout">
+          <section class="panel counter-reservation">
+            @if (order.method === 'vietqr') {
+              <app-badge variant="info" label="Chờ xác nhận chuyển khoản" />
+              <h2>Thanh toán qua VietQR</h2>
+              <p>Quét mã bằng ứng dụng ngân hàng, giữ đúng số tiền và nội dung chuyển khoản.</p>
+              @if (order.paymentDetails; as payment) {
+                <div class="online-qr">
+                  <img [src]="payment.qrUrl" alt="Mã VietQR thanh toán đơn vé" /><strong>{{
+                    payment.accountName
+                  }}</strong
+                  ><span>{{ payment.accountNumber }}</span>
+                  <div>
+                    <small>Nội dung chuyển khoản</small><code>{{ payment.content }}</code>
+                  </div>
+                </div>
+              } @else {
+                <p class="payment-setup-notice">
+                  Chưa tải được mã thanh toán. Vui lòng kiểm tra lại trạng thái đơn hoặc tải lại
+                  trang.
+                </p>
+              }
+            } @else {
+              <app-badge variant="warning" label="Chờ thanh toán tại quầy" />
+              <h2>Đã tiếp nhận đơn đặt vé</h2>
+              <p>
+                Đơn của bạn đã được lưu. Vui lòng cung cấp mã đơn cho nhân viên tại quầy để thanh
+                toán và nhận vé.
+              </p>
             }
-          </section>
-          <section class="panel payment-content">
-            <h2>Tổng thanh toán</h2>
-            <div class="payment-total">{{ money(order.total) }}</div>
-            <p class="payment-timer">
-              Thời gian để giữ chỗ: <strong>{{ countdown }}</strong>
-            </p>
-            <div class="payment-order-code">
-              <div
-                class="payment-qr-frame"
-                [class.qr-vnpay]="method === 'vnpay'"
-                [class.qr-momo]="method === 'momo'"
-                [class.qr-zalopay]="method === 'zalopay'"
-              >
-                @if (order.paymentDetails; as payment) {
-                  <img [src]="payment.qrUrl" alt="Mã VietQR thanh toán đơn vé" />
-                  <p>{{ payment.accountName }} · {{ payment.accountNumber }}</p>
-                  <p>Nội dung: {{ payment.content }}</p>
-                } @else {
-                  <p>Chưa tải được mã thanh toán. Vui lòng thử lại.</p>
-                }
+            <div class="counter-order-code">
+              <span>Mã đơn đặt vé</span><strong>{{ order.id }}</strong>
+            </div>
+            <dl class="counter-amounts">
+              <div>
+                <dt>Số tiền cần thanh toán</dt>
+                <dd>{{ money(order.total) }}</dd>
               </div>
+              <div>
+                <dt>Phương thức</dt>
+                <dd>
+                  {{ order.method === 'vietqr' ? 'VietQR / Chuyển khoản' : 'Tiền mặt tại quầy' }}
+                </dd>
+              </div>
+              <div>
+                <dt>Giữ chỗ đến</dt>
+                <dd>{{ time(newDate(order.expiresAt)) }} · {{ date(newDate(order.expiresAt)) }}</dd>
+              </div>
+            </dl>
+            <p class="counter-deadline">
+              Còn <strong>{{ countdown }}</strong> để hoàn tất thanh toán. Quá hạn, đơn tự hết hiệu
+              lực và ghế được trả lại.
+            </p>
+            <p class="muted">
+              {{
+                order.method === 'vietqr'
+                  ? 'Vé được xuất sau khi hệ thống nhận xác nhận tiền vào từ ngân hàng. Bấm kiểm tra trạng thái không tự xác nhận đã trả tiền.'
+                  : 'Đơn đang chờ thu tiền. Vé được xuất khi nhân viên xác nhận đã nhận đủ tiền.'
+              }}
+            </p>
+            @if (paymentNotice) {
+              <p role="status" class="counter-notice">{{ paymentNotice }}</p>
+            }
+            <div class="actions">
+              <app-button
+                variant="primary"
+                [loading]="paymentBusy"
+                [disabled]="secondsLeft === 0"
+                (clicked)="pay()"
+                >Kiểm tra trạng thái</app-button
+              ><app-button variant="outline" [disabled]="paymentBusy" (clicked)="backToResults()"
+                >Hủy đặt chỗ</app-button
+              >
             </div>
-            <div class="payment-reference">
-              <small>Mã đơn đặt vé</small><strong>{{ order.id }}</strong>
-            </div>
-            <ol class="payment-instructions">
-              <li>Kiểm tra số tiền và mã đơn.</li>
-              <li>Hoàn tất giao dịch bằng phương thức đã chọn.</li>
-              <li>Quay lại trang để xác nhận kết quả thanh toán.</li>
-            </ol>
-            <app-button
-              variant="secondary"
-              [fullWidth]="true"
-              [loading]="paymentBusy"
-              [disabled]="secondsLeft === 0"
-              (clicked)="paymentConfirm = true"
-              >Tôi đã thanh toán</app-button
-            >
           </section>
           <aside class="panel payment-passenger">
-            <h2>Thông tin hành khách</h2>
+            <h2>Thông tin đặt vé</h2>
+            <div class="payment-summary-row">
+              <strong>Hành khách:</strong> {{ order.passenger.name }}
+            </div>
+            <div class="payment-summary-row">
+              <strong>Điện thoại:</strong> {{ order.passenger.phone }}
+            </div>
             @for (leg of order.legs; track leg.tripId; let index = $index) {
               <div class="summary-leg">
-                <div class="payment-summary-row">
-                  <strong>{{
-                    order.legs.length === 1 ? 'Tuyến:' : index === 0 ? 'Tuyến đi:' : 'Tuyến về:'
-                  }}</strong>
-                  {{ tripFor(leg).from }} → {{ tripFor(leg).to }}
-                </div>
-                @if (index === 0) {
-                  <div class="payment-summary-row">
-                    <strong>Hành khách:</strong> {{ order.passenger.name }}
-                  </div>
-                  <div class="payment-summary-row">
-                    <strong>Điện thoại:</strong> {{ order.passenger.phone }}
-                  </div>
-                  @if (order.passenger.email) {
-                    <div class="payment-summary-row">
-                      <strong>Email:</strong> {{ order.passenger.email }}
-                    </div>
-                  }
+                <h3>
+                  {{
+                    order.legs.length === 1 ? 'Chuyến đi' : index === 0 ? 'Chiều đi' : 'Chiều về'
+                  }}
+                </h3>
+                <p>{{ tripFor(leg).from }} → {{ tripFor(leg).to }}</p>
+                <p>{{ date(tripFor(leg).departureAt) }} · {{ time(tripFor(leg).departureAt) }}</p>
+                <p>
+                  Ghế: <strong>{{ seatLabels(leg.seats) }}</strong>
+                </p>
+                @if (point(leg, 'pickup'); as pickup) {
+                  <p>Đón: {{ pickup.name }}</p>
                 }
-                <div class="payment-summary-row">
-                  <strong>Ngày giờ:</strong> {{ date(tripFor(leg).departureAt) }} ·
-                  {{ time(tripFor(leg).departureAt) }}
-                </div>
-                <div class="payment-summary-row">
-                  <strong>Ghế:</strong> {{ seatLabels(leg.seats) }}
-                </div>
-                @if (tripFor(leg).type === 'Cabin 22 chỗ') {
-                  <p class="room-summary">{{ roomSummary(leg) }}</p>
+                @if (point(leg, 'dropoff'); as dropoff) {
+                  <p>Trả: {{ dropoff.name }}</p>
                 }
               </div>
             }
-            <div class="payment-price-box">
-              <strong>Tổng tiền</strong><strong>{{ money(order.total) }}</strong>
-            </div>
-            <div class="payment-cancel">
-              <app-button
-                variant="outline"
-                [fullWidth]="true"
-                [disabled]="paymentBusy"
-                (clicked)="backToResults()"
-                >Hủy giữ chỗ</app-button
-              >
-            </div>
           </aside>
         </div>
       }
@@ -1493,23 +1499,18 @@
         <section class="result-panel panel">
           <div class="result-symbol failure">!</div>
           <h2>
-            {{
-              failureCode === 'expired' ? 'Đã hết thời gian giữ ghế' : 'Thanh toán chưa thành công'
-            }}
+            {{ failureCode === 'expired' ? 'Đã hết thời gian giữ ghế' : 'Đặt vé chưa hoàn tất' }}
           </h2>
           <p>{{ failureMessage }}</p>
           @if (order) {
             <app-badge variant="warning" [label]="'Mã đơn: ' + order.id" />
           }
-          <p class="muted">
-            Nếu tài khoản đã bị trừ tiền, hãy liên hệ hỗ trợ và cung cấp mã đơn trước khi thanh toán
-            lại.
-          </p>
+          <p class="muted">Nếu cần hỗ trợ đặt vé, vui lòng cung cấp mã đơn cho nhân viên.</p>
           <div class="actions">
             <app-button variant="outline" (clicked)="backToResults()">Chọn chuyến khác</app-button>
             @if (secondsLeft > 0 && failureCode !== 'closed' && failureCode !== 'expired') {
               <app-button variant="secondary" (clicked)="retryPayment()"
-                >Thử lại thanh toán</app-button
+                >Kiểm tra lại đơn</app-button
               >
             }
             <a href="tel:19001234">Liên hệ hỗ trợ</a>
@@ -1923,28 +1924,6 @@
     }
   </div></app-modal
 >
-<app-modal
-  [open]="paymentConfirm"
-  size="small"
-  title="Xác nhận thanh toán"
-  [closeOnBackdrop]="!paymentBusy"
-  [loading]="paymentBusy"
-  (closed)="paymentConfirm = false"
->
-  @if (order) {
-    <p>
-      Bạn đã hoàn tất giao dịch {{ money(order.total) }} cho đơn <strong>{{ order.id }}</strong
-      >?
-    </p>
-    <p>Hệ thống sẽ kiểm tra kết quả trước khi xác nhận vé.</p>
-    <footer class="modal-actions">
-      <app-button variant="outline" (clicked)="paymentConfirm = false">Quay lại</app-button
-      ><app-button variant="secondary" [loading]="paymentBusy" (clicked)="pay()"
-        >Kiểm tra thanh toán</app-button
-      >
-    </footer>
-  }
-</app-modal>
 <app-modal
   [open]="ticketOpen"
   size="large"

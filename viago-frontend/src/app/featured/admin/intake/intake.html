@@ -1,0 +1,676 @@
+<section class="intake-page">
+  @if (!sidebarCollapsed()) {
+    <button
+      type="button"
+      class="navigation-backdrop"
+      aria-label="Đóng menu quản trị"
+      (click)="closeNavigation()"
+    ></button>
+  }
+  <div class="mobile-navigation">
+    <app-button variant="outline" size="sm" (clicked)="toggleNavigation()"
+      >Menu quản trị</app-button
+    >
+  </div>
+  <app-card class="header-card" radius="sm" padding="none" shadow="sm" [bordered]="true">
+    <header class="page-heading">
+      <div>
+        <p class="eyebrow">
+          {{ applications ? 'Nhân viên / Tuyển dụng' : 'Khách hàng / Liên hệ' }}
+        </p>
+        <h1>{{ title }}</h1>
+      </div>
+    </header>
+  </app-card>
+
+  <div class="stats" aria-label="Thống kê trạng thái">
+    <app-card
+      type="stat"
+      radius="sm"
+      padding="sm"
+      shadow="none"
+      [bordered]="true"
+      title="Tổng số"
+      [value]="loaded() ? count() : '—'"
+    />
+    @for (s of statuses; track s.id) {
+      <app-card
+        type="stat"
+        radius="sm"
+        padding="sm"
+        shadow="none"
+        [bordered]="true"
+        [title]="s.label"
+        [value]="loaded() ? statistics()[s.id] || 0 : '—'"
+      />
+    }
+  </div>
+
+  @if (error()) {
+    <div class="alert error" role="alert">
+      {{ error() }} <app-button variant="ghost" size="sm" (clicked)="load()">Thử lại</app-button>
+    </div>
+  }
+
+  <div class="workspace">
+    <app-card class="records" radius="sm" padding="none" shadow="none" [bordered]="true">
+      <div class="list-heading">
+        <h2>Danh sách {{ applications ? 'hồ sơ' : 'yêu cầu' }}</h2>
+        <span>{{ total() }} kết quả</span>
+      </div>
+      <form class="filters" (ngSubmit)="load(true)">
+        <app-input
+          class="search-field"
+          [id]="'intake-search'"
+          label="Tìm kiếm"
+          [value]="search"
+          (valueChange)="searchChanged($event)"
+          [maxlength]="150"
+          placeholder="Tên, email, số điện thoại hoặc mã hồ sơ"
+        />
+        <app-select
+          [id]="'intake-option'"
+          [label]="applications ? 'Vị trí ứng tuyển' : 'Chủ đề'"
+          [options]="optionSelect"
+          [value]="option || 'all'"
+          (valueChange)="changeFilter('option', $event)"
+        />
+        <app-select
+          [id]="'intake-status'"
+          label="Trạng thái"
+          [options]="statusFilterSelect"
+          [value]="status || 'all'"
+          (valueChange)="changeFilter('status', $event)"
+        />
+        <div class="filter-actions">
+          <app-button variant="outline" (clicked)="clearFilters()" [disabled]="loading()"
+            >Xóa bộ lọc</app-button
+          >
+          <app-button variant="outline" [loading]="loading()" (clicked)="load()"
+            >Làm mới</app-button
+          >
+        </div>
+      </form>
+      @if (loading()) {
+        <p class="empty" role="status">Đang tải dữ liệu…</p>
+      } @else if (!rows().length && !error()) {
+        <div class="empty">
+          <h3>Chưa có {{ applications ? 'hồ sơ phù hợp' : 'yêu cầu phù hợp' }}</h3>
+          <p>Thử đổi bộ lọc hoặc tìm kiếm bằng thông tin khác.</p>
+        </div>
+      } @else {
+        <div class="table-scroll" role="region" tabindex="0" [attr.aria-label]="title">
+          <table class="intake-table">
+            <caption class="sr-only">
+              {{
+                title
+              }}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">{{ applications ? 'Mã hồ sơ' : 'Mã yêu cầu' }}</th>
+                <th scope="col">{{ applications ? 'Ứng viên' : 'Khách hàng' }}</th>
+                <th scope="col">
+                  {{ applications ? 'Vị trí / Kinh nghiệm' : 'Chủ đề / Nội dung' }}
+                </th>
+                <th scope="col">Trạng thái</th>
+                @if (!applications) {
+                  <th scope="col">Ưu tiên</th>
+                }
+                <th scope="col">Phụ trách</th>
+                <th scope="col">
+                  {{ applications ? 'Ngày nộp / Phỏng vấn' : 'Cập nhật gần nhất' }}
+                </th>
+                <th scope="col" class="actions-column">Chức năng</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows(); track row.id) {
+                <tr [class.selected]="selected()?.id === row.id">
+                  <td>
+                    <span class="record-code">{{ row.id }}</span>
+                  </td>
+                  <td class="person-cell">
+                    <strong>{{ row.name }}</strong>
+                    @if (row.email) {
+                      <a [href]="'mailto:' + row.email">{{ row.email }}</a>
+                    } @else {
+                      <span>Chưa cung cấp email</span>
+                    }
+                    <span>{{ row.phone }}</span>
+                  </td>
+                  <td class="topic-cell">
+                    <strong>{{ applications ? row.jobTitle : row.subjectLabel }}</strong
+                    ><span
+                      class="cell-preview"
+                      [title]="(applications ? row.experience : row.message) || ''"
+                      >{{
+                        applications ? row.experience || 'Chưa cung cấp kinh nghiệm' : row.message
+                      }}</span
+                    >
+                  </td>
+                  <td>
+                    <app-badge
+                      [variant]="badgeVariant(row.status)"
+                      [label]="label(row.status)"
+                      size="sm"
+                    />
+                  </td>
+                  @if (!applications) {
+                    <td>
+                      <app-badge
+                        [variant]="priorityVariant(row.priority)"
+                        [label]="priorityLabel(row.priority)"
+                        size="sm"
+                      />
+                    </td>
+                  }
+                  <td>{{ row.assignedTo || 'Chưa phân công' }}</td>
+                  <td class="date-cell">
+                    <time>{{
+                      (applications ? row.createdAt : row.updatedAt || row.createdAt)
+                        | date: 'dd/MM/yyyy HH:mm' : '+0700'
+                    }}</time>
+                    @if (applications && row.interviewAt) {
+                      <span>PV: {{ row.interviewAt | date: 'dd/MM HH:mm' : '+0700' }}</span>
+                    }
+                  </td>
+                  <td class="actions-column">
+                    <div class="row-actions">
+                      <button
+                        type="button"
+                        class="admin-action-btn edit"
+                        [attr.aria-label]="'Xem và xử lý ' + row.id"
+                        title="Xem và xử lý"
+                        [disabled]="saving()"
+                        (click)="open(row)"
+                      >
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                          ></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+      <footer class="pagination-footer">
+        <span
+          >Hiển thị {{ total() ? (page - 1) * 20 + 1 : 0 }} – {{ lastItem() }} của {{ total() }}
+          {{ applications ? 'hồ sơ' : 'yêu cầu' }}</span
+        >
+        <app-pagination
+          [currentPage]="page"
+          [totalItems]="total()"
+          [pageSize]="20"
+          [showSummary]="false"
+          (pageChange)="setPage($event)"
+        />
+      </footer>
+    </app-card>
+  </div>
+  <app-modal
+    [open]="!!selected()"
+    size="large"
+    [fixedLayout]="true"
+    [title]="applications ? 'Xử lý hồ sơ ứng tuyển' : 'Xử lý yêu cầu liên hệ'"
+    [loading]="saving()"
+    (closed)="close()"
+  >
+    @if (selected(); as detail) {
+      <div class="detail dialog-workspace" aria-label="Chi tiết hồ sơ">
+        <section class="profile-summary" aria-label="Thông tin tóm tắt">
+          <div class="profile-avatar" aria-hidden="true">
+            {{ detail.name.slice(0, 1).toUpperCase() }}
+          </div>
+          <div class="profile-copy">
+            <span class="record-id">{{ detail.id }}</span>
+            <h2>{{ detail.name }}</h2>
+            <p>{{ applications ? detail.jobTitle : detail.subjectLabel }}</p>
+          </div>
+          <div class="profile-badges">
+            <app-badge [variant]="badgeVariant(detail.status)" [label]="label(detail.status)" />
+            @if (!applications) {
+              <app-badge
+                [variant]="priorityVariant(detail.priority)"
+                [label]="'Ưu tiên: ' + priorityLabel(detail.priority)"
+              />
+            }
+          </div>
+        </section>
+        @if (detailLoading()) {
+          <p class="empty" role="status">Đang tải chi tiết…</p>
+        } @else {
+          @if (detailError()) {
+            <div role="alert" class="alert error">
+              {{ detailError() }}
+              <app-button variant="ghost" size="sm" (clicked)="open(detail)"
+                >Tải lại chi tiết</app-button
+              >
+            </div>
+          }
+          @if (notice()) {
+            <p role="status" class="alert">{{ notice() }}</p>
+          }
+          <div class="detail-layout">
+            <div class="information-column">
+              <app-card
+                class="section-panel"
+                padding="none"
+                radius="sm"
+                shadow="none"
+                [bordered]="true"
+              >
+                <header class="panel-heading">
+                  <span class="panel-icon" aria-hidden="true"
+                    ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                      <circle cx="12" cy="8" r="3.5" />
+                      <path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg
+                  ></span>
+                  <div>
+                    <h3>{{ applications ? 'Thông tin ứng viên' : 'Thông tin liên hệ' }}</h3>
+                    <p>
+                      Thông tin được gửi cùng {{ applications ? 'hồ sơ ứng tuyển' : 'yêu cầu' }}
+                    </p>
+                  </div>
+                </header>
+                <dl class="info info-table">
+                  <div>
+                    <dt>Điện thoại</dt>
+                    <dd>
+                      <a [href]="'tel:' + detail.phone">{{ detail.phone }}</a>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Email</dt>
+                    <dd>
+                      @if (detail.email) {
+                        <a [href]="'mailto:' + detail.email">{{ detail.email }}</a>
+                      } @else {
+                        Chưa cung cấp
+                      }
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Thời gian gửi</dt>
+                    <dd>{{ detail.createdAt | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Cập nhật gần nhất</dt>
+                    <dd>
+                      {{
+                        detail.updatedAt || detail.createdAt | date: 'dd/MM/yyyy HH:mm' : '+0700'
+                      }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Phụ trách</dt>
+                    <dd>{{ detail.assignedTo || 'Chưa phân công' }}</dd>
+                  </div>
+                  @if (applications) {
+                    <div>
+                      <dt>Vị trí ứng tuyển</dt>
+                      <dd>{{ detail.jobTitle }}</dd>
+                    </div>
+                    <div>
+                      <dt>Phòng ban</dt>
+                      <dd>{{ detail.department }}</dd>
+                    </div>
+                    <div>
+                      <dt>Địa điểm làm việc</dt>
+                      <dd>{{ detail.location }}</dd>
+                    </div>
+                    <div>
+                      <dt>Ngày sinh</dt>
+                      <dd>{{ (detail.dateOfBirth | date: 'dd/MM/yyyy') || 'Chưa cung cấp' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Địa chỉ</dt>
+                      <dd>{{ detail.address || 'Chưa cung cấp' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Học vấn</dt>
+                      <dd>{{ detail.education || 'Chưa cung cấp' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Kinh nghiệm</dt>
+                      <dd>{{ detail.experience || 'Chưa cung cấp' }}</dd>
+                    </div>
+                    @if (detail.portfolio) {
+                      <div>
+                        <dt>Portfolio</dt>
+                        <dd>
+                          <a [href]="detail.portfolio" target="_blank" rel="noopener noreferrer"
+                            >Mở portfolio ↗</a
+                          >
+                        </dd>
+                      </div>
+                    }
+                  } @else {
+                    <div>
+                      <dt>Chủ đề</dt>
+                      <dd>{{ detail.subjectLabel }}</dd>
+                    </div>
+                  }
+                </dl>
+              </app-card>
+              <app-card
+                class="section-panel"
+                padding="none"
+                radius="sm"
+                shadow="none"
+                [bordered]="true"
+              >
+                <header class="panel-heading">
+                  <span class="panel-icon" aria-hidden="true"
+                    ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                      <path
+                        d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2V11.5A8.5 8.5 0 0 1 10.5 3h2a8.5 8.5 0 0 1 8.5 8.5Z"
+                      />
+                      <path d="M7 9h10M7 13h7" /></svg
+                  ></span>
+                  <h3>{{ applications ? 'Giới thiệu bản thân' : 'Nội dung yêu cầu' }}</h3>
+                </header>
+                <div class="panel-body">
+                  <p class="message">
+                    {{
+                      applications
+                        ? detail.introduction || 'Ứng viên không gửi phần giới thiệu.'
+                        : detail.message
+                    }}
+                  </p>
+                </div>
+              </app-card>
+              @if (applications) {
+                <app-card
+                  class="section-panel"
+                  padding="none"
+                  radius="sm"
+                  shadow="none"
+                  [bordered]="true"
+                >
+                  <header class="panel-heading">
+                    <span class="panel-icon" aria-hidden="true"
+                      ><svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+                        <path d="M14 2v6h6M8 13h8M8 17h5" /></svg
+                    ></span>
+                    <h3>CV đính kèm</h3>
+                  </header>
+                  <div class="panel-body">
+                    @if (detail.hasCv) {
+                      <div class="cv-file">
+                        <span class="document-mark" aria-hidden="true">CV</span>
+                        <div>
+                          <strong>Hồ sơ của {{ detail.name }}</strong>
+                          <p>Tài liệu do ứng viên cung cấp</p>
+                        </div>
+                      </div>
+                      <div class="cv">
+                        <app-button
+                          variant="primary"
+                          size="sm"
+                          [loading]="downloading()"
+                          (clicked)="downloadCv(true)"
+                          >Xem CV</app-button
+                        ><app-button
+                          variant="outline"
+                          size="sm"
+                          [loading]="downloading()"
+                          (clicked)="downloadCv()"
+                          >Tải CV</app-button
+                        >
+                      </div>
+                      @if (cvPreview()) {
+                        <iframe class="cv-preview" [src]="cvPreview()" title="CV ứng viên"></iframe>
+                      }
+                    } @else {
+                      <p class="help">Hồ sơ này chưa có CV đính kèm.</p>
+                    }
+                  </div>
+                </app-card>
+              }
+              <app-card
+                class="section-panel"
+                padding="none"
+                radius="sm"
+                shadow="none"
+                [bordered]="true"
+              >
+                <header class="panel-heading">
+                  <span class="panel-icon" aria-hidden="true"
+                    ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M12 7v5l3 2" /></svg
+                  ></span>
+                  <h3>Lịch sử xử lý</h3>
+                  <span class="panel-count">{{ (detail.history || []).length }}</span>
+                </header>
+                <section class="history panel-body">
+                  @for (item of detail.history || []; track item.id) {
+                    <article>
+                      <div>
+                        <strong>{{ item.actor }}</strong
+                        ><time>{{ item.at | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</time>
+                      </div>
+                      <p class="history-transition">
+                        {{ label(item.before?.status || '') }} <span aria-hidden="true">→</span>
+                        {{ label(item.after?.status || '') }}
+                      </p>
+                      @if (item.before?.assignedStaffId !== item.after?.assignedStaffId) {
+                        <p>
+                          Phụ trách: {{ staffLabel(item.before?.assignedStaffId) }} →
+                          {{ staffLabel(item.after?.assignedStaffId) }}
+                        </p>
+                      }
+                      @if (!applications && item.before?.priority !== item.after?.priority) {
+                        <p>
+                          Ưu tiên: {{ priorityLabel(item.before?.priority) }} →
+                          {{ priorityLabel(item.after?.priority) }}
+                        </p>
+                      }
+                      @if (applications && item.before?.interviewAt !== item.after?.interviewAt) {
+                        <p>
+                          Lịch phỏng vấn:
+                          {{
+                            (item.after?.interviewAt | date: 'dd/MM/yyyy HH:mm' : '+0700') ||
+                              'Đã bỏ lịch'
+                          }}
+                        </p>
+                      }
+                      @if (applications && item.before?.evaluation !== item.after?.evaluation) {
+                        <p class="history-note">
+                          Đánh giá: {{ item.after?.evaluation || 'Đã xóa đánh giá' }}
+                        </p>
+                      }
+                      @if (!applications && item.before?.replyDraft !== item.after?.replyDraft) {
+                        <p>Đã cập nhật bản nháp phản hồi.</p>
+                      }
+                      <p class="history-note">{{ item.note }}</p>
+                    </article>
+                  } @empty {
+                    <div class="history-empty">
+                      <span class="empty-history-dot" aria-hidden="true"></span>
+                      <p>Chưa có cập nhật xử lý.</p>
+                      <span>Các thay đổi và ghi chú sẽ được ghi lại tại đây.</span>
+                    </div>
+                  }
+                </section>
+              </app-card>
+            </div>
+            <form class="process-form" (ngSubmit)="save()">
+              <app-card
+                class="section-panel process-panel"
+                padding="none"
+                radius="sm"
+                shadow="none"
+                [bordered]="true"
+              >
+                <header class="panel-heading">
+                  <span class="panel-icon" aria-hidden="true"
+                    ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                      <path
+                        d="m9 11 3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+                      /></svg
+                  ></span>
+                  <div>
+                    <h3>{{ applications ? 'Đánh giá & tuyển dụng' : 'Xử lý yêu cầu' }}</h3>
+                    <p>
+                      {{
+                        applications
+                          ? 'Phân công, đánh giá và cập nhật kết quả'
+                          : 'Phân công và theo dõi tiến độ hỗ trợ'
+                      }}
+                    </p>
+                  </div>
+                </header>
+                <div class="panel-body process-body">
+                  @if (applications) {
+                    <ol class="stage-list" aria-label="Các kết quả xử lý hồ sơ">
+                      @for (stage of statuses; track stage.id) {
+                        <li [class.current]="stage.id === detail.status">{{ stage.label }}</li>
+                      }
+                    </ol>
+                  }
+                  <div class="form-grid">
+                    <app-select
+                      id="next-status"
+                      label="Trạng thái"
+                      [options]="statusSelect"
+                      [value]="nextStatus"
+                      (valueChange)="nextStatus = $event"
+                      [disabled]="saving()"
+                    />
+                    <app-select
+                      id="intake-assignee"
+                      label="Nhân viên phụ trách"
+                      [options]="staffSelect"
+                      [value]="assignedStaffId || 'unassigned'"
+                      (valueChange)="assignedStaffId = $event === 'unassigned' ? '' : $event"
+                      [disabled]="saving()"
+                    />
+                  </div>
+                  @if (!applications) {
+                    <app-select
+                      id="intake-priority"
+                      label="Mức độ ưu tiên"
+                      [options]="prioritySelect"
+                      [value]="priority"
+                      (valueChange)="priority = $event"
+                      [disabled]="saving()"
+                    />
+                  } @else {
+                    <section class="form-group interview-group">
+                      <h4 class="form-subtitle">Lịch phỏng vấn</h4>
+                      <div class="form-grid">
+                        <app-date-picker
+                          label="Ngày phỏng vấn"
+                          name="interview-date"
+                          [(ngModel)]="interviewDate"
+                          [disabled]="saving()"
+                        /><app-input
+                          id="interview-time"
+                          label="Giờ (Việt Nam)"
+                          placeholder="09:30"
+                          [value]="interviewTime"
+                          (valueChange)="interviewTime = $event"
+                          [maxlength]="5"
+                          [disabled]="saving()"
+                        />
+                      </div>
+                    </section>
+                    <app-textarea
+                      id="intake-evaluation"
+                      label="Đánh giá hồ sơ"
+                      [value]="evaluation"
+                      (valueChange)="evaluation = $event"
+                      [maxlength]="5000"
+                      [rows]="4"
+                      placeholder="Kinh nghiệm phù hợp, điểm mạnh và nội dung cần xác minh…"
+                      [disabled]="saving()"
+                    />
+                  }
+                  @if (!applications) {
+                    <section class="form-group reply-group">
+                      <h4 class="form-subtitle">Phản hồi khách hàng</h4>
+                      <app-textarea
+                        id="contact-reply"
+                        label="Nội dung email"
+                        [value]="replyDraft"
+                        (valueChange)="replyDraft = $event"
+                        [maxlength]="5000"
+                        [rows]="4"
+                        placeholder="Nhập nội dung phản hồi khách hàng…"
+                        [disabled]="saving()"
+                      />
+                      <p class="help">
+                        Bản nháp được lưu cùng cập nhật. Mở email để kiểm tra và gửi bằng ứng dụng
+                        email của bạn.
+                      </p>
+                      @if (replyLink) {
+                        <a class="email-reply-link" [href]="replyLink"
+                          >Mở email phản hồi <span aria-hidden="true">↗</span></a
+                        >
+                      }
+                      @if (!detail.email) {
+                        <p class="help">
+                          Khách chưa cung cấp email. Vui lòng liên hệ qua số điện thoại.
+                        </p>
+                      }
+                    </section>
+                  }
+                  <section class="form-group note-group">
+                    <h4 class="form-subtitle">Ghi chú nội bộ</h4>
+                    <app-textarea
+                      id="intake-note"
+                      label="Ghi chú cho lần cập nhật này"
+                      [value]="note"
+                      (valueChange)="note = $event"
+                      [maxlength]="3000"
+                      [rows]="3"
+                      placeholder="Ghi lại kết quả trao đổi hoặc lưu ý cho người phụ trách…"
+                      [disabled]="saving()"
+                    />
+                    <p class="help">Chỉ nhân viên xem được ghi chú này.</p>
+                  </section>
+                </div>
+                <footer class="process-actions">
+                  <app-button variant="outline" [disabled]="saving()" (clicked)="close()"
+                    >Đóng</app-button
+                  ><app-button
+                    type="submit"
+                    variant="primary"
+                    [loading]="saving()"
+                    [disabled]="!!detailError()"
+                    >Lưu cập nhật</app-button
+                  >
+                </footer>
+              </app-card>
+            </form>
+          </div>
+        }
+      </div>
+    }
+  </app-modal>
+</section>

@@ -69,7 +69,7 @@ export class NewsInteractionGuard implements CanActivate {
         httpOnly: true,
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
-        path: '/customer/news',
+        path: '/',
         maxAge: 365 * 86400000,
       });
       // Make the new token available to this request without trusting a client-supplied ID.

@@ -329,3 +329,5 @@
 .text-white { color: var(--color-text-inverse); }
 .opacity-90 { opacity: 0.9; }
 .opacity-80 { opacity: 0.8; }
+.submission-error { color: #b42336; background: #fff1f2; padding: 12px; border-radius: 8px; }
+.submission-success { color: #047857; background: #ecfdf5; padding: 12px; border-radius: 8px; }

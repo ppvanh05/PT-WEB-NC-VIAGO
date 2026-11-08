@@ -144,6 +144,9 @@ export function seatState(
 
 @Injectable()
 export class CustomerHomeService {
+  private overviewInFlight?: Promise<
+    Awaited<ReturnType<CustomerHomeService['readOverview']>>
+  >;
   private readonly weatherCache = new Map<
     string,
     {
@@ -184,26 +187,44 @@ export class CustomerHomeService {
           name: 'VietQR / Chuyển khoản',
           configured: !!(
             process.env.VIETQR_BANK_ID &&
+            /^[a-zA-Z0-9]{2,30}$/.test(process.env.VIETQR_BANK_ID) &&
             process.env.VIETQR_ACCOUNT_NO &&
+            /^[a-zA-Z0-9]{4,40}$/.test(process.env.VIETQR_ACCOUNT_NO) &&
             process.env.VIETQR_ACCOUNT_NAME &&
             process.env.SEPAY_BANK_NAME &&
             process.env.SEPAY_WEBHOOK_API_KEY &&
             process.env.SEPAY_WEBHOOK_API_KEY.length >= 32
           ),
         },
+        { id: 'counter', name: 'Thanh toán tại quầy', configured: true },
       ],
       termsPath: '/customer/dieu-khoan',
       policiesPath: '/customer/chinh-sach',
     };
   }
-  async overview() {
-    const [cities, routes, promotions, news, reviews] = await Promise.all([
-      this.cities(),
-      this.routes(Object.assign(new HomeRoutesDto(), { pageSize: 3 })),
-      this.promotions.list(Object.assign(new HomePageDto(), { pageSize: 3 })),
-      this.latestNews(3),
-      this.reviews(Object.assign(new HomePageDto(), { pageSize: 3 })),
-    ]);
+  overview() {
+    // Share only the current public read, never a cached response or error.
+    if (!this.overviewInFlight) {
+      this.overviewInFlight = this.readOverview().finally(() => {
+        this.overviewInFlight = undefined;
+      });
+    }
+    return this.overviewInFlight;
+  }
+  private async readOverview() {
+    // Each paginated section already uses its own consistent read transaction.
+    // Run them in sequence so a home load does not occupy four connections.
+    const cities = await this.cities();
+    const routes = await this.routes(
+      Object.assign(new HomeRoutesDto(), { pageSize: 3 }),
+    );
+    const promotions = await this.promotions.list(
+      Object.assign(new HomePageDto(), { pageSize: 3 }),
+    );
+    const news = await this.latestNews(3);
+    const reviews = await this.reviews(
+      Object.assign(new HomePageDto(), { pageSize: 3 }),
+    );
     return {
       banners: [1, 2, 3].map((index) => ({
         id: String(index),

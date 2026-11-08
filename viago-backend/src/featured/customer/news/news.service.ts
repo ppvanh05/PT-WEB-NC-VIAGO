@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { randomUUID } from 'node:crypto';
+import { nextBusinessId } from '../../../shared/business-id';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   NEWS_CATEGORIES,
@@ -345,7 +345,7 @@ export class CustomerNewsService {
         await this.requireComment(tx, article.matintuc, parentId, true);
       const row = await tx.binh_luan_tin_tuc.create({
         data: {
-          mabinhluan: 'BL' + randomUUID().replaceAll('-', '').toUpperCase(),
+          mabinhluan: await nextBusinessId(tx, 'BL'),
           matintuc: article.matintuc,
           mabinhluancha: parentId,
           tennguoibinhluan: dto.authorName || 'Hành khách Viago',

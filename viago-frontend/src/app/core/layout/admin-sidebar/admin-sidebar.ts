@@ -56,6 +56,7 @@ export class AdminSidebar implements OnInit {
       children: [
         { label: 'Tài khoản khách hàng', route: '/admin/customers/accounts' },
         { label: 'Hộp thư hỗ trợ', route: '/admin/customers/support' },
+        { label: 'Liên hệ khách hàng', route: '/admin/customers/contacts' },
         { label: 'Đánh giá & Phản hồi', route: '/admin/customers/reviews' },
         { label: 'Đồ thất lạc', route: '/admin/customers/lost-items' },
       ]
@@ -64,6 +65,8 @@ export class AdminSidebar implements OnInit {
       label: 'Nhân viên', icon: 'users', expandable: true,
       children: [
         { label: 'Tài khoản nhân viên', route: '/admin/staff/accounts' },
+        { label: 'Hồ sơ ứng tuyển', route: '/admin/staff/applications' },
+        { label: 'Vị trí tuyển dụng', route: '/admin/staff/jobs' },
       ]
     },
     {

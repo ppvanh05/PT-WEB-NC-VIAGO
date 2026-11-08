@@ -8,9 +8,11 @@ import {
   Post,
   Query,
   UsePipes,
+  UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
 import { AdminPromotionsService } from './promotions.service';
+import { ContentAdminGuard } from '../content-access.module';
 import {
   CreatePromotionDto,
   ListPromotionsDto,
@@ -21,6 +23,7 @@ import {
 } from './promotions.dto';
 
 @Controller('admin/promotions')
+@UseGuards(ContentAdminGuard)
 @UsePipes(
   new ValidationPipe({
     transform: true,

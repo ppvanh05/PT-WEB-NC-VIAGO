@@ -44,6 +44,13 @@ npm run start:dev
 `DATABASE_URL` dùng transaction pooler cổng 6543 với `pgbouncer=true`;
 `DIRECT_URL` dùng session pooler cổng 5432 cho Prisma CLI. Mật khẩu có ký tự
 đặc biệt cần URL encode. `.env` không được đưa vào Git.
+
+API tổng quan trang chủ đọc từng nhóm dữ liệu lần lượt và dùng chung lượt đọc
+cho các yêu cầu đồng thời. Kết quả không được lưu cache sau khi tải xong.
+Prisma chờ tối đa 10 giây để lấy transaction; thời gian thực thi và isolation
+của các transaction đặt vé vẫn giữ nguyên. Kiểm tra với Supabase bằng
+`npm run test:home`: chỉ đọc dữ liệu, giới hạn một kết nối, mô phỏng kết nối
+bận hơn 2 giây và gọi đồng thời 8 yêu cầu trang chủ.
 Module dùng các bảng sẵn có, không cần thay đổi schema hay chạy migration.
 Server mặc định ở `http://localhost:3000`; CORS cho `http://localhost:4200`,
 có thể đổi bằng `FRONTEND_ORIGIN` trong `.env`.
@@ -642,10 +649,8 @@ Module dùng schema hiện có, không cần thêm bảng.
 | GET | `/orders/pending` | Khôi phục đơn đang chờ thanh toán của phiên hiện tại |
 | GET | `/orders/:id` | Chi tiết và trạng thái đơn thuộc phiên hiện tại |
 | POST | `/orders/:id/cancel` | Hủy đơn chưa thanh toán và trả ghế/voucher, HTTP 200 |
-| GET | `/orders/:id/payment` | Thông tin chuyển khoản và URL VietQR có đúng số tiền/nội dung |
 | POST | `/orders/:id/print` | Ghi nhận lần mở in vé đã thanh toán, HTTP 200 |
 | GET | `/tickets/:token` | Đọc một vé bằng token ngẫu nhiên trong QR, không dùng mã đơn/SĐT |
-| POST | `/payments/sepay` | Webhook xác thực tiền vào và phát hành vé, HTTP 200 |
 
 Frontend hiện vẫn dùng booking/localStorage và thanh toán mô phỏng; cần nối
 các API này để chuyển sang dữ liệu backend. Mọi request Home từ Angular cần
@@ -740,39 +745,26 @@ Home không tin user ID trong localStorage và không cung cấp tra cứu hành
 khách công khai bằng SĐT. Nếu chưa có luồng đăng nhập backend tương ứng,
 đặt vé vãng lai vẫn hoạt động; API ví/hồ sơ trả 401.
 
-### Cấu hình VietQR/SePay (điền sau)
+### Đặt vé và thanh toán
 
-Điền các biến đã thêm trong `.env.example` vào `.env` riêng của máy/server:
+Customer có hai phương thức: VietQR/SePay (`vietqr`) và tại quầy (`counter`).
+Khi chưa cấu hình ngân hàng/webhook, online vẫn hiển thị là chưa sẵn sàng;
+khách có thể chọn tại quầy để đặt. Không xác nhận thanh toán hoặc phát vé giả.
 
-```dotenv
-VIETQR_BANK_ID=
-VIETQR_ACCOUNT_NO=
-VIETQR_ACCOUNT_NAME=
-SEPAY_BANK_NAME=
-SEPAY_WEBHOOK_API_KEY=
-```
+Chuyển khoản dùng `GET /customer/home/orders/:id/payment` lấy QR và
+`POST /customer/home/payments/sepay` nhận webhook API Key. Chỉ webhook đúng
+ngân hàng, tài khoản, mã, tiền, thời gian và ghế mới xuất vé. API trả HTTP 201
+với `success: true`; webhook gửi lặp không tạo vé hai lần.
 
-`VIETQR_BANK_ID` là mã ngân hàng/BIN cho ảnh VietQR; `SEPAY_BANK_NAME` phải
-khớp trường `gateway` của ngân hàng kết nối SePay. API key là chuỗi ngẫu nhiên
-tối thiểu 32 ký tự, chỉ đặt ở server và dashboard SePay. Không đưa key vào
-frontend. Khi chưa cấu hình, `/options` báo `configured: false`, API lấy QR và
-webhook trả 503; vẫn có thể kiểm tra tìm chuyến/giữ ghế/tạo đơn.
+Tại quầy dùng `GET /admin/counter-orders` và
+`POST /admin/counter-orders/:id/confirm`; yêu cầu phiên nhân viên, ghi nhận
+nhân viên thu tiền và xuất vé trong cùng transaction. Khách không tự xác nhận
+thu tiền. Giữ chỗ vẫn tối đa 10 phút theo cấu hình chuyến; hủy/hết hạn trả ghế.
 
-Trong SePay, cấu hình webhook tiền vào tới URL HTTPS công khai
-`/customer/home/payments/sepay`, xác thực **API Key** (header `Authorization:
-Apikey <key>`). Giao dịch phải đúng ngân hàng, tài khoản, số tiền tổng và mã
-`VG...` trong nội dung chuyển khoản. Backend chống xử lý trùng bằng ID giao
-dịch SePay, xác nhận đơn và bán ghế/phát hành vé trong một transaction.
-Client chỉ poll GET `/orders/:id`; không có thao tác client tự xác nhận đã trả
-tiền. Chuyển thiếu/thừa, chuyển lặp lần nữa hoặc chuyển sau khi giữ chỗ hết
-hạn được ghi trong `thanh_toan` ở trạng thái `DangXuLy` với mã lý do để đối
-soát; không tự lấy ghế đã được bán lại và không tự phát vé.
-
-Tài liệu tích hợp: [VietQR Quick Link](https://www.vietqr.io/qr-dong),
-[SePay webhook](https://developer.sepay.vn/vi/sepay-webhooks/bat-dau-nhanh),
-[xác thực SePay](https://developer.sepay.vn/vi/sepay-webhooks/tao-webhook).
-Sau khi điền thông tin, cần cấu hình dashboard và thử một giao dịch thật
-để kiểm tra kết nối ngân hàng đầu cuối.
+Xem [hướng dẫn tạo tài khoản, cấu hình ngân hàng và webhook SePay](docs/sepay-setup.md)
+và [tài liệu API đặt vé](docs/customer-home.md). Chạy `npm run test:booking`
+để kiểm tra code với DB trong transaction rollback và webhook mô phỏng,
+không phát sinh chuyển tiền thật.
 
 ### Dữ liệu bổ trợ và giới hạn
 

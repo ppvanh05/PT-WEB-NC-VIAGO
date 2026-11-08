@@ -1,72 +1,179 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  HostListener,
+  OnInit,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { NewsItem, NewsService } from '../../../core/services/news.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  FeaturedNews,
+  NewsCategory,
+  NewsItem,
+  NewsService,
+} from '../../../core/services/news.service';
 import { Pagination } from '../../../shared/components/pagination/pagination';
 import { Toast, ToastVariant } from '../../../shared/components/toast/toast';
-
-type Category = 'all' | 'news' | 'promotion' | 'guide' | 'event' | 'recruitment';
-
+import { Card } from '../../../shared/components/card/card';
+import { Button } from '../../../shared/components/button/button';
 @Component({
   selector: 'app-news',
   standalone: true,
-  imports: [CommonModule, FormsModule, Pagination, Toast],
+  imports: [CommonModule, FormsModule, Pagination, Toast, Card, Button],
   templateUrl: './news.html',
   styleUrl: './news.css',
 })
 export class News implements OnInit {
+  private readonly api = inject(NewsService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroy = inject(DestroyRef);
+  private readonly abort = new AbortController();
+  private version = 0;
+  private searchTimer?: ReturnType<typeof setTimeout>;
   toast = signal<{ message: string; variant: ToastVariant } | null>(null);
-  activeCategory: Category = 'all';
-  selectedCategory: Category = 'all';
+  selectedCategory: NewsCategory = 'all';
+  activeCategory: NewsCategory = 'all';
   searchTerm = '';
   selectedTime = 'all';
   selectedSort = 'newest';
   currentPage = 1;
   pageSize = 12;
-  shareUrl = '';
-  showShareModal = false;
-  email = '';
-  categories = [
-    { id: 'all' as Category, key: 'all' as Category, name: 'Tin tức tổng hợp', label: 'Tin tức tổng hợp', icon: 'bi bi-grid-fill' },
-    { id: 'news' as Category, key: 'news' as Category, name: 'Tin tức nhà xe', label: 'Tin tức nhà xe', icon: 'bi bi-bus-front-fill' },
-    { id: 'promotion' as Category, key: 'promotion' as Category, name: 'Khuyến mãi', label: 'Khuyến mãi', icon: 'bi bi-tag-fill' },
-    { id: 'guide' as Category, key: 'guide' as Category, name: 'Cẩm nang di chuyển', label: 'Cẩm nang di chuyển', icon: 'bi bi-compass-fill' },
-    { id: 'event' as Category, key: 'event' as Category, name: 'Sự kiện', label: 'Sự kiện', icon: 'bi bi-calendar-event-fill' },
-    { id: 'recruitment' as Category, key: 'recruitment' as Category, name: 'Tuyển dụng', label: 'Tuyển dụng', icon: 'bi bi-briefcase-fill' },
-  ];
-  featuredData: { main?: NewsItem; grid: NewsItem[]; subHighlight?: NewsItem; subGrid: NewsItem[] } = { grid: [], subGrid: [] };
+  categories: { id: NewsCategory; label: string; count: number }[] = [];
+  featuredData: FeaturedNews = { grid: [], subGrid: [] };
   filteredArticles: NewsItem[] = [];
-
-  constructor(private newsService: NewsService, private router: Router, private route: ActivatedRoute) {}
-
-  ngOnInit(): void {
-    this.updatePageSize();
-    this.route.queryParams.subscribe(params => {
-      const category = params['category'] as Category;
-      this.selectedCategory = this.categories.some(c => c.id === category) ? category : 'all';
-      this.activeCategory = this.selectedCategory;
-      this.searchTerm = params['search'] || params['q'] || '';
-      this.refresh();
+  totalItems = 0;
+  loading = false;
+  error = '';
+  constructor() {
+    this.destroy.onDestroy(() => {
+      this.abort.abort();
+      clearTimeout(this.searchTimer);
     });
   }
-
-  @HostListener('window:resize') onResize(): void { this.updatePageSize(); }
-  updatePageSize(): void { this.pageSize = window.innerWidth <= 640 ? 4 : window.innerWidth <= 1024 ? 8 : 12; }
-  refresh(): void { this.featuredData = this.newsService.getFeaturedNews(this.selectedCategory); this.loadArticles(); }
-  loadArticles(): void { this.filteredArticles = this.newsService.getNewsListFiltered(this.selectedCategory, this.searchTerm, this.selectedTime, this.selectedSort); }
-  setCategory(category: Category): void { this.onCategoryChange(category); }
-  onCategoryChange(category: Category): void { this.selectedCategory = this.activeCategory = category; this.currentPage = 1; this.refresh(); this.router.navigate([], { relativeTo: this.route, queryParams: category === 'all' ? {} : { category }, queryParamsHandling: '' }); }
-  onFilterChange(): void { this.currentPage = 1; this.loadArticles(); }
-  clearSearch(): void { this.searchTerm = ''; this.onFilterChange(); }
-  onImageError(event: Event): void { (event.target as HTMLImageElement).src = '/assets/customer/logo.png'; }
-  get paginatedArticles(): NewsItem[] { const start = (this.currentPage - 1) * this.pageSize; return this.filteredArticles.slice(start, start + this.pageSize); }
-  get totalPages(): number { return Math.max(1, Math.ceil(this.filteredArticles.length / this.pageSize)); }
-  get firstItem(): number { return this.filteredArticles.length ? (this.currentPage - 1) * this.pageSize + 1 : 0; }
-  get lastItem(): number { return Math.min(this.currentPage * this.pageSize, this.filteredArticles.length); }
-  get displayedPages(): (number | string)[] { return Array.from({ length: this.totalPages }, (_, i) => i + 1); }
-  get sectionTitle(): string { const cat = this.categories.find(c => c.id === this.selectedCategory); return this.searchTerm ? 'KẾT QUẢ TÌM KIẾM' : (cat?.label || 'DANH SÁCH BÀI VIẾT').toUpperCase(); }
-  setPage(page: number | string): void { if (typeof page === 'number' && page >= 1 && page <= this.totalPages) this.currentPage = page; }
-  goToDetail(id?: string): void { if (id) this.router.navigate(['/customer/tin-tuc', id]); }
-  copyLink(): void { navigator.clipboard?.writeText(this.shareUrl).then(() => this.toast.set({ message: 'Đã sao chép liên kết.', variant: 'success' })); }
+  ngOnInit() {
+    this.updatePageSize();
+    void this.loadCategories();
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroy)).subscribe((params) => {
+      const allowed = ['all', 'news', 'promotion', 'guide', 'event', 'recruitment'];
+      this.selectedCategory = allowed.includes(params['category']) ? params['category'] : 'all';
+      this.activeCategory = this.selectedCategory;
+      this.searchTerm = params['search'] || params['q'] || '';
+      this.currentPage = 1;
+      void this.refresh();
+    });
+  }
+  async loadCategories() {
+    try {
+      this.categories = (await this.api.categories(this.abort.signal)).data;
+    } catch (e) {
+      if (!this.abort.signal.aborted) this.error = this.message(e);
+    } finally {
+      if (!this.abort.signal.aborted) this.cdr.markForCheck();
+    }
+  }
+  @HostListener('window:resize') onResize() {
+    const size = this.pageSize;
+    this.updatePageSize();
+    if (size !== this.pageSize) {
+      this.currentPage = 1;
+      void this.refresh();
+    }
+  }
+  updatePageSize() {
+    this.pageSize = window.innerWidth <= 640 ? 4 : window.innerWidth <= 1024 ? 8 : 12;
+  }
+  async refresh() {
+    clearTimeout(this.searchTimer);
+    const version = ++this.version;
+    this.loading = true;
+    this.error = '';
+    try {
+      const [list, featured] = await Promise.all([
+        this.api.list(
+          {
+            category: this.selectedCategory,
+            search: this.searchTerm.trim(),
+            time: this.selectedTime,
+            sort: this.selectedSort,
+            page: this.currentPage,
+            pageSize: this.pageSize,
+          },
+          this.abort.signal,
+        ),
+        this.api.featured(this.selectedCategory, this.abort.signal),
+      ]);
+      if (version !== this.version || this.abort.signal.aborted) return;
+      this.filteredArticles = list.data;
+      this.totalItems = list.pagination.total;
+      this.featuredData = featured;
+    } catch (e) {
+      if (version === this.version && !this.abort.signal.aborted) {
+        this.filteredArticles = [];
+        this.featuredData = { grid: [], subGrid: [] };
+        this.error = this.message(e);
+      }
+    } finally {
+      if (version === this.version && !this.abort.signal.aborted) {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
+    }
+  }
+  loadArticles() {
+    return this.refresh();
+  }
+  setCategory(category: NewsCategory) {
+    return this.onCategoryChange(category);
+  }
+  onCategoryChange(category: NewsCategory) {
+    return this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: category === 'all' ? {} : { category },
+    });
+  }
+  onFilterChange() {
+    clearTimeout(this.searchTimer);
+    this.currentPage = 1;
+    this.searchTimer = setTimeout(() => void this.refresh(), 250);
+  }
+  clearSearch() {
+    this.searchTerm = '';
+    this.currentPage = 1;
+    void this.refresh();
+  }
+  onImageError(event: Event) {
+    const image = event.target as HTMLImageElement;
+    if (!image.src.endsWith('/assets/customer/logo.png')) image.src = '/assets/customer/logo.png';
+  }
+  get paginatedArticles() {
+    return this.filteredArticles;
+  }
+  get totalPages() {
+    return Math.max(1, Math.ceil(this.totalItems / this.pageSize));
+  }
+  get sectionTitle() {
+    const cat = this.categories.find((c) => c.id === this.selectedCategory);
+    return this.searchTerm
+      ? 'KẾT QUẢ TÌM KIẾM'
+      : (cat?.label || 'DANH SÁCH BÀI VIẾT').toUpperCase();
+  }
+  setPage(page: number | string) {
+    if (typeof page === 'number' && page >= 1 && page <= this.totalPages && !this.loading) {
+      this.currentPage = page;
+      void this.refresh();
+    }
+  }
+  goToDetail(id?: string) {
+    if (id) void this.router.navigate(['/customer/tin-tuc', id]);
+  }
+  private message(error: unknown) {
+    return error instanceof Error ? error.message : 'Chưa tải được tin tức. Vui lòng thử lại.';
+  }
 }

@@ -1,0 +1,373 @@
+[
+  {
+    "slug": "about-us",
+    "loai": "GioiThieu",
+    "tieude": "VIAGO",
+    "noidung": {
+      "name": "VIAGO",
+      "slogan": "Vạn dặm bình an",
+      "introduction": "Kiến tạo những hành trình di chuyển văn minh, an toàn và đầy cảm hứng. Kết nối niềm vui và sự an tâm trên mọi nẻo đường Việt Nam.",
+      "mission": "Mang lại sự an tâm cho khách hàng bằng sự tận tâm và chuyên nghiệp.",
+      "story": {
+        "title": "Khởi nguồn từ tâm, vươn tầm bằng sự tử tế",
+        "paragraphs": [
+          "Được thành lập với tâm thế của những người yêu mến từng cung đường, VIAGO bắt đầu từ những chiếc xe đầu tiên với tâm nguyện mang lại sự tử tế trong ngành vận tải hành khách. Chúng tôi hiểu rằng mỗi chuyến đi không chỉ là việc di chuyển từ A đến B, mà là sự mong mỏi được trở về nhà, là những cơ hội kinh doanh, hay những chuyến du lịch đầy kỷ niệm.",
+          "Suốt nhiều năm hoạt động, VIAGO đã không ngừng cải tiến quy trình, đầu tư vào công nghệ quản lý hiện đại để đảm bảo tính minh bạch và công bằng cho mọi hành khách."
+        ],
+        "mission": "Sứ mệnh của chúng tôi là thực thi triết lý 'Vạn Dặm Bình An'. Chúng tôi cam kết mang lại sự an tâm tuyệt đối cho khách hàng bằng sự tận tâm của đội ngũ lái xe và sự hiện đại của trang thiết bị."
+      },
+      "coreValues": [
+        {
+          "id": "safety",
+          "title": "An Toàn Là Trên Hết",
+          "description": "Quy trình kiểm tra kỹ thuật nghiêm ngặt và đào tạo lái xe chuyên nghiệp hàng tháng."
+        },
+        {
+          "id": "responsibility",
+          "title": "Trách Nhiệm & Chu Đáo",
+          "description": "Lắng nghe và giải quyết mọi phản hồi của khách hàng với thái độ cầu thị cao nhất."
+        },
+        {
+          "id": "comfort",
+          "title": "Hiện Đại & Tiện Nghi",
+          "description": "Dàn xe đời mới trang bị Wifi, cổng sạc USB, ghế massage và điều hòa lọc khí."
+        },
+        {
+          "id": "transparency",
+          "title": "Công Bằng & Minh Bạch",
+          "description": "Giá vé ổn định, không nhồi nhét, quy trình đặt vé và thanh toán rõ ràng."
+        }
+      ],
+      "vision": {
+        "year": 2030,
+        "title": "Trở thành biểu tượng của sự tin cậy trên mọi hành trình",
+        "goals": [
+          "Chuyển đổi hoàn toàn sang đội xe điện chất lượng cao.",
+          "Hệ thống AI điều phối hành trình và dự báo nhu cầu thông minh.",
+          "Xây dựng hệ sinh thái vận tải đa phương thức toàn cầu."
+        ],
+        "images": [
+          "/assets/customer/about-us1.png",
+          "/assets/customer/about-us2.png",
+          "/assets/customer/about-us3.png"
+        ]
+      },
+      "heroImage": "/assets/customer/xe.png",
+      "contact": {
+        "hotline": "1900 1234",
+        "phone": "19001234",
+        "email": "congtyviago@gmail.com",
+        "address": "869 Đỗ Mười, Khu phố 13, Linh Xuân, TP. HCM",
+        "office": "Tòa nhà ViAGO Tower, Tầng 15",
+        "officeHours": "06:00 - 22:00",
+        "officeDays": "Thứ 2 - Chủ Nhật (kể cả ngày lễ)",
+        "bookingSupportHours": "24/7",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=869%20%C4%90%E1%BB%97%20M%C6%B0%E1%BB%9Di%2C%20Khu%20ph%E1%BB%91%2013%2C%20Linh%20Xu%C3%A2n%2C%20TP.%20HCM"
+      },
+      "links": {
+        "services": "/customer/dich-vu",
+        "schedule": "/customer/lich-trinh",
+        "contact": "/customer/lien-he",
+        "careers": "/customer/tuyen-dung",
+        "faq": "/customer/faq",
+        "guide": "/customer/huong-dan-mua-ve",
+        "policies": "/customer/chinh-sach",
+        "terms": "/customer/dieu-khoan"
+      },
+      "galleries": [
+        {
+          "type": "limousine",
+          "label": "Limousine",
+          "image": "/assets/customer/limo_9_1.jpg",
+          "pages": [
+            {
+              "title": "Không gian và ghế ngồi",
+              "items": [
+                {
+                  "image": "/assets/customer/limo_vip_int.png",
+                  "title": "Toàn cảnh khoang hành khách",
+                  "description": "Không gian rộng rãi, sang trọng."
+                },
+                {
+                  "image": "/assets/customer/limo_9_1.jpg",
+                  "title": "Ghế thương gia",
+                  "description": "Ghế ngồi êm ái cho hành trình dài."
+                },
+                {
+                  "image": "/assets/customer/limo_9_2.jpg",
+                  "title": "Khoảng để chân",
+                  "description": "Không gian duỗi chân thoải mái."
+                },
+                {
+                  "image": "/assets/customer/limo_9_3.jpg",
+                  "title": "Bố trí ghế và lối đi",
+                  "description": "Thiết kế thuận tiện, riêng tư."
+                }
+              ]
+            },
+            {
+              "title": "Tiện nghi và chi tiết",
+              "items": [
+                {
+                  "image": "/assets/customer/limo_vip_int.png",
+                  "title": "Tiện nghi cá nhân",
+                  "description": "Mọi nhu cầu trong tầm tay."
+                },
+                {
+                  "image": "/assets/customer/limo_9_2.jpg",
+                  "title": "Ánh sáng nội thất",
+                  "description": "Ánh sáng dịu nhẹ suốt hành trình."
+                },
+                {
+                  "image": "/assets/customer/limo_vip_ext.png",
+                  "title": "Rèm cửa và cửa sổ",
+                  "description": "Tận hưởng không gian riêng tư."
+                },
+                {
+                  "image": "/assets/customer/limo_9_seater.png",
+                  "title": "Chi tiết hoàn thiện cao cấp",
+                  "description": "Tinh tế trong từng đường nét."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "sleeper",
+          "label": "Giường nằm",
+          "image": "/assets/customer/sleeper_34_1.jpg",
+          "pages": [
+            {
+              "title": "Không gian và bố trí giường",
+              "items": [
+                {
+                  "image": "/assets/customer/sleeper_bus_int.png",
+                  "title": "Toàn cảnh khoang giường",
+                  "description": "Không gian nghỉ ngơi tiện nghi."
+                },
+                {
+                  "image": "/assets/customer/sleeper_22_1.png",
+                  "title": "Bố trí tầng giường",
+                  "description": "Sắp xếp khoa học, dễ di chuyển."
+                },
+                {
+                  "image": "/assets/customer/futa_sleeper_int.png",
+                  "title": "Không gian giường tầng dưới",
+                  "description": "Thoải mái và thoáng đãng."
+                },
+                {
+                  "image": "/assets/customer/sleeper_34_1.jpg",
+                  "title": "Không gian giường tầng trên",
+                  "description": "Tầm nhìn riêng tư hơn."
+                }
+              ]
+            },
+            {
+              "title": "Tiện nghi và riêng tư",
+              "items": [
+                {
+                  "image": "/assets/customer/sleeper_22_2.jpg",
+                  "title": "Đệm và gối",
+                  "description": "Êm ái cho giấc ngủ trọn vẹn."
+                },
+                {
+                  "image": "/assets/customer/sleeper_22_3.jpg",
+                  "title": "Rèm riêng tư",
+                  "description": "Khoảng nghỉ riêng dành cho bạn."
+                },
+                {
+                  "image": "/assets/customer/futa_sleeper_int.png",
+                  "title": "Đèn đọc sách và cổng sạc",
+                  "description": "Luôn kết nối khi cần."
+                },
+                {
+                  "image": "/assets/customer/sleeper_bus_int.png",
+                  "title": "Lối đi và chi tiết nội thất",
+                  "description": "Di chuyển thuận tiện giữa các khoang."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "cabin",
+          "label": "Cabin",
+          "image": "/assets/customer/sleeper_22_1.png",
+          "pages": [
+            {
+              "title": "Không gian cabin",
+              "items": [
+                {
+                  "image": "/assets/customer/futa_cabin_int.png",
+                  "title": "Toàn cảnh khoang cabin",
+                  "description": "Không gian hiện đại, yên tĩnh."
+                },
+                {
+                  "image": "/assets/customer/palace_cabin_int.png",
+                  "title": "Không gian bên trong một cabin",
+                  "description": "Riêng tư và tiện nghi."
+                },
+                {
+                  "image": "/assets/customer/futa_cabin_int.png",
+                  "title": "Giường hoặc ghế trong cabin",
+                  "description": "Thiết kế tối ưu sự thoải mái."
+                },
+                {
+                  "image": "/assets/customer/palace_cabin_int.png",
+                  "title": "Không gian lưu trữ",
+                  "description": "Sắp xếp hành lý gọn gàng."
+                }
+              ]
+            },
+            {
+              "title": "Tiện nghi và chi tiết",
+              "items": [
+                {
+                  "image": "/assets/customer/palace_cabin_int.png",
+                  "title": "Bảng điều khiển và tiện nghi",
+                  "description": "Điều khiển dễ dàng trong tầm tay."
+                },
+                {
+                  "image": "/assets/customer/futa_cabin_int.png",
+                  "title": "Ánh sáng riêng tư",
+                  "description": "Không gian thư giãn theo cách của bạn."
+                },
+                {
+                  "image": "/assets/customer/palace_cabin_int.png",
+                  "title": "Vách ngăn và tính riêng tư",
+                  "description": "Tách biệt vừa đủ cho hành trình."
+                },
+                {
+                  "image": "/assets/customer/futa_cabin_int.png",
+                  "title": "Chi tiết nội thất cabin",
+                  "description": "Hoàn thiện chỉn chu, hiện đại."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "slug": "dat-ve-online",
+    "loai": "HuongDan",
+    "tieude": "Hướng dẫn đặt vé online",
+    "noidung": {
+      "id": "dat-ve-online",
+      "title": "Hướng dẫn đặt vé online",
+      "description": "Các bước tìm chuyến, chọn ghế, nhập thông tin và thanh toán trực tuyến.",
+      "steps": [
+        {
+          "title": "Chọn hành trình",
+          "content": "Chọn điểm đi, điểm đến, ngày khởi hành và số vé rồi tìm chuyến.",
+          "image": "/assets/customer/fom_tim_kiem.png"
+        },
+        {
+          "title": "Chọn chuyến xe",
+          "content": "Xem giờ chạy, loại xe, giá vé và điểm đón trả.",
+          "image": "/assets/customer/ket_qua_tim_kiem.png"
+        },
+        {
+          "title": "Chọn ghế",
+          "content": "Xem sơ đồ ghế và chọn vị trí phù hợp."
+        },
+        {
+          "title": "Nhập thông tin hành khách",
+          "content": "Điền chính xác họ tên, số điện thoại và thông tin liên hệ."
+        },
+        {
+          "title": "Kiểm tra và thanh toán",
+          "content": "Kiểm tra thông tin chuyến, chính sách và chọn phương thức thanh toán được hỗ trợ."
+        },
+        {
+          "title": "Lưu vé và mã đặt chỗ",
+          "content": "Lưu thông tin xác nhận và mã vé để tra cứu, xuất trình khi lên xe."
+        }
+      ],
+      "notes": [
+        "Kiểm tra thời gian, điểm đón và thông tin hành khách trước khi xác nhận.",
+        "Nếu chưa nhận được xác nhận, kiểm tra trạng thái đặt vé hoặc liên hệ hotline."
+      ]
+    },
+    "thutu": 0
+  },
+  {
+    "slug": "dat-ve-hotline",
+    "loai": "HuongDan",
+    "tieude": "Đặt vé qua Hotline",
+    "noidung": {
+      "id": "dat-ve-hotline",
+      "title": "Đặt vé qua Hotline",
+      "description": "Liên hệ nhân viên VIAGO để được hỗ trợ đặt vé và xác nhận thông tin.",
+      "steps": [
+        {
+          "title": "Liên hệ hotline VIAGO",
+          "content": "Chuẩn bị điểm đi, điểm đến và ngày khởi hành trước khi gọi."
+        },
+        {
+          "title": "Cung cấp thông tin chuyến đi",
+          "content": "Thông báo điểm đón trả, thời gian mong muốn, số hành khách và loại xe."
+        },
+        {
+          "title": "Xác nhận chuyến và giá vé",
+          "content": "Kiểm tra chỗ trống, giá vé và các điều kiện liên quan với nhân viên."
+        },
+        {
+          "title": "Cung cấp thông tin hành khách",
+          "content": "Cung cấp họ tên và số điện thoại liên hệ chính xác."
+        },
+        {
+          "title": "Thanh toán theo hướng dẫn",
+          "content": "Xác nhận số tiền, phương thức và thời hạn thanh toán nếu có."
+        },
+        {
+          "title": "Nhận xác nhận đặt vé",
+          "content": "Kiểm tra mã vé, giờ chạy, điểm đón và hướng dẫn lên xe."
+        }
+      ],
+      "notes": [
+        "Hỏi rõ chính sách giữ chỗ, thanh toán, đổi hoặc hủy vé.",
+        "Lưu mã vé và thông tin xác nhận trước khi kết thúc cuộc gọi."
+      ]
+    },
+    "thutu": 1
+  },
+  {
+    "slug": "nhan-ve-tai-ben",
+    "loai": "HuongDan",
+    "tieude": "Cách nhận vé tại bến",
+    "noidung": {
+      "id": "nhan-ve-tai-ben",
+      "title": "Cách nhận vé tại bến",
+      "description": "Hướng dẫn xác nhận thông tin, nhận vé và làm thủ tục lên xe.",
+      "steps": [
+        {
+          "title": "Chuẩn bị thông tin đặt vé",
+          "content": "Mang mã vé hoặc mã đặt chỗ và số điện thoại đã đăng ký."
+        },
+        {
+          "title": "Đến đúng bến hoặc điểm đón",
+          "content": "Đến địa điểm và thời gian được ghi trên vé hoặc hướng dẫn của nhà xe."
+        },
+        {
+          "title": "Liên hệ quầy vé",
+          "content": "Cung cấp mã đặt chỗ để nhân viên tra cứu và xác nhận."
+        },
+        {
+          "title": "Xác nhận thông tin và nhận vé",
+          "content": "Kiểm tra hành khách, giờ chạy, vị trí ghế và loại vé được sử dụng."
+        },
+        {
+          "title": "Di chuyển đến khu vực lên xe",
+          "content": "Kiểm tra biển số, tuyến đường, giờ chạy và xuất trình vé khi được yêu cầu."
+        }
+      ],
+      "notes": [
+        "Quy trình nhận vé giấy hoặc xác nhận vé điện tử có thể khác nhau tùy chuyến.",
+        "Liên hệ quầy vé hoặc hotline nếu không tìm thấy thông tin đặt chỗ."
+      ]
+    },
+    "thutu": 2
+  }
+]

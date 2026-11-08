@@ -296,9 +296,13 @@ export class Home implements OnInit, OnDestroy {
       this.homeNews = data.latestNews;
       this.homeReviews = data.reviews;
       this.reviewStatistics = data.reviewStatistics;
-      this.methods = data.booking.paymentMethods
-        .filter((m) => m.configured)
-        .map((m) => ({ id: m.id, name: m.name, image: 'VietQR_Logo.png' }));
+      this.methods = data.booking.paymentMethods.map((m) => ({
+        id: m.id,
+        name: m.name,
+        configured: m.configured,
+      }));
+      if (!this.methods.some((m) => m.id === this.method && m.configured))
+        this.method = this.methods.find((m) => m.configured)?.id || 'vietqr';
       const publicData = await this.homeApi.request<{ data: HomePromotion[] }>(
         '/promotions?pageSize=100',
       );
@@ -462,7 +466,16 @@ export class Home implements OnInit, OnDestroy {
     { label: 'Giờ đi muộn nhất', value: 'late' },
     { label: 'Giá thấp nhất', value: 'price' },
   ];
-  methods: { id: string; name: string; image: string }[] = [];
+  methods: { id: string; name: string; configured: boolean }[] = [];
+  get paymentMethodOptions() {
+    return this.methods.map((m) => ({
+      value: m.id,
+      label: m.name + (m.configured ? '' : ' (chưa sẵn sàng)'),
+    }));
+  }
+  get paymentReady() {
+    return this.total === 0 || this.methods.some((m) => m.id === this.method && m.configured);
+  }
   step: BookingStep = 'home';
   searchForm: SearchRequest = {
     from: 'TP.HCM',
@@ -538,18 +551,24 @@ export class Home implements OnInit, OnDestroy {
   seatBusy = false;
   submitting = false;
   paymentBusy = false;
+  paymentNotice = '';
+  newDate(value: number) {
+    return new Date(value).toISOString();
+  }
   error = '';
   failureCode = '';
   failureMessage = '';
   leaveOpen = false;
   private leaveResolve?: (allow: boolean) => void;
-  paymentConfirm = false;
   ticketOpen = false;
   holdExpiredOpen = false;
   method = 'vietqr';
   heroIndex = 0;
   get methodName(): string {
-    return this.methods.find((item) => item.id === this.method)?.name || 'VietQR';
+    return this.methods.find((item) => item.id === this.method)?.name || 'Thanh toán tại quầy';
+  }
+  get homeApiAuthenticated() {
+    return this.homeApi.authenticated;
   }
   get methodIndex(): number {
     return Math.max(
@@ -579,7 +598,6 @@ export class Home implements OnInit, OnDestroy {
     this.leaveResolve = undefined;
     this.leaveOpen = false;
     this.details = null;
-    this.paymentConfirm = false;
     this.ticketOpen = false;
     this.voucherOpen = false;
     this.holdExpiredOpen = false;
@@ -703,7 +721,6 @@ export class Home implements OnInit, OnDestroy {
       !Object.keys(this.errors).length &&
       this.draft.terms &&
       this.secondsLeft > 0 &&
-      !this.voucherError &&
       !this.seatBusy &&
       !this.voucherBusy
     );
@@ -835,7 +852,14 @@ export class Home implements OnInit, OnDestroy {
       const saved = this.booking.loadDraft();
       if (saved && Array.isArray(saved.legs) && saved.owner && saved.passenger) {
         const pending = this.booking.pending(saved.owner);
-        if (pending) {
+        const paid = this.state.orders.find((o) => o.owner === saved.owner && o.status === 'paid');
+        if (paid) {
+          this.order = paid;
+          this.draft = structuredClone(paid);
+          this.step = 'success';
+          this.expiresAt = 0;
+          this.booking.clearDraft();
+        } else if (pending) {
           this.pendingDraft = saved;
         } else if (
           this.state.holds.some((h) => h.owner === saved.owner && h.expiresAt > this.clock)
@@ -1184,6 +1208,10 @@ export class Home implements OnInit, OnDestroy {
   async lookupCustomer(): Promise<void> {
     this.passengerTouched.phone = true;
     if (this.errors.phone) return;
+    if (!this.homeApi.authenticated) {
+      this.lookupNote = 'Bạn có thể tự nhập thông tin và đặt vé, không bắt buộc đăng nhập.';
+      return;
+    }
     try {
       const profile = await this.booking.profile();
       if (profile.phone !== this.draft.passenger.phone) {
@@ -1304,7 +1332,14 @@ export class Home implements OnInit, OnDestroy {
     this.pointErrors = true;
     this.draft.passenger.name = normalizeName(this.draft.passenger.name);
     this.draft.passenger.email = this.draft.passenger.email.trim();
-    if (this.draft.voucher) await this.applyVoucher(this.draft.voucher, false);
+    if (this.draft.voucher) {
+      await this.applyVoucher(this.draft.voucher, false);
+      if (this.voucherError) {
+        this.error =
+          'Ưu đãi vừa thay đổi. Kiểm tra tổng tiền hoặc chọn mã khác trước khi tiếp tục.';
+        return;
+      }
+    }
     if (!this.canReview) {
       this.error = 'Kiểm tra ghế, thông tin hành khách, điểm đón/trả và điều khoản.';
       return;
@@ -1324,8 +1359,8 @@ export class Home implements OnInit, OnDestroy {
   }
   async createOrder(): Promise<void> {
     if (this.submitting || !this.canReview) return;
-    if (!this.methods.length && this.total > 0) {
-      this.error = 'Thanh toán trực tuyến chưa sẵn sàng. Vui lòng liên hệ hỗ trợ.';
+    if (!this.paymentReady) {
+      this.error = 'Phương thức chuyển khoản chưa sẵn sàng. Vui lòng chọn thanh toán tại quầy.';
       return;
     }
     this.submitting = true;
@@ -1359,8 +1394,8 @@ export class Home implements OnInit, OnDestroy {
   async pay(): Promise<void> {
     if (this.paymentBusy || !this.order) return;
     const payingId = this.order.id;
-    this.paymentConfirm = false;
     this.paymentBusy = true;
+    this.paymentNotice = '';
     this.error = '';
     try {
       this.order = await this.booking.pay(this.order);
@@ -1378,7 +1413,7 @@ export class Home implements OnInit, OnDestroy {
       this.pushStep();
     } catch (e) {
       if (this.alive && this.order?.id === payingId) {
-        if (e instanceof BookingError && e.code === 'payment') this.error = e.message;
+        if (e instanceof BookingError && e.code === 'payment') this.paymentNotice = e.message;
         else this.fail(e);
       }
     } finally {
@@ -1390,7 +1425,6 @@ export class Home implements OnInit, OnDestroy {
     this.failureCode = error instanceof BookingError ? error.code : 'payment';
     this.failureMessage = this.message(error);
     this.step = 'failure';
-    this.paymentConfirm = false;
     this.pushStep();
   }
   retryPayment(): void {
@@ -1483,7 +1517,6 @@ export class Home implements OnInit, OnDestroy {
     this.pointErrors = false;
     this.foundCustomer = null;
     this.lookupNote = '';
-    this.paymentConfirm = false;
     this.ticketOpen = false;
     this.details = null;
     this.leaveOpen = false;
@@ -1615,7 +1648,7 @@ export class Home implements OnInit, OnDestroy {
       this.searchForm = { ...this.appliedSearch };
       const expiry = this.booking.holdExpiry(this.draft.owner);
       this.expiresAt = Number.isFinite(expiry) ? expiry : 0;
-      this.method = this.order?.method || 'vietqr';
+      this.method = this.order?.method || this.method;
       this.seatLeg = 0;
       this.floor = 'A';
       if (this.draft.search) {
@@ -1624,7 +1657,7 @@ export class Home implements OnInit, OnDestroy {
       }
       if (this.order?.status === 'pending')
         void this.booking
-          .setMethod(this.order.id, 'vietqr')
+          .setMethod(this.order.id, this.order.method)
           .then((order) => {
             this.order = order;
             this.cd.markForCheck();

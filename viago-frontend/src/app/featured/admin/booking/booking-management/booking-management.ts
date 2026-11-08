@@ -10,6 +10,7 @@ import { ModalComponent } from '../../../../shared/components/modal/modal';
 import { Pagination } from '../../../../shared/components/pagination/pagination';
 import { AfterViewInit, Component, ElementRef, OnInit, ViewChild, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { CounterOrders } from '../counter-orders/counter-orders';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -88,7 +89,7 @@ interface DonHangTraCuu {
 @Component({
   selector: 'app-booking-management',
   standalone: true,
-  imports: [DatePickerComponent, Toast, BookingDialog, Button, Badge, ModalComponent, Pagination, CommonModule, FormsModule],
+  imports: [CounterOrders, DatePickerComponent, Toast, BookingDialog, Button, Badge, ModalComponent, Pagination, CommonModule, FormsModule],
   templateUrl: './booking-management.html',
   styleUrl: './booking-management.css'
 })

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { nextBusinessId } from '../../../../shared/business-id';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { CONTACT_SUBJECTS, ContactRequestDto } from '../about.dto';
 import { CustomerAboutUsService } from '../about-us/about-us.service';
@@ -11,9 +11,9 @@ export class CustomerContactService {
     private readonly about: CustomerAboutUsService,
   ) {}
 
-  info() {
+  async info() {
     return {
-      ...this.about.profile().contact,
+      ...(await this.about.profile()).contact,
       subjects: Object.entries(CONTACT_SUBJECTS).map(([code, label]) => ({
         code,
         label,
@@ -22,9 +22,9 @@ export class CustomerContactService {
   }
 
   async submit(dto: ContactRequestDto) {
-    await this.prisma.yeu_cau_lien_he.create({
+    await this.prisma.$transaction(async tx => tx.yeu_cau_lien_he.create({
       data: {
-        malienhe: `LH${randomUUID().replaceAll('-', '').toUpperCase()}`,
+        malienhe: await nextBusinessId(tx, 'LH'),
         hoten: dto.fullName,
         sodienthoai: dto.phone,
         email: dto.email ?? null,
@@ -33,7 +33,7 @@ export class CustomerContactService {
         thoigiangui: new Date(),
         trangthai: 'Moi',
       },
-    });
+    }));
     return { received: true, message: 'Đã tiếp nhận yêu cầu liên hệ của bạn.' };
   }
 }

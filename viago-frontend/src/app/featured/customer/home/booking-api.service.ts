@@ -373,20 +373,21 @@ export class BookingService {
     return o;
   }
   async create(d: BookingDraft, method: string): Promise<BookingOrder> {
-    if (method !== 'vietqr')
+    if (!['counter', 'vietqr'].includes(method))
       throw new BookingError('validation', 'Phương thức thanh toán chưa được hỗ trợ.');
     const o = this.cacheOrder(
       await this.api.request<HomeOrder>('/orders', {
         ...this.payload(d),
         key: d.key,
         terms: d.terms,
+        method,
       }),
       d,
     );
     try {
       sessionStorage.setItem(ORDER_KEY, o.id);
     } catch {}
-    if (o.status === 'pending') await this.loadPayment(o);
+    if (o.status === 'pending' && o.method === 'vietqr') await this.loadPayment(o);
     return o;
   }
   private async loadPayment(o: BookingOrder) {
@@ -395,11 +396,13 @@ export class BookingService {
     );
   }
   async setMethod(id: string, method: string): Promise<BookingOrder> {
-    if (method !== 'vietqr')
+    if (!['counter', 'vietqr'].includes(method))
       throw new BookingError('validation', 'Phương thức thanh toán chưa được hỗ trợ.');
     const o = this.snapshot.orders.find((item) => item.id === id);
     if (!o) throw new BookingError('expired', 'Không tìm thấy đơn.');
-    await this.loadPayment(o);
+    if (method !== o.method)
+      throw new BookingError('validation', 'Hãy hủy đơn hiện tại để đổi phương thức thanh toán.');
+    if (o.method === 'vietqr' && o.status === 'pending') await this.loadPayment(o);
     return o;
   }
   async pay(input: BookingOrder): Promise<BookingOrder> {
@@ -411,11 +414,13 @@ export class BookingService {
     if (o.status !== 'pending')
       throw new BookingError(
         'expired',
-        'Đơn đã hết hạn hoặc bị hủy. Liên hệ hỗ trợ nếu đã chuyển tiền.',
+        'Đơn đã hết hạn hoặc bị hủy. Vui lòng chọn chuyến và đặt lại.',
       );
     throw new BookingError(
       'payment',
-      'Chưa ghi nhận thanh toán thành công. Hệ thống sẽ tự cập nhật khi nhận xác nhận ngân hàng.',
+      o.method === 'vietqr'
+        ? 'Chưa nhận được xác nhận chuyển khoản. Hệ thống sẽ cập nhật khi ngân hàng xác nhận.'
+        : 'Đơn vẫn đang chờ thanh toán tại quầy. Trang sẽ cập nhật khi nhân viên xác nhận đã thu tiền.',
     );
   }
   pending(owner: string): BookingOrder | undefined {
@@ -471,7 +476,7 @@ export class BookingService {
       terms: true,
       voucher: '',
       status: 'paid',
-      method: 'vietqr',
+      method: 'counter',
       createdAt: ticket.issuedAt,
       expiresAt: 0,
       subtotal: ticket.fare,

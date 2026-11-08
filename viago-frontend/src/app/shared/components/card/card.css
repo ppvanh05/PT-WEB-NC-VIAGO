@@ -19,7 +19,7 @@
     color: #334155;
     overflow: hidden;
     isolation: isolate;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base);
     height: 100%;
 }
 

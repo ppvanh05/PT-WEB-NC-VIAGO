@@ -9,9 +9,10 @@ import { CustomerContactService } from './contact/contact.service';
 import { CustomerFaqService } from './faq/faq.service';
 import { CustomerGuideService } from './guide/guide.service';
 import { CustomerPoliciesService } from './policies/policies.service';
+import { SharedModule } from '../../../shared/shared.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, SharedModule],
   controllers: [CustomerAboutController],
   providers: [
     AboutSubmissionGuard,

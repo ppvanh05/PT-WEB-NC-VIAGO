@@ -2,6 +2,19 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model noi_dung_trang {
+  slug            String   @id @db.VarChar(100)
+  loai            String   @db.VarChar(30)
+  tieude          String   @db.VarChar(255)
+  noidung         Json
+  thutu           Int      @default(0)
+  trangthai       String   @default("DaXuatBan") @db.VarChar(30)
+  thoigiantao     DateTime @default(now()) @db.Timestamptz(6)
+  thoigiancapnhat DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([loai, thutu], map: "noi_dung_trang_loai_thutu_idx")
+}
+
 // Private support data. Access only through the authenticated support API.
 model hoi_thoai_chatbot {
   id              String   @id @db.VarChar @map("mahoithoai")
@@ -783,6 +796,7 @@ model loai_xe_thue {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model nhan_vien {
+  quan_ly_tiep_nhan quan_ly_tiep_nhan[]
   chuyen_tiep_chatbot yeu_cau_chuyen_tiep_chatbot[]
   phan_cong_chatbot phan_cong_chatbot[]
   supportConversations hoi_thoai_chatbot[] @relation("SupportAssignee")
@@ -1979,4 +1993,20 @@ model doan_kien_thuc_chatbot {
   thoigiantao DateTime @default(now()) @db.Timestamptz(6)
   tai_lieu_kien_thuc_chatbot tai_lieu_kien_thuc_chatbot @relation(fields: [matailieu], references: [matailieu], onDelete: Cascade)
   @@unique([matailieu, thutudoan])
+}
+
+// Workflow metadata is accessed through parameterised SQL to support existing deployments.
+model quan_ly_tiep_nhan {
+  loaidoituong String @db.VarChar
+  madoituong String @db.VarChar
+  manhanvienphutrach String? @db.VarChar
+  mucdouutien String @default("BinhThuong") @db.VarChar
+  danhgia String @default("")
+  lichphongvan DateTime? @db.Timestamptz(6)
+  phanhoinhap String @default("")
+  capnhatluc DateTime @default(now()) @db.Timestamptz(6)
+  phienban Int @default(0)
+  nhan_vien nhan_vien? @relation(fields: [manhanvienphutrach], references: [manhanvien], onDelete: NoAction, onUpdate: NoAction)
+  @@id([loaidoituong, madoituong])
+  @@index([manhanvienphutrach], map: "quan_ly_tiep_nhan_phutrach_idx")
 }

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { randomUUID } from 'node:crypto';
+import { nextBusinessId } from '../../../../shared/business-id';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import {
   CareerApplicationDto,
@@ -166,7 +166,7 @@ export class CustomerCareersService {
               if (duplicate) return false;
               await tx.ho_so_ung_tuyen.create({
                 data: {
-                  mahoso: `HS${randomUUID().replaceAll('-', '').toUpperCase()}`,
+                  mahoso: await nextBusinessId(tx, 'UV'),
                   matin: jobId,
                   hoten: dto.fullName,
                   sodienthoai: dto.phoneNumber,

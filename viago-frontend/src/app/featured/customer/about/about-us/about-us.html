@@ -17,17 +17,18 @@
         <div class="hero-counters" #countersSection>
           <div class="counter-item">
             <p class="counter-number text-secondary">{{ passengersDisplay }}</p>
-            <p class="counter-label">Hành Khách Tin Tưởng</p>
+            <p class="counter-label">Tuyến đang hoạt động</p>
           </div>
           <div class="counter-item">
             <p class="counter-number text-secondary">{{ onTimeDisplay }}</p>
-            <p class="counter-label">Đúng Giờ</p>
+            <p class="counter-label">Xe đang hoạt động</p>
           </div>
           <div class="counter-item">
             <p class="counter-number text-secondary">{{ tripsDisplay }}</p>
-            <p class="counter-label">Chuyến / Ngày</p>
+            <p class="counter-label">Chuyến hôm nay</p>
           </div>
         </div>
+        <p *ngIf="statsError" role="status">{{ statsError }}</p>
       </div>
       <div class="hero-image">
         <div class="image-wrapper">
@@ -38,7 +39,7 @@
             </div>
             <div class="badge-text">
               <p class="label-bold">An Toàn Tuyệt Đối</p>
-              <p class="caption">Chứng nhận chất lượng 5 sao</p>
+              <p class="caption">Vạn dặm bình an</p>
             </div>
           </div>
         </div>
@@ -53,8 +54,8 @@
         <div class="image-wrapper">
           <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4gSq0uoKoQsGTPEDX8PQIgreaSF1GeHJnuwy7D7aH9OxO8MqHaSSHd9oiYjjhxRmkPUW5FPqRfA74GlZlWVpXzqrWJy4xtNIrpUNmUiCKFZBB9_sUCOKPRWn_pqjomOfWjaGjYCm2D9S-ymyIPnHbCErAsJ1bFdNZPQX0wTjDqWsy0XfqZDSWwCz8B04gBdDk-AONKmugbOxuB396AtbnI10zE2pZouI-C3QVFYR70OMr2CCK7rJyvsJOmnxKRFlEgF44mewZWrA" alt="Professional Service" />
           <div class="experience-badge">
-            <p class="display-md">15+</p>
-            <p class="label-sm">NĂM KINH NGHIỆM</p>
+            <p class="display-md">VIAGO</p>
+            <p class="label-sm">VẠN DẶM BÌNH AN</p>
           </div>
         </div>
       </div>
