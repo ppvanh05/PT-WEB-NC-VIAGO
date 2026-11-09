@@ -4,9 +4,11 @@ import { Pagination } from '../../../../shared/components/pagination/pagination'
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 
 export interface DiemDonTra {
-  id: number;
+  id: number | string;
   name: string;
   address: string;
   city: string;
@@ -30,6 +32,7 @@ export interface DiemDonTra {
   styleUrls: ['./pickup-dropoff.css']
 })
 export class PickupDropoffComponent implements OnInit {
+  private readonly apiUrl = 'http://localhost:3000/admin/dispatch/pickup-dropoff';
   activeTab: 'don-tra' | 'dung' | 'locked' = 'don-tra';
 
   // Mock data
@@ -82,7 +85,7 @@ export class PickupDropoffComponent implements OnInit {
     'Ninh Thuận'
   ];
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(private cdr: ChangeDetectorRef, private http: HttpClient) {}
 
   ngOnInit() {
     this.allPoints = [
@@ -125,7 +128,20 @@ export class PickupDropoffComponent implements OnInit {
       // Khóa
       { id: 301, name: 'Bến xe Miền Tây', address: '395 Kinh Dương Vương, An Lạc, Bình Tân', city: 'TP.HCM', type: 'don-tra', status: 'locked' },
     ];
+    // Tab điểm đón/trả dùng dữ liệu từ backend; chỉ giữ mock cho các tab còn lại.
+    this.allPoints = this.allPoints.filter(point => point.type !== 'don-tra');
     this.filterPoints();
+    void this.loadPickupDropoffPoints();
+  }
+
+  private async loadPickupDropoffPoints() {
+    try {
+      const points = await firstValueFrom(this.http.get<DiemDonTra[]>(this.apiUrl));
+      this.allPoints = [...this.allPoints.filter(point => point.type !== 'don-tra'), ...points];
+      this.filterPoints();
+    } catch {
+      this.addToast('Không thể tải dữ liệu điểm đón/trả từ máy chủ.', 'error');
+    }
   }
 
   // Helper methods for tab counts
@@ -229,7 +245,7 @@ export class PickupDropoffComponent implements OnInit {
     this.errors = {};
   }
 
-  savePoint() {
+  async savePoint() {
     this.errors = {
       name: !this.currentPoint.name,
       city: !this.currentPoint.city || this.currentPoint.city === '',
@@ -238,6 +254,27 @@ export class PickupDropoffComponent implements OnInit {
 
     if (Object.values(this.errors).some(Boolean)) {
       this.addToast('Vui lòng nhập đầy đủ thông tin bắt buộc.', 'error');
+      return;
+    }
+
+    if (this.currentPoint.type === 'don-tra') {
+      const payload = {
+        name: this.currentPoint.name!, address: this.currentPoint.address!, city: this.currentPoint.city!,
+        mapLink: this.currentPoint.mapLink || null, image: this.currentPoint.image || null,
+        status: this.currentPoint.status || 'active'
+      };
+      try {
+        const saved = this.isEditMode
+          ? await firstValueFrom(this.http.patch<DiemDonTra>(`${this.apiUrl}/${this.currentPoint.id}`, payload))
+          : await firstValueFrom(this.http.post<DiemDonTra>(this.apiUrl, payload));
+        const index = this.allPoints.findIndex(point => point.id === this.currentPoint.id);
+        if (this.isEditMode && index >= 0) this.allPoints[index] = saved;
+        if (!this.isEditMode) this.allPoints.push(saved);
+        this.filterPoints(); this.closeModal();
+        this.addToast(this.isEditMode ? 'Đã cập nhật địa điểm thành công.' : 'Đã thêm địa điểm mới thành công.', 'success');
+      } catch (error: any) {
+        this.addToast(error?.error?.message || 'Không thể lưu địa điểm.', 'error');
+      }
       return;
     }
 
@@ -250,7 +287,7 @@ export class PickupDropoffComponent implements OnInit {
     } else {
       const newPoint: DiemDonTra = {
         ...(this.currentPoint as DiemDonTra),
-        id: Math.max(0, ...this.allPoints.map(p => p.id)) + 1
+        id: Math.max(0, ...this.allPoints.map(p => typeof p.id === 'number' ? p.id : 0)) + 1
       };
       this.allPoints.push(newPoint);
       this.addToast('Đã thêm địa điểm mới thành công.', 'success');
@@ -260,7 +297,19 @@ export class PickupDropoffComponent implements OnInit {
     this.closeModal();
   }
 
-  toggleStatus() {
+  async toggleStatus() {
+    if (this.currentPoint.type === 'don-tra' && this.currentPoint.id) {
+      const status = this.currentPoint.status === 'active' ? 'locked' : 'active';
+      try {
+        const saved = await firstValueFrom(this.http.patch<DiemDonTra>(`${this.apiUrl}/${this.currentPoint.id}/status`, { status }));
+        const index = this.allPoints.findIndex(point => point.id === this.currentPoint.id);
+        if (index >= 0) this.allPoints[index] = saved;
+        this.currentPoint = { ...saved };
+        this.filterPoints();
+        this.addToast(status === 'active' ? 'Đã mở khóa địa điểm.' : 'Đã khóa địa điểm.', 'success');
+      } catch (error: any) { this.addToast(error?.error?.message || 'Không thể cập nhật trạng thái.', 'error'); }
+      return;
+    }
     if (this.currentPoint.status === 'active') {
       this.currentPoint.status = 'locked';
       this.addToast('Đã khóa địa điểm.', 'success');

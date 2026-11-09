@@ -1,10 +1,13 @@
 import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
 import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { Pagination } from '../../../../shared/components/pagination/pagination';
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
+import { ToastService } from '../../../../core/services/toast.service';
 
 export interface Vehicle {
   id: number;
@@ -72,7 +75,8 @@ export class VehiclesComponent implements OnInit {
   vehicleTypes = ['Tất cả loại xe', 'Limousine', 'Giường nằm', 'Cabin'];
   statusOptions = ['Tất cả trạng thái', 'Đang hoạt động', 'Bảo trì', 'Đã khóa'];
 
-  allVehicles: Vehicle[] = [
+  allVehicles: Vehicle[] = [];
+  /*
     { id: 1, name: 'VIAGO Limousine 01', licensePlate: '51B-123.45', type: 'Limousine', seats: 9, registrationExpiry: '15/12/2026', amenities: ['Wifi', 'Tivi', 'Ổ sạc USB', 'Nước uống & khăn ướt', 'GPS', 'Điều hòa'], status: 'Đang hoạt động' },
     { id: 2, name: 'VIAGO Limousine 02', licensePlate: '51B-234.56', type: 'Limousine', seats: 9, registrationExpiry: '28/09/2026', amenities: ['Wifi', 'Tivi', 'Ổ sạc USB', 'Nước uống & khăn ướt', 'GPS', 'Điều hòa'], status: 'Đang hoạt động' },
     { id: 3, name: 'VIAGO Limousine 03', licensePlate: '51B-345.67', type: 'Limousine', seats: 9, registrationExpiry: '10/03/2027', amenities: ['Wifi', 'Tivi', 'Ổ sạc USB', 'Nước uống & khăn ướt', 'GPS', 'Điều hòa'], status: 'Bảo trì' },
@@ -83,7 +87,7 @@ export class VehiclesComponent implements OnInit {
     { id: 8, name: 'VIAGO Cabin 02', licensePlate: '51F-890.23', type: 'Cabin', seats: 22, registrationExpiry: '12/06/2027', amenities: ['Wifi', 'Tivi', 'Ổ sạc USB', 'Nước uống & khăn ướt', 'GPS', 'Điều hòa'], status: 'Đang hoạt động' },
     { id: 9, name: 'VIAGO Cabin 03', licensePlate: '51F-901.34', type: 'Cabin', seats: 22, registrationExpiry: '25/10/2026', amenities: ['Wifi', 'Tivi', 'Ổ sạc USB', 'Nước uống & khăn ướt', 'GPS', 'Điều hòa'], status: 'Đã khóa' },
     { id: 10, name: 'VIAGO Giường Nằm 04', licensePlate: '51F-112.45', type: 'Giường nằm', seats: 34, registrationExpiry: '14/02/2027', amenities: ['Wifi', 'Tivi', 'Ổ sạc USB', 'Nước uống & khăn ướt', 'GPS', 'Điều hòa'], status: 'Đang hoạt động' },
-  ];
+  ]; */
 
   filteredVehicles: Vehicle[] = [];
   paginatedVehicles: Vehicle[] = [];
@@ -91,17 +95,16 @@ export class VehiclesComponent implements OnInit {
   pageSize = 10;
   totalPages = 1;
 
+  private http = inject(HttpClient);
+  private toastService = inject(ToastService);
+  private readonly apiUrl = 'http://localhost:3000/admin/dispatch/vehicles';
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
-    this.allVehicles = this.allVehicles.map(vehicle => ({
-      ...vehicle,
-      insuranceExpiry: vehicle.insuranceExpiry || vehicle.registrationExpiry,
-      registrationImage: REGISTRATION_IMAGE_URL,
-      insuranceImage: INSURANCE_IMAGE_URL
-    }));
-    this.filterVehicles();
+    void this.loadVehicles();
   }
+
+  private async loadVehicles() { try { this.allVehicles = await firstValueFrom(this.http.get<Vehicle[]>(this.apiUrl)); this.filterVehicles(); this.cdr.detectChanges(); } catch { this.toastService.showError('Không thể tải danh sách phương tiện.'); } }
 
   // Helper methods for tab counts
   getTotalCount(): number {
@@ -191,7 +194,7 @@ export class VehiclesComponent implements OnInit {
     this.isModalOpen = false;
   }
 
-  saveVehicle() {
+  async saveVehicle() {
     this.errors = {
       name: !this.currentVehicle.name,
       licensePlate: !this.currentVehicle.licensePlate,
@@ -210,17 +213,7 @@ export class VehiclesComponent implements OnInit {
       return;
     }
 
-    if (this.isEditMode) {
-      const index = this.allVehicles.findIndex(v => v.id === this.currentVehicle.id);
-      if (index !== -1) this.allVehicles[index] = this.currentVehicle;
-      this.addToast('Đã cập nhật phương tiện thành công.', 'success');
-    } else {
-      this.currentVehicle.id = Math.max(0, ...this.allVehicles.map(v => v.id)) + 1;
-      this.allVehicles.push(this.currentVehicle);
-      this.addToast('Đã thêm phương tiện mới thành công.', 'success');
-    }
-    this.filterVehicles();
-    this.closeModal();
+    try { const saved: Vehicle = this.isEditMode ? await firstValueFrom(this.http.patch<Vehicle>(`${this.apiUrl}/${this.currentVehicle.id}`, this.currentVehicle)) as Vehicle : await firstValueFrom(this.http.post<Vehicle>(this.apiUrl, this.currentVehicle)) as Vehicle; if (this.isEditMode) { const i = this.allVehicles.findIndex(v => v.id === saved.id); if (i >= 0) this.allVehicles[i] = saved; } else this.allVehicles.unshift(saved); this.filterVehicles(); this.closeModal(); this.addToast('Đã lưu phương tiện thành công.', 'success'); } catch (e: any) { this.addToast(e?.error?.message || 'Không thể lưu phương tiện.', 'error'); }
   }
 
   onVehicleTypeChange() {

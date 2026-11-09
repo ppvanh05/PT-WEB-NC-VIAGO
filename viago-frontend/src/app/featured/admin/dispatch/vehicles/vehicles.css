@@ -806,7 +806,15 @@
   color: var(--primary);
   font-weight: 700;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
+.modal-footer { justify-content: space-between; }
+.btn-status-new:nth-child(1) { order: 1; color: #16a34a; border-color: #16a34a; }
+.btn-status-new:nth-child(2) { order: 2; color: #f97316; border-color: #f97316; }
+.btn-cancel-new { order: 3; }
+.btn-save-new { order: 4; }
 
 /* Modal Footer Sync */
 .modal-footer {

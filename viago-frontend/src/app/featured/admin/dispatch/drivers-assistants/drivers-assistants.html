@@ -319,7 +319,7 @@
         </div>
         <div class="footer-right admin-modal-actions-end">
           <app-button variant="outline" [disabled]="isSaving" (clicked)="closeModal()">Hủy bỏ</app-button>
-          <app-button [loading]="isSaving" (clicked)="savePersonnel()">{{ isEditMode ? 'Lưu thay đổi' : 'Lưu' }}</app-button>
+          <app-button variant="secondary" [loading]="isSaving" (clicked)="savePersonnel()">{{ isEditMode ? 'Lưu thay đổi' : 'Lưu' }}</app-button>
         </div>
       </div>
     </div>

@@ -52,3 +52,15 @@ artifacts/
 .env
 .env.*
 !.env.example
+
+# Monorepo dependencies, output, and environment files
+**/node_modules/
+**/dist/
+**/out-tsc/
+**/.angular/
+**/coverage/
+**/.env
+**/.env.*
+!**/.env.example
+**/npm-debug.log*
+**/yarn-error.log*

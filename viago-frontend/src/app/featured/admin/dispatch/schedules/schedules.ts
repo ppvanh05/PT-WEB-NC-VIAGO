@@ -5,6 +5,8 @@ import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../../../core/services/toast.service';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 
 export interface LichTrinh {
   id: number;
@@ -133,16 +135,20 @@ export class SchedulesComponent implements OnInit {
   centeredToastTitle = '';
   centeredToastSubtitle = '';
 
+  private http = inject(HttpClient);
+  private readonly apiUrl = 'http://localhost:3000/admin/dispatch/schedules';
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
-    this.initMockData();
+    void this.loadSchedules();
     this.extractRoutesList();
     this.initDateStrip();
     this.extractPointsList();
     this.filterTrips();
     this.generateSeatMap(22);
   }
+
+  private async loadSchedules() { try { this.allTrips = await firstValueFrom(this.http.get<LichTrinh[]>(this.apiUrl)); this.extractRoutesList(); this.extractPointsList(); this.initDateStrip(); this.filterTrips(); this.cdr.detectChanges(); } catch { this.toastService.showError('Không thể tải danh sách lịch trình.'); } }
 
   extractPointsList() {
     this.startPointsList = Array.from(new Set(this.routesDb.map(r => r.startPoint)));
@@ -599,7 +605,7 @@ export class SchedulesComponent implements OnInit {
     });
   }
 
-  saveTrip() {
+  async saveTrip() {
     this.errors = {
       routeName: !this.currentTrip.routeName,
       carName: !this.currentTrip.carName,
@@ -627,6 +633,12 @@ export class SchedulesComponent implements OnInit {
       return;
     }
 
+    try {
+      const saved = this.isEditMode ? await firstValueFrom(this.http.patch<LichTrinh>(`${this.apiUrl}/${this.currentTrip.id}`, this.currentTrip)) : await firstValueFrom(this.http.post<LichTrinh>(this.apiUrl, this.currentTrip));
+      if (this.isEditMode) { const i = this.allTrips.findIndex(t => t.id === saved.id); if (i >= 0) this.allTrips[i] = saved; } else this.allTrips.unshift(saved);
+      this.filterTrips(); this.closeModal(); this.toastService.showSuccess('Đã lưu lịch trình thành công!');
+    } catch (e: any) { this.toastService.showError(e?.error?.message || 'Không thể lưu lịch trình.'); }
+    return;
     if (this.isEditMode) {
       const idx = this.allTrips.findIndex(t => t.id === this.currentTrip.id);
       if (idx > -1) {

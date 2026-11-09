@@ -6,6 +6,7 @@
   align-self: stretch;
   width: 100%;
   min-height: 0;
+  overflow: visible;
 
   /* Color Palette */
   --primary: #1E3A8A; /* VIAGO Premium Dark Blue */
@@ -129,6 +130,9 @@
   align-items: center;
   gap: 16px;
   cursor: pointer;
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s ease-in-out;
 }
@@ -1110,6 +1114,8 @@
 .management-container {
   gap: 12px;
   min-height: calc(100vh - 78px);
+  height: auto;
+  overflow: visible;
   padding: 12px;
   background: #f6f8fb;
 }
@@ -1130,7 +1136,7 @@
 .dashboard-card {
   gap: 0;
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .dashboard-control-panel {
@@ -1757,6 +1763,7 @@
 }
 
 .route-premium-card {
+  flex-shrink: 0;
   border: 1px solid var(--admin-border, #e2e8f0) !important;
   border-radius: var(--admin-radius, 8px) !important;
   background: #ffffff !important;
@@ -1784,6 +1791,32 @@
 .dashboard-card > .pagination-footer {
   order: 3 !important;
   background: #ffffff !important;
+}
+
+/* Keep the controls/pagination visible while the route list scrolls independently. */
+.dashboard-card > .routes-grid-container {
+  max-height: calc(100vh - 330px);
+  min-height: 180px;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  align-content: start;
+  scrollbar-width: auto;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+.dashboard-card > .routes-grid-container::-webkit-scrollbar {
+  width: 12px;
+}
+
+.dashboard-card > .routes-grid-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-left: 1px solid #e2e8f0;
+}
+
+.dashboard-card > .routes-grid-container::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 3px solid #f1f5f9;
+  border-radius: 999px;
 }
 
 /* Add-new banner sync with dat-ve-moi */
@@ -1900,6 +1933,10 @@
   gap: 14px;
 }
 
+.stations-two-cols {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .stations-col-box {
   display: flex;
   flex-direction: column;
@@ -1981,5 +2018,4 @@
   background-color: #f97316;
   box-shadow: 0 6px 14px rgba(255, 106, 0, 0.28);
 }
-
 

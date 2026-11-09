@@ -1,15 +1,20 @@
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { allowedFrontendOrigin } from './shared/http/frontend-origin';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.useBodyParser('json', { limit: '20mb' });
+  app.useBodyParser('urlencoded', { limit: '20mb', extended: true });
   app.enableCors({
     origin: (
       origin: string | undefined,
       callback: (error: Error | null, allow: boolean) => void,
     ) => callback(null, allowedFrontendOrigin(origin)),
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
   try {
     await app.listen(process.env.PORT ?? 3000);

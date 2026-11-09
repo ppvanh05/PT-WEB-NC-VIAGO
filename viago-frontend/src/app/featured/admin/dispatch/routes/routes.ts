@@ -4,10 +4,12 @@ import { Pagination } from '../../../../shared/components/pagination/pagination'
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
 
 export interface TuyenXe {
-  id: number;
+  id: string | number;
   name: string;
   startPoint: string;
   endPoint: string;
@@ -53,6 +55,7 @@ export class RoutesComponent implements OnInit {
   currentPage = 1;
   pageSize = 10;
   totalPages = 1;
+  isLoading = true;
 
   protected readonly toastService = inject(ToastService);
 
@@ -118,11 +121,27 @@ export class RoutesComponent implements OnInit {
   ];
 
   private cdr = inject(ChangeDetectorRef);
+  private http = inject(HttpClient);
+  private readonly apiUrl = 'http://localhost:3000/admin/dispatch/routes';
 
   ngOnInit() {
-    this.initMockData();
-    this.extractFilterOptions();
-    this.filterRoutes();
+    void this.loadRoutes();
+  }
+
+  private async loadRoutes() {
+    try {
+      this.allRoutes = await firstValueFrom(this.http.get<TuyenXe[]>(this.apiUrl));
+      this.extractFilterOptions();
+      this.filterRoutes();
+      this.isLoading = false;
+      this.cdr.detectChanges();
+    } catch {
+      this.toastService.showError('Không thể tải danh sách tuyến xe.');
+      this.allRoutes = [];
+      this.filterRoutes();
+      this.isLoading = false;
+      this.cdr.detectChanges();
+    }
   }
 
   initMockData() {
@@ -289,10 +308,6 @@ export class RoutesComponent implements OnInit {
     this.allRoutes.forEach(r => {
       if (r.startPoint) startSet.add(r.startPoint);
       if (r.endPoint) endSet.add(r.endPoint);
-    });
-    this.provincesList.forEach(p => {
-      startSet.add(p);
-      endSet.add(p);
     });
     this.startPoints = Array.from(startSet);
     this.endPoints = Array.from(endSet);
@@ -699,13 +714,26 @@ export class RoutesComponent implements OnInit {
     return !Object.values(this.errors).some(Boolean);
   }
 
-  saveRoute() {
+  async saveRoute() {
     if (!this.validateForm()) {
       this.toastService.showError('Vui lòng nhập đầy đủ thông tin hợp lệ.');
       return;
     }
 
     const selectedCarTypes = this.availableCarTypes.filter(type => this.currentRoute.carTypesObj && this.currentRoute.carTypesObj[type]);
+    this.currentRoute.name = `${this.currentRoute.startPoint} ↔ ${this.currentRoute.endPoint}`;
+    this.currentRoute.carTypesList = selectedCarTypes;
+    this.currentRoute.carTypes = selectedCarTypes.join(', ');
+    try {
+      const payload = { name: this.currentRoute.name!, startPoint: this.currentRoute.startPoint!, endPoint: this.currentRoute.endPoint!, distanceNum: this.currentRoute.distanceNum!, durationNum: this.currentRoute.durationNum!, tripsPerDay: this.currentRoute.tripsPerDay!, price: this.currentRoute.price!, status: this.currentRoute.status, pickupPoints: this.currentRoute.pickupPoints || [], dropoffPoints: this.currentRoute.dropoffPoints || [] };
+      const saved = this.isEditMode ? await firstValueFrom(this.http.patch<TuyenXe>(`${this.apiUrl}/${this.currentRoute.id}`, payload)) : await firstValueFrom(this.http.post<TuyenXe>(this.apiUrl, payload));
+      if (this.isEditMode) { const index = this.allRoutes.findIndex(r => r.id === this.currentRoute.id); if (index >= 0) this.allRoutes[index] = saved; }
+      else this.allRoutes.unshift(saved);
+      this.extractFilterOptions(); this.filterRoutes(); this.closeModal(); this.toastService.showSuccess('Đã lưu tuyến xe thành công!');
+    } catch (error: any) { this.toastService.showError(error?.error?.message || 'Không thể lưu tuyến xe.'); }
+    return;
+
+    // Legacy mock mutation is intentionally unreachable after the API save above.
     const carTypesStr = selectedCarTypes.length > 0 ? selectedCarTypes.join(', ') : 'Limousine';
 
     this.currentRoute.name = `${this.currentRoute.startPoint} ↔ ${this.currentRoute.endPoint}`;
@@ -724,7 +752,7 @@ export class RoutesComponent implements OnInit {
     } else {
       const newRoute: TuyenXe = {
         ...(this.currentRoute as TuyenXe),
-        id: this.allRoutes.length > 0 ? Math.max(...this.allRoutes.map(r => r.id)) + 1 : 1
+        id: this.allRoutes.length > 0 ? Math.max(...this.allRoutes.map(r => Number(r.id))) + 1 : 1
       };
       this.allRoutes.unshift(newRoute);
       this.filterRoutes();
@@ -737,6 +765,11 @@ export class RoutesComponent implements OnInit {
   toggleRouteStatus(route: TuyenXe | Partial<TuyenXe>, event: Event) {
     event.stopPropagation();
     if (!route) return;
+    if (route.id) {
+      const nextStatus = route.status === 'active' ? 'locked' : 'active';
+      void firstValueFrom(this.http.patch<TuyenXe>(`${this.apiUrl}/${route.id}/status`, { status: nextStatus })).then(saved => { Object.assign(route, saved); this.filterRoutes(); this.toastService.showSuccess(nextStatus === 'locked' ? 'Đã khóa tuyến xe!' : 'Đã mở khóa tuyến xe!'); }).catch((error: any) => this.toastService.showError(error?.error?.message || 'Không thể cập nhật trạng thái tuyến xe.'));
+      return;
+    }
     route.status = route.status === 'active' ? 'locked' : 'active';
     this.filterRoutes();
 

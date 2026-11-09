@@ -1405,6 +1405,18 @@ button:focus-visible, [role="button"]:focus-visible { outline: 2px solid var(--c
 .btn-status-toggle.unlock:hover:not(:disabled) { background: var(--color-success-700); color: var(--color-surface); }
 .btn-status-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* Match the dispatch pages (pickup/dropoff) typography and controls. */
+.management-container, .modal-container, .modal-container button, .modal-container input, .modal-container select {
+  font-family: "Be Vietnam Pro", "Inter", sans-serif;
+}
+.modal-footer { padding: 20px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.footer-right { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
+.btn-status-toggle { border-radius: var(--radius-md); font-weight: 700; padding: 10px 16px; }
+.btn-status-toggle svg { width: 18px; height: 18px; stroke-width: 2; }
+.btn-status-toggle:not(.unlock) { background: var(--color-danger-50); color: var(--color-danger-700); border: 1px solid var(--color-danger-500); }
+.btn-status-toggle:not(.unlock):hover:not(:disabled) { background: var(--color-danger-700); color: var(--color-surface); }
+.btn-status-toggle.unlock { border-radius: var(--radius-md); }
+
 /* Keep filter layout independent of table column widths and alignment. */
 .search-filters-row {
   display: grid;
@@ -1442,4 +1454,158 @@ button:focus-visible, [role="button"]:focus-visible { outline: 2px solid var(--c
     padding: var(--space-4) !important;
   }
   .search-filters-row .filter-search { grid-column: auto; }
+}
+
+/* Match the pickup/dropoff page typography and palette. */
+.management-container,
+.management-container * {
+  font-family: Inter, Arial, sans-serif;
+}
+
+.management-container .material-symbols-outlined {
+  font-family: 'Material Symbols Outlined' !important;
+}
+
+.management-container app-button {
+  --color-primary-50: #eff6ff;
+  --color-primary-600: #002664;
+  --color-primary-700: #3053b3;
+  --font-size-body: 13px;
+  --button-font-weight: 900;
+}
+
+.management-container {
+  color: #64748b;
+  background: #f8fafc !important;
+}
+
+.header-card-container,
+.dashboard-card {
+  border-color: #d9e2ef !important;
+  background: #fff !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+.category-tag,
+.input-mini-label {
+  color: #64748b !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+.main-title {
+  color: #002664;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.header-action-banner,
+.header-card-container .header-action-banner {
+  border-color: #bbf7d0 !important;
+  background: #f0fdf4 !important;
+}
+
+.header-action-banner:hover {
+  border-color: #86efac;
+  background: #dcfce7 !important;
+}
+
+.header-action-banner .action-banner-text h3 {
+  color: #14532d !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+}
+
+.header-action-banner .action-banner-text p {
+  color: #166534 !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.dashboard-control-panel {
+  background: #fff;
+}
+
+.pill-tabs {
+  background: #fff;
+}
+
+.pill-tab-item {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.pill-tab-item:hover {
+  color: #002664;
+}
+
+.pill-tab-item.active {
+  background: #002664 !important;
+  color: #fff !important;
+}
+
+.search-filters-row {
+  background: #fff;
+}
+
+.search-input-container input,
+.custom-select-container select,
+.form-item input,
+.form-item select {
+  background: #fff;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.data-table th {
+  background: #fff;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.data-table td {
+  background: #fff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.data-table .text-semibold {
+  color: #0f172a;
+}
+
+.pagination-footer {
+  background: #fff;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.modal-title {
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.modal-container .form-item > label,
+.modal-container .upload-field > label {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.btn-clear-filters,
+.btn-cancel {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.btn-save {
+  font-size: 13px;
+  font-weight: 900;
 }

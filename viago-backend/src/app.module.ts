@@ -15,6 +15,9 @@ import { AdminCustomerSupportModule } from './featured/admin/customers/support/s
 import { AdminAuthModule } from './featured/admin/auth/admin-auth.module';
 import { AdminIntakeModule } from './featured/admin/intake/intake.module';
 
+import { AdminDispatchModule } from './featured/admin/dispatch/dispatch.module';
+import { CustomerTripSearchModule } from './featured/customer/trip-search/trip-search.module';
+
 @Module({
   imports: [
     PrismaModule,
@@ -30,6 +33,8 @@ import { AdminIntakeModule } from './featured/admin/intake/intake.module';
     AdminCustomerSupportModule,
     AdminAuthModule,
     AdminIntakeModule,
+    AdminDispatchModule,
+    CustomerTripSearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],

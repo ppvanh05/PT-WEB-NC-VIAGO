@@ -1,6 +1,6 @@
 import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
 import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
-import { Component, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Pagination } from '../../../../shared/components/pagination/pagination';
@@ -9,6 +9,8 @@ import { Badge } from '../../../../shared/components/badge/badge';
 import { ModalComponent } from '../../../../shared/components/modal/modal';
 import { BookingDialog } from '../../booking/booking-dialog';
 import { Button } from '../../../../shared/components/button/button';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 
 export interface Personnel {
   id: number;
@@ -97,20 +99,15 @@ export class DriversAssistants implements OnInit {
   pageSize = 10;
   totalPages = 1;
 
+  private http = inject(HttpClient);
+  private readonly apiUrl = 'http://localhost:3000/admin/dispatch/drivers-assistants';
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
-    this.allPersonnel = this.allPersonnel.map(personnel => ({
-      ...personnel,
-      identityNumber: personnel.identityNumber || '079000000000',
-      avatar: DRIVER_PORTRAIT_IMAGE_URL,
-      licenseFrontImage: LICENSE_FRONT_IMAGE_URL,
-      licenseBackImage: LICENSE_BACK_IMAGE_URL,
-      identityFrontImage: IDENTITY_FRONT_IMAGE_URL,
-      identityBackImage: IDENTITY_BACK_IMAGE_URL
-    }));
-    this.filterPersonnel();
+    void this.loadPersonnel();
   }
+
+  private async loadPersonnel() { try { this.allPersonnel = await firstValueFrom(this.http.get<Personnel[]>(this.apiUrl)); this.filterPersonnel(); this.cdr.detectChanges(); } catch { this.addToast('Không thể tải danh sách nhân sự.', 'error'); } }
 
   // Helper methods for tab counts
   getTotalCount(): number {
@@ -237,7 +234,14 @@ export class DriversAssistants implements OnInit {
     }
 
     this.isSaving = true;
-    await new Promise(resolve => setTimeout(resolve, 350));
+    this.currentPersonnel.name = String(this.currentPersonnel.name).trim().replace(/\s+/g, ' ');
+    try {
+      const saved = this.isEditMode ? await firstValueFrom(this.http.patch<Personnel>(`${this.apiUrl}/${this.currentPersonnel.id}`, this.currentPersonnel)) : await firstValueFrom(this.http.post<Personnel>(this.apiUrl, this.currentPersonnel));
+      if (this.isEditMode) { const i = this.allPersonnel.findIndex(p => p.id === saved.id); if (i >= 0) this.allPersonnel[i] = saved; } else this.allPersonnel.unshift(saved);
+      this.filterPersonnel(); this.addToast('Đã lưu nhân sự thành công.', 'success'); this.isSaving = false; this.closeModal();
+    } catch (e: any) { this.addToast(e?.error?.message || 'Không thể lưu nhân sự.', 'error'); this.isSaving = false; }
+    return;
+    /* legacy mock save code */
     this.currentPersonnel.name = String(this.currentPersonnel.name).trim().replace(/\s+/g, ' ');
     if (this.isEditMode) {
       const index = this.allPersonnel.findIndex(p => p.id === this.currentPersonnel.id);
