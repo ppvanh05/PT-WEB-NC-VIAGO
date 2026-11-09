@@ -21,17 +21,24 @@ export class AdminSessionService {
     }
   }
   private async request<T>(path: string, body?: object): Promise<T> {
-    const response = await fetch('/admin/auth' + path, {
-      method: body ? 'POST' : 'GET',
-      credentials: 'include',
-      signal: AbortSignal.timeout(20000),
-      headers: {
-        Accept: 'application/json',
-        ...this.headers(),
-        ...(body ? { 'Content-Type': 'application/json' } : {}),
-      },
-      ...(body ? { body: JSON.stringify(body) } : {}),
-    });
+    let response: Response;
+    try {
+      response = await fetch('/admin/auth' + path, {
+        method: body ? 'POST' : 'GET',
+        credentials: 'include',
+        signal: AbortSignal.timeout(20000),
+        headers: {
+          Accept: 'application/json',
+          ...this.headers(),
+          ...(body ? { 'Content-Type': 'application/json' } : {}),
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+    } catch (error) {
+      if (error && typeof error === 'object' && 'name' in error && error.name === 'TimeoutError')
+        throw new Error('Yêu cầu đăng nhập đã hết thời gian chờ. Vui lòng thử lại.');
+      throw new Error('Không kết nối được dịch vụ đăng nhập. Kiểm tra backend và thử lại.');
+    }
     if (!/\bjson\b/i.test(response.headers.get('content-type') || ''))
       throw new Error('Chưa kết nối được dịch vụ đăng nhập quản trị.');
     const data = await response.json();

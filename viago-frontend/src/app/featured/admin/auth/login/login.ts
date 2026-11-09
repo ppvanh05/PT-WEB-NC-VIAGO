@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AdminSessionService } from '../../../../core/services/admin-session.service';
@@ -15,6 +15,7 @@ export class Login {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly session = inject(AdminSessionService);
+  private readonly cd = inject(ChangeDetectorRef);
   busy = false;
   error = '';
   readonly form = new FormGroup({
@@ -59,6 +60,7 @@ export class Login {
         error instanceof Error ? error.message : 'Không đăng nhập được. Vui lòng thử lại.';
     } finally {
       this.busy = false;
+      this.cd.markForCheck();
     }
   }
 }
