@@ -3,13 +3,14 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { CustomerNavigationService } from '../../services/customer-navigation.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-customer-navbar',
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: './customer-navbar.html',
-  styleUrl: './customer-navbar.css'
+  styleUrl: './customer-navbar.css',
 })
 export class CustomerNavbar {
   @Output() openAuthModal = new EventEmitter<void>();
@@ -25,7 +26,8 @@ export class CustomerNavbar {
   constructor(
     public authService: AuthService,
     public router: Router,
-    private readonly customerNavigation: CustomerNavigationService
+    private readonly customerNavigation: CustomerNavigationService,
+    private readonly toast: ToastService,
   ) {}
 
   isHomeRouteActive(): boolean {
@@ -42,14 +44,14 @@ export class CustomerNavbar {
       '/customer/faq',
       '/customer/dieu-khoan',
       '/customer/tuyen-dung',
-      '/customer/lien-he'
+      '/customer/lien-he',
     ];
-    return activeRoutes.some(route => this.router.url.includes(route));
+    return activeRoutes.some((route) => this.router.url.includes(route));
   }
 
   isServicesRouteActive(): boolean {
     const activeRoutes = ['/customer/dich-vu', '/customer/do-that-lac'];
-    return activeRoutes.some(route => this.router.url.includes(route));
+    return activeRoutes.some((route) => this.router.url.includes(route));
   }
 
   toggleServices(event: Event) {
@@ -93,8 +95,14 @@ export class CustomerNavbar {
     this.closeMobileMenu();
   }
 
-  logout(): void {
-    this.authService.logout();
+  async logout(): Promise<void> {
+    try {
+      await this.authService.logout();
+    } catch (error) {
+      this.toast.showError(
+        error instanceof Error ? error.message : 'Không thu hồi được phiên trên server.',
+      );
+    }
     this.isDropdownOpen = false;
     this.closeMobileMenu();
     this.router.navigate(['/customer']);
@@ -109,7 +117,11 @@ export class CustomerNavbar {
 
   onHomeClick(event?: Event): void {
     this.closeMobileMenu();
-    if (event instanceof MouseEvent && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0)) return;
+    if (
+      event instanceof MouseEvent &&
+      (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0)
+    )
+      return;
     if (this.isHomeRouteActive()) {
       event?.preventDefault();
       this.customerNavigation.showHome();

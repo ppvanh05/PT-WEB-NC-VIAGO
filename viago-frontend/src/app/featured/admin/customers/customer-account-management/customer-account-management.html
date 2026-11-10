@@ -1,4 +1,6 @@
+<p *ngIf="error" role="alert" style="color:#b91c1c;padding:12px">{{ error }}</p>
 <div class="ticket-list-page">
+  <p *ngIf="loading" role="status" aria-live="polite">Đang tải dữ liệu khách hàng…</p>
   <app-admin-page-header title="Quản lý tài khoản khách hàng" section="Quản lý hệ thống">
 <div class="admin-create-banner admin-create-action" role="button" tabindex="0" (click)="openCreateModal()" title="Thêm tài khoản khách hàng mới">
         <span class="admin-create-icon">
@@ -112,6 +114,7 @@
                   {{ item.initials }}
                 </div>
                 <strong style="color: #0f172a; font-weight: var(--font-weight-semibold);">{{ item.name }}</strong>
+                <small *ngIf="item.passwordNeedsReset" style="color:#b91c1c">Cần đặt lại mật khẩu</small>
               </div>
             </td>
             <td>
@@ -148,8 +151,12 @@
           <tr *ngIf="filteredCustomers.length === 0">
             <td colspan="8">
               <div class="empty-table">
-                <h3>Không tìm thấy tài khoản khách hàng nào phù hợp.</h3>
-                <p>Thử thay đổi từ khóa hoặc trạng thái lọc.</p>
+                <p *ngIf="loading" role="status">Đang tải dữ liệu khách hàng…</p>
+                <p *ngIf="!loading && error" role="alert">{{ error }}</p>
+                <ng-container *ngIf="!loading && !error">
+                  <h3>Không tìm thấy tài khoản khách hàng nào phù hợp.</h3>
+                  <p>Thử thay đổi từ khóa hoặc trạng thái lọc.</p>
+                </ng-container>
               </div>
             </td>
           </tr>
@@ -184,7 +191,9 @@
 
 <!-- ================= MODAL CHỈNH SỬA TÀI KHOẢN ================= -->
 <div class="modal-overlay" *ngIf="showEditModal && selectedCustomer" (click)="closeEditModal()">
+<p *ngIf="error" role="alert" style="color:#b91c1c">{{ error }}</p>
   <div class="edit-modal" (click)="$event.stopPropagation()">
+<p *ngIf="error" role="alert" style="color:#b91c1c">{{ error }}</p>
     <!-- Modal Header -->
     <header class="modal-header">
       <div>
@@ -202,6 +211,7 @@
 
     <!-- Modal Body Layout -->
     <div class="detail-modal-body" style="grid-template-columns: 1fr; display: flex; flex-direction: column; gap: 16px; padding: 20px; overflow-y: auto; max-height: 60vh;">
+<p *ngIf="error" role="alert" style="color:#b91c1c">{{ error }}</p>
 
       <!-- SUBTAB 1: Basic Info -->
       <div *ngIf="editSubTab === 'profile'" style="display: flex; flex-direction: column; gap: 16px;">
@@ -259,10 +269,9 @@
           <div class="field">
             <label>Hạng thành viên</label>
             <select [(ngModel)]="selectedCustomer.memberTier" name="memberTier">
+                <option *ngIf="selectedCustomer.savedMemberTier !== 'Không có' && !memberTierOptions.includes(selectedCustomer.savedMemberTier)" [value]="selectedCustomer.savedMemberTier">{{ selectedCustomer.savedMemberTier }} (ngừng áp dụng)</option>
               <option value="Không có">Không có</option>
-              <option value="Bạc">Bạc</option>
-              <option value="Vàng">Vàng</option>
-              <option value="Kim cương">Kim cương</option>
+              <option *ngFor="let tier of memberTierOptions" [value]="tier">{{ tier }}</option>
             </select>
           </div>
           <div class="field">
@@ -279,10 +288,12 @@
           </div>
           <div class="field">
             <label>Ảnh đại diện</label>
-            <div style="width: 100px; height: 100px; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; cursor: pointer;">
+            <input #customerAvatarInput type="file" accept="image/png,image/jpeg,image/webp" hidden (change)="changeAvatar($event)" />
+            <button type="button" (click)="customerAvatarInput.click()" style="width: 100px; height: 100px; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; cursor: pointer;">
+              <img *ngIf="selectedCustomer.avatar" [src]="selectedCustomer.avatar" alt="Ảnh đại diện" style="max-width:64px;max-height:64px" />
               <svg class="account-icon" style="font-size: 28px; color: #64748b;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18H5a4 4 0 0 1-1-8 7 7 0 0 1 13-2 5 5 0 0 1 2 10h-2M12 20V10m-4 4 4-4 4 4"/></svg>
               <span style="font-size: 11px; font-weight: var(--font-weight-semibold); color: #64748b; margin-top: 4px;">Tải ảnh lên</span>
-            </div>
+            </button>
           </div>
         </div>
       </div>
@@ -384,7 +395,7 @@
       <!-- Standard Save/Close actions -->
       <div style="display: flex; gap: 8px;">
         <button type="button" class="secondary-button" (click)="closeEditModal()">Hủy</button>
-        <button type="button" class="primary-button" (click)="saveCustomerChanges()">Lưu thay đổi</button>
+        <button type="button" class="primary-button" [disabled]="saving" (click)="saveCustomerChanges()">Lưu thay đổi</button>
       </div>
     </footer>
   </div>
@@ -392,7 +403,9 @@
 
 <!-- ================= MODAL XÁC NHẬN KHÓA TÀI KHOẢN ================= -->
 <div class="modal-overlay top-layer" *ngIf="showLockConfirmModal" (click)="closeLockConfirmModal()">
+<p *ngIf="error" role="alert" style="color:#b91c1c">{{ error }}</p>
   <div class="confirm-modal" (click)="$event.stopPropagation()">
+<p *ngIf="error" role="alert" style="color:#b91c1c">{{ error }}</p>
     <header class="modal-header cancel-header">
       <h2>Xác nhận khóa tài khoản?</h2>
       <button type="button" class="close-button" (click)="closeLockConfirmModal()">x</button>
@@ -408,7 +421,7 @@
       </div>
     </div>
     <footer class="modal-footer admin-modal-actions">
-      <button type="button" class="admin-lock-action" (click)="confirmLockCustomer()">Xác nhận khóa</button>
+      <button type="button" class="admin-lock-action" [disabled]="saving" (click)="confirmLockCustomer()">Xác nhận khóa</button>
       <button type="button" class="secondary-button" (click)="closeLockConfirmModal()">Hủy thao tác</button>
     </footer>
   </div>
@@ -416,7 +429,9 @@
 
 <!-- ================= MODAL THÊM MỚI TÀI KHOẢN ================= -->
 <div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
+<p *ngIf="error" role="alert" style="color:#b91c1c">{{ error }}</p>
   <div class="edit-modal" (click)="$event.stopPropagation()">
+<p *ngIf="error" role="alert" style="color:#b91c1c">{{ error }}</p>
     <!-- Modal Header -->
     <header class="modal-header">
       <div>
@@ -427,6 +442,7 @@
 
     <!-- Modal Body Layout -->
     <div class="detail-modal-body" style="grid-template-columns: 1fr; display: flex; flex-direction: column; gap: 16px; padding: 20px; overflow-y: auto; max-height: 60vh;">
+<p *ngIf="error" role="alert" style="color:#b91c1c">{{ error }}</p>
       <!-- Row 1: Code & Status -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
         <div class="field">
@@ -476,9 +492,7 @@
           <label>Hạng thành viên</label>
           <select [(ngModel)]="newCustomer.memberTier" name="memberTier">
             <option value="Không có">Không có</option>
-            <option value="Bạc">Bạc</option>
-            <option value="Vàng">Vàng</option>
-            <option value="Kim cương">Kim cương</option>
+            <option *ngFor="let tier of memberTierOptions" [value]="tier">{{ tier }}</option>
           </select>
         </div>
         <div class="field">
@@ -505,7 +519,7 @@
 
     <footer class="modal-footer">
       <button type="button" class="secondary-button" (click)="closeCreateModal()">Hủy</button>
-      <button type="button" class="primary-button" (click)="createCustomer()">Tạo tài khoản</button>
+      <button type="button" class="primary-button" [disabled]="saving" (click)="createCustomer()">Tạo tài khoản</button>
     </footer>
   </div>
 </div>

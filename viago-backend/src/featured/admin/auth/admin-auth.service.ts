@@ -1,4 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { AccountsAccess } from '../../../shared/accounts/accounts-access';
+import { CustomerAuthService } from '../../customer/auth/customer-auth.service';
 import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { Request } from 'express';
@@ -17,7 +19,16 @@ const employeeSelect = {
   email: true,
   anhdaidien: true,
 } as const;
-async function verify(password: string, stored: string) {
+export async function verifyAdminPassword(
+  password: string,
+  stored: string,
+  allowLocalSeed = false,
+) {
+  if (allowLocalSeed && /^HASH_MAU_\d{3}$/.test(stored))
+    return timingSafeEqual(
+      createHash('sha256').update(password).digest(),
+      createHash('sha256').update(stored).digest(),
+    );
   const parts = /^scrypt:([a-f0-9]{32}):([a-f0-9]{128})$/.exec(stored);
   if (parts)
     return timingSafeEqual(
@@ -34,36 +45,52 @@ async function verify(password: string, stored: string) {
 }
 @Injectable()
 export class AdminAuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccountsAccess,
+    private readonly customerAuth: CustomerAuthService,
+  ) {}
   async login(dto: AdminLoginDto, req: Request) {
     const token = randomBytes(32).toString('hex'),
       now = new Date(),
       expiresAt = new Date(Date.now() + 8 * 3600000);
     const result = await this.prisma.$transaction(
       async (tx) => {
-        const found = await tx.tai_khoan.findFirst({
-          where: {
-            OR: [
-              { email: dto.username },
-              { sodienthoai: dto.username },
-              { tendangnhap: dto.username },
-            ],
-          },
-          select: { mataikhoan: true },
-        });
+        const [found] = await tx.$queryRaw<{ mataikhoan: string }[]>`
+          SELECT mataikhoan FROM tai_khoan
+          WHERE email = ${dto.username}
+             OR sodienthoai = ${dto.username}
+             OR tendangnhap = ${dto.username}
+          LIMIT 1 FOR UPDATE
+        `;
         if (!found) {
-          await verify(dto.password, '');
+          await verifyAdminPassword(dto.password, '');
           return null;
         }
-        await tx.$queryRaw`SELECT mataikhoan FROM tai_khoan WHERE mataikhoan = ${found.mataikhoan} FOR UPDATE`;
         const account = await tx.tai_khoan.findUniqueOrThrow({
           where: { mataikhoan: found.mataikhoan },
           include: {
-            nhan_vien: { select: { ...employeeSelect, trangthai: true } },
+            nhan_vien: {
+              select: {
+                ...employeeSelect,
+                trangthai: true,
+                vai_tro: { select: { trangthai: true } },
+              },
+            },
           },
         });
         if (account.khoatamden && account.khoatamden > now) return null;
-        const valid = await verify(dto.password, account.matkhauhash);
+        const allowLocalSeed =
+          process.env.NODE_ENV === 'development' &&
+          process.env.ADMIN_ALLOW_LOCAL_SEED_LOGIN === 'true' &&
+          ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(
+            req.socket?.remoteAddress ?? '',
+          );
+        const valid = await verifyAdminPassword(
+          dto.password,
+          account.matkhauhash,
+          allowLocalSeed,
+        );
         if (!valid) {
           const attempts =
             (account.khoatamden ? 0 : account.solandangnhapsai) + 1;
@@ -75,6 +102,18 @@ export class AdminAuthService {
                 attempts >= 5 ? new Date(Date.now() + 15 * 60000) : null,
             },
           });
+          await this.access.audit(
+            tx,
+            { accountId: account.mataikhoan },
+            req,
+            'LOGIN_FAILED',
+            'tai_khoan',
+            account.mataikhoan,
+            'Đăng nhập quản trị không thành công.',
+            undefined,
+            undefined,
+            false,
+          );
           return null;
         }
         const staff = account.nhan_vien;
@@ -82,10 +121,24 @@ export class AdminAuthService {
           account.trangthai !== 'HoatDong' ||
           account.vaitrotaikhoan !== 'NhanVien' ||
           !staff ||
-          staff.trangthai !== 'HoatDong'
+          staff.trangthai !== 'HoatDong' ||
+          staff.vai_tro.trangthai !== 'HoatDong'
         )
           return null;
-        if (account.xacthuchailop) return { twoFactor: true } as const;
+        if (account.xacthuchailop) {
+          if (!dto.verificationToken)
+            return {
+              twoFactor: true,
+              phoneNumber: account.sodienthoai,
+            } as const;
+          await this.customerAuth.consumeProof(
+            tx,
+            dto.verificationToken,
+            account.sodienthoai,
+            'XacThucHaiLop',
+            account.mataikhoan,
+          );
+        }
         await tx.tai_khoan.update({
           where: { mataikhoan: account.mataikhoan },
           data: {
@@ -109,6 +162,15 @@ export class AdminAuthService {
             trangthai: 'DangHoatDong',
           },
         });
+        await this.access.audit(
+          tx,
+          { accountId: account.mataikhoan, staffId: staff.manhanvien },
+          req,
+          'LOGIN_SUCCESS',
+          'tai_khoan',
+          account.mataikhoan,
+          'Đăng nhập quản trị.',
+        );
         return { account: this.view(account.mataikhoan, staff) };
       },
       { timeout: 10000 },
@@ -118,9 +180,7 @@ export class AdminAuthService {
         'Thông tin đăng nhập không đúng hoặc tài khoản đã ngừng hoạt động.',
       );
     if ('twoFactor' in result)
-      throw new UnauthorizedException(
-        'Tài khoản yêu cầu xác thực hai lớp. Chưa thể đăng nhập bằng luồng mật khẩu này.',
-      );
+      return { requiresTwoFactor: true, phoneNumber: result.phoneNumber };
     return { token, expiresAt, account: result.account };
   }
   private view(
@@ -154,7 +214,10 @@ export class AdminAuthService {
         tai_khoan: {
           trangthai: 'HoatDong',
           vaitrotaikhoan: 'NhanVien',
-          nhan_vien: { trangthai: 'HoatDong' },
+          nhan_vien: {
+            trangthai: 'HoatDong',
+            vai_tro: { trangthai: 'HoatDong' },
+          },
         },
       },
       select: {
@@ -170,13 +233,34 @@ export class AdminAuthService {
       expiresAt: session.thoigianhethan,
     };
   }
-  async logout(authorization?: string) {
+  async logout(authorization?: string, req?: Request) {
     const token = adminToken(authorization);
-    if (token)
-      await this.prisma.phien_dang_nhap.updateMany({
-        where: { tokenphien: tokenHash(token) },
-        data: { trangthai: 'DaDangXuat', thoigianhoatdongcuoi: new Date() },
+    if (token) {
+      const session = await this.prisma.phien_dang_nhap.findFirst({
+        where: {
+          tokenphien: tokenHash(token),
+          tai_khoan: { vaitrotaikhoan: 'NhanVien' },
+        },
+        select: { mataikhoan: true },
       });
+      if (session)
+        await this.prisma.$transaction(async (tx) => {
+          await tx.phien_dang_nhap.updateMany({
+            where: { tokenphien: tokenHash(token) },
+            data: { trangthai: 'DaDangXuat', thoigianhoatdongcuoi: new Date() },
+          });
+          if (req)
+            await this.access.audit(
+              tx,
+              { accountId: session.mataikhoan },
+              req,
+              'LOGOUT',
+              'tai_khoan',
+              session.mataikhoan,
+              'Đăng xuất quản trị.',
+            );
+        });
+    }
     return { success: true };
   }
 }

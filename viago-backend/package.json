@@ -6,6 +6,12 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "test:accounts": "npm run build && node test/accounts.integration.cjs",
+    "test:customer:seed": "npm run build && node test/customer-seed-login.cjs",
+    "test:accounts:repairs": "npm run build && node test/accounts-repairs.cjs",
+    "test:accounts:browser": "npm --prefix ../viago-frontend run build -- --configuration development --output-path ../artifacts/accounts-browser-build && npm run build && node test/accounts-browser.cjs --test-build",
+    "test:accounts:readonly": "npm run build && node test/accounts-readonly.cjs",
+    "accounts:schema:audit": "node scripts/accounts-schema-audit.cjs",
     "db:business-ids": "prisma db execute --file prisma/sql/business-ids.sql --schema prisma/schema.prisma",
     "intake:seed": "node scripts/intake-seed.cjs",
     "content:migrate": "node scripts/content-pages-migrate.cjs",

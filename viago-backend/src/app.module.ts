@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AccountsModule } from './featured/accounts.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -20,6 +21,7 @@ import { CustomerTripSearchModule } from './featured/customer/trip-search/trip-s
 
 @Module({
   imports: [
+    AccountsModule,
     PrismaModule,
     IntegrationsModule,
     SharedModule,

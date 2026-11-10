@@ -1,4 +1,5 @@
-<div class="profile-page">
+<p *ngIf="loading" role="status">Đang tải hồ sơ...</p>
+<div class="profile-page" *ngIf="!loading">
 
   <!-- Sidebar điều hướng -->
   <aside class="profile-sidebar">
@@ -196,6 +197,7 @@
                 Nghề nghiệp
               </label>
               <select id="profile-occupation" formControlName="occupation" class="form-input form-select">
+                <option *ngIf="customOccupation" [value]="customOccupation">{{ customOccupation }}</option>
                 <option value="" disabled>Bạn đang là...</option>
                 <option value="Học sinh / Sinh viên">Học sinh / Sinh viên</option>
                 <option value="Nhân viên văn phòng">Nhân viên văn phòng</option>
@@ -213,7 +215,7 @@
       <div class="profile-card__actions">
         <button *ngIf="!isEditing" type="button" (click)="startEdit()" class="btn btn--accent">Chỉnh sửa hồ sơ</button>
         <button *ngIf="isEditing" type="button" (click)="cancelEdit()" class="btn btn--outline">Hủy bỏ</button>
-        <button *ngIf="isEditing" type="button" (click)="saveEdit()" class="btn btn--accent">Lưu thay đổi</button>
+        <button *ngIf="isEditing" type="button" [disabled]="saving" (click)="saveEdit()" class="btn btn--accent">{{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}</button>
       </div>
     </div>
 
@@ -516,7 +518,7 @@
         </div>
 
         <!-- Carousel thẻ hạng: Bạc, Vàng, Kim cương -->
-        <div class="card-carousel">
+        <div class="card-carousel" *ngIf="tiers.length">
           <button type="button" (click)="prevCard()" class="round-btn" aria-label="Thẻ trước">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
           </button>
@@ -549,7 +551,7 @@
         </div>
 
         <!-- Tiến trình thăng hạng -->
-        <div class="rank-progress">
+        <div class="rank-progress" *ngIf="tiers.length">
           <div class="rank-progress__head">
             <span class="rank-progress__title">Tiến trình thăng hạng</span>
             <button type="button" (click)="selectTab('tickets')" class="link-btn link-btn--sm">
@@ -662,7 +664,7 @@
               </button>
               <div id="voucher-scroll-container" class="voucher-scroller__track">
                 <div *ngFor="let v of activeVouchers" class="voucher-scroller__item">
-                  <app-voucher-card [voucher]="v" context="wallet" (onAction)="useVoucher()"></app-voucher-card>
+                  <app-voucher-card [voucher]="v" context="wallet" [isDisabled]="v.count === 0" [actionText]="v.state === 'upcoming' ? 'Chưa đến hạn' : v.state === 'held' ? 'Đang giữ' : undefined" (onAction)="useVoucher()"></app-voucher-card>
                 </div>
               </div>
             </div>
@@ -687,7 +689,7 @@
                     </div>
                   </div>
                   <div class="expired-voucher__side">
-                    <span class="expired-voucher__state">{{ v.status === 'used' ? 'ĐÃ DÙNG' : 'HẾT HẠN' }}</span>
+                    <span class="expired-voucher__state">{{ v.status === 'used' ? 'ĐÃ DÙNG' : v.status === 'revoked' ? 'ĐÃ THU HỒI' : 'HẾT HẠN' }}</span>
                     <span class="expired-voucher__code">{{ v.code }}</span>
                   </div>
                 </div>
@@ -778,7 +780,7 @@
   <form *ngIf="!reviewSubmitted && reviewTicket" class="review-form" (ngSubmit)="submitReview()" novalidate>
     <p class="review-form__intro">
       Chuyến <strong>{{ normalizeCityName(reviewTicket.depLoc) }} → {{ normalizeCityName(reviewTicket.arrLoc) }}</strong> ngày {{ reviewTicket.dateLabel }}.
-      Gửi đánh giá để nhận ngay <strong class="review-form__gift">{{ reviewReward.title }}</strong>!
+      Ý kiến của bạn giúp cải thiện chất lượng chuyến đi.
     </p>
 
     <div class="review-criteria">
@@ -834,16 +836,9 @@
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
     </div>
     <h3 class="review-success__title">Cảm ơn bạn đã đánh giá!</h3>
-    <div class="review-gift">
-      <img src="/assets/customer/icon_qua.svg" alt="" aria-hidden="true" />
-      <div>
-        <strong>{{ reviewReward.title }}</strong>
-        <p>{{ reviewReward.desc }}</p>
-        <span class="review-gift__code">{{ reviewReward.code }}</span>
-      </div>
-    </div>
+
     <div class="review-form__actions">
-      <button type="button" class="btn btn--outline btn--sm" (click)="copyRewardCode()">Sao chép mã</button>
+
       <button type="button" class="btn btn--accent btn--sm" (click)="closeReview()">Đóng</button>
     </div>
   </div>
@@ -947,6 +942,7 @@
       <span class="method-option__radio"></span>
     </button>
   </div>
+  <label for="two-factor-password">Mật khẩu hiện tại</label><input id="two-factor-password" type="password" [(ngModel)]="twoFactorPassword" autocomplete="current-password" />
   <button type="button" (click)="submit2FAMethod()" class="btn btn--accent btn--block">Tiếp tục</button>
 </app-modal>
 

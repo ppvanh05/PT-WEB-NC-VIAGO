@@ -12,6 +12,9 @@ export interface AdminAccount {
 export class AdminSessionService {
   readonly account = signal<AdminAccount | null>(null);
   private readonly tokenKey = 'viago_admin_access_token';
+  private validatedToken = '';
+  private validatedUntil = 0;
+  private restoring?: { token: string; result: Promise<boolean> };
   headers(): Record<string, string> {
     try {
       const token = sessionStorage.getItem(this.tokenKey);
@@ -23,7 +26,7 @@ export class AdminSessionService {
   private async request<T>(path: string, body?: object): Promise<T> {
     let response: Response;
     try {
-      response = await fetch('/admin/auth' + path, {
+      response = await fetch('/api/admin/auth' + path, {
         method: body ? 'POST' : 'GET',
         credentials: 'include',
         signal: AbortSignal.timeout(20000),
@@ -53,20 +56,41 @@ export class AdminSessionService {
       username,
       password,
     });
+    if (!data.token || !data.account)
+      throw new Error('Không nhận được phiên đăng nhập hợp lệ.');
     sessionStorage.setItem(this.tokenKey, data.token);
     this.setAccount(data.account);
+    this.rememberValidation(data.token);
   }
-  async restore(): Promise<boolean> {
-    if (!this.headers()['Authorization']) {
+  restore(): Promise<boolean> {
+    const token = this.headers()['Authorization'] || '';
+    if (!token) {
       this.clear();
-      return false;
+      return Promise.resolve(false);
     }
+    if (this.account() && this.validatedToken === token && Date.now() < this.validatedUntil)
+      return Promise.resolve(true);
+    if (this.restoring?.token === token) return this.restoring.result;
+    const result = this.restoreToken(token);
+    this.restoring = { token, result };
+    void result.finally(() => {
+      if (this.restoring?.result === result) this.restoring = undefined;
+    });
+    return result;
+  }
+  private rememberValidation(token: string): void {
+    this.validatedToken = token.startsWith('Bearer ') ? token : 'Bearer ' + token;
+    this.validatedUntil = Date.now() + 30000;
+  }
+  private async restoreToken(token: string): Promise<boolean> {
     try {
       const data = await this.request<{ account: AdminAccount }>('/me');
+      if (this.headers()['Authorization'] !== token) return false;
       this.setAccount(data.account);
+      this.rememberValidation(token);
       return true;
     } catch {
-      this.clear();
+      if (this.headers()['Authorization'] === token) this.clear();
       return false;
     }
   }
@@ -78,6 +102,8 @@ export class AdminSessionService {
     this.clear();
   }
   private clear() {
+    this.validatedToken = '';
+    this.validatedUntil = 0;
     let previousId = this.account()?.id;
     this.account.set(null);
     try {

@@ -1,6 +1,21 @@
-import { Component, OnInit, ChangeDetectorRef, OnDestroy, ElementRef, ViewChild, inject } from '@angular/core';
+import { AccountsApiService } from '../../../core/services/accounts-api.service';
+import {
+  Component,
+  OnInit,
+  ChangeDetectorRef,
+  OnDestroy,
+  ElementRef,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
+import {
+  ReactiveFormsModule,
+  FormBuilder,
+  FormGroup,
+  Validators,
+  FormsModule,
+} from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
@@ -27,15 +42,16 @@ import {
   toIsoDate,
 } from '../../../shared/utils/form-validators';
 
-export type TicketStatus = 'CHỜ THANH TOÁN' | 'CHỜ KHỞI HÀNH' | 'ĐÃ HOÀN THÀNH' | 'ĐÃ ĐÁNH GIÁ' | 'ĐÃ HỦY';
+export type TicketStatus =
+  'CHỜ THANH TOÁN' | 'CHỜ KHỞI HÀNH' | 'ĐÃ HOÀN THÀNH' | 'ĐÃ ĐÁNH GIÁ' | 'ĐÃ HỦY';
 
 export interface ProfileTicket {
   id: string;
   orderId: string;
   status: TicketStatus;
-  date: string;       // yyyy-mm-dd
-  dateLabel: string;  // dd/mm/yyyy
-  bookedAt: string;   // dd/mm/yyyy
+  date: string; // yyyy-mm-dd
+  dateLabel: string; // dd/mm/yyyy
+  bookedAt: string; // dd/mm/yyyy
   depTime: string;
   depLoc: string;
   arrTime: string;
@@ -51,23 +67,42 @@ const CAN = ['Canh', 'Tân', 'Nhâm', 'Quý', 'Giáp', 'Ất', 'Bính', 'Đinh',
 const CHI = ['Thân', 'Dậu', 'Tuất', 'Hợi', 'Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi'];
 
 /** Các bước của thanh tiến trình trạng thái vé. */
-export const TICKET_STEPS = ['Đặt vé', 'Thanh toán', 'Chờ khởi hành', 'Hoàn thành chuyến', 'Đánh giá'];
+export const TICKET_STEPS = [
+  'Đặt vé',
+  'Thanh toán',
+  'Chờ khởi hành',
+  'Hoàn thành chuyến',
+  'Đánh giá',
+];
 
 @Component({
   selector: 'app-profile',
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule, FormsModule, RouterLink,
-    VoucherCard, DatePickerComponent, Pagination, ModalComponent, SecuritySettingsModal, NoAutofillDirective,
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    RouterLink,
+    VoucherCard,
+    DatePickerComponent,
+    Pagination,
+    ModalComponent,
+    SecuritySettingsModal,
+    NoAutofillDirective,
   ],
   templateUrl: './profile.html',
-  styleUrl: './profile.css'
+  styleUrl: './profile.css',
 })
 export class Profile implements OnInit, OnDestroy {
   @ViewChild('contentTop') contentTop?: ElementRef<HTMLElement>;
   @ViewChild('ticketListTop') ticketListTop?: ElementRef<HTMLElement>;
 
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly backend = inject(AccountsApiService);
+  saving = false;
+  loading = true;
+  twoFactorPassword = '';
+  twoFactorTarget = true;
   private querySub?: Subscription;
 
   readonly today = todayIso();
@@ -88,11 +123,8 @@ export class Profile implements OnInit, OnDestroy {
   showDeviceLogoutConfirm = false;
   targetLogoutDeviceId = '';
 
-  devicesList = [
-    { id: 'chrome', name: 'Chrome - Windows', status: 'Hiện tại', time: 'TP.HCM, Việt Nam • 10:45', isCurrent: true },
-    { id: 'iphone', name: 'iPhone 14', status: '', time: 'TP.HCM, Việt Nam • Hôm qua, 20:15', isCurrent: false },
-    { id: 'safari', name: 'Safari - MacOS', status: '', time: 'TP.HCM, Việt Nam • Hôm kia, 09:30', isCurrent: false }
-  ];
+  devicesList: { id: string; name: string; status: string; time: string; isCurrent: boolean }[] =
+    [];
 
   // 2FA state
   is2FAEnabled = false;
@@ -117,7 +149,9 @@ export class Profile implements OnInit, OnDestroy {
   }
 
   get activeVouchers(): Voucher[] {
-    return this.vouchersList.filter(v => v.count !== 0);
+    return this.vouchersList.filter((v) =>
+      ['available', 'upcoming', 'held'].includes(v.state || ''),
+    );
   }
 
   useVoucher(): void {
@@ -126,10 +160,16 @@ export class Profile implements OnInit, OnDestroy {
   }
 
   get expiredVouchers(): any[] {
-    return [
-      ...this.vouchersList.filter(v => v.count === 0).map(v => ({ ...v, discount: v.title, title: v.code, status: 'used', usedAt: v.usedAt })),
-      { id: 'v_exp1', code: 'APPONLY70', title: 'Ưu đãi đặt qua App Mobile', description: 'Ưu đãi dành riêng khi đặt qua ứng dụng VIAGO Mobile', value: 70000, type: 'fixed', expiryDate: '15/06/2026', discount: 'GIẢM 70K', status: 'expired', expiry: '15/06/2026' }
-    ];
+    return this.vouchersList
+      .filter((v) => ['used', 'expired', 'revoked'].includes(v.state || ''))
+      .map((v) => ({
+        ...v,
+        discount: v.title,
+        title: v.code,
+        status: v.state,
+        expiry: v.expiryDate,
+        usedAt: v.usedAt,
+      }));
   }
 
   // Khóa tài khoản
@@ -159,15 +199,24 @@ export class Profile implements OnInit, OnDestroy {
 
   /** Danh sách tuyến xe (đồng bộ với bộ lọc tuyến xe phía Admin). */
   readonly routesList = [
-    'TP.HCM → Cần Thơ', 'Cần Thơ → TP.HCM',
-    'TP.HCM → Vũng Tàu', 'Vũng Tàu → TP.HCM',
-    'Đà Lạt → Buôn Ma Thuột', 'Buôn Ma Thuột → Đà Lạt',
-    'Đà Lạt → Nha Trang', 'Nha Trang → Đà Lạt',
-    'Cần Thơ → Rạch Giá', 'Rạch Giá → Cần Thơ',
-    'TP.HCM → Phan Thiết', 'Phan Thiết → TP.HCM',
-    'TP.HCM → Đà Lạt', 'Đà Lạt → TP.HCM',
-    'TP.HCM → Nha Trang', 'Nha Trang → TP.HCM',
-    'Nha Trang → Đà Nẵng', 'Đà Nẵng → Nha Trang',
+    'TP.HCM → Cần Thơ',
+    'Cần Thơ → TP.HCM',
+    'TP.HCM → Vũng Tàu',
+    'Vũng Tàu → TP.HCM',
+    'Đà Lạt → Buôn Ma Thuột',
+    'Buôn Ma Thuột → Đà Lạt',
+    'Đà Lạt → Nha Trang',
+    'Nha Trang → Đà Lạt',
+    'Cần Thơ → Rạch Giá',
+    'Rạch Giá → Cần Thơ',
+    'TP.HCM → Phan Thiết',
+    'Phan Thiết → TP.HCM',
+    'TP.HCM → Đà Lạt',
+    'Đà Lạt → TP.HCM',
+    'TP.HCM → Nha Trang',
+    'Nha Trang → TP.HCM',
+    'Nha Trang → Đà Nẵng',
+    'Đà Nẵng → Nha Trang',
   ];
   currentPage = 1;
   pageSize = 5;
@@ -181,16 +230,18 @@ export class Profile implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     public toastService: ToastService,
     private cdr: ChangeDetectorRef,
-    public voucherService: VoucherService
+    public voucherService: VoucherService,
   ) {}
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    this.initForm();
+    await this.authService.ready;
     if (!this.authService.currentUser()) {
       this.router.navigate(['/customer'], { replaceUrl: true });
       return;
     }
 
-    this.querySub = this.route.queryParams.subscribe(params => {
+    this.querySub = this.route.queryParams.subscribe((params) => {
       if (params['tab'] && params['tab'] !== this.activeTab) {
         this.activeTab = params['tab'];
         this.isEditing = false;
@@ -198,8 +249,9 @@ export class Profile implements OnInit, OnDestroy {
       }
     });
 
-    this.initForm();
     this.loadUserData();
+    this.loading = false;
+    this.cdr.markForCheck();
   }
 
   ngOnDestroy(): void {
@@ -219,7 +271,7 @@ export class Profile implements OnInit, OnDestroy {
       email: ['', [emailDomainValidator()]],
       gender: [''],
       birthday: ['', [birthDateValidator()]],
-      occupation: ['']
+      occupation: [''],
     });
 
     this.profileForm.valueChanges.subscribe(() => this.calculateCompleteness());
@@ -234,24 +286,21 @@ export class Profile implements OnInit, OnDestroy {
     const user = this.authService.currentUser();
     if (!user) return;
 
-    let occ = user.occupation || '';
-    const standardOccs = ['Học sinh / Sinh viên', 'Nhân viên văn phòng', 'Kinh doanh tự do'];
-    if (occ && !standardOccs.includes(occ)) {
-      occ = 'Khác';
-    }
+    const occ = user.occupation || '';
     const birthday = parseDateValue(user.birthday || user.dob || '');
     this.profileForm.reset({
       name: user.name || '',
       email: user.email || '',
       gender: user.gender || '',
       birthday: birthday ? toIsoDate(birthday) : '',
-      occupation: occ
+      occupation: occ,
     });
     this.avatarPreview = user.avatar || '/assets/customer/user.png';
     this.avatarError = '';
     this.calculateCompleteness();
 
-    this.ticketsList = this.generateTicketsForUser(user);
+    this.is2FAEnabled = !!user.twoFA;
+    void this.reloadServerData();
 
     const currentRankIdx = this.rankIndex;
     this.activeCardIndex = currentRankIdx === -1 ? 0 : currentRankIdx;
@@ -270,7 +319,12 @@ export class Profile implements OnInit, OnDestroy {
     const avatarVal = this.avatarPreview || user.avatar || defaultAvatar;
 
     if (source.name && String(source.name).trim() !== '') score += 20;
-    if (source.email && String(source.email).trim() !== '' && (!this.isEditing || this.profileForm.get('email')?.valid)) score += 15;
+    if (
+      source.email &&
+      String(source.email).trim() !== '' &&
+      (!this.isEditing || this.profileForm.get('email')?.valid)
+    )
+      score += 15;
     if (avatarVal && avatarVal !== defaultAvatar) score += 10;
     if (source.gender && String(source.gender).trim() !== '') score += 10;
     if (source.birthday && String(source.birthday).trim() !== '') score += 15;
@@ -317,7 +371,7 @@ export class Profile implements OnInit, OnDestroy {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { tab },
-      queryParamsHandling: 'merge'
+      queryParamsHandling: 'merge',
     });
     this.scrollContentToTop();
   }
@@ -327,6 +381,7 @@ export class Profile implements OnInit, OnDestroy {
   }
 
   startEdit(): void {
+    if (this.loading || this.saving) return;
     this.isEditing = true;
     this.loadUserData();
     this.cdr.detectChanges();
@@ -338,6 +393,7 @@ export class Profile implements OnInit, OnDestroy {
   }
 
   async saveEdit(): Promise<void> {
+    if (this.loading || this.saving) return;
     if (this.profileForm.invalid) {
       this.profileForm.markAllAsTouched();
       this.cdr.detectChanges();
@@ -349,6 +405,7 @@ export class Profile implements OnInit, OnDestroy {
     if (!user) return;
 
     const { email, gender, birthday, occupation } = this.profileForm.value;
+    this.saving = true;
     // Họ tên bị khóa: luôn giữ nguyên tên đã đăng ký
     const name = this.isNameLocked ? user.name : String(this.profileForm.value.name).trim();
     const result = await this.authService.updateProfile(user.phoneNumber, name, {
@@ -356,8 +413,9 @@ export class Profile implements OnInit, OnDestroy {
       gender,
       birthday,
       occupation,
-      avatar: this.avatarPreview || '/assets/customer/user.png'
+      avatar: this.avatarPreview || '/assets/customer/user.png',
     });
+    this.saving = false;
 
     if (result.success) {
       this.isEditing = false;
@@ -366,6 +424,7 @@ export class Profile implements OnInit, OnDestroy {
     } else {
       this.toastService.showError(result.message);
     }
+    this.cdr.markForCheck();
   }
 
   onPhotoSelected(event: Event): void {
@@ -387,9 +446,27 @@ export class Profile implements OnInit, OnDestroy {
 
     const reader = new FileReader();
     reader.onload = () => {
-      this.avatarPreview = reader.result as string;
-      this.calculateCompleteness();
-      this.cdr.detectChanges();
+      const image = new Image();
+      image.onload = () => {
+        const scale = Math.min(1, 512 / Math.max(image.naturalWidth, image.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const context = canvas.getContext('2d');
+        if (!context) {
+          this.avatarError = 'Không xử lý được ảnh.';
+          return;
+        }
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        this.avatarPreview = canvas.toDataURL('image/webp', 0.85);
+        this.calculateCompleteness();
+        this.cdr.markForCheck();
+      };
+      image.onerror = () => {
+        this.avatarError = 'Không đọc được ảnh.';
+        this.cdr.markForCheck();
+      };
+      image.src = String(reader.result);
     };
     reader.readAsDataURL(file);
   }
@@ -398,10 +475,16 @@ export class Profile implements OnInit, OnDestroy {
   // ĐĂNG XUẤT
   // =========================================================================
 
-  logout(): void {
-    this.authService.logout();
-    this.toastService.showSuccess('Bạn đã đăng xuất khỏi tài khoản.');
-    this.router.navigate(['/customer'], { replaceUrl: true });
+  async logout(): Promise<void> {
+    try {
+      await this.authService.logout();
+      this.toastService.showSuccess('Bạn đã đăng xuất khỏi tài khoản.');
+    } catch (error) {
+      this.toastService.showError(
+        error instanceof Error ? error.message : 'Không thu hồi được phiên trên server.',
+      );
+    }
+    await this.router.navigate(['/customer'], { replaceUrl: true });
   }
 
   // =========================================================================
@@ -414,36 +497,53 @@ export class Profile implements OnInit, OnDestroy {
 
   closeChangePassword(): void {
     this.showChangePasswordModal = false;
+    if (!this.authService.currentUser())
+      void this.router.navigate(['/customer'], { replaceUrl: true });
   }
 
   confirmLogoutAllOtherDevices(): void {
     this.showLogoutAllModal = true;
   }
 
-  logoutAllOtherDevices(): void {
-    this.showLogoutAllModal = false;
-    this.devicesList = this.devicesList.filter(d => d.isCurrent);
-    this.toastService.showSuccess('Đã đăng xuất khỏi tất cả các thiết bị khác thành công.');
+  async logoutAllOtherDevices(): Promise<void> {
+    try {
+      for (const device of this.devicesList.filter((d) => !d.isCurrent))
+        await this.authService.revokeSession(device.id);
+      await this.reloadServerData();
+      this.showLogoutAllModal = false;
+      this.toastService.showSuccess('Đã thu hồi các phiên đăng nhập khác.');
+    } catch (error) {
+      this.toastService.showError(
+        error instanceof Error ? error.message : 'Không thu hồi được phiên.',
+      );
+    }
   }
-
   removeDevice(deviceId: string): void {
     this.targetLogoutDeviceId = deviceId;
     this.showDeviceLogoutConfirm = true;
   }
 
-  confirmDeviceLogout(): void {
-    this.showDeviceLogoutConfirm = false;
+  async confirmDeviceLogout(): Promise<void> {
     if (!this.targetLogoutDeviceId) return;
-
-    if (this.targetLogoutDeviceId === 'chrome') {
-      this.logout();
-    } else {
-      this.devicesList = this.devicesList.filter(d => d.id !== this.targetLogoutDeviceId);
-      this.toastService.showSuccess('Đã đăng xuất thiết bị thành công.');
+    try {
+      const current = this.devicesList.find((d) => d.id === this.targetLogoutDeviceId)?.isCurrent;
+      await this.authService.revokeSession(this.targetLogoutDeviceId);
+      this.showDeviceLogoutConfirm = false;
+      if (current) {
+        this.authService.invalidate();
+        await this.router.navigate(['/customer']);
+      } else {
+        await this.reloadServerData();
+        this.toastService.showSuccess('Đã thu hồi phiên đăng nhập.');
+      }
+    } catch (error) {
+      this.toastService.showError(
+        error instanceof Error ? error.message : 'Không thu hồi được phiên.',
+      );
+    } finally {
+      this.cdr.markForCheck();
     }
-    this.targetLogoutDeviceId = '';
   }
-
   openLockAccount(): void {
     this.showLockAccountModal = true;
     this.isLockingProcess = false;
@@ -462,50 +562,25 @@ export class Profile implements OnInit, OnDestroy {
 
   /** Ô đã từng báo lỗi -> kiểm tra liên tục khi gõ, lỗi tự biến mất ngay khi nhập đúng. */
   async checkLockPassword(): Promise<void> {
-    const user = this.authService.currentUser();
-    if (!this.lockConfirmPassword || !user) {
-      this.isLockPasswordCorrect = false;
-      return;
-    }
-    const hashed = await this.authService.hashPassword(this.lockConfirmPassword);
-    this.isLockPasswordCorrect = user.passwordHash === hashed || user.password === this.lockConfirmPassword;
-    if (this.isLockPasswordCorrect) {
-      this.lockPasswordError = '';
-    }
-    this.cdr.detectChanges();
+    this.isLockPasswordCorrect = !!this.lockConfirmPassword;
+    this.lockPasswordError = '';
   }
-
-  /** Kiểm tra khi rời ô (blur) - không báo lỗi trong lúc đang gõ lần đầu. */
   onLockPasswordBlur(): void {
-    if (this.lockConfirmPassword && !this.isLockPasswordCorrect) {
-      this.lockPasswordError = 'Mật khẩu hiện tại không chính xác.';
-    }
+    if (!this.lockConfirmPassword) this.lockPasswordError = 'Vui lòng nhập mật khẩu hiện tại.';
   }
-
   async confirmLockAccount(): Promise<void> {
-    const user = this.authService.currentUser();
-    if (!user) return;
-
-    const hashed = await this.authService.hashPassword(this.lockConfirmPassword);
-    if (user.passwordHash !== hashed && user.password !== this.lockConfirmPassword) {
-      this.lockPasswordError = 'Mật khẩu hiện tại không chính xác.';
-      return;
-    }
-
+    if (this.isLockingProcess || !this.lockConfirmPassword) return;
     this.isLockingProcess = true;
-    this.cdr.detectChanges();
-
-    const softResult = await this.authService.softDeleteAccount(user.phoneNumber);
-    if (softResult.success) {
-      setTimeout(() => {
-        this.showLockAccountModal = false;
-        this.isLockingProcess = false;
-        this.router.navigate(['/customer'], { replaceUrl: true });
-      }, 2000);
-    } else {
-      this.isLockingProcess = false;
-      this.lockPasswordError = softResult.message;
-    }
+    const result = await this.authService.softDeleteAccount(
+      this.authService.currentUser()?.phoneNumber || '',
+      this.lockConfirmPassword,
+    );
+    if (result.success) {
+      this.showLockAccountModal = false;
+      await this.router.navigate(['/customer']);
+    } else this.lockPasswordError = result.message;
+    this.isLockingProcess = false;
+    this.cdr.markForCheck();
   }
 
   // =========================================================================
@@ -513,122 +588,106 @@ export class Profile implements OnInit, OnDestroy {
   // =========================================================================
 
   /** Sinh lịch sử vé mẫu theo người dùng: ngày đi quá khứ -> vé đã đi; tương lai -> vé chờ. */
-  generateTicketsForUser(user: any): ProfileTicket[] {
-    const ticketCount = user.tickets || 0;
-    const generated: ProfileTicket[] = [];
-    const pastStatuses: TicketStatus[] = ['ĐÃ HOÀN THÀNH', 'ĐÃ ĐÁNH GIÁ', 'ĐÃ HOÀN THÀNH', 'ĐÃ HỦY'];
-    const futureStatuses: TicketStatus[] = ['CHỜ KHỞI HÀNH', 'CHỜ THANH TOÁN'];
-    const routes = [
-      { depLoc: 'TP.HCM', arrLoc: 'ĐÀ LẠT', duration: '6h 00p (310 km)', depTime: '08:00', arrTime: '14:00', type: 'Limousine', price: 280000 },
-      { depLoc: 'TP.HCM', arrLoc: 'NHA TRANG', duration: '8h 00p (430 km)', depTime: '22:00', arrTime: '06:00', type: 'Giường nằm', price: 320000 },
-      { depLoc: 'TP.HCM', arrLoc: 'CẦN THƠ', duration: '3h 30p (170 km)', depTime: '07:00', arrTime: '10:30', type: 'Ghế ngồi', price: 180000 },
-      { depLoc: 'TP.HCM', arrLoc: 'VŨNG TÀU', duration: '2h 00p (100 km)', depTime: '14:00', arrTime: '16:00', type: 'Ghế ngồi', price: 120000 },
-      { depLoc: 'ĐÀ LẠT', arrLoc: 'NHA TRANG', duration: '3h 00p (135 km)', depTime: '09:00', arrTime: '12:00', type: 'Limousine', price: 160000 }
-    ];
-
-    let seed = 0;
-    if (user.id) {
-      for (let i = 0; i < user.id.length; i++) seed += user.id.charCodeAt(i);
+  async reloadServerData(): Promise<void> {
+    try {
+      const [tickets, sessions] = await Promise.all([
+        this.authService.tickets<ProfileTicket>(),
+        this.authService.sessions(),
+      ]);
+      this.ticketsList = tickets;
+      this.devicesList = sessions.map((d) => ({
+        id: d.id,
+        name: d.name,
+        status: d.isCurrent ? 'Hiện tại' : '',
+        time: d.ip + ' • ' + new Date(d.lastActiveAt).toLocaleString('vi-VN'),
+        isCurrent: d.isCurrent,
+      }));
+      await this.voucherService.refreshWallet();
+    } catch (error) {
+      this.toastService.showError(
+        error instanceof Error ? error.message : 'Không tải được dữ liệu tài khoản.',
+      );
+    } finally {
+      this.cdr.markForCheck();
     }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    // Tối đa 2 vé sắp đi, còn lại là các chuyến trong quá khứ
-    const upcomingCount = Math.min(2, Math.max(0, ticketCount - 1));
-
-    for (let i = 0; i < ticketCount; i++) {
-      const route = routes[(seed + i) % routes.length];
-      const isUpcoming = i < upcomingCount;
-      const offsetDays = isUpcoming ? 3 + ((seed + i * 5) % 20) : -(5 + ((seed + i * 11) % 160) + i * 3);
-      const tripDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offsetDays);
-      const bookedDate = new Date(tripDate.getFullYear(), tripDate.getMonth(), tripDate.getDate() - (2 + (i % 6)));
-      const status = isUpcoming
-        ? futureStatuses[(seed + i) % futureStatuses.length]
-        : pastStatuses[(seed + i * 2) % pastStatuses.length];
-
-      generated.push({
-        id: `VE${97589000 + ((seed * 17 + i * 3) % 1000)}`,
-        orderId: `DH${10000000 + ((seed * 13 + i * 7) % 10000)}`,
-        status,
-        date: toIsoDate(tripDate),
-        dateLabel: formatDateVN(tripDate),
-        bookedAt: formatDateVN(bookedDate),
-        depTime: route.depTime,
-        depLoc: route.depLoc,
-        arrTime: route.arrTime,
-        arrLoc: route.arrLoc,
-        duration: route.duration,
-        seat: (i % 2 === 0 ? 'A' : 'B') + String(1 + (i % 15)).padStart(2, '0'),
-        type: route.type,
-        price: route.price,
-        priceLabel: route.price.toLocaleString('vi-VN') + 'đ'
-      });
-    }
-
-    return generated.sort((a, b) => b.date.localeCompare(a.date));
   }
 
-  /** Vé quá ngày/giờ khởi hành tự cập nhật trạng thái (không còn hiển thị "Chờ khởi hành"). */
   getEffectiveStatus(ticket: ProfileTicket): TicketStatus {
-    const departure = parseDateValue(ticket.date);
-    if (!departure) return ticket.status;
-    const [h, m] = ticket.depTime.split(':').map(Number);
-    departure.setHours(h || 0, m || 0, 0, 0);
-    const departed = departure.getTime() <= Date.now();
-    if (departed && ticket.status === 'CHỜ KHỞI HÀNH') return 'ĐÃ HOÀN THÀNH';
-    if (departed && ticket.status === 'CHỜ THANH TOÁN') return 'ĐÃ HỦY';
     return ticket.status;
   }
 
   getStatusLabel(status: TicketStatus): string {
     switch (status) {
-      case 'CHỜ THANH TOÁN': return 'Chờ thanh toán';
-      case 'CHỜ KHỞI HÀNH': return 'Chờ khởi hành';
-      case 'ĐÃ HOÀN THÀNH': return 'Đã hoàn thành';
-      case 'ĐÃ ĐÁNH GIÁ': return 'Đã đánh giá';
-      case 'ĐÃ HỦY': return 'Đã hủy';
+      case 'CHỜ THANH TOÁN':
+        return 'Chờ thanh toán';
+      case 'CHỜ KHỞI HÀNH':
+        return 'Chờ khởi hành';
+      case 'ĐÃ HOÀN THÀNH':
+        return 'Đã hoàn thành';
+      case 'ĐÃ ĐÁNH GIÁ':
+        return 'Đã đánh giá';
+      case 'ĐÃ HỦY':
+        return 'Đã hủy';
     }
   }
 
   getStatusModifier(status: TicketStatus): string {
     switch (status) {
-      case 'CHỜ THANH TOÁN': return 'pending';
-      case 'CHỜ KHỞI HÀNH': return 'waiting';
-      case 'ĐÃ HOÀN THÀNH': return 'completed';
-      case 'ĐÃ ĐÁNH GIÁ': return 'reviewed';
-      case 'ĐÃ HỦY': return 'canceled';
+      case 'CHỜ THANH TOÁN':
+        return 'pending';
+      case 'CHỜ KHỞI HÀNH':
+        return 'waiting';
+      case 'ĐÃ HOÀN THÀNH':
+        return 'completed';
+      case 'ĐÃ ĐÁNH GIÁ':
+        return 'reviewed';
+      case 'ĐÃ HỦY':
+        return 'canceled';
     }
   }
 
   /** Chỉ số bước hiện tại trên thanh tiến trình (Status Stepper). */
   getStepIndex(status: TicketStatus): number {
     switch (status) {
-      case 'CHỜ THANH TOÁN': return 1;
-      case 'CHỜ KHỞI HÀNH': return 2;
-      case 'ĐÃ HOÀN THÀNH': return 3;
-      case 'ĐÃ ĐÁNH GIÁ': return 4;
-      case 'ĐÃ HỦY': return -1;
+      case 'CHỜ THANH TOÁN':
+        return 1;
+      case 'CHỜ KHỞI HÀNH':
+        return 2;
+      case 'ĐÃ HOÀN THÀNH':
+        return 3;
+      case 'ĐÃ ĐÁNH GIÁ':
+        return 4;
+      case 'ĐÃ HỦY':
+        return -1;
     }
   }
 
   get userTickets(): ProfileTicket[] {
-    const user = this.authService.currentUser();
-    if (user && user.phoneNumber === '0976262546') return [];
     return this.ticketsList;
   }
 
-  /** Tên tuyến theo định dạng bộ lọc: "TP.HCM → Đà Lạt". */
   getRouteLabel(ticket: ProfileTicket): string {
-    const city = (c: string) => (c.trim().toUpperCase() === 'TP.HCM' ? 'TP.HCM' : this.normalizeCityName(c));
+    const city = (c: string) =>
+      c.trim().toUpperCase() === 'TP.HCM' ? 'TP.HCM' : this.normalizeCityName(c);
     return `${city(ticket.depLoc)} → ${city(ticket.arrLoc)}`;
   }
 
   /** Lọc theo tìm kiếm, tuyến xe, thời gian (chưa xét trạng thái - dùng để đếm số lượng trên tab). */
   private get ticketsMatchingFilters(): ProfileTicket[] {
-    return this.userTickets.filter(t => {
+    return this.userTickets.filter((t) => {
       // Tìm kiếm theo một phần từ khóa / gần đúng (không phân biệt dấu, hoa thường)
-      const matchSearch = matchesKeyword(this.searchQuery, t.orderId, t.id, t.depLoc, t.arrLoc, this.getRouteLabel(t), t.type, t.seat);
-      const matchRoute = this.routeFilter === 'Tất cả tuyến xe' || this.getRouteLabel(t) === this.routeFilter;
+      const matchSearch = matchesKeyword(
+        this.searchQuery,
+        t.orderId,
+        t.id,
+        t.depLoc,
+        t.arrLoc,
+        this.getRouteLabel(t),
+        t.type,
+        t.seat,
+      );
+      const matchRoute =
+        this.routeFilter === 'Tất cả tuyến xe' || this.getRouteLabel(t) === this.routeFilter;
       const matchDate = !this.dateFilter || t.date === this.dateFilter;
       return matchSearch && matchRoute && matchDate;
     });
@@ -636,17 +695,28 @@ export class Profile implements OnInit, OnDestroy {
 
   countByStatus(status: string): number {
     const tickets = this.ticketsMatchingFilters;
-    return status === 'Tất cả' ? tickets.length : tickets.filter(t => this.getEffectiveStatus(t) === status).length;
+    return status === 'Tất cả'
+      ? tickets.length
+      : tickets.filter((t) => this.getEffectiveStatus(t) === status).length;
   }
 
   get filteredTickets(): ProfileTicket[] {
-    const filtered = this.ticketsMatchingFilters
-      .filter(t => this.statusFilter === 'Tất cả' || this.getEffectiveStatus(t) === this.statusFilter);
+    const filtered = this.ticketsMatchingFilters.filter(
+      (t) => this.statusFilter === 'Tất cả' || this.getEffectiveStatus(t) === this.statusFilter,
+    );
     switch (this.sortOption) {
-      case 'Cũ nhất': return filtered.sort((a, b) => a.date.localeCompare(b.date) || a.depTime.localeCompare(b.depTime));
-      case 'Giá vé cao → thấp': return filtered.sort((a, b) => b.price - a.price);
-      case 'Giá vé thấp → cao': return filtered.sort((a, b) => a.price - b.price);
-      default: return filtered.sort((a, b) => b.date.localeCompare(a.date) || b.depTime.localeCompare(a.depTime));
+      case 'Cũ nhất':
+        return filtered.sort(
+          (a, b) => a.date.localeCompare(b.date) || a.depTime.localeCompare(b.depTime),
+        );
+      case 'Giá vé cao → thấp':
+        return filtered.sort((a, b) => b.price - a.price);
+      case 'Giá vé thấp → cao':
+        return filtered.sort((a, b) => a.price - b.price);
+      default:
+        return filtered.sort(
+          (a, b) => b.date.localeCompare(a.date) || b.depTime.localeCompare(a.depTime),
+        );
     }
   }
 
@@ -681,7 +751,8 @@ export class Profile implements OnInit, OnDestroy {
 
   normalizeCityName(city: string): string {
     const clean = city.trim().toUpperCase();
-    if (clean === 'TP.HCM' || clean.includes('HỒ CHÍ MINH') || clean.includes('HCM')) return 'TP. Hồ Chí Minh';
+    if (clean === 'TP.HCM' || clean.includes('HỒ CHÍ MINH') || clean.includes('HCM'))
+      return 'TP. Hồ Chí Minh';
     if (clean === 'ĐÀ LẠT') return 'Đà Lạt';
     if (clean === 'NHA TRANG') return 'Nha Trang';
     if (clean === 'CẦN THƠ') return 'Cần Thơ';
@@ -693,10 +764,13 @@ export class Profile implements OnInit, OnDestroy {
   }
 
   rebookTicket(ticketId: string): void {
-    const ticket = this.ticketsList.find(t => t.id === ticketId);
+    const ticket = this.ticketsList.find((t) => t.id === ticketId);
     if (ticket) {
       this.router.navigate(['/customer'], {
-        queryParams: { departure: this.normalizeCityName(ticket.depLoc), destination: this.normalizeCityName(ticket.arrLoc) }
+        queryParams: {
+          departure: this.normalizeCityName(ticket.depLoc),
+          destination: this.normalizeCityName(ticket.arrLoc),
+        },
       });
     }
   }
@@ -747,7 +821,10 @@ export class Profile implements OnInit, OnDestroy {
       ['Mã đơn hàng', ticket.orderId],
       ['Họ tên khách', user?.name || 'Khách hàng VIAGO'],
       ['Mã vé', ticket.id],
-      ['Tuyến xe', `${this.normalizeCityName(ticket.depLoc)} - ${this.normalizeCityName(ticket.arrLoc)}`],
+      [
+        'Tuyến xe',
+        `${this.normalizeCityName(ticket.depLoc)} - ${this.normalizeCityName(ticket.arrLoc)}`,
+      ],
       ['Khởi hành', `${ticket.depTime} ${ticket.dateLabel}`],
       ['Số ghế', ticket.seat],
       ['Loại xe', ticket.type],
@@ -758,7 +835,11 @@ export class Profile implements OnInit, OnDestroy {
   }
 
   private escapeHtml(value: string): string {
-    return value.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] as string));
+    return value.replace(
+      /[&<>"']/g,
+      (ch) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] as string,
+    );
   }
 
   /**
@@ -768,7 +849,10 @@ export class Profile implements OnInit, OnDestroy {
    */
   printTicket(ticket: ProfileTicket): void {
     const rows = this.buildTicketLines(ticket)
-      .map(([label, value]) => `<tr><td class="l">${this.escapeHtml(label)}:</td><td class="v">${this.escapeHtml(value)}</td></tr>`)
+      .map(
+        ([label, value]) =>
+          `<tr><td class="l">${this.escapeHtml(label)}:</td><td class="v">${this.escapeHtml(value)}</td></tr>`,
+      )
       .join('');
     const html = `<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Ve-${this.escapeHtml(ticket.id)}</title>
       <style>
@@ -799,7 +883,8 @@ export class Profile implements OnInit, OnDestroy {
 
     const iframe = document.createElement('iframe');
     iframe.setAttribute('aria-hidden', 'true');
-    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+    iframe.style.cssText =
+      'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
     document.body.appendChild(iframe);
     const doc = iframe.contentWindow?.document;
     if (!doc) {
@@ -879,7 +964,11 @@ export class Profile implements OnInit, OnDestroy {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#b45309';
     ctx.font = 'bold 18px Inter, Arial, sans-serif';
-    ctx.fillText(`Có mặt tại điểm đón lúc ${this.getPresenceTime(ticket)} ngày ${ticket.dateLabel}`, width / 2, y + 22);
+    ctx.fillText(
+      `Có mặt tại điểm đón lúc ${this.getPresenceTime(ticket)} ngày ${ticket.dateLabel}`,
+      width / 2,
+      y + 22,
+    );
     y += 56;
     dashed(y);
 
@@ -898,9 +987,13 @@ export class Profile implements OnInit, OnDestroy {
     }
     ctx.fillStyle = '#475569';
     ctx.font = '15px Inter, Arial, sans-serif';
-    ctx.fillText('Quét mã QR tại cổng soát vé để lên xe • Tổng đài: 1900 1234', width / 2, qrTop + qrSize + 32);
+    ctx.fillText(
+      'Quét mã QR tại cổng soát vé để lên xe • Tổng đài: 1900 1234',
+      width / 2,
+      qrTop + qrSize + 32,
+    );
 
-    canvas.toBlob(blob => {
+    canvas.toBlob((blob) => {
       if (!blob) {
         this.toastService.showError('Không thể tạo ảnh vé, vui lòng thử lại.');
         return;
@@ -923,7 +1016,6 @@ export class Profile implements OnInit, OnDestroy {
   reviewFileError = '';
   reviewAttachments: { file: File; url: string; isVideo: boolean }[] = [];
   readonly maxReviewFiles = 3;
-  readonly reviewReward = { code: 'CAMON20', title: 'Voucher giảm 20.000đ', desc: 'Áp dụng cho chuyến đi tiếp theo, hạn dùng 30 ngày kể từ ngày nhận.' };
   readonly quickReviewTags = ['An toàn', 'Sạch sẽ', 'Đúng giờ', 'Tài xế thân thiện', 'Tiện nghi'];
   ratingCriteria = [
     { label: 'An toàn', score: 0 },
@@ -941,7 +1033,7 @@ export class Profile implements OnInit, OnDestroy {
     this.reviewError = '';
     this.reviewFileError = '';
     this.clearReviewAttachments();
-    this.ratingCriteria.forEach(c => c.score = 0);
+    this.ratingCriteria.forEach((c) => (c.score = 0));
     this.showTicketDetail = false;
     this.showReviewModal = true;
   }
@@ -958,14 +1050,21 @@ export class Profile implements OnInit, OnDestroy {
   }
 
   toggleReviewTag(tag: string): void {
-    const tags = this.reviewComment.split(',').map(t => t.trim()).filter(Boolean);
+    const tags = this.reviewComment
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
     const idx = tags.indexOf(tag);
-    if (idx >= 0) tags.splice(idx, 1); else tags.push(tag);
+    if (idx >= 0) tags.splice(idx, 1);
+    else tags.push(tag);
     this.reviewComment = tags.join(', ');
   }
 
   hasReviewTag(tag: string): boolean {
-    return this.reviewComment.split(',').map(t => t.trim()).includes(tag);
+    return this.reviewComment
+      .split(',')
+      .map((t) => t.trim())
+      .includes(tag);
   }
 
   /** Chọn ảnh/video: hiển thị thumbnail xem trước thay vì chỉ hiện tên tệp. */
@@ -982,15 +1081,20 @@ export class Profile implements OnInit, OnDestroy {
       }
       const isImage = file.type.startsWith('image/');
       const isVideo = file.type.startsWith('video/');
-      if (!isImage && !isVideo) {
-        this.reviewFileError = `Tệp "${file.name}" không phải ảnh hoặc video.`;
+      if (
+        !['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'].includes(file.type)
+      ) {
+        this.reviewFileError = 'Chỉ hỗ trợ ảnh JPG, PNG, WebP và video MP4, WebM.';
         continue;
       }
       if ((isImage && file.size > 5 * 1024 * 1024) || (isVideo && file.size > 20 * 1024 * 1024)) {
         this.reviewFileError = `Tệp "${file.name}" vượt quá dung lượng cho phép (ảnh 5MB, video 20MB).`;
         continue;
       }
-      this.reviewAttachments = [...this.reviewAttachments, { file, url: URL.createObjectURL(file), isVideo }];
+      this.reviewAttachments = [
+        ...this.reviewAttachments,
+        { file, url: URL.createObjectURL(file), isVideo },
+      ];
     }
   }
 
@@ -1001,35 +1105,38 @@ export class Profile implements OnInit, OnDestroy {
   }
 
   private clearReviewAttachments(): void {
-    this.reviewAttachments.forEach(item => URL.revokeObjectURL(item.url));
+    this.reviewAttachments.forEach((item) => URL.revokeObjectURL(item.url));
     this.reviewAttachments = [];
   }
 
-  submitReview(): void {
-    if (!this.reviewTicket) return;
-    if (!this.ratingCriteria.some(c => c.score > 0)) {
-      this.reviewError = 'Vui lòng chấm điểm ít nhất một tiêu chí trước khi gửi.';
+  async submitReview(): Promise<void> {
+    if (!this.reviewTicket || this.saving) return;
+    if (!this.ratingCriteria.some((c) => c.score > 0)) {
+      this.reviewError = 'Vui lòng chấm điểm ít nhất một tiêu chí.';
       return;
     }
-    if (this.reviewComment.length > 500) {
-      this.reviewError = 'Nhận xét tối đa 500 ký tự.';
-      return;
+    this.saving = true;
+    this.reviewError = '';
+    try {
+      const body = new FormData();
+      body.append('scores', JSON.stringify(this.ratingCriteria.map((c) => c.score)));
+      body.append('comment', this.reviewComment);
+      for (const attachment of this.reviewAttachments) body.append('files', attachment.file);
+      await this.backend.request(
+        'customer/profile/tickets/' + encodeURIComponent(this.reviewTicket.id) + '/review',
+        'POST',
+        body,
+      );
+      await this.reloadServerData();
+      this.reviewSubmitted = true;
+      this.toastService.showSuccess('Đánh giá đã được lưu.');
+    } catch (error) {
+      this.reviewError = error instanceof Error ? error.message : 'Không lưu được đánh giá.';
+    } finally {
+      this.saving = false;
+      this.cdr.markForCheck();
     }
-    const ticket = this.ticketsList.find(t => t.id === this.reviewTicket!.id);
-    if (ticket) ticket.status = 'ĐÃ ĐÁNH GIÁ';
-    this.reviewSubmitted = true;
-    this.toastService.showSuccess('Đánh giá đã được gửi thành công.');
   }
-
-  copyRewardCode(): void {
-    navigator.clipboard.writeText(this.reviewReward.code)
-      .then(() => this.toastService.showSuccess(`Đã sao chép mã ${this.reviewReward.code}.`))
-      .catch(() => this.toastService.showError('Không thể sao chép mã ưu đãi.'));
-  }
-
-  // =========================================================================
-  // 2FA
-  // =========================================================================
 
   get userProfile() {
     const user = this.authService.currentUser();
@@ -1038,7 +1145,9 @@ export class Profile implements OnInit, OnDestroy {
 
   getMaskedPhone(): string {
     const phone = this.userProfile.phone.trim();
-    return phone.length >= 7 ? phone.substring(0, 4) + '***' + phone.substring(phone.length - 3) : phone;
+    return phone.length >= 7
+      ? phone.substring(0, 4) + '***' + phone.substring(phone.length - 3)
+      : phone;
   }
 
   getMaskedEmail(): string {
@@ -1054,14 +1163,9 @@ export class Profile implements OnInit, OnDestroy {
   onToggle2FAClick(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    if (this.is2FAEnabled) {
-      this.is2FAEnabled = false;
-      this.toastService.showSuccess('Xác thực 2 lớp (2FA) đã được tắt.');
-    } else if (!this.userProfile.email.trim()) {
-      this.show2FAEmailErrorPopup = true;
-    } else {
-      this.open2FAPopup1();
-    }
+    this.twoFactorTarget = !this.is2FAEnabled;
+    this.twoFactorPassword = '';
+    this.open2FAPopup1();
   }
 
   open2FAPopup1(): void {
@@ -1073,13 +1177,26 @@ export class Profile implements OnInit, OnDestroy {
     this.show2FAPopup1 = false;
   }
 
-  submit2FAMethod(): void {
-    this.generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  async submit2FAMethod(): Promise<void> {
+    if (this.twoFactorMethod !== 'phone') {
+      this.toastService.showError('Chưa cấu hình xác thực qua email. Vui lòng chọn SMS.');
+      return;
+    }
+    if (!this.twoFactorPassword) {
+      this.toastService.showError('Vui lòng nhập mật khẩu hiện tại.');
+      return;
+    }
+    const result = await this.authService.sendOTP(this.userProfile.phone, null, 'two-factor');
+    if (!result.success) {
+      this.toastService.showError(result.message);
+      return;
+    }
     this.twoFactorOtpVal = '';
     this.twoFactorOtpError = '';
     this.show2FAPopup1 = false;
     this.show2FAPopup2 = true;
     this.start2FAOtpTimer();
+    this.cdr.markForCheck();
   }
 
   close2FAPopup2(): void {
@@ -1111,28 +1228,40 @@ export class Profile implements OnInit, OnDestroy {
     if (digits.length === 6) this.verify2FA();
   }
 
-  verify2FA(): void {
+  async verify2FA(): Promise<void> {
+    if (this.saving || this.twoFactorOtpVal.length !== 6) return;
+    this.saving = true;
     this.twoFactorOtpError = '';
-    if (this.twoFactorOtpVal.length < 6) {
-      this.twoFactorOtpError = 'Vui lòng nhập đầy đủ mã OTP gồm 6 chữ số.';
-      return;
-    }
-
-    if (this.twoFactorOtpVal === this.generatedOtp) {
+    try {
+      const verified = await this.authService.verifyOTP(
+        this.userProfile.phone,
+        this.twoFactorOtpVal,
+      );
+      if (!verified.success) throw new Error(verified.message);
+      const result = await this.authService.setTwoFactor(
+        this.twoFactorTarget,
+        this.twoFactorPassword,
+      );
+      if (!result.success) throw new Error(result.message);
+      this.is2FAEnabled = !!this.authService.currentUser()?.twoFA;
       this.show2FAPopup2 = false;
+      this.twoFactorPassword = '';
       this.stop2FAOtpTimer();
-      this.is2FAEnabled = true;
-      this.toastService.showSuccess('Xác thực 2 lớp (2FA) đã được bật.');
-    } else {
-      this.twoFactorOtpError = 'Mã xác thực không chính xác. Vui lòng nhập lại.';
+      this.toastService.showSuccess('Đã lưu cài đặt xác thực hai lớp.');
+    } catch (error) {
+      this.twoFactorOtpError = error instanceof Error ? error.message : 'Không xác thực được.';
+    } finally {
+      this.saving = false;
+      this.cdr.markForCheck();
     }
   }
-
-  resend2FAOtp(): void {
-    this.twoFactorOtpError = '';
-    this.generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    this.twoFactorOtpVal = '';
-    this.start2FAOtpTimer();
+  async resend2FAOtp(): Promise<void> {
+    const result = await this.authService.sendOTP(this.userProfile.phone, null, 'two-factor');
+    if (result.success) {
+      this.twoFactorOtpVal = '';
+      this.start2FAOtpTimer();
+    } else this.twoFactorOtpError = result.message;
+    this.cdr.markForCheck();
   }
 
   start2FAOtpTimer(): void {
@@ -1166,39 +1295,65 @@ export class Profile implements OnInit, OnDestroy {
   // ĐẶC QUYỀN THÀNH VIÊN (đồng bộ từ hồ sơ khách hàng)
   // =========================================================================
 
-  readonly tiers = [
-    { key: 'Bạc', label: 'Bạc', code: 'SILVER', short: 'BẠC', modifier: 'silver', minTickets: 4, minSpent: 1000000 },
-    { key: 'Vàng', label: 'Vàng', code: 'GOLD', short: 'VÀNG', modifier: 'gold', minTickets: 15, minSpent: 5000000 },
-    { key: 'Kim cương', label: 'Kim Cương', code: 'DIAMOND', short: 'K.CƯƠNG', modifier: 'diamond', minTickets: 30, minSpent: 15000000 },
-  ];
+  get tiers() {
+    return (this.authService.currentUser()?.membershipTiers || []).map((tier) => {
+      const style = (
+        {
+          Bạc: { code: 'SILVER', modifier: 'silver' },
+          Vàng: { code: 'GOLD', modifier: 'gold' },
+          'Kim cương': { code: 'DIAMOND', modifier: 'diamond' },
+        } as Record<string, { code: string; modifier: string }>
+      )[tier.name] || { code: tier.id, modifier: 'silver' };
+      return {
+        ...tier,
+        key: tier.name,
+        label: tier.name,
+        short: tier.name.toLocaleUpperCase('vi'),
+        ...style,
+      };
+    });
+  }
 
   prevCard(): void {
-    this.activeCardIndex = this.activeCardIndex > 0 ? this.activeCardIndex - 1 : 2;
+    this.activeCardIndex =
+      this.activeCardIndex > 0 ? this.activeCardIndex - 1 : Math.max(0, this.tiers.length - 1);
   }
 
   nextCard(): void {
-    this.activeCardIndex = this.activeCardIndex < 2 ? this.activeCardIndex + 1 : 0;
+    this.activeCardIndex =
+      this.activeCardIndex < this.tiers.length - 1 ? this.activeCardIndex + 1 : 0;
   }
 
   get rankIndex(): number {
     const rank = this.authService.currentUser()?.rank;
-    return this.tiers.findIndex(t => t.key === rank);
+    return this.tiers.findIndex((t) => t.key === rank);
   }
 
   get currentRankLabel(): string {
     const idx = this.rankIndex;
-    return idx === -1 ? 'Thành viên mới' : `Hạng ${this.tiers[idx].label}`;
+    return idx === -1
+      ? this.authService.currentUser()?.rank || 'Thành viên mới'
+      : `Hạng ${this.tiers[idx].label}`;
   }
 
-  /** Điểm tích lũy: 1 điểm cho mỗi 10.000đ chi tiêu. */
+  /** Điểm tích lũy được quản lý trong hồ sơ Supabase. */
   get loyaltyPoints(): number {
-    return Math.floor((this.authService.currentUser()?.spent || 0) / 10000);
+    return this.authService.currentUser()?.points || 0;
+  }
+  get customOccupation(): string {
+    const occupation = this.authService.currentUser()?.occupation || '';
+    return ['Học sinh / Sinh viên', 'Nhân viên văn phòng', 'Kinh doanh tự do', 'Khác'].includes(
+      occupation,
+    )
+      ? ''
+      : occupation;
   }
 
   getCardPosition(cardIndex: number): 'active' | 'left' | 'right' {
     const activeIdx = this.activeCardIndex;
     if (cardIndex === activeIdx) return 'active';
-    if (cardIndex === activeIdx - 1 || (activeIdx === 0 && cardIndex === 2)) return 'left';
+    if (cardIndex === activeIdx - 1 || (activeIdx === 0 && cardIndex === this.tiers.length - 1))
+      return 'left';
     return 'right';
   }
 
@@ -1212,11 +1367,17 @@ export class Profile implements OnInit, OnDestroy {
     const currentSpent = user?.spent || 0;
     const nextTier = this.tiers[this.rankIndex + 1];
     const isMaxRank = !nextTier;
-    const targetTickets = isMaxRank ? this.tiers[2].minTickets : nextTier.minTickets;
-    const targetSpent = isMaxRank ? this.tiers[2].minSpent : nextTier.minSpent;
+    const targetTickets = isMaxRank ? this.tiers.at(-1)?.minTickets || 0 : nextTier.minTickets;
+    const targetSpent = isMaxRank ? this.tiers.at(-1)?.minSpent || 0 : nextTier.minSpent;
 
-    const ticketPercent = Math.min(100, Math.round((currentTickets / targetTickets) * 100));
-    const spentPercent = Math.min(100, Math.round((currentSpent / targetSpent) * 100));
+    const ticketPercent = Math.min(
+      100,
+      Math.round((targetTickets ? currentTickets / targetTickets : 0) * 100),
+    );
+    const spentPercent = Math.min(
+      100,
+      Math.round((targetSpent ? currentSpent / targetSpent : 0) * 100),
+    );
 
     return {
       currentTickets,
@@ -1234,7 +1395,9 @@ export class Profile implements OnInit, OnDestroy {
   }
 
   formatMoneyShort(value: number): string {
-    return value >= 1000000 ? `${(value / 1000000).toLocaleString('vi-VN')}tr` : `${value.toLocaleString('vi-VN')}đ`;
+    return value >= 1000000
+      ? `${(value / 1000000).toLocaleString('vi-VN')}tr`
+      : `${value.toLocaleString('vi-VN')}đ`;
   }
 
   activeVoucherTab = 'active';
@@ -1246,40 +1409,18 @@ export class Profile implements OnInit, OnDestroy {
     }
   }
 
-  get tierBenefits(): { title: string, desc: string }[] {
-    const rank = this.authService.currentUser()?.rank;
-    if (rank === 'Bạc') {
-      return [
-        { title: 'Nhận mã giảm giá độc quyền', desc: 'Cơ hội nhận các mã giảm giá đến 10% được hệ thống tự động gửi tặng vào Ví voucher của bạn trong các dịp lễ lớn hoặc chương trình tri ân bất ngờ.' },
-        { title: 'Ưu tiên check-in tại quầy vé', desc: 'Được hỗ trợ làm thủ tục nhanh tại quầy vé của VIAGO trong các khung giờ thông thường, giúp tiết kiệm thời gian chờ đợi.' },
-        { title: 'Quà tặng sinh nhật hội viên', desc: 'Tự động nhận mã giảm giá 20% (tối đa 50.000đ) thả thẳng vào Ví voucher ngay trong tuần sinh nhật dựa trên thông tin ngày sinh đã đăng ký.' },
-        { title: 'Hỗ trợ chăm sóc khách hàng 24/7', desc: 'Tổng đài chăm sóc khách hàng phục vụ 24/7, tiếp nhận và xử lý các yêu cầu đổi trả vé theo quy trình tiêu chuẩn một cách nhanh chóng.' }
-      ];
-    }
-    if (rank === 'Vàng') {
-      return [
-        { title: 'Nhận mã giảm giá độc quyền', desc: 'Cơ hội nhận mã giảm giá 20% thương hạng chuyên áp dụng cho các dòng xe Limousine VIP, tự động cấp vào ví vào các chiến dịch đặc biệt.' },
-        { title: 'Ưu tiên check-in tại quầy vé', desc: 'Được phục vụ tại hàng chờ VIP riêng biệt tại các văn phòng VIAGO trên toàn quốc và miễn phí 100% phí chọn trước chỗ ngồi phía trước.' },
-        { title: 'Quà tặng sinh nhật đặc biệt', desc: 'Tự động nhận mã giảm giá lớn (tối đa 100.000đ) thả thẳng vào Ví voucher kèm thông báo chúc mừng riêng biệt từ VIAGO trong tuần sinh nhật.' },
-        { title: 'Hỗ trợ chăm sóc khách hàng 24/7', desc: 'Tổng đài ưu tiên kết nối nhánh VIP với thời gian phản hồi dưới 30 giây, hỗ trợ xử lý đổi trả vé miễn phí trước giờ khởi hành 12 tiếng.' }
-      ];
-    }
-    if (rank === 'Kim cương') {
-      return [
-        { title: 'Mã giảm giá tối thượng', desc: 'Ưu tiên nhận các siêu mã giảm giá lên đến 30% toàn hệ thống, tự động thả thẳng vào Ví voucher của bạn trong các sự kiện đặc biệt của hãng.' },
-        { title: 'Đặc quyền di chuyển thượng lưu', desc: 'Đặc quyền sử dụng Phòng chờ thương gia (miễn phí nước uống/đồ ăn nhẹ) và xe trung chuyển đón trả tận nhà trong bán kính 5km.' },
-        { title: 'Đặc quyền sinh nhật VVIP', desc: 'Nhận combo voucher sinh nhật trị giá 200.000đ tự động cộng vào ví và một hộp quà vật lý cao cấp được VIAGO gửi chuyển phát nhanh đến tận nhà.' },
-        { title: 'Hỗ trợ chăm sóc khách hàng 24/7', desc: 'Kết nối trực tiếp với Trợ lý cá nhân qua Đường dây nóng VIP, hỗ trợ hoàn hủy vé hoàn toàn miễn phí ngay cả sát giờ xe chạy (trước 2 tiếng).' }
-      ];
-    }
-    return [];
+  get tierBenefits(): { title: string; desc: string }[] {
+    return this.tiers.find((t) => t.key === this.authService.currentUser()?.rank)?.benefits || [];
   }
-
-  /** Bảng so sánh quyền lợi giữa các hạng (đánh dấu hạng hiện tại của khách). */
-  readonly benefitMatrix = [
-    { label: 'Mã giảm giá định kỳ', values: ['Đến 10%', 'Đến 20%', 'Đến 30%'] },
-    { label: 'Quà sinh nhật', values: ['Giảm 20% (tối đa 50K)', 'Tối đa 100K', 'Combo 200K + quà'] },
-    { label: 'Check-in ưu tiên', values: ['Quầy nhanh', 'Hàng chờ VIP', 'Phòng chờ thương gia'] },
-    { label: 'Hỗ trợ đổi/hủy vé', values: ['Tiêu chuẩn', 'Miễn phí trước 12h', 'Miễn phí trước 2h'] },
-  ];
+  get benefitMatrix(): { label: string; values: string[] }[] {
+    const titles = [
+      ...new Set(this.tiers.flatMap((tier) => tier.benefits.map((benefit) => benefit.title))),
+    ];
+    return titles.map((label) => ({
+      label,
+      values: this.tiers.map(
+        (tier) => tier.benefits.find((benefit) => benefit.title === label)?.desc || '—',
+      ),
+    }));
+  }
 }

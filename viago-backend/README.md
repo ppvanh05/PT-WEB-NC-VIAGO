@@ -23,6 +23,9 @@
 
 ## Description
 
+API tài khoản, hồ sơ, quản lý nhân viên/khách hàng và nhật ký:
+[hướng dẫn endpoint, cấu hình OTP và kết quả đối chiếu Supabase](docs/accounts-api.md).
+
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
 `src/featured/admin` and `src/featured/customer` mirror the frontend's

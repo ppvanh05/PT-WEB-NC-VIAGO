@@ -1,4 +1,5 @@
 <div class="staff-page">
+  @if (loading) { <p role="status" aria-live="polite">Đang tải dữ liệu nhân viên…</p> }
   @if (feedback && feedbackError) { <app-toast [variant]="feedbackError ? 'error' : 'success'" [message]="feedback" (closed)="feedback = ''" /> }
   <app-admin-page-header title="Quản lý tài khoản nhân viên" section="Quản lý hệ thống">
 <button type="button" class="admin-create-action" (click)="open()"><span class="action-icon-circle" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg></span><span class="action-banner-text"><strong>Thêm tài khoản nhân viên</strong><span>Thiết lập thông tin, chức vụ và quyền truy cập.</span></span></button>
@@ -20,7 +21,11 @@
     <div class="table-scroll"><table><thead><tr><th>Mã NV</th><th>Tên truy cập</th><th>Họ tên</th><th>Chức vụ / Quyền hạn</th><th>Ngày bắt đầu làm việc</th><th>Chức năng</th></tr></thead><tbody>
       @for (employee of paginatedEmployees; track employee.code) {
         <tr><td><strong>{{ employee.code }}</strong><app-badge class="status-badge" size="sm" [dot]="true" [variant]="employee.status === 'Đã khóa' ? 'danger' : 'success'" [label]="employee.status" /></td><td>{{ employee.username }}</td><td><div class="employee-name"><span class="avatar">@if (employee.avatarUrl) { <img [src]="employee.avatarUrl" alt="" /> } @else { {{ employee.initials }} }</span><div><strong>{{ employee.name }}</strong><small>{{ employee.email }}</small></div></div></td><td>{{ employee.defaultRole }}<small>{{ employee.permissions.length }} quyền</small></td><td>{{ formatDate(employee.startDate) }}</td><td><button type="button" class="admin-edit-action" [attr.aria-label]="'Chỉnh sửa ' + employee.name" (click)="open(employee)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button></td></tr>
-      } @empty { <tr><td colspan="6" class="empty">Không tìm thấy tài khoản nhân viên phù hợp.</td></tr> }
+      } @empty { <tr><td colspan="6" class="empty">
+        @if (loading) { <span role="status">Đang tải dữ liệu nhân viên…</span> }
+        @else if (loadError) { <p role="alert">{{ loadError }}</p> }
+        @else { Không tìm thấy tài khoản nhân viên phù hợp. }
+      </td></tr> }
     </tbody></table></div>
     <app-pagination class="staff-pagination" [currentPage]="validCurrentPage" [totalItems]="filteredEmployees.length" [pageSize]="10" (pageChange)="currentPage = $event" />
   </section>
@@ -84,7 +89,7 @@
       }
       @if (employee.lockInfo) { <p class="lock-info">Lý do khóa: {{ employee.lockInfo.reason }}</p> }
       </div>
-      <div class="modal-actions admin-modal-actions">@if (!creating) { <app-button class="admin-lock-action" [class.admin-lock-action--unlock]="employee.status === 'Đã khóa'" variant="danger" (clicked)="changeStatus()">{{ employee.status === 'Đã khóa' ? 'Mở khóa tài khoản' : 'Khóa tài khoản' }}</app-button> }<div class="actions"><app-button variant="outline" (clicked)="close()">Hủy</app-button><app-button type="submit" variant="secondary" [disabled]="readingAvatar">{{ creating ? 'Tạo tài khoản' : 'Lưu thay đổi' }}</app-button></div></div>
+      <div class="modal-actions admin-modal-actions">@if (!creating) { <app-button class="admin-lock-action" [class.admin-lock-action--unlock]="employee.status === 'Đã khóa'" variant="danger" (clicked)="changeStatus()">{{ employee.status === 'Đã khóa' ? 'Mở khóa tài khoản' : 'Khóa tài khoản' }}</app-button> }<div class="actions"><app-button variant="outline" (clicked)="close()">Hủy</app-button><app-button type="submit" variant="secondary" [disabled]="readingAvatar || saving">{{ creating ? 'Tạo tài khoản' : 'Lưu thay đổi' }}</app-button></div></div>
     </form>
   }
 </app-modal>
