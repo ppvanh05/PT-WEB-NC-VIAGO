@@ -16,7 +16,7 @@
         <div class="route-filter-wrapper" (keydown)="CityKeydown($event, 'origin')">
           <input id="booking-origin" type="text" role="combobox" aria-autocomplete="list"
             aria-controls="booking-origin-results" [attr.aria-expanded]="cityField() === 'origin'"
-            placeholder="Tìm điểm đi" [ngModel]="OriginText()"
+            placeholder="Chọn điểm đi" [ngModel]="OriginText()"
             (ngModelChange)="SearchCity('origin', $event)" (focus)="cityField.set('origin')"
             (blur)="BlurCity('origin')" />
           <button type="button" class="route-dropdown-toggle" aria-label="Chọn điểm đi"
@@ -28,7 +28,11 @@
               @for (city of CityOptions('origin'); track city) {
                 <button type="button" class="route-suggestion" role="option" [attr.aria-selected]="city === OriginText()"
                   (mousedown)="$event.preventDefault()" (click)="ChooseCity('origin', city)">{{ city }}</button>
-              } @empty { <div class="route-suggestion-empty">Không có điểm đi phù hợp.</div> }
+              } @empty {
+                <div class="route-suggestion-empty">
+                  {{ pointsLoading() ? 'Đang tải tỉnh/thành...' : pointsError() ? 'Không tải được danh sách tỉnh/thành.' : 'Không có điểm đi phù hợp.' }}
+                </div>
+              }
             </div>
           }
         </div>
@@ -38,7 +42,7 @@
         <div class="route-filter-wrapper" (keydown)="CityKeydown($event, 'destination')">
           <input id="booking-destination" type="text" role="combobox" aria-autocomplete="list"
             aria-controls="booking-destination-results" [attr.aria-expanded]="cityField() === 'destination'"
-            placeholder="Tìm điểm đến" [ngModel]="DestinationText()"
+            placeholder="Chọn điểm đến" [ngModel]="DestinationText()"
             (ngModelChange)="SearchCity('destination', $event)" (focus)="cityField.set('destination')"
             (blur)="BlurCity('destination')" />
           <button type="button" class="route-dropdown-toggle" aria-label="Chọn điểm đến"
@@ -50,20 +54,31 @@
               @for (city of CityOptions('destination'); track city) {
                 <button type="button" class="route-suggestion" role="option" [attr.aria-selected]="city === DestinationText()"
                   (mousedown)="$event.preventDefault()" (click)="ChooseCity('destination', city)">{{ city }}</button>
-              } @empty { <div class="route-suggestion-empty">Không có điểm đến phù hợp.</div> }
+              } @empty {
+                <div class="route-suggestion-empty">
+                  {{ pointsLoading() ? 'Đang tải tỉnh/thành...' : pointsError() ? 'Không tải được danh sách tỉnh/thành.' : 'Không có điểm đến phù hợp.' }}
+                </div>
+              }
             </div>
           }
         </div>
       </div>
       <div class="field compact">
         <label>Loại xe</label>
-        <select aria-label="Loại xe" [ngModel]="loaiXeDuocChon()" (ngModelChange)="ChonLoaiXe($event)">
+        <select aria-label="Loại xe" [disabled]="vehicleTypesLoading() || !loaiXeList.length"
+          [ngModel]="loaiXeDuocChon()" (ngModelChange)="ChonLoaiXe($event)">
+          <option value="" disabled>
+            {{ vehicleTypesLoading() ? 'Đang tải loại xe...' : loaiXeList.length ? 'Chọn loại xe' : 'Không có loại xe' }}
+          </option>
           @for (loai of loaiXeList; track loai.id) {
             <option [value]="loai.id">
-              {{ loai.ten }} - {{ loai.moTa }}
+              {{ loai.ten }}
             </option>
           }
         </select>
+        @if (vehicleTypesError()) {
+          <p class="booking-error" role="alert">{{ vehicleTypesError() }}</p>
+        }
       </div>
 
       <div class="field compact departure-date-field">
@@ -74,9 +89,10 @@
     </div>
 
     <p class="booking-helper selected-route-label">Tuyến đang bán: <strong>{{ HienThiTuyen(thongTinChuyen().name) }}</strong></p>
-    @if (draftOrigin() && !DestinationText()) { <p class="booking-helper" role="status">Chọn điểm đến để cập nhật tuyến đang bán.</p> }
+    @if (selectedOrigin() && !selectedDestination()) { <p class="booking-helper" role="status">Chọn điểm đến để cập nhật tuyến đang bán.</p> }
     @if (dateError()) { <p class="booking-error" role="alert">{{ dateError() }}</p> }
     @if (tripsLoading()) { <p class="booking-helper" role="status">Đang tải chuyến...</p> }
+    @if (routeTripsError()) { <p class="booking-error" role="alert">{{ routeTripsError() }}</p> }
     <div class="schedule-toolbar">
       <app-admin-tabs class="time-segments" aria-label="Lọc khung giờ">
         <button type="button" [class.active]="boLocGio() === 'tat-ca'" (click)="CapNhatBoLocGio('tat-ca')">Tất cả</button>
@@ -98,7 +114,7 @@
           >
             <span class="time">{{ gio }}</span>
             <span class="seat-count">{{ TrangThaiChuyen(gio) }}</span>
-            <small>{{ ThongKeTheoGio(gio).trong }}/{{ totalSeats() }} trống</small>
+            <small>{{ ThongKeTheoGio(gio).trong }}/{{ ThongKeTheoGio(gio).tong }} trống</small>
             <span class="load-bar">
               <span [style.width.%]="ThongKeTheoGio(gio).tiLeDay"></span>
             </span>
@@ -115,8 +131,8 @@
       <div class="trip-summary">
         <div>
           <span class="summary-label">Thuộc chuyến</span>
-          <strong>{{ gioChayDuocChon() }} ngày {{ NgayKhoiHanh() }} tuyến {{ HienThiTuyen(thongTinChuyen().name) }}</strong>
-          <small>{{ loaiXeDangChon().ten }} · {{ loaiXeDangChon().loaiGhe }} · {{ HienThiGiaLoaiXe(loaiXeDuocChon()) }}</small>
+          <strong>{{ gioChayDuocChon() || 'Chưa chọn chuyến' }} ngày {{ NgayKhoiHanh() }} tuyến {{ HienThiTuyen(thongTinChuyen().name) }}</strong>
+          <small>{{ loaiXeDangChon().ten }} · {{ loaiXeDangChon().loaiGhe }} · {{ HienThiGiaLoaiXe(loaiXeDangChon().category) }}</small>
         </div>
         <div class="summary-actions">
           <button type="button" class="ghost-button" [disabled]="!veDangSua() && veDangIn().length === 0" (click)="MoInVe()">In vé</button>
@@ -126,13 +142,13 @@
 
       @if (holdMessage()) { <p class="booking-error" role="alert">{{ holdMessage() }}</p> }
       @if (gheDangChon().length >= 5) { <p class="booking-helper" role="status">Bạn chỉ có thể chọn tối đa 5 ghế cho mỗi đơn.</p> }
-      @if (!gioChayDuocChon()) { <p class="booking-helper">Không có chuyến phù hợp. Vui lòng chọn ngày hoặc tuyến khác.</p> }
+      @if (!gioChayDuocChon()) { <p class="booking-helper">Vui lòng chọn chuyến khởi hành để xem sơ đồ ghế và tạo đơn.</p> }
       <div class="configuration-row">
         <span>Giá ghế đang chọn</span>
         @for (ghe of gheDangChon(); track ghe) {
-          <div class="seat-config-dropdown-wrapper" [class.readonly]="loaiXeDuocChon() !== 'cabin'">
+          <div class="seat-config-dropdown-wrapper" [class.readonly]="loaiXeDangChon().category !== 'cabin'">
             <span class="seat-config-label">Ghế {{ ghe }}</span>
-            @if (loaiXeDuocChon() === 'cabin') {
+            @if (loaiXeDangChon().category === 'cabin') {
               <select
                 [ngModel]="gheConfig()[ghe] || 'don'"
                 (ngModelChange)="CapNhatGheConfig(ghe, $event)"
@@ -147,7 +163,7 @@
           </div>
         }
         @if (gheDangChon().length === 0) {
-          <small>{{ loaiXeDangChon().ten }} · {{ totalSeats() }} chỗ · {{ HienThiGiaLoaiXe(loaiXeDuocChon()) }}.</small>
+          <small>{{ loaiXeDangChon().ten }} · {{ totalSeats() }} chỗ · {{ HienThiGiaLoaiXe(loaiXeDangChon().category) }}.</small>
         }
       </div>
 
@@ -220,6 +236,7 @@
         </button>
       </ng-template>
 
+      @if (gioChayDuocChon()) {
       <div class="seat-legend-bar">
         <span class="legend-title">Chú thích:</span>
         <span class="legend-item"><i class="legend-box da-thanh-toan"></i>Đã bán</span>
@@ -229,7 +246,7 @@
         <span class="room-note-text"><strong>{{ loaiXeDangChon().ten }}:</strong> {{ loaiXeDangChon().loaiGhe }} · {{ totalSeats() }} chỗ.</span>
       </div>
 
-      <div class="vehicle-seat-map {{ loaiXeDuocChon() }}">
+      <div class="vehicle-seat-map {{ loaiXeDangChon().category }}">
         @for (deck of soDoGheDangChon(); track deck.title) {
           <section class="seat-deck">
             <header>
@@ -251,6 +268,7 @@
           </section>
         }
       </div>
+      }
     </main>
 
     <aside class="trip-side-panel">
@@ -347,7 +365,7 @@
         </div>
         <div class="side-line">
           <span>Giá vé</span>
-          <strong>{{ HienThiGiaLoaiXe(loaiXeDuocChon()) }}</strong>
+          <strong>{{ HienThiGiaLoaiXe(loaiXeDangChon().category) }}</strong>
         </div>
         <div class="side-line amenities-line">
           <span>Tiện ích</span>
@@ -506,9 +524,13 @@
                     type="tel"
                     placeholder="Nhập SĐT khách"
                     [ngModel]="formSdt()"
-                    (ngModelChange)="KiemTraSoDienThoai($event)" (blur)="phoneTouched.set(true)"
+                    (ngModelChange)="KiemTraSoDienThoai($event)" (blur)="OnPhoneBlur()"
                   />
-                  @if (phoneError()) { <small id="booking-phone-error" class="booking-error" role="alert">{{ phoneError() }}</small> }
+                  @if (customerLoading()) {
+                    <small class="booking-hint" role="status" style="color: var(--primary, #0284c7)">Đang tra cứu thông tin khách hàng...</small>
+                  } @else if (phoneError()) {
+                    <small id="booking-phone-error" class="booking-error" role="alert">{{ phoneError() }}</small>
+                  }
                 </div>
 
                 <div class="field">
@@ -542,15 +564,20 @@
 
                 @if (customerSuggestion(); as c) {
                   <div class="booking-customer full" role="status">
-                    <strong>Đã tìm thấy thông tin khách hàng: {{ c.HoTenNguoiDi }}</strong><span>{{ c.EmailNguoiDi || 'Không có email' }}</span>
-                    <span>Điểm đón: {{ c.MaDiemDon }} · Điểm trả: {{ c.MaDiemTra }}</span>
+                    <strong>Đã tìm thấy thông tin khách hàng: {{ c.hotenkhachhang }}</strong><span>{{ c.email || 'Không có email' }}</span>
+                    @if (c.diemdon || c.diemtra) {
+                      <span>Điểm đón gần nhất: {{ c.diemdon || 'Theo tuyến' }} · Điểm trả: {{ c.diemtra || 'Theo tuyến' }}</span>
+                    }
                     <app-button variant="outline" size="sm" (clicked)="ApplyCustomer()">Áp dụng thông tin</app-button>
-                    <app-button variant="ghost" size="sm" (clicked)="customerDismissed.set(formSdt())">Giữ thông tin hiện tại</app-button>
+                    <app-button variant="ghost" size="sm" (clicked)="customerDismissed.set(formSdt()); customerSuggestion.set(null)">Giữ thông tin hiện tại</app-button>
                   </div>
                 }
                 <div class="field">
                   <label for="booking-pickup">Điểm đón <span class="required-mark" aria-hidden="true">*</span></label>
                   <select id="booking-pickup" required aria-label="Điểm đón" [ngModel]="formDiemDon()" (ngModelChange)="formDiemDon.set($event)">
+                    @if (pickupPoints().length === 0) {
+                      <option value="" disabled selected>Chưa có điểm đón từ chuyến xe</option>
+                    }
                     @for (diem of pickupPoints(); track diem) {
                       <option [value]="diem">{{ diem }}</option>
                     }
@@ -560,6 +587,9 @@
                 <div class="field">
                   <label for="booking-dropoff">Điểm trả <span class="required-mark" aria-hidden="true">*</span></label>
                   <select id="booking-dropoff" required aria-label="Điểm trả" [ngModel]="formDiemTra()" (ngModelChange)="formDiemTra.set($event)">
+                    @if (dropoffPoints().length === 0) {
+                      <option value="" disabled selected>Chưa có điểm trả từ chuyến xe</option>
+                    }
                     @for (diem of dropoffPoints(); track diem) {
                       <option [value]="diem">{{ diem }}</option>
                     }

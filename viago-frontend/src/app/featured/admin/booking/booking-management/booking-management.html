@@ -65,15 +65,13 @@
       </div>
 
       <div class="field">
-        <label>Trạng thái đơn hàng</label>
+        <label>Trạng thái vé</label>
         <select aria-label="Trạng thái vé" [ngModel]="locTrangThaiVe()" (ngModelChange)="locTrangThaiVe.set($event); trangHienTai.set(1)">
           <option value="tat-ca">Tất cả</option>
-          <option value="cho-thanh-toan">Chờ thanh toán</option>
-          <option value="da-thanh-toan">Đã thanh toán</option>
-          <option value="huy-mot-phan">Hủy một phần</option>
-          <option value="da-hoan-thanh">Đã hoàn thành</option>
-          <option value="da-huy">Đã hủy</option>
-          <option value="het-han">Hết hạn</option>
+          <option value="GiuCho">Giữ chỗ</option>
+          <option value="ChoKhoiHanh">Chờ khởi hành</option>
+          <option value="DaHoanThanh">Đã hoàn thành</option>
+          <option value="DaHuy">Đã hủy</option>
         </select>
       </div>
 
@@ -91,7 +89,7 @@
       <div class="field"><label>Nguồn đặt vé</label><select aria-label="Nguồn đặt vé" [ngModel]="locNguonDat()" (ngModelChange)="locNguonDat.set($event); trangHienTai.set(1)"><option value="tat-ca">Tất cả nguồn</option><option value="hotline">Hotline</option><option value="tai-quay">Tại quầy</option><option value="online">Website</option></select></div>
       <div class="field filter-actions">
         <app-button variant="outline" type="button" (clicked)="XoaBoLoc()">Xóa bộ lọc</app-button>
-        <app-button variant="outline" type="button" [loading]="!!counterOrders()?.loading()" (clicked)="LamMoiDanhSach()">Làm mới</app-button>
+        <app-button variant="outline" type="button" [loading]="isLoadingTickets() || !!counterOrders()?.loading()" (clicked)="LamMoiDanhSach()">Làm mới</app-button>
       </div>
 
     </div>
@@ -101,6 +99,10 @@
       <strong>Danh sách vé</strong><small class="sort-note">Mới nhất trước</small>
       <span>{{ danhSachTongHop().length }} bản ghi</span>
     </div>
+
+    @if (isLoadingTickets()) {
+      <p class="list-message" role="status">Đang tải danh sách vé…</p>
+    }
 
     @if (counterOrders(); as orders) {
       @if (orders.loading()) {
@@ -198,7 +200,7 @@
       <div class="detail-modal-body">
         <section class="detail-info">
           <section class="detail-section order-overview">
-            <div class="order-detail-heading"><h3>Thông tin đơn hàng</h3>@if (OrderLabel(ve) !== 'Đã thanh toán' && OrderLabel(ve) !== 'Chờ thanh toán') { <app-badge [variant]="OrderVariant(ve)" [label]="OrderLabel(ve)" /> }</div>
+            <div class="order-detail-heading"><h3>Thông tin đơn hàng</h3>@if (OrderLabel(ve) !== 'Chờ khởi hành' && OrderLabel(ve) !== 'Giữ chỗ') { <app-badge [variant]="OrderVariant(ve)" [label]="OrderLabel(ve)" /> }</div>
             <dl class="order-detail-grid">
               <div><dt>Người đặt</dt><dd>{{ ve.HoTenNguoiDi }}</dd></div>
               <div><dt>Số điện thoại</dt><dd>{{ ve.SdtNguoiDi }}</dd></div>

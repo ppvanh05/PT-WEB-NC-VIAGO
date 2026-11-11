@@ -113,21 +113,3 @@ export function localQr(code: string): string {
   qrCache.set(code, url); return url;
 }
 export type TripStatus = 'Còn chỗ' | 'Hết chỗ' | 'Đã khóa' | 'Đã hủy' | 'Đã khởi hành';
-const schedules: Record<string, string[]> = {
-  'HCM-CT': ['05:30','07:30','09:30','11:30','13:00','15:00','16:00','18:00','19:30','21:00','23:00'],
-  'HCM-VT': ['06:00','08:00','10:00','12:00','14:00','16:30','18:30','20:30'],
-  'DL-BMT': ['07:00','10:30','14:30','18:00'], 'DL-NT': ['06:30','09:00','13:30','17:00','20:00'],
-  'CT-RG': ['07:15','10:15','13:15','16:15','19:15'], 'HCM-PT': ['06:00','10:00','14:00','18:00','22:00'],
-  'HCM-DL': ['08:00','13:00','17:00','21:00','23:00'], 'HCM-NT': ['07:30','12:30','18:30','22:15'],
-  'NT-DN': ['09:00','16:00','20:00','23:00']
-};
-export function mockSchedule(route: string, date: string, direction: 'di' | 've') {
-  const day = new Date(`${date}T00:00:00`).getDay();
-  if (!Number.isFinite(day) || (route === 'DL-BMT' && day === 0)) return [];
-  return (schedules[route] ?? []).filter((_, index) => day % 2 === 0 || index !== 1).map((time, index) => {
-    const minutes = Number(time.slice(0, 2)) * 60 + Number(time.slice(3)) + (direction === 've' ? 20 : 0);
-    const gio = `${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
-    const status: TripStatus = index === 3 ? 'Đã khóa' : index === 5 ? 'Đã hủy' : index === 7 ? 'Hết chỗ' : 'Còn chỗ';
-    return { gio, status };
-  });
-}
