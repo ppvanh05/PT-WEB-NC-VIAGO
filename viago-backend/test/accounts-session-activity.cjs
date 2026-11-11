@@ -10,8 +10,9 @@ async function main() {
       nhan_vien: { manhanvien: 'QA_STAFF', hoten: 'QA', trangthai: 'HoatDong',
         vai_tro: { tenvaitro: 'QuanTriVien', trangthai: 'HoatDong' }, nhan_vien_quyen_han: [] } },
   };
-  const access = new AccountsAccess({ phien_dang_nhap: {
-    findFirst: async () => { reads++; return session; },
+  const access = new AccountsAccess({
+    $queryRaw: async () => { reads++; return [session]; },
+    phien_dang_nhap: {
     updateMany: async q => { writes++; assert.ok(q.where.thoigianhoatdongcuoi.lt instanceof Date); return { count: 1 }; },
   } });
   const token = 'Bearer ' + 'a'.repeat(64);

@@ -5,6 +5,7 @@ import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { Request } from 'express';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { lockLoginAccount, readActiveAccountSession } from '../../../shared/accounts/account-queries';
 import { chatbotId } from '../../customer/chatbot/common/chatbot.id';
 import type { AdminLoginDto } from './admin-auth.dto';
 const derive = promisify(scrypt);
@@ -12,17 +13,6 @@ const tokenHash = (token: string) =>
   createHash('sha256').update(token).digest('hex');
 export const adminToken = (authorization?: string) =>
   /^Bearer ([A-Za-z0-9._~-]{32,512})$/.exec(authorization ?? '')?.[1];
-const employeeSelect = {
-  manhanvien: true,
-  hoten: true,
-  sodienthoai: true,
-  email: true,
-  anhdaidien: true,
-  vai_tro: { select: { tenvaitro: true, trangthai: true } },
-  nhan_vien_quyen_han: {
-    select: { quyen_han: { select: { tenquyen: true, maquyen: true } } },
-  },
-} as const;
 export async function verifyAdminPassword(
   password: string,
   stored: string,
@@ -60,28 +50,11 @@ export class AdminAuthService {
       expiresAt = new Date(Date.now() + 8 * 3600000);
     const result = await this.prisma.$transaction(
       async (tx) => {
-        const [found] = await tx.$queryRaw<{ mataikhoan: string }[]>`
-          SELECT mataikhoan FROM tai_khoan
-          WHERE email = ${dto.username}
-             OR sodienthoai = ${dto.username}
-             OR tendangnhap = ${dto.username}
-          LIMIT 1 FOR UPDATE
-        `;
-        if (!found) {
+        const account = await lockLoginAccount(tx, dto.username);
+        if (!account) {
           await verifyAdminPassword(dto.password, '');
           return null;
         }
-        const account = await tx.tai_khoan.findUniqueOrThrow({
-          where: { mataikhoan: found.mataikhoan },
-          include: {
-            nhan_vien: {
-              select: {
-                ...employeeSelect,
-                trangthai: true,
-              },
-            },
-          },
-        });
         if (account.khoatamden && account.khoatamden > now) return null;
         const allowLocalSeed =
           process.env.NODE_ENV === 'development' &&
@@ -216,30 +189,13 @@ export class AdminAuthService {
   async current(authorization?: string) {
     const token = adminToken(authorization);
     if (!token) throw new UnauthorizedException('Vui lòng đăng nhập quản trị.');
-    const session = await this.prisma.phien_dang_nhap.findFirst({
-      where: {
-        tokenphien: tokenHash(token),
-        trangthai: 'DangHoatDong',
-        thoigianhethan: { gt: new Date() },
-        tai_khoan: {
-          trangthai: 'HoatDong',
-          vaitrotaikhoan: 'NhanVien',
-          nhan_vien: {
-            trangthai: 'HoatDong',
-            vai_tro: { trangthai: 'HoatDong' },
-          },
-        },
-      },
-      select: {
-        thoigianhethan: true,
-        mataikhoan: true,
-        tai_khoan: { select: { nhan_vien: { select: employeeSelect } } },
-      },
-    });
-    if (!session?.tai_khoan.nhan_vien)
+    const session = await readActiveAccountSession(this.prisma, tokenHash(token));
+    const staff = session?.tai_khoan.nhan_vien;
+    if (session?.tai_khoan.vaitrotaikhoan !== 'NhanVien' || !staff ||
+        staff.trangthai !== 'HoatDong' || staff.vai_tro.trangthai !== 'HoatDong')
       throw new UnauthorizedException('Phiên đăng nhập quản trị đã hết hạn.');
     return {
-      account: this.view(session.mataikhoan, session.tai_khoan.nhan_vien),
+      account: this.view(session.mataikhoan, staff),
       expiresAt: session.thoigianhethan,
     };
   }

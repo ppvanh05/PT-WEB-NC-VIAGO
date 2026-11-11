@@ -16,6 +16,7 @@ import type { Request, Response } from 'express';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { PrismaService } from '../../prisma/prisma.service';
 import { digest, newId } from './account-security';
+import { readActiveAccountSession } from './account-queries';
 export interface Identity {
   accountId: string;
   customerId?: string;
@@ -39,27 +40,7 @@ export class AccountsAccess {
       authorization || '',
     )?.[1];
     if (!token) throw new UnauthorizedException('Vui lòng đăng nhập.');
-    const session = await this.prisma.phien_dang_nhap.findFirst({
-      where: {
-        tokenphien: digest(token),
-        trangthai: 'DangHoatDong',
-        thoigianhethan: { gt: new Date() },
-        tai_khoan: { trangthai: 'HoatDong' },
-      },
-      include: {
-        tai_khoan: {
-          include: {
-            khach_hang: true,
-            nhan_vien: {
-              include: {
-                vai_tro: true,
-                nhan_vien_quyen_han: { include: { quyen_han: true } },
-              },
-            },
-          },
-        },
-      },
-    });
+    const session = await readActiveAccountSession(this.prisma, digest(token));
     if (!session)
       throw new UnauthorizedException('Phiên đăng nhập đã hết hạn.');
     const account = session.tai_khoan,

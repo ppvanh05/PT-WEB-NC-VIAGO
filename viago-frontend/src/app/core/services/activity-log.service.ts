@@ -32,8 +32,8 @@ const labels: Record<string, string> = {
 @Injectable({ providedIn: 'root' })
 export class ActivityLogService {
   private readonly api = inject(AccountsApiService);
-  async load(): Promise<SystemLog[]> {
-    return (await this.api.all<any>('admin/activity-logs', 'admin')).map((log) => ({
+  async load(refresh = false): Promise<SystemLog[]> {
+    return (await this.api.all<any>('admin/activity-logs', 'admin', refresh)).map((log) => ({
       ...log,
       actor: { ...log.actor, role: roleLabel(log.actor.role) },
       action: labels[log.action] || log.action,

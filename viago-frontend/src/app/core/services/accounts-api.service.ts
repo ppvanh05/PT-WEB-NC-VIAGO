@@ -16,15 +16,52 @@ export class AccountApiError extends Error {
 }
 @Injectable({ providedIn: 'root' })
 export class AccountsApiService {
-  async request<T>(
+  private readonly reads = new Map<string, { expires: number; data: unknown }>();
+  private readonly pendingReads = new Map<string, Promise<unknown>>();
+  private revision = 0;
+  invalidateAdminReads(): void {
+    this.revision++;
+    this.reads.clear();
+    this.pendingReads.clear();
+  }
+  async request<T>(path: string, method = 'GET', body?: unknown, scope: AccountScope = 'customer'): Promise<T> {
+    method = method.toUpperCase();
+    const token = sessionStorage.getItem(scope === 'admin' ? 'viago_admin_access_token' : 'viago_customer_access_token');
+    if (method !== 'GET') this.invalidateAdminReads();
+    const cacheable = method === 'GET' && scope === 'admin' && !!token &&
+      /^\/?admin\/(employees|customers|activity-logs)(\/|\?|$)/.test(path);
+    if (!cacheable) {
+      const result = await this.fetchJson<T>(path, method, body, token);
+      if (method !== 'GET') this.invalidateAdminReads();
+      return result;
+    }
+    const key = `${this.revision}:${token}:${path}`;
+    const cached = this.reads.get(key);
+    if (cached && cached.expires > Date.now()) return structuredClone(cached.data) as T;
+    let pending = this.pendingReads.get(key);
+    if (!pending) {
+      const revision = this.revision;
+      pending = this.fetchJson<T>(path, method, body, token).then(data => {
+        if (revision === this.revision) {
+          for (const [oldKey, entry] of this.reads)
+            if (entry.expires <= Date.now()) this.reads.delete(oldKey);
+          if (this.reads.size >= 50) this.reads.clear();
+          this.reads.set(key, { data: structuredClone(data), expires: Date.now() + 10000 });
+        }
+        return data;
+      }).finally(() => {
+        if (this.pendingReads.get(key) === pending) this.pendingReads.delete(key);
+      });
+      this.pendingReads.set(key, pending);
+    }
+    return structuredClone(await pending) as T;
+  }
+  private async fetchJson<T>(
     path: string,
     method = 'GET',
     body?: unknown,
-    scope: AccountScope = 'customer',
+    token: string | null = null,
   ): Promise<T> {
-    const token = sessionStorage.getItem(
-      scope === 'admin' ? 'viago_admin_access_token' : 'viago_customer_access_token',
-    );
     const multipart = typeof FormData !== 'undefined' && body instanceof FormData;
     const response = await fetch('/api/' + path.replace(/^\//, ''), {
       method,
@@ -59,7 +96,8 @@ export class AccountsApiService {
       );
     return data as T;
   }
-  async all<T>(path: string, scope: AccountScope = 'customer'): Promise<T[]> {
+  async all<T>(path: string, scope: AccountScope = 'customer', refresh = false): Promise<T[]> {
+    if (refresh) this.invalidateAdminReads();
     const rows: T[] = [];
     for (let page = 1; ; page++) {
       const result = await this.request<ApiPage<T>>(

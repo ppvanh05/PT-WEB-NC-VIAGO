@@ -207,10 +207,14 @@ POST body:
   "startDate": "2026-11-09",
   "roleId": "VT002",
   "contractType": "KhongXacDinhThoiHan",
-  "permissions": ["Q014", "Q016"],
   "password": "replace-with-a-strong-password"
 }
 ```
+
+Backend tự xác định quyền theo nhóm `roleId`; không gửi quyền lẻ.
+`/admin/employees/options` trả thêm `roleGroups` với bộ quyền cố định của từng nhóm.
+PUT đổi nhóm cần `applyRolePermissions: true`; PUT sửa thông tin thông thường giữ
+nguyên nhóm/quyền đang lưu. Chi tiết: [fixed-role-groups.md](fixed-role-groups.md).
 
 PUT gửi cùng bộ trường trừ `password`; `username`, `avatar`, `address`, `notes`
 tùy chọn. Không đặt/reset mật khẩu của nhân viên khác qua PUT. Không tự thay đổi
@@ -317,3 +321,10 @@ OTP không được triển khai thêm trong lượt sửa này theo yêu cầu 
 các kiểm tra xác thực sẵn có vẫn giữ nguyên, không tự tạo mã hoặc bỏ qua xác thực.
 
 [Rà soát chi tiết frontend và Supabase](accounts-review.md).
+# Account screen loading
+
+Admin session validation reads the session, account, staff role and permission names in one parameterized SQL query. Login retains the account row lock while reading its credential and role data. Every network request still validates its session and permission.
+
+Employee/customer lists run independent reads concurrently and obtain status totals with one grouped count. Log list and statistics reads also run concurrently. Mutations retain their transactions.
+
+The frontend shares identical in-flight requests and caches successful employee, customer and activity-log reads in memory for 10 seconds, keyed by the current token. It does not cache login, authentication failures or customer profile reads. Writes clear the admin read cache before starting and after success. Each list has a **Làm mới** action that bypasses the cache; changes made externally in Supabase can otherwise take up to 10 seconds to appear on a revisited screen. Reloading the browser also clears the memory cache.

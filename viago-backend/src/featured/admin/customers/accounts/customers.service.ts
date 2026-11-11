@@ -198,18 +198,20 @@ export class CustomersService {
           }
         : {}),
     };
-    const [rows, total, active, locked] = await this.prisma.$transaction([
+    const filtered = !!(query.search || query.status || query.gender);
+    const [rows, statusCounts, filteredTotal] = await Promise.all([
       this.prisma.khach_hang.findMany({
-        where,
-        include: includeCustomer,
-        skip: (query.page - 1) * query.pageSize,
-        take: query.pageSize,
+        where, include: includeCustomer,
+        skip: (query.page - 1) * query.pageSize, take: query.pageSize,
         orderBy: [{ ngaydangky: 'desc' }, { makhachhang: 'desc' }],
       }),
-      this.prisma.khach_hang.count({ where }),
-      this.prisma.khach_hang.count({ where: { trangthai: 'HoatDong' } }),
-      this.prisma.khach_hang.count({ where: { trangthai: 'DaKhoa' } }),
+      this.prisma.khach_hang.groupBy({ by: ['trangthai'], _count: { _all: true } }),
+      filtered ? this.prisma.khach_hang.count({ where }) : Promise.resolve(null),
     ]);
+    const total = filteredTotal ?? statusCounts.reduce((sum, row) => sum + row._count._all, 0);
+    const active = statusCounts.find(row => row.trangthai === 'HoatDong')?._count._all || 0;
+    const locked = statusCounts.find(row => row.trangthai === 'DaKhoa')?._count._all || 0;
+
     const counts = rows.length
       ? await this.prisma.$queryRaw<{ id: string; count: number }[]>(
           Prisma.sql`SELECT d.makhachhang AS id, count(v.mave)::int AS count FROM don_hang d JOIN ve_xe v ON v.madonhang = d.madonhang WHERE d.makhachhang IN (${Prisma.join(rows.map((row) => row.makhachhang))}) GROUP BY d.makhachhang`,

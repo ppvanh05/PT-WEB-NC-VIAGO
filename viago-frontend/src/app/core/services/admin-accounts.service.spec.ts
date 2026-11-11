@@ -48,4 +48,15 @@ describe('Customer field persistence', () => {
     expect(result.lockInfo.reason).toBe('Lý do thật');
     expect(result.lockInfo.date).toBe(new Date('2026-11-01T02:03:00Z').toLocaleString('vi-VN'));
   });
+  it('sends an explicit fixed-role choice and never sends client-picked permission IDs', async () => {
+    service.roles = [{ mavaitro: 'VT002', tenvaitro: 'NhanVienBanVe' }];
+    const draft = { code: 'NV1', name: 'Test', defaultRole: 'Nhân viên bán vé', permissions: ['Q026'], gender: 'Nam' };
+    await service.saveEmployee(draft, '', false, true);
+    expect(request.mock.calls[0][2]).toMatchObject({ roleId: 'VT002', applyRolePermissions: true });
+    expect(request.mock.calls[0][2]).not.toHaveProperty('permissions');
+    await service.saveEmployee(draft, '', false);
+    expect(request.mock.calls[1][2].applyRolePermissions).toBe(false);
+    await service.saveEmployee(draft, 'QaOnlyPassword!', true);
+    expect(request.mock.calls[2][2]).not.toHaveProperty('permissions');
+  });
 });

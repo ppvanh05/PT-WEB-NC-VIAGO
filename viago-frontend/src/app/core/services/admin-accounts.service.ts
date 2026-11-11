@@ -20,14 +20,24 @@ export interface MemberTier {
   mahang: string;
   tenhang: string;
 }
+export interface FixedRoleGroup {
+  roleId: string;
+  roleName: string;
+  groupKeys: string[];
+  permissionIds: string[];
+  permissions: string[];
+  missing: string[];
+}
 @Injectable({ providedIn: 'root' })
 export class AdminAccountsService {
   private readonly api = inject(AccountsApiService);
   roles: RoleOption[] = [];
   permissions: PermissionOption[] = [];
+  roleGroups: FixedRoleGroup[] = [];
   memberTiers: MemberTier[] = [];
+  invalidateReads(): void { this.api.invalidateAdminReads(); }
   async options() {
-    const data = await this.api.request<{ roles: RoleOption[]; permissions: PermissionOption[] }>(
+    const data = await this.api.request<{ roles: RoleOption[]; permissions: PermissionOption[]; roleGroups: FixedRoleGroup[] }>(
       'admin/employees/options',
       'GET',
       undefined,
@@ -35,6 +45,7 @@ export class AdminAccountsService {
     );
     this.roles = data.roles;
     this.permissions = data.permissions;
+    this.roleGroups = data.roleGroups;
     return data;
   }
   async customerOptions() {
@@ -81,7 +92,7 @@ export class AdminAccountsService {
     const rows = await this.api.all<any>('admin/employees', 'admin');
     return rows.map((row) => this.employee(row));
   }
-  async saveEmployee(e: any, password: string, creating: boolean) {
+  async saveEmployee(e: any, password: string, creating: boolean, applyRolePermissions = false) {
     const role = this.roles.find((r) => roleLabel(r.tenvaitro) === e.defaultRole);
     if (!role) throw new Error('Vai trò không tồn tại trong Supabase.');
     const body = {
@@ -101,7 +112,7 @@ export class AdminAccountsService {
           'Hợp đồng thử việc': 'ThuViec',
         } as Record<string, string>
       )[e.contractType],
-      permissions: e.permissions,
+      ...(!creating ? { applyRolePermissions } : {}),
       address: e.address,
       notes: e.notes,
       avatar: e.avatarUrl,

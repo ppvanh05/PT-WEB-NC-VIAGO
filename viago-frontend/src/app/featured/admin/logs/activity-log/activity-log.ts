@@ -93,17 +93,17 @@ export class ActivityLog implements OnInit, OnDestroy {
     value: String(n),
   }));
   ngOnInit(): void {
-    this.refresh();
+    this.refresh(false);
   }
   @HostListener('window:storage') onStorage(): void {
     this.refresh();
   }
-  async refresh(): Promise<void> {
+  async refresh(force = true): Promise<void> {
     if (this.loading) return;
     this.loading = true;
     this.cd.markForCheck();
     try {
-      this.logs = await this.source.load();
+      this.logs = await this.source.load(force);
       this.error = '';
       this.applyFilters();
     } catch (error) {

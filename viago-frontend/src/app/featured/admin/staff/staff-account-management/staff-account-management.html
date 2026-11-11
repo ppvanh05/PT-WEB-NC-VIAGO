@@ -15,7 +15,7 @@
     <form class="filters" (submit)="$event.preventDefault(); applyFilter()">
       <app-input label="Tìm kiếm" id="staff-search" [value]="searchQuery" (valueChange)="searchQuery = $event; applyFilter()" placeholder="Mã NV / Tên truy cập / Họ tên / Email…" />
       <app-select label="Chức vụ mặc định" id="staff-role-filter" [options]="filterRoleOptions" [value]="searchRole" (valueChange)="searchRole = $event; applyFilter()" />
-      <div class="actions"><app-button type="submit" variant="outline">Tìm kiếm</app-button><app-button variant="ghost" (clicked)="clearFilters()">Xóa bộ lọc</app-button></div>
+      <div class="actions"><app-button type="submit" variant="outline">Tìm kiếm</app-button><app-button variant="ghost" (clicked)="clearFilters()">Xóa bộ lọc</app-button><app-button variant="outline" [disabled]="loading" (clicked)="loadData()">Làm mới</app-button></div>
     </form>
     <div class="table-heading"><strong>Danh sách tài khoản nhân viên</strong><span>{{ filteredEmployees.length }} bản ghi</span></div>
     <div class="table-scroll"><table><thead><tr><th>Mã NV</th><th>Tên truy cập</th><th>Họ tên</th><th>Chức vụ / Quyền hạn</th><th>Ngày bắt đầu làm việc</th><th>Chức năng</th></tr></thead><tbody>
@@ -57,7 +57,7 @@
             }
             <div class="profile-meta full-width">
             <div class="field"><span>Trạng thái hoạt động</span><app-badge [variant]="employee.status === 'Đã khóa' ? 'danger' : 'success'" [dot]="true" [label]="employee.status" /></div>
-            <app-select label="Chức vụ mặc định" id="staff-default-role" [required]="true" [options]="roleOptions" [value]="employee.defaultRole" (valueChange)="employee.defaultRole = $event" [error]="visibleError('defaultRole')" />
+            <app-select label="Nhóm vai trò" id="staff-default-role" [required]="true" [options]="roleOptions" [value]="employee.defaultRole" (valueChange)="applyRole($event)" [error]="visibleError('defaultRole')" />
             <app-select label="Giới tính" id="staff-gender" [options]="genderOptions" [value]="employee.gender" (valueChange)="employee.gender = $event" />
             <div class="field"><app-date-picker label="Ngày sinh *" name="birthDate" [(ngModel)]="employee.birthDate" minDate="1900-01-01" [maxDate]="today" [showLunar]="false" (dateChange)="touched['birthDate'] = true" (closed)="touched['birthDate'] = true" />@if (visibleError('birthDate')) { <small class="error" role="alert">{{ visibleError('birthDate') }}</small> }</div>
             </div>
@@ -79,10 +79,15 @@
           }
         </div>
       } @else if (tab === 'rbac') {
-        <h3>Phân quyền chức năng</h3><p class="description">Chọn mẫu vai trò hoặc chọn từng quyền phù hợp với công việc.</p>
-        <div class="role-templates">@for (role of roles; track role) { <app-button size="sm" variant="outline" (clicked)="applyRole(role)">{{ role }}</app-button> }</div>
-        <div class="permission-toolbar"><app-input label="Tìm kiếm quyền hạn" id="permission-search" [value]="permissionQuery" (valueChange)="permissionQuery = $event" /><label class="checkbox"><input type="checkbox" [checked]="allChecked" (change)="toggleAll()" />Chọn tất cả</label><app-badge variant="primary" [label]="employee.permissions.length + ' / ' + permissionModules.length + ' quyền'" /></div>
-        <div class="permissions">@for (module of visiblePermissions; track module.key) { <details class="permission" [open]="module.expanded"><summary><label class="checkbox" (click)="$event.stopPropagation()"><input type="checkbox" [checked]="employee.permissions.includes(module.key)" (change)="togglePermission(module.key)" />{{ module.title }}</label></summary><p>{{ module.desc }}</p></details> } @empty { <p class="empty">Không tìm thấy quyền phù hợp.</p> }</div>
+        <h3>Nhóm quyền cố định</h3><p class="description">Chọn một nhóm vai trò. Mỗi nhóm được cấp trọn bộ quyền bên dưới, không chọn quyền riêng lẻ.</p>
+        <div class="role-templates">@for (role of roleTemplates; track role) { <app-button size="sm" [variant]="employee.defaultRole === role ? 'primary' : 'outline'" (clicked)="applyRole(role)">{{ role }}</app-button> }</div>
+        @if (legacyPermissionSet) { <p role="status">Tài khoản đang dùng bộ quyền cũ. Chọn lại nhóm và bấm Lưu thay đổi để áp dụng bộ quyền cố định. Chỉ sửa thông tin cá nhân sẽ giữ nguyên quyền hiện có.</p> }
+        @if (permissionGroupChanged) { <p role="status">Bộ quyền mới sẽ được áp dụng khi bạn bấm Lưu thay đổi.</p> }
+        <div class="permissions" aria-label="Các chức năng trong nhóm vai trò">
+          @for (module of selectedRoleModules; track module.key) {
+            <section class="permission permission-readonly"><h4>{{ module.title }}</h4><p>{{ module.desc }}</p></section>
+          } @empty { <p class="empty">Chọn một nhóm vai trò để xem các chức năng được cấp.</p> }
+        </div>
       } @else {
         <div class="table-scroll"><table><thead><tr><th>Thời gian</th><th>Thao tác</th><th>Chi tiết</th><th>Mã nhật ký</th></tr></thead><tbody>@for (log of paginatedEmployeeLogs; track $index) { <tr><td>{{ log.time }}</td><td>{{ log.title }}</td><td>{{ log.desc }}</td><td>{{ log.code }}</td></tr> } @empty { <tr><td colspan="4" class="empty">Chưa có nhật ký hoạt động.</td></tr> }</tbody></table></div>
         <app-pagination [currentPage]="validLogPage" [totalItems]="employee.logs.length" [pageSize]="logPageSize" (pageChange)="logPage = $event" />

@@ -171,7 +171,7 @@ export class EmployeeCreateDto {
   @ArrayUnique()
   @IsString({ each: true })
   @MaxLength(80, { each: true })
-  permissions: string[];
+  @IsOptional() permissions?: string[];
   @IsString() @MinLength(8) @MaxLength(128) password: string;
 }
 // PUT replaces editable employee fields; passwords have a separate, audited flow.
@@ -201,7 +201,8 @@ export class EmployeeUpdateDto {
   @ArrayUnique()
   @IsString({ each: true })
   @MaxLength(80, { each: true })
-  permissions: string[];
+  @IsOptional() permissions?: string[];
+  @IsOptional() @IsBoolean() applyRolePermissions?: boolean;
 }
 export class LogQueryDto extends PageDto {
   @IsOptional() @IsString() @MaxLength(80) action?: string;

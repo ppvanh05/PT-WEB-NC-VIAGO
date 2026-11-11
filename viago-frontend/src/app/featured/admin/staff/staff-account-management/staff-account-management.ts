@@ -1,5 +1,6 @@
-import { AdminAccountsService } from '../../../../core/services/admin-accounts.service';
+import { AdminAccountsService, FixedRoleGroup } from '../../../../core/services/admin-accounts.service';
 import { roleLabel } from '../../../../core/services/accounts-api.service';
+import { staffRoleModules } from './staff-permission-groups';
 import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
 import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
@@ -75,6 +76,11 @@ export class StaffAccountManagement implements OnInit {
   loadError = '';
   readonly today = new Date().toLocaleDateString('sv-SE');
   roles: string[] = [];
+  roleGroups: FixedRoleGroup[] = [];
+  permissionGroupChanged = false;
+  get roleTemplates(): string[] {
+    return this.roleGroups.map(group => roleLabel(group.roleName));
+  }
   get roleOptions() {
     return this.roles.map((value) => ({ label: value, value }));
   }
@@ -87,7 +93,6 @@ export class StaffAccountManagement implements OnInit {
     'Hợp đồng xác định thời hạn 1 năm',
     'Hợp đồng thử việc',
   ].map((value) => ({ label: value, value }));
-  permissionModules: { key: string; title: string; desc: string; expanded: boolean }[] = [];
   readonly logPageSize = 10;
   logPage = 1;
   get validLogPage(): number {
@@ -127,7 +132,6 @@ export class StaffAccountManagement implements OnInit {
   searchRole = 'all';
   appliedQuery = '';
   appliedRole = 'all';
-  permissionQuery = '';
   touched: Record<string, boolean> = {};
   submitted = false;
   password = '';
@@ -143,19 +147,19 @@ export class StaffAccountManagement implements OnInit {
   readingAvatar = false;
   private avatarVersion = 0;
 
-  async ngOnInit(): Promise<void> {
+  ngOnInit(): Promise<void> { return this.loadData(false); }
+  async loadData(refresh = true): Promise<void> {
+    if (refresh) this.backend.invalidateReads();
+    this.loading = true;
+    this.loadError = '';
+    this.cd.markForCheck();
     try {
       const [options, employees] = await Promise.all([
         this.backend.options(),
         this.backend.employees(),
       ]);
-      this.roles = options.roles.map((r) => roleLabel(r.tenvaitro));
-      this.permissionModules = options.permissions.map((p) => ({
-        key: p.maquyen,
-        title: p.tenquyen,
-        desc: p.mota || p.nhomchucnang,
-        expanded: false,
-      }));
+      this.roles = options.roles.map(r => roleLabel(r.tenvaitro));
+      this.roleGroups = options.roleGroups || [];
       this.employees = employees.map((e) => this.normalize(e));
     } catch (error) {
       this.feedback = error instanceof Error ? error.message : 'Không tải được nhân viên.';
@@ -179,7 +183,8 @@ export class StaffAccountManagement implements OnInit {
       date: '',
       initials: 'NV',
       status: 'Đang hoạt động',
-      defaultRole: this.roles[0],
+      defaultRole: this.roles.find(role => role === roleLabel('NhanVienBanVe')) ||
+        this.roles.find(role => role !== roleLabel('QuanTriVien')) || '',
       roles: '',
       address: '',
       notes: '',
@@ -267,7 +272,8 @@ export class StaffAccountManagement implements OnInit {
     this.avatarError = '';
     this.readingAvatar = false;
     this.avatarVersion++;
-    this.permissionQuery = '';
+    this.permissionGroupChanged = false;
+    if (!employee && this.draft) this.applyRole(this.draft.defaultRole);
     if (employee)
       void this.backend
         .logs('employees', employee.code)
@@ -413,7 +419,7 @@ export class StaffAccountManagement implements OnInit {
     try {
       const created = this.creating;
       const result = this.normalize(
-        await this.backend.saveEmployee(this.draft, this.password, created),
+        await this.backend.saveEmployee(this.draft, this.password, created, this.permissionGroupChanged),
       );
       this.employees = created
         ? [result, ...this.employees]
@@ -459,32 +465,28 @@ export class StaffAccountManagement implements OnInit {
       this.cd.markForCheck();
     }
   }
-  get visiblePermissions() {
-    const q = this.permissionQuery.trim().toLowerCase();
-    return this.permissionModules.filter((m) => (m.title + m.desc).toLowerCase().includes(q));
+  get selectedRoleGroup(): FixedRoleGroup | undefined {
+    return this.roleGroups.find(group => roleLabel(group.roleName) === this.draft?.defaultRole);
   }
-  togglePermission(key: string): void {
-    if (!this.draft) return;
-    this.draft.permissions = this.draft.permissions.includes(key)
-      ? this.draft.permissions.filter((v) => v !== key)
-      : [...this.draft.permissions, key];
+  get selectedRoleModules() {
+    return staffRoleModules(this.selectedRoleGroup?.groupKeys || []);
   }
-  get allChecked(): boolean {
-    return (
-      !!this.visiblePermissions.length &&
-      this.visiblePermissions.every((m) => this.draft?.permissions.includes(m.key))
-    );
-  }
-  toggleAll(): void {
-    if (!this.draft) return;
-    const keys = this.visiblePermissions.map((m) => m.key);
-    this.draft.permissions = this.allChecked
-      ? this.draft.permissions.filter((k) => !keys.includes(k))
-      : [...new Set([...this.draft.permissions, ...keys])];
+  get legacyPermissionSet(): boolean {
+    const group = this.selectedRoleGroup;
+    return !!this.draft && !!group && !this.permissionGroupChanged &&
+      [...this.draft.permissions].sort().join() !== [...group.permissionIds].sort().join();
   }
   applyRole(role: string): void {
     if (!this.draft) return;
+    const group = this.roleGroups.find(value => roleLabel(value.roleName) === role);
+    if (!group || group.missing.length) {
+      this.modalError = 'Chưa tải được bộ quyền cố định của nhóm. Vui lòng tải lại trang.';
+      return;
+    }
     this.draft.defaultRole = role;
+    this.draft.permissions = [...group.permissionIds];
+    this.permissionGroupChanged = true;
+    this.modalError = '';
   }
   removeAvatar(): void {
     if (this.draft) this.draft.avatarUrl = '';

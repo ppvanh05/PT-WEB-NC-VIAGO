@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { Request } from 'express';
@@ -16,6 +17,7 @@ import {
   hashPassword,
   newId,
 } from '../../../shared/accounts/account-security';
+import { fixedRolePermissions, samePermissionIds } from '../../../shared/accounts/fixed-role-permissions';
 import {
   EmployeeCreateDto,
   EmployeeUpdateDto,
@@ -78,7 +80,13 @@ export class EmployeesService {
         },
       }),
     ]);
-    return { roles, permissions };
+    return {
+      roles, permissions,
+      roleGroups: roles.map(role => {
+        const group = fixedRolePermissions(role.tenvaitro, permissions);
+        return group ? { ...group, roleId: role.mavaitro } : null;
+      }).filter(group => group !== null),
+    };
   }
   async list(query: PageDto) {
     const where: Prisma.nhan_vienWhereInput = {
@@ -95,18 +103,20 @@ export class EmployeesService {
           }
         : {}),
     };
-    const [rows, total, active, locked] = await this.prisma.$transaction([
+    const filtered = !!(query.search || query.status || query.roleId || query.gender);
+    const [rows, statusCounts, filteredTotal] = await Promise.all([
       this.prisma.nhan_vien.findMany({
-        where,
-        include: employeeInclude,
-        skip: (query.page - 1) * query.pageSize,
-        take: query.pageSize,
+        where, include: employeeInclude,
+        skip: (query.page - 1) * query.pageSize, take: query.pageSize,
         orderBy: [{ thoigiantao: 'desc' }, { manhanvien: 'desc' }],
       }),
-      this.prisma.nhan_vien.count({ where }),
-      this.prisma.nhan_vien.count({ where: { trangthai: 'HoatDong' } }),
-      this.prisma.nhan_vien.count({ where: { trangthai: 'DaKhoa' } }),
+      this.prisma.nhan_vien.groupBy({ by: ['trangthai'], _count: { _all: true } }),
+      filtered ? this.prisma.nhan_vien.count({ where }) : Promise.resolve(null),
     ]);
+    const total = filteredTotal ?? statusCounts.reduce((sum, row) => sum + row._count._all, 0);
+    const active = statusCounts.find(row => row.trangthai === 'HoatDong')?._count._all || 0;
+    const locked = statusCounts.find(row => row.trangthai === 'DaKhoa')?._count._all || 0;
+
     return {
       items: rows.map(view),
       total,
@@ -128,6 +138,7 @@ export class EmployeesService {
     tx: Prisma.TransactionClient,
     dto: EmployeeCreateDto | EmployeeUpdateDto,
     actor: Identity,
+    before?: Employee,
   ) {
     const birth = calendarDate(dto.birthday),
       start = calendarDate(dto.startDate);
@@ -142,10 +153,20 @@ export class EmployeesService {
       role.tenvaitro === 'KhachHang'
     )
       throw new BadRequestException('Vai trò nhân viên không hợp lệ.');
-    const permissions = await tx.quyen_han.findMany({
-      where: { maquyen: { in: dto.permissions } },
-    });
-    if (permissions.length !== dto.permissions.length)
+    if (actor.roleName !== 'QuanTriVien' && role.tenvaitro === 'QuanTriVien')
+      throw new ForbiddenException('Không thể cấp quyền vượt quá quyền của bạn.');
+    const applyGroup = !before || ('applyRolePermissions' in dto && dto.applyRolePermissions === true);
+    if (before && before.mavaitro !== dto.roleId && !applyGroup)
+      throw new BadRequestException('Hãy chọn nhóm vai trò để áp dụng bộ quyền cố định.');
+    const catalog = await tx.quyen_han.findMany();
+    const group = fixedRolePermissions(role.tenvaitro, catalog);
+    if (applyGroup && (!group || group.missing.length))
+      throw new ServiceUnavailableException('Danh mục quyền của nhóm vai trò chưa được cấu hình đầy đủ.');
+    const permissionIds = applyGroup ? group!.permissionIds : before!.nhan_vien_quyen_han.map(p => p.maquyen);
+    if (dto.permissions !== undefined && !samePermissionIds(dto.permissions, permissionIds))
+      throw new BadRequestException('Không chọn quyền riêng lẻ. Hãy chọn một nhóm vai trò cố định.');
+    const permissions = catalog.filter(p => permissionIds.includes(p.maquyen));
+    if (permissions.length !== permissionIds.length)
       throw new BadRequestException('Có quyền không tồn tại trong Supabase.');
     if (
       actor.roleName !== 'QuanTriVien' &&
@@ -155,7 +176,7 @@ export class EmployeesService {
       throw new ForbiddenException(
         'Không thể cấp quyền vượt quá quyền của bạn.',
       );
-    return { birth, start };
+    return { birth, start, permissions: permissionIds };
   }
   async create(dto: EmployeeCreateDto, actor: Identity, req: Request) {
     const hash = await hashPassword(dto.password),
@@ -163,7 +184,7 @@ export class EmployeesService {
       now = new Date();
     await this.prisma.$transaction(
       async (tx) => {
-        const { birth, start } = await this.validate(tx, dto, actor);
+        const { birth, start, permissions } = await this.validate(tx, dto, actor);
         const account = await tx.tai_khoan.create({
           data: {
             mataikhoan: newId('TK'),
@@ -200,7 +221,7 @@ export class EmployeesService {
           },
         });
         await tx.nhan_vien_quyen_han.createMany({
-          data: dto.permissions.map((p) => ({
+          data: permissions.map((p) => ({
             manhanvien: id,
             maquyen: p,
             thoigiancap: now,
@@ -216,7 +237,7 @@ export class EmployeesService {
           id,
           'Tạo nhân viên và cấp quyền.',
           undefined,
-          { roleId: dto.roleId, permissions: dto.permissions },
+          { roleId: dto.roleId, permissions },
         );
       },
       { timeout: 15000 },
@@ -241,13 +262,14 @@ export class EmployeesService {
           actor.roleName !== 'QuanTriVien'
         )
           throw new ForbiddenException();
+        const { birth, start, permissions } = await this.validate(tx, dto, actor, before);
         if (
           actor.staffId === id &&
           (before.mavaitro !== dto.roleId ||
             before.nhan_vien_quyen_han
               .map((p) => p.maquyen)
               .sort()
-              .join() !== [...dto.permissions].sort().join())
+              .join() !== [...permissions].sort().join())
         )
           throw new BadRequestException(
             'Không thể tự thay đổi vai trò/quyền của mình.',
@@ -257,8 +279,7 @@ export class EmployeesService {
           before.mavaitro !== dto.roleId
         )
           await this.ensureAnotherAdmin(tx, id);
-        const { birth, start } = await this.validate(tx, dto, actor),
-          now = new Date();
+        const now = new Date();
         await tx.nhan_vien.update({
           where: { manhanvien: id },
           data: {
@@ -287,15 +308,14 @@ export class EmployeesService {
             thoigiancapnhat: now,
           },
         });
-        await tx.nhan_vien_quyen_han.deleteMany({ where: { manhanvien: id } });
-        await tx.nhan_vien_quyen_han.createMany({
-          data: dto.permissions.map((p) => ({
-            manhanvien: id,
-            maquyen: p,
-            thoigiancap: now,
-            nguoicap: actor.accountId,
-          })),
-        });
+        if (!samePermissionIds(before.nhan_vien_quyen_han.map(p => p.maquyen), permissions)) {
+          await tx.nhan_vien_quyen_han.deleteMany({ where: { manhanvien: id } });
+          await tx.nhan_vien_quyen_han.createMany({
+            data: permissions.map((p) => ({
+              manhanvien: id, maquyen: p, thoigiancap: now, nguoicap: actor.accountId,
+            })),
+          });
+        }
         await this.access.audit(
           tx,
           actor,
@@ -308,7 +328,7 @@ export class EmployeesService {
             roleId: before.mavaitro,
             permissions: before.nhan_vien_quyen_han.map((p) => p.maquyen),
           },
-          { roleId: dto.roleId, permissions: dto.permissions },
+          { roleId: dto.roleId, permissions },
         );
       },
       { timeout: 15000 },

@@ -9,6 +9,7 @@
     "test:accounts": "npm run build && node test/accounts.integration.cjs",
     "test:customer:seed": "npm run build && node test/customer-seed-login.cjs",
     "test:admin:permissions": "npm run build && node test/admin-permission-session.cjs",
+    "test:fixed:roles": "npm run build && node test/fixed-role-permissions.cjs",
     "test:accounts:repairs": "npm run build && node test/accounts-repairs.cjs",
     "test:accounts:browser": "npm --prefix ../viago-frontend run build -- --configuration development --output-path ../artifacts/accounts-browser-build && npm run build && node test/accounts-browser.cjs --test-build",
     "test:accounts:readonly": "npm run build && node test/accounts-readonly.cjs",

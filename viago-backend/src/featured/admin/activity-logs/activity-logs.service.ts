@@ -88,7 +88,7 @@ export class ActivityLogsService {
     }).format(new Date());
     const start = new Date(calendarDate(day).getTime() - 7 * 3600000),
       end = new Date(start.getTime() + 86400000);
-    const [total, success, failed, created] = await this.prisma.$transaction([
+    const [total, success, failed, created] = await Promise.all([
       this.prisma.nhat_ky_he_thong.count({
         where: { thoigian: { gte: start, lt: end } },
       }),
@@ -155,7 +155,7 @@ export class ActivityLogsService {
         },
       ];
     }
-    const [rows, total] = await this.prisma.$transaction([
+    const [rows, total] = await Promise.all([
       this.prisma.nhat_ky_he_thong.findMany({
         where,
         include: logInclude,

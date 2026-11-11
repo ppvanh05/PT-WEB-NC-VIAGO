@@ -78,6 +78,7 @@
       <div class="field filter-action-field">
         <label>&nbsp;</label>
         <button type="button" class="secondary-button" (click)="clearAllFilters()" style="width: 100%; min-height: 40px;">Xóa bộ lọc</button>
+        <button type="button" class="secondary-button" [disabled]="loading" (click)="loadData()">Làm mới</button>
       </div>
 
     </div>

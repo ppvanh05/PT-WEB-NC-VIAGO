@@ -25,7 +25,12 @@ export class CustomerAccountManagement implements OnInit {
   currentPage = 1;
   pageSize = 10;
 
-  async ngOnInit() {
+  ngOnInit() { return this.loadData(false); }
+  async loadData(refresh = true) {
+    if (refresh) this.backend.invalidateReads();
+    this.loading = true;
+    this.error = '';
+    this.cd.markForCheck();
     try {
       const [options, customers] = await Promise.all([
         this.backend.customerOptions(),

@@ -39,6 +39,7 @@ describe('Staff accounts backed by API', () => {
         .mockResolvedValue({
           roles: [{ mavaitro: 'VT002', tenvaitro: 'NhanVienBanVe' }],
           permissions: [{ maquyen: 'Q014', tenquyen: 'DangNhapNoiBo', nhomchucnang: 'TaiKhoan' }],
+          roleGroups: [{ roleId: 'VT002', roleName: 'NhanVienBanVe', groupKeys: ['datve', 'baocao'], permissionIds: ['Q004', 'Q008', 'Q014', 'Q032'], permissions: [], missing: [] }],
         }),
       employees: vi.fn().mockResolvedValue([employee()]),
       saveEmployee: vi.fn(),
@@ -60,8 +61,30 @@ describe('Staff accounts backed by API', () => {
   });
   it('loads actual role and permission IDs from API, with no localStorage seed', () => {
     expect(component.employees).toHaveLength(1);
-    expect(component.permissionModules[0].key).toBe('Q014');
+    expect(component.roleGroups).toHaveLength(1);
+    expect(component.employees[0].permissions).toEqual(['Q014']);
     expect(component.roles).toEqual(['Nhân viên bán vé']);
+  });
+  it('keeps legacy rights untouched when opening the form and removes granular pickers', () => {
+    component.open(component.employees[0]);
+    component.tab = 'rbac';
+    fixture.detectChanges();
+    expect(component.legacyPermissionSet).toBe(true);
+    expect(component.permissionGroupChanged).toBe(false);
+    expect(component.draft!.permissions).toEqual(['Q014']);
+    expect(fixture.nativeElement.querySelectorAll('.permissions input[type=checkbox]')).toHaveLength(0);
+    expect(fixture.nativeElement.querySelector('.permission-toolbar')).toBeNull();
+    expect(component.employees[0].permissions).toEqual(['Q014']);
+    expect(api.saveEmployee).not.toHaveBeenCalled();
+  });
+  it('selects the complete fixed role bundle only after an explicit role choice', () => {
+    component.open(component.employees[0]);
+    component.applyRole(component.roles[0]);
+    expect(component.draft!.permissions).toEqual(['Q004', 'Q008', 'Q014', 'Q032']);
+    expect(component.permissionGroupChanged).toBe(true);
+    expect(component.selectedRoleModules).toHaveLength(2);
+    expect(component.employees[0].permissions).toEqual(['Q014']);
+    expect(api.saveEmployee).not.toHaveBeenCalled();
   });
   it('only replaces displayed employee after the server confirms save', async () => {
     component.open(component.employees[0]);

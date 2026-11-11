@@ -97,6 +97,14 @@ const db = {
   bang_hang_thanh_vien: { findMany: async () => [] },
   $connect: async () => {},
   $disconnect: async () => {},
+  $queryRaw: async query => {
+    const key = Object.keys(tokens).find(k => digest(tokens[k]) === query?.values?.[0]);
+    return key && accounts[key].trangthai === 'HoatDong' ? [{
+      maphien: 'PDN_TEST', mataikhoan: accounts[key].mataikhoan,
+      thoigianhethan: new Date(Date.now() + 60000), thoigianhoatdongcuoi: new Date(),
+      tai_khoan: accounts[key],
+    }] : [];
+  },
   onModuleInit: async () => {},
   onModuleDestroy: async () => {},
   $transaction: async (op) =>
@@ -122,8 +130,9 @@ const db = {
     findUniqueOrThrow: async () => customer,
     findMany: async () => [],
     count: async () => 0,
+    groupBy: async () => [],
   },
-  nhan_vien: { findMany: async () => [], count: async () => 0 },
+  nhan_vien: { findMany: async () => [], count: async () => 0, groupBy: async () => [] },
   don_hang: { aggregate: async () => ({ _sum: { tongthanhtoan: null } }) },
   ve_xe: { count: async () => 0, findMany: async () => [] },
   vai_tro: { findMany: async () => [] },
