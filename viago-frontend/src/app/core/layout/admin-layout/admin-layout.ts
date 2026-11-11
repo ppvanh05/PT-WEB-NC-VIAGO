@@ -8,6 +8,7 @@ import { AdminProfile, AdminProfileData } from '../../../featured/admin/profile/
 import { ToastService } from '../../services/toast.service';
 import { AdminSessionService } from '../../services/admin-session.service';
 import { Router } from '@angular/router';
+import { roleLabel } from '../../services/accounts-api.service';
 
 @Component({
   imports: [CommonModule, AdminSidebar, AdminTopbar, RouterOutlet, AdminProfile],
@@ -16,6 +17,7 @@ import { Router } from '@angular/router';
   templateUrl: './admin-layout.html',
 })
 export class AdminLayout {
+  readonly roleLabel = roleLabel;
   readonly session = inject(AdminSessionService);
   private readonly router = inject(Router);
   async logout(): Promise<void> { try { await this.session.logout(); } finally { await this.router.navigateByUrl('/admin/login'); } }

@@ -29,7 +29,7 @@
   <!-- Nav: wrapper clip + inner scroll (như reference) -->
   <div class="sidebar-nav-wrapper">
     <div class="sidebar-nav">
-      @for (item of menuItems; track item.label) {
+      @for (item of visibleMenuItems(); track item.label) {
 
         <!-- Parent nav item -->
         <button

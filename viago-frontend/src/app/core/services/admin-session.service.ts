@@ -7,6 +7,9 @@ export interface AdminAccount {
   email: string;
   avatar: string;
   role: 'admin';
+  roleName?: string;
+  permissions?: string[];
+  supportChat?: boolean;
 }
 @Injectable({ providedIn: 'root' })
 export class AdminSessionService {
@@ -68,7 +71,9 @@ export class AdminSessionService {
       this.clear();
       return Promise.resolve(false);
     }
-    if (this.account() && this.validatedToken === token && Date.now() < this.validatedUntil)
+    const account = this.account();
+    if (account?.roleName && Array.isArray(account.permissions) &&
+        this.validatedToken === token && Date.now() < this.validatedUntil)
       return Promise.resolve(true);
     if (this.restoring?.token === token) return this.restoring.result;
     const result = this.restoreToken(token);

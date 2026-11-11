@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { AdminSessionService } from './admin-session.service';
 
 describe('Admin session requests', () => {
-  const account = { id: 'TK_TEST', staffId: 'NV_TEST', name: 'Test', phoneNumber: '', email: '', avatar: '', role: 'admin' };
+  const account = { id: 'TK_TEST', staffId: 'NV_TEST', name: 'Test', phoneNumber: '', email: '', avatar: '', role: 'admin', roleName: 'NhanVienBanVe', permissions: ['DatVeVaThanhToan'] };
   let fetcher: ReturnType<typeof vi.fn>;
   let service: AdminSessionService;
   beforeEach(() => {

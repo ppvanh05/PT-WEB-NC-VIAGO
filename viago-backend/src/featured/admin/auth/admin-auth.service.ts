@@ -18,6 +18,10 @@ const employeeSelect = {
   sodienthoai: true,
   email: true,
   anhdaidien: true,
+  vai_tro: { select: { tenvaitro: true, trangthai: true } },
+  nhan_vien_quyen_han: {
+    select: { quyen_han: { select: { tenquyen: true, maquyen: true } } },
+  },
 } as const;
 export async function verifyAdminPassword(
   password: string,
@@ -74,7 +78,6 @@ export class AdminAuthService {
               select: {
                 ...employeeSelect,
                 trangthai: true,
-                vai_tro: { select: { trangthai: true } },
               },
             },
           },
@@ -191,6 +194,8 @@ export class AdminAuthService {
       sodienthoai: string;
       email: string;
       anhdaidien: string | null;
+      vai_tro: { tenvaitro: string };
+      nhan_vien_quyen_han: { quyen_han: { tenquyen: string; maquyen: string } }[];
     },
   ) {
     return {
@@ -201,6 +206,11 @@ export class AdminAuthService {
       email: staff.email,
       avatar: staff.anhdaidien || '',
       role: 'admin' as const,
+      roleName: staff.vai_tro.tenvaitro,
+      permissions: staff.nhan_vien_quyen_han.map((p) => p.quyen_han.tenquyen),
+      supportChat: staff.nhan_vien_quyen_han.some(
+        (p) => p.quyen_han.maquyen === (process.env.CHATBOT_SUPPORT_PERMISSION || 'CSKH_CHAT'),
+      ),
     };
   }
   async current(authorization?: string) {
