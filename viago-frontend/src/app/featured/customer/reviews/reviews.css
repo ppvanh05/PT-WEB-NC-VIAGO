@@ -894,3 +894,23 @@
     flex-direction: column;
   }
 }
+
+/* Bộ lọc tiêu chí chọn nhiều */
+.category-pill .pill-check {
+  margin-right: 8px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.category-pill .pill-name {
+  flex: 1;
+  text-align: left;
+}
+
+.category-hint {
+  margin-left: auto;
+  margin-right: 10px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}

@@ -451,6 +451,8 @@
             <div class="ticket-card__actions">
               <button *ngIf="getEffectiveStatus(ticket) === 'ĐÃ HOÀN THÀNH' || getEffectiveStatus(ticket) === 'ĐÃ HỦY' || getEffectiveStatus(ticket) === 'ĐÃ ĐÁNH GIÁ'"
                 type="button" (click)="rebookTicket(ticket.id)" class="btn btn--ghost btn--sm">Đặt lại chuyến</button>
+              <!-- Đánh giá nhanh ngay trên thẻ vé, không cần mở Chi tiết -->
+              <button *ngIf="getEffectiveStatus(ticket) === 'ĐÃ HOÀN THÀNH'" type="button" (click)="openReview(ticket)" class="btn btn--accent btn--sm">Đánh giá</button>
               <button type="button" (click)="viewTicketDetail(ticket)" class="btn btn--accent btn--sm">Chi tiết</button>
             </div>
           </div>

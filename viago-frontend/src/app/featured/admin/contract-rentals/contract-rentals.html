@@ -1,3 +1,9 @@
+<!-- Toast góc phải: admin-layout không vẽ ToastService nên trang tự hiển thị -->
+<div class="page-toast-stack" aria-live="polite">
+  @for (t of (toastStack | async) ?? []; track t.id) {
+    <app-toast [variant]="t.type" [title]="t.title ?? ''" [message]="t.message" (closed)="dismissToast(t.id)" />
+  }
+</div>
 <div class="management-container">
   <!-- Premium Header Container -->
   <app-admin-page-header title="Thuê xe hợp đồng" section="QUẢN LÝ THUÊ XE HỢP ĐỒNG">
@@ -10,10 +16,9 @@
         </svg>
       </div>
       <div class="action-banner-text">
-        <h3 *ngIf="activeMainTab === 'request'">Xử lý yêu cầu</h3>
-        <h3 *ngIf="activeMainTab === 'quote' && activeQuoteSubTab === 'standard'">Thêm bảng giá</h3>
-        <h3 *ngIf="activeMainTab === 'quote' && activeQuoteSubTab === 'customer'">Tạo báo giá</h3>
-        <h3 *ngIf="activeMainTab === 'contract'">Thêm hợp đồng</h3>
+        <h3 *ngIf="activeMainTab === 'request'">Xử lý yêu cầu chờ báo giá</h3>
+        <h3 *ngIf="activeMainTab === 'quote'">Xử lý báo giá</h3>
+        <h3 *ngIf="activeMainTab === 'contract'">Xử lý hợp đồng</h3>
         <p>Thiết lập thông tin báo giá, hợp đồng và quản lý yêu cầu khách hàng.</p>
       </div>
     </button>
@@ -89,10 +94,7 @@
           <div class="custom-select-container">
             <select [(ngModel)]="requestTypeFilter">
               <option value="Tất cả loại xe">Tất cả loại xe</option>
-              <option value="Limousine 9 chỗ">Limousine 9 chỗ</option>
-              <option value="Giường nằm 34 chỗ">Giường nằm 34 chỗ</option>
-              <option value="Giường nằm 40 chỗ">Giường nằm 40 chỗ</option>
-              <option value="Cabin đôi cao cấp">Cabin đôi cao cấp</option>
+              <option *ngFor="let t of vehicleTypeNames" [value]="t">{{ t }}</option>
             </select>
           </div>
         </div>
@@ -101,9 +103,7 @@
           <div class="custom-select-container">
             <select [(ngModel)]="requestStatusFilter">
               <option value="Tất cả trạng thái">Tất cả trạng thái</option>
-              <option value="Chờ xử lý">Chờ xử lý</option>
-              <option value="Đã báo giá">Đã báo giá</option>
-              <option value="Đã hủy">Đã hủy</option>
+              <option *ngFor="let st of requestStatuses" [value]="st">{{ st }}</option>
             </select>
           </div>
         </div>
@@ -141,10 +141,7 @@
             <div class="custom-select-container">
               <select [(ngModel)]="customerQuoteStatus">
                 <option value="Tất cả">Tất cả trạng thái</option>
-                <option value="Chờ phản hồi">Chờ phản hồi</option>
-                <option value="Đã chấp nhận">Đã chấp nhận</option>
-                <option value="Đã từ chối">Đã từ chối</option>
-                <option value="Hết hiệu lực">Hết hiệu lực</option>
+                <option *ngFor="let st of quoteStatuses" [value]="st">{{ st }}</option>
               </select>
             </div>
           </div>
@@ -164,10 +161,7 @@
           <div class="custom-select-container">
             <select [(ngModel)]="contractStatus">
               <option value="Tất cả">Tất cả trạng thái</option>
-              <option value="Chờ thực hiện">Chờ thực hiện</option>
-              <option value="Đang thực hiện">Đang thực hiện</option>
-              <option value="Hoàn thành">Hoàn thành</option>
-              <option value="Đã hủy">Đã hủy</option>
+              <option *ngFor="let st of contractStatuses" [value]="st">{{ st }}</option>
             </select>
           </div>
         </div>
@@ -204,7 +198,7 @@
             <td class="col-code text-semibold">{{item.code}}</td>
             <td class="col-customer">
               <div class="name-with-status">
-                <span class="status-indicator" [class.active]="item.status !== 'Đã hủy'"></span>
+                <span class="status-indicator" [class.active]="item.status !== 'DaHuy' && item.status !== 'TuChoi'"></span>
                 <span class="text-semibold status-text-gap">{{item.customer}}</span>
               </div>
             </td>
@@ -212,13 +206,13 @@
             <td class="col-type">{{item.vehicleType}}</td>
             <td class="col-number text-center">{{item.guests}}</td>
             <td class="col-number text-center">{{item.vehicles}}</td>
-            <td class="col-date text-center">{{item.departure}}</td>
+            <td class="col-date text-center">{{date(item.departure)}}</td>
             <td class="col-status text-center">
               <span class="status-badge" [ngClass]="{
-                'status-active': item.status === 'Đã báo giá',
-                'status-pending': item.status === 'Chờ xử lý',
-                'status-locked': item.status === 'Đã hủy'
-              }">{{item.status}}</span>
+                'status-active': item.status === 'DaBaoGia' || item.status === 'DongY',
+                'status-pending': item.status === 'ChoBaoGia',
+                'status-locked': item.status === 'DaHuy' || item.status === 'TuChoi'
+              }">{{item.statusLabel}}</span>
             </td>
             <td class="col-actions text-center">
               <button class="btn-icon admin-edit-action" (click)="viewDetail(item, 'request')" title="Xem chi tiết">
@@ -248,15 +242,15 @@
             <td class="col-stt text-center">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
             <td class="col-type text-semibold">{{item.vehicleType}}</td>
             <td class="col-number text-center">{{item.seats}} chỗ</td>
-            <td class="col-price text-secondary">{{item.inland}}</td>
-            <td class="col-price text-secondary">{{item.intercity}}</td>
-            <td class="col-price text-secondary">{{item.daily}}</td>
+            <td class="col-price text-secondary">{{priceText(item.inland)}}</td>
+            <td class="col-price text-secondary">{{priceText(item.intercity)}}</td>
+            <td class="col-price text-secondary">{{priceText(item.daily)}}</td>
             <td class="col-status text-center">
-              <span class="status-badge" [class.status-active]="item.status === 'Đang áp dụng'">{{item.status}}</span>
+              <span class="status-badge" [class.status-active]="item.status === 'DangApDung'">{{priceStatusLabel(item.status)}}</span>
             </td>
             <td class="col-actions text-center">
               <div class="action-buttons">
-                <button class="btn-icon admin-edit-action" title="Chỉnh sửa"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                <button class="btn-icon admin-edit-action" title="Chỉnh sửa" (click)="editPrice(item)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
               </div>
             </td>
           </tr>
@@ -284,20 +278,20 @@
             <td class="col-code text-semibold">{{item.code}}</td>
             <td class="col-customer">
               <div class="name-with-status">
-                <span class="status-indicator" [class.active]="item.status === 'Đã chấp nhận'"></span>
+                <span class="status-indicator" [class.active]="item.status === 'DongY'"></span>
                 <span class="text-semibold status-text-gap">{{item.customer}}</span>
               </div>
             </td>
             <td class="col-type">{{item.vehicleType}}</td>
             <td class="col-number text-center">{{item.vehicles}}</td>
-            <td class="col-price text-secondary">{{item.total}}</td>
-            <td class="col-date text-center">{{item.sent}}</td>
+            <td class="col-price text-secondary">{{money(item.total)}}</td>
+            <td class="col-date text-center">{{date(item.sentAt || item.createdAt)}}</td>
             <td class="col-status text-center">
               <span class="status-badge" [ngClass]="{
-                'status-active': item.status === 'Đã chấp nhận',
-                'status-pending': item.status === 'Chờ phản hồi',
-                'status-locked': item.status === 'Đã từ chối' || item.status === 'Hết hiệu lực'
-              }">{{item.status}}</span>
+                'status-active': item.status === 'DongY',
+                'status-pending': item.status === 'ChoKhachDuyet' || item.status === 'Nhap',
+                'status-locked': item.status === 'TuChoi' || item.status === 'HetHan' || item.status === 'DaHuy'
+              }">{{item.statusLabel}}</span>
             </td>
             <td class="col-actions text-center">
               <button class="btn-icon admin-edit-action" (click)="viewDetail(item, 'quote')" title="Xem chi tiết">
@@ -329,21 +323,21 @@
             <td class="col-code text-semibold">{{item.code}}</td>
             <td class="col-customer">
               <div class="name-with-status">
-                <span class="status-indicator" [class.active]="item.status === 'Hoàn thành' || item.status === 'Đang thực hiện'"></span>
+                <span class="status-indicator" [class.active]="item.status === 'HoanThanh' || item.status === 'DangThucHien'"></span>
                 <span class="text-semibold status-text-gap">{{item.customer}}</span>
               </div>
             </td>
             <td class="col-type">{{item.vehicleType}}</td>
             <td class="col-number text-center">{{item.vehicles}}</td>
-            <td class="col-date text-center">{{item.departure}}</td>
-            <td class="col-price text-secondary">{{item.amount}}</td>
+            <td class="col-date text-center">{{date(item.startAt)}}</td>
+            <td class="col-price text-secondary">{{money(item.total)}}</td>
             <td class="col-status text-center">
               <span class="status-badge" [ngClass]="{
-                'status-active': item.status === 'Hoàn thành',
-                'status-maintenance': item.status === 'Đang thực hiện',
-                'status-pending': item.status === 'Chờ thực hiện',
-                'status-locked': item.status === 'Đã hủy'
-              }">{{item.status}}</span>
+                'status-active': item.status === 'HoanThanh',
+                'status-maintenance': item.status === 'DangThucHien',
+                'status-pending': item.status === 'MoiTao' || item.status === 'DaKy' || item.status === 'DaCoc',
+                'status-locked': item.status === 'DaHuy'
+              }">{{item.statusLabel}}</span>
             </td>
             <td class="col-actions text-center">
               <button class="btn-icon admin-edit-action" (click)="viewDetail(item, 'contract')" title="Xem chi tiết">
@@ -353,6 +347,8 @@
           </tr>
         </tbody>
       </table>
+
+      <div class="empty-state" *ngIf="loading"><div class="empty-content"><span>Đang tải dữ liệu...</span></div></div>
 
       <!-- Empty State -->
       <div class="empty-state" *ngIf="isTableEmpty()">
@@ -381,9 +377,9 @@
       <div class="drawer-header">
         <div>
           <h2 class="drawer-title">
-            {{activeDrawer === 'request' ? 'Chi tiết yêu cầu' : (activeDrawer === 'quote' ? 'Chi tiết báo giá' : 'Chi tiết hợp đồng')}}
+            {{activeDrawer === 'request' ? 'Chi tiết yêu cầu' : activeDrawer === 'quote' ? 'Chi tiết báo giá' : activeDrawer === 'price' ? 'Sửa bảng giá chuẩn' : 'Chi tiết hợp đồng'}}
           </h2>
-          <span class="drawer-subtitle">Mã số: {{selectedItem?.code}}</span>
+          <span class="drawer-subtitle">{{ activeDrawer === 'price' ? selectedItem?.vehicleType : 'Mã số: ' + selectedItem?.code }}</span>
         </div>
         <button class="btn-close" (click)="closeDrawer()">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -394,73 +390,235 @@
       </div>
 
       <div class="drawer-body">
+        <!-- ===== YÊU CẦU ===== -->
         <ng-container *ngIf="activeDrawer === 'request'">
           <div class="drawer-card">
             <h3 class="drawer-card-title">Thông tin khách hàng</h3>
             <div class="drawer-grid">
               <div class="drawer-item"><label>Họ tên</label><span>{{selectedItem.customer}}</span></div>
               <div class="drawer-item"><label>Số điện thoại</label><span>{{selectedItem.phone}}</span></div>
-              <div class="drawer-item full-width"><label>Email</label><span>{{selectedItem.email}}</span></div>
+              <div class="drawer-item full-width"><label>Email</label><span>{{selectedItem.email || 'N/A'}}</span></div>
             </div>
           </div>
           <div class="drawer-card">
-            <h3 class="drawer-card-title">Thông tin chuyến đi</h3>
+            <h3 class="drawer-card-title">Thông tin chuyến đi · {{selectedItem.statusLabel}}</h3>
             <div class="drawer-grid">
               <div class="drawer-item"><label>Điểm đón</label><span>{{selectedItem.pickup}}</span></div>
               <div class="drawer-item"><label>Điểm đến</label><span>{{selectedItem.destination}}</span></div>
-              <div class="drawer-item"><label>Ngày đi</label><span>{{selectedItem.departure}}</span></div>
+              <div class="drawer-item"><label>Thời gian đi</label><span>{{dateTime(selectedItem.departure)}}</span></div>
+              <div class="drawer-item"><label>Thời gian về</label><span>{{dateTime(selectedItem.returnAt) || '—'}}</span></div>
               <div class="drawer-item"><label>Loại xe</label><span>{{selectedItem.vehicleType}}</span></div>
+              <div class="drawer-item"><label>Hình thức</label><span>{{rentalTypeLabel(selectedItem.rentalType)}}</span></div>
               <div class="drawer-item"><label>Số xe</label><span>{{selectedItem.vehicles}}</span></div>
               <div class="drawer-item"><label>Số khách</label><span>{{selectedItem.guests}}</span></div>
-              <div class="drawer-item full-width"><label>Ghi chú</label><span class="text-muted">{{selectedItem.note}}</span></div>
+              <div class="drawer-item"><label>Tài xế mong muốn</label><span>{{selectedItem.preferredDriver?.name || '—'}}</span></div>
+              <div class="drawer-item"><label>Mã khuyến mãi</label><span>{{selectedItem.promoCode || '—'}}</span></div>
+              <div class="drawer-item full-width"><label>Ghi chú</label><span class="text-muted">{{selectedItem.note || '—'}}</span></div>
+              <div class="drawer-item full-width" *ngIf="selectedItem.cancelReason"><label>Lý do hủy</label><span class="text-danger">{{selectedItem.cancelReason}}</span></div>
+            </div>
+          </div>
+          <div class="drawer-card" *ngIf="selectedItem.estimate">
+            <h3 class="drawer-card-title">Giá tạm tính khi khách gửi</h3>
+            <div class="drawer-price-list">
+              <div class="price-row"><span>Đơn giá</span><span class="text-semibold">{{money(selectedItem.estimate.unitPrice)}} / {{unitLabel(selectedItem.estimate.unit)}} × {{selectedItem.estimate.units}}</span></div>
+              <div class="price-row"><span>Giá cơ bản</span><span class="text-semibold">{{money(selectedItem.estimate.basePrice)}}</span></div>
+              <div class="price-row text-danger"><span>Giảm giá</span><span class="text-semibold">-{{money(selectedItem.estimate.discount)}}</span></div>
+              <div class="price-row total"><span>Tạm tính</span><span class="text-secondary">{{money(selectedItem.estimate.total)}}</span></div>
+            </div>
+          </div>
+          <div class="drawer-card" *ngIf="selectedItem.canQuote">
+            <h3 class="drawer-card-title">Lập báo giá gửi khách</h3>
+            <div class="drawer-form">
+              <div class="drawer-field">
+                <label for="q-scope">Cách tính giá</label>
+                <select id="q-scope" [(ngModel)]="quoteForm.scope">
+                  <ng-container *ngIf="selectedItem.rentalType === 'CoTaiXe'">
+                    <option value="LienTinh">Liên tỉnh (theo chuyến)</option>
+                    <option value="NoiTinh">Nội tỉnh (theo chuyến)</option>
+                  </ng-container>
+                  <option value="TheoNgay" *ngIf="selectedItem.rentalType === 'TuLai'">Theo ngày</option>
+                </select>
+              </div>
+              <div class="drawer-field">
+                <label for="q-surcharge">Phụ phí (đ)</label>
+                <input id="q-surcharge" type="number" min="0" step="10000" [(ngModel)]="quoteForm.surcharge" />
+              </div>
+              <div class="drawer-field">
+                <label for="q-promo">Mã khuyến mãi</label>
+                <input id="q-promo" type="text" [(ngModel)]="quoteForm.promoCode" placeholder="Bỏ trống = không áp dụng" />
+              </div>
+              <div class="drawer-field">
+                <label for="q-deposit">Tỷ lệ cọc (%)</label>
+                <input id="q-deposit" type="number" min="0" max="100" [(ngModel)]="quoteForm.depositRate" />
+              </div>
+              <div class="drawer-field">
+                <label for="q-valid">Hiệu lực (ngày)</label>
+                <input id="q-valid" type="number" min="1" max="30" [(ngModel)]="quoteForm.validDays" />
+              </div>
+              <div class="drawer-field full-width">
+                <label for="q-terms">Điều khoản (bỏ trống để dùng mẫu)</label>
+                <textarea id="q-terms" rows="3" maxlength="4000" [(ngModel)]="quoteForm.terms"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="drawer-card" *ngIf="selectedItem.history?.length">
+            <h3 class="drawer-card-title">Lịch sử xử lý</h3>
+            <div class="drawer-history">
+              <div class="history-step" *ngFor="let h of selectedItem.history; let i = index">
+                <span class="step-circle">{{i+1}}</span>
+                <span class="step-text">{{h.content}} · {{h.by}} · {{dateTime(h.at)}}</span>
+              </div>
             </div>
           </div>
         </ng-container>
 
+        <!-- ===== BÁO GIÁ ===== -->
         <ng-container *ngIf="activeDrawer === 'quote'">
           <div class="drawer-card">
-            <h3 class="drawer-card-title">Thông tin chung</h3>
+            <h3 class="drawer-card-title">Thông tin chung · {{selectedItem.statusLabel}}</h3>
             <div class="drawer-grid">
               <div class="drawer-item"><label>Mã yêu cầu</label><span>{{selectedItem.requestCode}}</span></div>
+              <div class="drawer-item"><label>Phiên bản</label><span>{{selectedItem.version}}</span></div>
               <div class="drawer-item"><label>Khách hàng</label><span>{{selectedItem.customer}}</span></div>
               <div class="drawer-item"><label>Số điện thoại</label><span>{{selectedItem.phone}}</span></div>
+              <div class="drawer-item"><label>Loại xe</label><span>{{selectedItem.vehicleType}} × {{selectedItem.vehicles}}</span></div>
+              <div class="drawer-item"><label>Thời gian đi</label><span>{{dateTime(selectedItem.departure)}}</span></div>
+              <div class="drawer-item"><label>Nhân viên lập</label><span>{{selectedItem.salesStaff}}</span></div>
+              <div class="drawer-item"><label>Hết hạn</label><span>{{dateTime(selectedItem.expiresAt) || '—'}}</span></div>
+              <div class="drawer-item full-width" *ngIf="selectedItem.rejectReason"><label>Lý do từ chối</label><span class="text-danger">{{selectedItem.rejectReason}}</span></div>
+              <div class="drawer-item full-width" *ngIf="selectedItem.contract"><label>Hợp đồng</label><span>{{selectedItem.contract.code}}</span></div>
             </div>
           </div>
           <div class="drawer-card">
             <h3 class="drawer-card-title">Chi tiết chi phí</h3>
             <div class="drawer-price-list">
-              <div class="price-row"><span>Giá thuê cơ bản</span><span class="text-semibold">{{selectedItem.basePrice}}</span></div>
-              <div class="price-row"><span>Phụ phí</span><span class="text-semibold">{{selectedItem.fees}}</span></div>
-              <div class="price-row text-danger"><span>Giảm giá</span><span class="text-semibold">-{{selectedItem.discount}}</span></div>
-              <div class="price-row total"><span>Tổng cộng</span><span class="text-secondary">{{selectedItem.total}}</span></div>
+              <div class="price-row"><span>Đơn giá</span><span class="text-semibold">{{money(selectedItem.unitPrice)}} / {{unitLabel(selectedItem.unit)}} × {{selectedItem.units}}</span></div>
+              <div class="price-row"><span>Giá thuê cơ bản</span><span class="text-semibold">{{money(selectedItem.basePrice)}}</span></div>
+              <div class="price-row"><span>Phụ phí</span><span class="text-semibold">{{money(selectedItem.fees)}}</span></div>
+              <div class="price-row text-danger"><span>Giảm giá{{selectedItem.promoCode ? ' (' + selectedItem.promoCode + ')' : ''}}</span><span class="text-semibold">-{{money(selectedItem.discount)}}</span></div>
+              <div class="price-row total"><span>Tổng cộng</span><span class="text-secondary">{{money(selectedItem.total)}}</span></div>
+              <div class="price-row"><span>Tiền cọc yêu cầu</span><span class="text-semibold">{{money(selectedItem.deposit)}}</span></div>
             </div>
+            <p class="drawer-note" *ngIf="selectedItem.terms">{{selectedItem.terms}}</p>
           </div>
         </ng-container>
 
+        <!-- ===== HỢP ĐỒNG ===== -->
         <ng-container *ngIf="activeDrawer === 'contract'">
           <div class="drawer-card">
-            <h3 class="drawer-card-title">Thông tin hợp đồng</h3>
+            <h3 class="drawer-card-title">Thông tin hợp đồng · {{selectedItem.statusLabel}}</h3>
             <div class="drawer-grid">
               <div class="drawer-item"><label>Mã báo giá</label><span>{{selectedItem.quoteCode}}</span></div>
-              <div class="drawer-item"><label>Ngày tạo</label><span>{{selectedItem.created}}</span></div>
-              <div class="drawer-item"><label>Trạng thái</label><span class="status-badge status-active">{{selectedItem.status}}</span></div>
+              <div class="drawer-item"><label>Ngày ký</label><span>{{dateTime(selectedItem.signedAt || selectedItem.createdAt)}}</span></div>
+              <div class="drawer-item"><label>Khách hàng</label><span>{{selectedItem.customer}} · {{selectedItem.phone}}</span></div>
+              <div class="drawer-item"><label>Phụ trách</label><span>{{selectedItem.staffInCharge?.name}}</span></div>
+              <div class="drawer-item"><label>Bắt đầu</label><span>{{dateTime(selectedItem.startAt)}}</span></div>
+              <div class="drawer-item"><label>Kết thúc</label><span>{{dateTime(selectedItem.endAt)}}</span></div>
+              <div class="drawer-item full-width"><label>Hành trình</label><span>{{selectedItem.pickup}} → {{selectedItem.destination}}</span></div>
+              <div class="drawer-item full-width" *ngIf="selectedItem.cancelReason"><label>Lý do hủy</label><span class="text-danger">{{selectedItem.cancelReason}}</span></div>
             </div>
           </div>
           <div class="drawer-card">
-            <h3 class="drawer-card-title">Điều khoản & Lịch sử</h3>
-            <div class="drawer-section">
-              <label class="input-mini-label">Điều khoản hợp đồng</label>
-              <ul class="drawer-list">
-                <li *ngFor="let term of selectedItem.terms">{{term}}</li>
-              </ul>
+            <h3 class="drawer-card-title">Thanh toán</h3>
+            <div class="drawer-price-list">
+              <div class="price-row total"><span>Tổng hợp đồng</span><span class="text-secondary">{{money(selectedItem.total)}}</span></div>
+              <div class="price-row"><span>Cọc đã thu / yêu cầu</span><span class="text-semibold">{{money(selectedItem.depositPaid)}} / {{money(selectedItem.depositRequired)}}</span></div>
+              <div class="price-row"><span>Đã thu</span><span class="text-semibold">{{money(selectedItem.paid)}}</span></div>
+              <div class="price-row text-danger"><span>Còn lại</span><span class="text-semibold">{{money(selectedItem.remaining)}}</span></div>
             </div>
-            <div class="drawer-section mt-16">
-              <label class="input-mini-label">Lịch sử xử lý</label>
-              <div class="drawer-history">
-                <div class="history-step" *ngFor="let step of selectedItem.history; let i = index">
-                  <span class="step-circle">{{i+1}}</span>
-                  <span class="step-text">{{step}}</span>
+            <ul class="drawer-list" style="margin-top: 10px" *ngIf="selectedItem.payments?.length">
+              <li *ngFor="let p of selectedItem.payments">{{paymentTypeLabel(p.type)}}: {{money(p.amount)}} · {{methodLabel(p.method)}} · {{dateTime(p.paidAt)}}{{p.collectedBy ? ' · ' + p.collectedBy : ''}}</li>
+            </ul>
+            <div class="drawer-actions-inline">
+              <button class="btn-cancel" *ngIf="selectedItem.nextActions?.collectDeposit" (click)="openPayment(selectedItem, 'TienCoc')">Thu tiền cọc</button>
+              <button class="btn-cancel" *ngIf="selectedItem.nextActions?.collectRemaining" (click)="openPayment(selectedItem, 'ThanhToanConLai')">Thu phần còn lại</button>
+            </div>
+            <div class="drawer-form" style="margin-top: 12px" *ngIf="paymentForm.open">
+              <div class="drawer-field">
+                <label for="pay-method">Phương thức</label>
+                <select id="pay-method" [(ngModel)]="paymentForm.method">
+                  <option *ngFor="let m of paymentMethods" [value]="m.value">{{m.label}}</option>
+                </select>
+              </div>
+              <div class="drawer-field">
+                <label for="pay-amount">Số tiền ({{paymentTypeLabel(paymentForm.type)}})</label>
+                <input id="pay-amount" type="number" min="1000" step="1000" [(ngModel)]="paymentForm.amount" />
+              </div>
+              <div class="drawer-field full-width">
+                <label for="pay-note">Ghi chú</label>
+                <input id="pay-note" type="text" maxlength="500" [(ngModel)]="paymentForm.note" />
+              </div>
+              <div class="drawer-actions-inline full-width">
+                <button class="btn-cancel" (click)="paymentForm.open = false">Hủy</button>
+                <button class="btn-save" [disabled]="busy" (click)="submitPayment(selectedItem)">Ghi nhận thanh toán</button>
+              </div>
+            </div>
+          </div>
+          <div class="drawer-card">
+            <h3 class="drawer-card-title">Phân công xe ({{selectedItem.assignments?.length || 0}}/{{selectedItem.vehicles}})</h3>
+            <ul class="drawer-list" *ngIf="selectedItem.assignments?.length">
+              <li *ngFor="let a of selectedItem.assignments">{{a.vehicleName}} ({{a.plateNumber}}){{a.driverName ? ' · Tài xế ' + a.driverName : ''}}</li>
+            </ul>
+            <button class="btn-cancel" *ngIf="selectedItem.nextActions?.assign && !assignOptions" (click)="openAssign(selectedItem)">Phân công xe{{selectedItem.rentalType === 'CoTaiXe' ? ' & tài xế' : ''}}</button>
+            <div *ngIf="assignOptions as opt" class="drawer-form" style="margin-top: 12px">
+              <ng-container *ngFor="let a of assignForm; let i = index">
+                <div class="drawer-field">
+                  <label [for]="'as-veh-' + i">Xe {{i + 1}}</label>
+                  <select [id]="'as-veh-' + i" [(ngModel)]="a.vehicleId">
+                    <option value="">Chọn xe</option>
+                    <option *ngFor="let v of opt.vehicles" [value]="v.id" [disabled]="!v.available">{{v.name}} · {{v.plateNumber}}{{v.available ? '' : ' (bận)'}}</option>
+                  </select>
                 </div>
+                <div class="drawer-field" *ngIf="opt.needDriver">
+                  <label [for]="'as-drv-' + i">Tài xế xe {{i + 1}}</label>
+                  <select [id]="'as-drv-' + i" [(ngModel)]="a.driverId">
+                    <option value="">Chọn tài xế</option>
+                    <option *ngFor="let d of opt.drivers" [value]="d.id" [disabled]="!d.available">{{d.name}} (GPLX {{d.licenseClass}}){{d.available ? '' : ' (bận)'}}</option>
+                  </select>
+                </div>
+              </ng-container>
+              <p class="drawer-note full-width" *ngIf="!opt.vehicles.length">Không có xe phù hợp còn hạn đăng kiểm/bảo hiểm trong thời gian hợp đồng.</p>
+              <div class="drawer-actions-inline full-width">
+                <button class="btn-cancel" (click)="assignOptions = null">Hủy</button>
+                <button class="btn-save" [disabled]="busy" (click)="submitAssign(selectedItem)">Lưu phân công</button>
+              </div>
+            </div>
+          </div>
+          <div class="drawer-card">
+            <h3 class="drawer-card-title">Điều khoản hợp đồng</h3>
+            <ul class="drawer-list">
+              <li *ngFor="let term of selectedItem.terms">{{term}}</li>
+            </ul>
+          </div>
+        </ng-container>
+
+        <!-- ===== BẢNG GIÁ ===== -->
+        <ng-container *ngIf="activeDrawer === 'price'">
+          <div class="drawer-card">
+            <h3 class="drawer-card-title">Giá niêm yết ({{selectedItem.seats}} chỗ)</h3>
+            <div class="drawer-form">
+              <div class="drawer-field" *ngIf="selectedItem.inland">
+                <label for="pr-inland">Nội tỉnh (đ/{{unitLabel(selectedItem.inland.unit)}})</label>
+                <input id="pr-inland" type="number" min="0" step="10000" [(ngModel)]="priceForm.inland" />
+              </div>
+              <div class="drawer-field" *ngIf="selectedItem.intercity">
+                <label for="pr-intercity">Liên tỉnh (đ/{{unitLabel(selectedItem.intercity.unit)}})</label>
+                <input id="pr-intercity" type="number" min="0" step="10000" [(ngModel)]="priceForm.intercity" />
+              </div>
+              <div class="drawer-field" *ngIf="selectedItem.daily">
+                <label for="pr-daily">Tự lái theo ngày (đ/{{unitLabel(selectedItem.daily.unit)}})</label>
+                <input id="pr-daily" type="number" min="0" step="10000" [(ngModel)]="priceForm.daily" />
+              </div>
+              <div class="drawer-field">
+                <label for="pr-status">Trạng thái</label>
+                <select id="pr-status" [(ngModel)]="priceForm.status">
+                  <option value="DangApDung">Đang áp dụng</option>
+                  <option value="NgungApDung">Ngưng áp dụng</option>
+                </select>
+              </div>
+              <div class="drawer-field full-width">
+                <label for="pr-note">Phụ phí có thể phát sinh</label>
+                <input id="pr-note" type="text" maxlength="300" [(ngModel)]="priceForm.surchargeNote" />
               </div>
             </div>
           </div>
@@ -469,9 +627,21 @@
 
       <div class="drawer-footer">
         <button class="btn-cancel" (click)="closeDrawer()">Đóng</button>
-        <button class="btn-save" *ngIf="activeDrawer === 'request'" (click)="createQuoteFromRequest(selectedItem)">Tạo báo giá</button>
-        <button class="btn-save" *ngIf="activeDrawer === 'quote'" (click)="convertQuoteToContract(selectedItem)">Chuyển thành hợp đồng</button>
-        <button class="btn-save" *ngIf="activeDrawer === 'contract'" (click)="updateContractStatus(selectedItem)">Cập nhật trạng thái</button>
+        <ng-container *ngIf="activeDrawer === 'request'">
+          <button class="btn-danger-outline" *ngIf="selectedItem.canQuote" [disabled]="busy" (click)="cancelRequest(selectedItem)">Hủy yêu cầu</button>
+          <button class="btn-save" *ngIf="selectedItem.canQuote" [disabled]="busy" (click)="createQuoteFromRequest(selectedItem)">Tạo báo giá</button>
+        </ng-container>
+        <ng-container *ngIf="activeDrawer === 'quote'">
+          <button class="btn-danger-outline" *ngIf="selectedItem.status === 'ChoKhachDuyet'" [disabled]="busy" (click)="decideQuote(selectedItem, 'reject')">Khách từ chối</button>
+          <button class="btn-save" *ngIf="selectedItem.status === 'ChoKhachDuyet'" [disabled]="busy" (click)="decideQuote(selectedItem, 'accept')">Khách đồng ý</button>
+          <button class="btn-save" *ngIf="selectedItem.canCreateContract" [disabled]="busy" (click)="convertQuoteToContract(selectedItem)">Lập hợp đồng</button>
+        </ng-container>
+        <ng-container *ngIf="activeDrawer === 'contract'">
+          <button class="btn-danger-outline" *ngIf="selectedItem.nextActions?.cancel" [disabled]="busy" (click)="updateContractStatus(selectedItem, 'DaHuy')">Hủy hợp đồng</button>
+          <button class="btn-save" *ngIf="selectedItem.nextActions?.start" [disabled]="busy" (click)="updateContractStatus(selectedItem, 'DangThucHien')">Bắt đầu thực hiện</button>
+          <button class="btn-save" *ngIf="selectedItem.nextActions?.complete" [disabled]="busy" (click)="updateContractStatus(selectedItem, 'HoanThanh')">Hoàn thành</button>
+        </ng-container>
+        <button class="btn-save" *ngIf="activeDrawer === 'price'" [disabled]="busy" (click)="savePrice(selectedItem)">Lưu bảng giá</button>
       </div>
     </ng-container>
   </div>

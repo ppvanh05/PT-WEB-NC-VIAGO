@@ -94,7 +94,7 @@
     <div class="main-reviews-layout">
 
       <button class="mobile-filter-toggle" (click)="isFilterExpanded = !isFilterExpanded">
-        <span class="filter-toggle-icon">▼</span> {{ isFilterExpanded ? 'Ẩn bộ lọc' : 'Hiển thị bộ lọc (' + (selectedCategory !== 'all' || searchKeyword ? 'Đang lọc' : 'Tất cả') + ')' }}
+        <span class="filter-toggle-icon">▼</span> {{ isFilterExpanded ? 'Ẩn bộ lọc' : 'Hiển thị bộ lọc (' + (selectedCategories.length || searchKeyword ? 'Đang lọc' : 'Tất cả') + ')' }}
       </button>
 
       <!-- LEFT SIDEBAR -->
@@ -116,21 +116,24 @@
         <div class="sidebar-card category-card">
           <div class="sidebar-card-header">
             <h4 class="sidebar-card-title">LỌC</h4>
+            <span class="category-hint" *ngIf="selectedCategories.length">Đã chọn {{ selectedCategories.length }}</span>
             <button (click)="clearFilters()" class="clear-filters-btn">Xóa lọc</button>
           </div>
 
           <div class="category-pills-list">
             <button 
               class="category-pill" 
-              [class.active]="selectedCategory === 'all'" 
+              [class.active]="selectedCategories.length === 0" 
               (click)="setCategory('all')">
               Tất cả lĩnh vực
             </button>
             <button 
               *ngFor="let item of criteriaList" 
               class="category-pill" 
-              [class.active]="selectedCategory === item.name" 
+              [class.active]="isCategorySelected(item.name)"
+              [attr.aria-pressed]="isCategorySelected(item.name)" 
               (click)="setCategory(item.name)">
+              <span class="pill-check">{{ isCategorySelected(item.name) ? '☑' : '☐' }}</span>
               <span class="pill-name">{{ item.name }}</span>
               <span class="pill-score">({{ item.score }} / 5)</span>
             </button>
@@ -161,7 +164,15 @@
 
         <!-- Reviews Cards List -->
         <div class="reviews-list">
-          <div *ngIf="filteredReviews.length === 0" class="no-reviews-box">
+          <div *ngIf="loading" class="no-reviews-box">
+            <p class="empty-title">Đang tải đánh giá...</p>
+          </div>
+          <div *ngIf="!loading && loadError" class="no-reviews-box">
+            <div class="empty-icon">⚠️</div>
+            <p class="empty-title">{{ loadError }}</p>
+            <button (click)="load()" class="btn-reset-filters">Thử lại</button>
+          </div>
+          <div *ngIf="!loading && !loadError && filteredReviews.length === 0" class="no-reviews-box">
             <div class="empty-icon">💬</div>
             <p class="empty-title">Không tìm thấy đánh giá nào phù hợp</p>
             <p class="empty-desc">Thử thay đổi bộ lọc hoặc xóa từ khóa tìm kiếm để xem kết quả khác.</p>

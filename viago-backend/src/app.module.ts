@@ -18,6 +18,13 @@ import { AdminIntakeModule } from './featured/admin/intake/intake.module';
 
 import { AdminDispatchModule } from './featured/admin/dispatch/dispatch.module';
 import { CustomerTripSearchModule } from './featured/customer/trip-search/trip-search.module';
+import { CustomerReviewsModule } from './featured/customer/reviews/reviews.module';
+import { CustomerLostAndFoundModule } from './featured/customer/lost-and-found/lost-and-found.module';
+import { CustomerContractRentalsModule } from './featured/customer/contract-rentals/contract-rentals.module';
+import { AdminReviewsFeedbackModule } from './featured/admin/customers/reviews-feedback/reviews-feedback.module';
+import { AdminLostAndFoundModule } from './featured/admin/customers/lost-and-found/lost-and-found.module';
+import { AdminContractRentalsModule } from './featured/admin/contract-rentals/contract-rentals.module';
+import { AdminReportsModule } from './featured/admin/reports/reports.module';
 
 @Module({
   imports: [
@@ -37,6 +44,13 @@ import { CustomerTripSearchModule } from './featured/customer/trip-search/trip-s
     AdminIntakeModule,
     AdminDispatchModule,
     CustomerTripSearchModule,
+    CustomerReviewsModule,
+    CustomerLostAndFoundModule,
+    CustomerContractRentalsModule,
+    AdminReviewsFeedbackModule,
+    AdminLostAndFoundModule,
+    AdminContractRentalsModule,
+    AdminReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -779,10 +779,12 @@ export class Profile implements OnInit, OnDestroy {
   showTicketDetail = false;
   selectedTicket: ProfileTicket | null = null;
 
-  /** Mở vé điện tử ngay trong Lịch sử mua vé: xem vé, in vé, tải vé, đánh giá chuyến đi. */
+  /**
+   * Chi tiết vé: chuyển sang trang Tra cứu vé và mở thẳng phần chi tiết đơn của vé này
+   * (cùng 1 trang Chi tiết vé với khi khách tự tra cứu bằng mã đơn + SĐT).
+   */
   viewTicketDetail(ticket: ProfileTicket): void {
-    this.selectedTicket = ticket;
-    this.showTicketDetail = true;
+    void this.router.navigate(['/customer/tra-cuu-ve'], { queryParams: { order: ticket.orderId, ticket: ticket.id } });
   }
 
   closeTicketDetail(): void {

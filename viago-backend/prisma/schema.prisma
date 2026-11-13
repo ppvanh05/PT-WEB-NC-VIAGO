@@ -303,10 +303,13 @@ model danh_gia {
   trangthaixuly     String?                  @db.VarChar
   mucdokhancap      muc_do_khan_cap_enum?
   ghichunoibo       String?
+  /// Nguyên nhân CSKH gắn cho đánh giá: tai-xe | van-hanh | thoi-tiet | khach-chu-quan
+  tagnguyennhan     String?                  @db.VarChar(30)
   khach_hang        khach_hang?              @relation(fields: [makhachhang], references: [makhachhang], onDelete: NoAction, onUpdate: NoAction)
   nhan_vien         nhan_vien?               @relation(fields: [manhanvienphanhoi], references: [manhanvien], onDelete: NoAction, onUpdate: NoAction)
   ve_xe             ve_xe                    @relation(fields: [mave], references: [mave], onDelete: NoAction, onUpdate: NoAction)
   tep_danh_gia      tep_danh_gia[]
+  luot_huu_ich_danh_gia luot_huu_ich_danh_gia[]
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -1048,6 +1051,16 @@ model tai_xe_phu_xe {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// Lượt "Hữu ích" của đánh giá; nguoibinhchon là hash cookie khách (mỗi trình duyệt một lượt).
+model luot_huu_ich_danh_gia {
+  madanhgia     String   @db.VarChar
+  nguoibinhchon String   @db.VarChar(64)
+  thoigian      DateTime @default(now()) @db.Timestamptz(6)
+  danh_gia      danh_gia @relation(fields: [madanhgia], references: [madanhgia], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([madanhgia, nguoibinhchon])
+}
+
 model tep_danh_gia {
   matepdanhgia   String                   @id @db.VarChar
   madanhgia      String                   @db.VarChar

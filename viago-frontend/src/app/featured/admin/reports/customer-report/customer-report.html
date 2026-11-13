@@ -95,9 +95,7 @@
         <label>Hạng thành viên</label>
         <select [(ngModel)]="filters.hangTV" (change)="onViewReport()">
           <option value="Tất cả">Tất cả hạng</option>
-          <option value="Bạc">Bạc</option>
-          <option value="Vàng">Vàng</option>
-          <option value="Kim cương">Kim cương</option>
+          <option *ngFor="let t of tierOptions" [value]="t">{{ t }}</option>
           <option value="Không có">Không có</option>
         </select>
       </div>
@@ -123,7 +121,7 @@
     <div class="report-toolbar">
       <div>
         <strong>Phân tích dữ liệu khách hàng</strong>
-        <span>Dữ liệu tổng hợp dựa trên {{ filteredCustomers.length }} khách hàng</span>
+        <span>{{ loading ? 'Đang tải dữ liệu...' : loadError ? loadError : 'Dữ liệu tổng hợp dựa trên ' + filteredCustomers.length + ' khách hàng' }}</span>
       </div>
       <div class="report-actions">
         <button type="button" class="primary-button report-action-btn" (click)="onExportExcel()">
@@ -146,20 +144,20 @@
             <div class="donut-chart-mini interactive-donut-mini">
               <svg viewBox="0 0 100 100">
                 <circle class="donut-track" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke-width="12" transform="rotate(-90 50 50)"></circle>
-                <circle class="donut-segment warning donut-segment-mini" tabindex="0" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke="var(--viago-warning)" stroke-width="12" stroke-dasharray="25 75" stroke-dashoffset="-75" transform="rotate(-90 50 50)"></circle>
-                <circle class="donut-segment primary donut-segment-mini" tabindex="0" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke="var(--viago-primary)" stroke-width="12" stroke-dasharray="75 25" stroke-dashoffset="0" transform="rotate(-90 50 50)"></circle>
+                <circle class="donut-segment warning donut-segment-mini" tabindex="0" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke="var(--viago-warning)" stroke-width="12" [attr.stroke-dasharray]="(dashboard.coCauKH[1]?.pct ?? 0) + ' ' + (100 - (dashboard.coCauKH[1]?.pct ?? 0))" [attr.stroke-dashoffset]="-(dashboard.coCauKH[0]?.pct ?? 0)" transform="rotate(-90 50 50)"></circle>
+                <circle class="donut-segment primary donut-segment-mini" tabindex="0" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke="var(--viago-primary)" stroke-width="12" [attr.stroke-dasharray]="(dashboard.coCauKH[0]?.pct ?? 0) + ' ' + (100 - (dashboard.coCauKH[0]?.pct ?? 0))" stroke-dashoffset="0" transform="rotate(-90 50 50)"></circle>
               </svg>
               <div class="donut-label">
-                <strong>75%</strong>
+                <strong>{{ dashboard.coCauKH[0]?.pct ?? 0 }}%</strong>
                 <small>Hội viên</small>
               </div>
               <div class="donut-tooltip-mini primary">
                 <strong>Hội viên</strong>
-                <span>75% khách hàng</span>
+                <span>{{ dashboard.coCauKH[0]?.pct ?? 0 }}% khách hàng</span>
               </div>
               <div class="donut-tooltip-mini warning">
                 <strong>Khách vãng lai</strong>
-                <span>25% khách hàng</span>
+                <span>{{ dashboard.coCauKH[1]?.pct ?? 0 }}% khách hàng</span>
               </div>
             </div>
             <div class="chart-legend-v">
@@ -181,7 +179,7 @@
           <div class="chart-content">
             <div class="line-chart-simple">
               <svg viewBox="0 0 600 100">
-                <path d="M50,80 L150,60 L250,70 L350,30 L450,10 L550,20" fill="none" stroke="var(--viago-primary)" stroke-width="3"></path>
+                <path [attr.d]="dashboard.duongDangKy" fill="none" stroke="var(--viago-primary)" stroke-width="3"></path>
                 <g class="line-point-group" *ngFor="let p of dashboard.dangKyTheoThang" tabindex="0">
                   <line class="line-hover-guide" [attr.x1]="p.x * 5 + 50" [attr.x2]="p.x * 5 + 50" y1="8" y2="88"></line>
                   <circle class="line-point-hit" [attr.cx]="p.x * 5 + 50" [attr.cy]="p.y" r="12"></circle>
@@ -270,7 +268,7 @@
             <span>5 khách hàng vừa gia nhập</span>
           </div>
           <div class="recent-list-mini">
-            <div class="recent-item-mini interactive-tip" *ngFor="let item of dashboard.khachHangMoi" tabindex="0" [attr.data-tip]="item.name + ' Â· ' + item.type + ' Â· ' + item.date">
+            <div class="recent-item-mini interactive-tip" *ngFor="let item of dashboard.khachHangMoi" tabindex="0" [attr.data-tip]="item.name + ' · ' + item.type + ' · ' + item.date">
               <div class="item-info">
                 <strong>{{item.name}}</strong>
                 <small>{{item.type}}</small>
@@ -290,20 +288,20 @@
             <div class="donut-chart-mini interactive-donut-mini">
               <svg viewBox="0 0 100 100">
                 <circle class="donut-track" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke-width="12" transform="rotate(-90 50 50)"></circle>
-                <circle class="donut-segment danger donut-segment-mini" tabindex="0" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke="var(--viago-error)" stroke-width="12" stroke-dasharray="10 90" stroke-dashoffset="-90" transform="rotate(-90 50 50)"></circle>
-                <circle class="donut-segment success donut-segment-mini" tabindex="0" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke="var(--viago-success)" stroke-width="12" stroke-dasharray="90 10" stroke-dashoffset="0" transform="rotate(-90 50 50)"></circle>
+                <circle class="donut-segment danger donut-segment-mini" tabindex="0" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke="var(--viago-error)" stroke-width="12" [attr.stroke-dasharray]="(dashboard.trangThaiKH[1]?.pct ?? 0) + ' ' + (100 - (dashboard.trangThaiKH[1]?.pct ?? 0))" [attr.stroke-dashoffset]="-(dashboard.trangThaiKH[0]?.pct ?? 0)" transform="rotate(-90 50 50)"></circle>
+                <circle class="donut-segment success donut-segment-mini" tabindex="0" cx="50" cy="50" r="40" pathLength="100" fill="transparent" stroke="var(--viago-success)" stroke-width="12" [attr.stroke-dasharray]="(dashboard.trangThaiKH[0]?.pct ?? 0) + ' ' + (100 - (dashboard.trangThaiKH[0]?.pct ?? 0))" stroke-dashoffset="0" transform="rotate(-90 50 50)"></circle>
               </svg>
               <div class="donut-label">
-                <strong>90%</strong>
+                <strong>{{ dashboard.trangThaiKH[0]?.pct ?? 0 }}%</strong>
                 <small>Hoạt động</small>
               </div>
               <div class="donut-tooltip-mini success">
                 <strong>Đang hoạt động</strong>
-                <span>18 khách · 90%</span>
+                <span>{{ dashboard.trangThaiKH[0]?.count ?? 0 }} khách · {{ dashboard.trangThaiKH[0]?.pct ?? 0 }}%</span>
               </div>
               <div class="donut-tooltip-mini danger">
                 <strong>Đã khóa</strong>
-                <span>2 khách · 10%</span>
+                <span>{{ dashboard.trangThaiKH[1]?.count ?? 0 }} khách · {{ dashboard.trangThaiKH[1]?.pct ?? 0 }}%</span>
               </div>
             </div>
             <div class="chart-legend-v">

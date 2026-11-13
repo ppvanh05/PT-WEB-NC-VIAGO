@@ -13,7 +13,6 @@ import {
 import {
   calendarDate,
   hashPassword,
-  newId,
   verifyPassword,
 } from '../../../shared/accounts/account-security';
 import {
@@ -25,9 +24,10 @@ import {
 } from '../../../shared/accounts/accounts.dto';
 import { TicketQueryDto } from '../../../shared/accounts/accounts.dto';
 import { Prisma } from '@prisma/client';
+import { writeTicketReview } from '../reviews/review-writer';
 import { CustomerAuthService } from '../auth/customer-auth.service';
 import { ReviewMediaService } from './review-media.service';
-import type { ReviewUpload, StoredReviewMedia } from './review-media.service';
+import type { ReviewUpload } from './review-media.service';
 @Injectable()
 export class CustomerProfileService {
   constructor(
@@ -36,6 +36,7 @@ export class CustomerProfileService {
     private readonly auth: CustomerAuthService,
     private readonly media: ReviewMediaService = new ReviewMediaService(prisma),
   ) {}
+  /** Đánh giá vé đã hoàn thành của chính tài khoản (logic ghi dùng chung với trang Tra cứu vé). */
   async review(
     identity: Identity,
     ticketId: string,
@@ -43,79 +44,13 @@ export class CustomerProfileService {
     req: Request,
     files: ReviewUpload[] = [],
   ) {
-    const rated = dto.scores.filter((score) => score > 0);
-    if (!rated.length)
-      throw new BadRequestException('Cần chấm ít nhất một tiêu chí.');
-    const stored: StoredReviewMedia[] = [];
-    try {
-      await this.prisma.$transaction(
-        async (tx) => {
-          const ticket = await tx.ve_xe.findFirst({
-            where: {
-              mave: ticketId,
-              don_hang: { makhachhang: identity.customerId! },
-              trangthaive: 'DaHoanThanh',
-            },
-            select: { mave: true },
-          });
-          if (!ticket)
-            throw new NotFoundException(
-              'Chỉ được đánh giá vé đã hoàn thành của bạn.',
-            );
-          stored.push(...(await this.media.store(files)));
-          const now = new Date();
-          const review = await tx.danh_gia.create({
-            data: {
-              madanhgia: newId('DG'),
-              mave: ticketId,
-              makhachhang: identity.customerId,
-              diemtongquat: Math.round(
-                rated.reduce((sum, score) => sum + score, 0) / rated.length,
-              ),
-              diemantoan: dto.scores[0] || null,
-              diemsachse: dto.scores[1] || null,
-              diemthaido: dto.scores[2] || null,
-              diemdunggio: dto.scores[3] || null,
-              diemthongtin: dto.scores[4] || null,
-              diemtiennghi: dto.scores[5] || null,
-              noidung: dto.comment,
-              trangthai: 'HienThi',
-              thoigiandanhgia: now,
-              thoigiantao: now,
-              thoigiancapnhat: now,
-            },
-          });
-          if (stored.length)
-            await tx.tep_danh_gia.createMany({
-              data: stored.map((file, index) => ({
-                matepdanhgia: file.id,
-                madanhgia: review.madanhgia,
-                loaitep: file.kind,
-                duongdantep: file.url,
-                dungluong: BigInt(file.size),
-                dinhdangtep: file.mime,
-                thutuhienthi: index + 1,
-                trangthai: 'HienThi',
-                thoigiantailen: now,
-              })),
-            });
-          await this.access.audit(
-            tx,
-            identity,
-            req,
-            'CREATE_REVIEW',
-            've_xe',
-            ticketId,
-            'Gửi đánh giá chuyến đi.',
-          );
-        },
-        { timeout: 15000 },
-      );
-    } catch (error) {
-      await this.media.rollback(stored);
-      throw error;
-    }
-    return { success: true };
+    return writeTicketReview(this.prisma, this.access, this.media, {
+      where: { mave: ticketId, don_hang: { makhachhang: identity.customerId! } },
+      identity,
+      dto,
+      req,
+      files,
+    });
   }
   async current(identity: Identity) {
     const customer = await this.prisma.khach_hang.findUniqueOrThrow({

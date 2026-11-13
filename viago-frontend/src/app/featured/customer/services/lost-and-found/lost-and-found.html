@@ -1,9 +1,9 @@
 <div class="lf-container">
   <!-- Toast Notification -->
   <div class="toast-notification" [class.show]="showToast">
-    <div class="toast-icon"><i class="fas fa-check-circle"></i></div>
+    <div class="toast-icon"><i class="fas" [class.fa-check-circle]="!toastError" [class.fa-exclamation-circle]="toastError"></i></div>
     <div class="toast-content">
-      <strong>Thành công</strong>
+      <strong>{{ toastError ? 'Chưa gửi được' : 'Thành công' }}</strong>
       <span>{{ toastMessage }}</span>
     </div>
   </div>
@@ -14,89 +14,129 @@
       <div class="lf-form-card">
         <h2 class="lf-form-title">Khai báo thất lạc</h2>
         <p class="lf-form-desc">
-          Hãy điền chi tiết biểu mẫu khai báo dưới đây để bộ phận đối soát trích xuất camera hành trình hỗ trợ bạn tìm kiếm.
+          Nhập mã đơn hoặc mã vé cùng số điện thoại người đặt để hệ thống xác định đúng chuyến xe, sau đó mô tả vật phẩm bị thất lạc.
         </p>
 
         <div class="lf-form-body">
           <div class="lf-form-group" *ngIf="myTrips.length">
-            <label>CHỌN TỪ CHUYẾN ĐI CỦA TÔI</label>
+            <label for="lf-my-trip">CHỌN TỪ CHUYẾN ĐI CỦA TÔI</label>
             <div class="lf-select-wrap">
-              <select [(ngModel)]="selectedTripId" (ngModelChange)="onSelectMyTrip($event)" class="lf-input lf-select">
-                <option value="">Chọn chuyến đi đã đặt</option>
-                <option *ngFor="let trip of myTrips" [value]="trip.orderId">{{ trip.orderId }} · {{ trip.route }} · {{ trip.date | date:'dd/MM/yyyy' }}</option>
+              <select id="lf-my-trip" [(ngModel)]="selectedTripId" (ngModelChange)="onSelectMyTrip($event)" class="lf-input lf-select">
+                <option value="">Chọn vé đã đặt</option>
+                <option *ngFor="let trip of myTrips" [value]="trip.id">{{ trip.id }} · {{ trip.depLoc }} → {{ trip.arrLoc }} · {{ trip.dateLabel }}</option>
               </select>
               <i class="fas fa-chevron-down lf-select-icon"></i>
             </div>
           </div>
 
-          <div class="lf-form-group">
-            <label>MÃ ĐƠN HOẶC MÃ VÉ (Tùy chọn)</label>
-            <input type="text" [(ngModel)]="reportForm.bookingCode" class="lf-input" placeholder="Nhập để tự động điền"(blur)="onBookingCodeChange()" (keydown.enter)="onBookingCodeChange()" />
-            <small class="lf-field-error" *ngIf="bookingCodeError">{{ bookingCodeError }}</small>
-          </div>
-
-          <div class="lf-form-group">
-            <label>MÔ TẢ VẬT PHẨM THẤT LẠC <span class="lf-req">*</span></label>
-            <input type="text" [(ngModel)]="reportForm.description" class="lf-input" placeholder="Ví dụ: Ví da cá sấu đen, iPhone 14 Pro màu tím..." />
-          </div>
-
           <div class="lf-form-row">
             <div class="lf-form-group">
-              <label>TUYẾN XE <span class="lf-req">*</span></label>
-              <div class="lf-select-wrap">
-                <select [(ngModel)]="reportForm.route" class="lf-input lf-select">
-                  <option value="">Chọn tuyến</option>
-                  <option *ngFor="let route of routes" [value]="route" [disabled]="route === 'Tất cả các tuyến'">{{ route }}</option>
-                </select>
-                <i class="fas fa-chevron-down lf-select-icon"></i>
-              </div>
+              <label for="lf-booking-code">MÃ ĐƠN HOẶC MÃ VÉ <span class="lf-req">*</span></label>
+              <input id="lf-booking-code" type="text" [(ngModel)]="reportForm.bookingCode" (ngModelChange)="booking = null" class="lf-input" placeholder="VD: DH001 hoặc VE001"
+                (blur)="onBookingCodeChange()" (keydown.enter)="onBookingCodeChange()" />
             </div>
             <div class="lf-form-group">
-              <label>NGÀY DI CHUYỂN <span class="lf-req">*</span></label>
-              <input type="date" [(ngModel)]="reportForm.date" class="lf-input" (keydown)="$event.preventDefault()" (click)="openDatePicker($event)" />
+              <label for="lf-phone">SĐT NGƯỜI ĐẶT <span class="lf-req">*</span></label>
+              <input id="lf-phone" appPhoneInput [(ngModel)]="reportForm.phone" (ngModelChange)="booking = null" (blur)="onBookingCodeChange()" class="lf-input" placeholder="0987xxxxxx" />
+            </div>
+          </div>
+          <small class="lf-field-error" *ngIf="bookingCodeError">{{ bookingCodeError }}</small>
+          <small *ngIf="checkingBooking">Đang xác minh...</small>
+
+          <div class="lf-form-row" *ngIf="booking">
+            <div class="lf-form-group">
+              <label>TUYẾN XE</label>
+              <input type="text" class="lf-input" [value]="booking.route" readonly />
+            </div>
+            <div class="lf-form-group">
+              <label>NGÀY DI CHUYỂN</label>
+              <input type="text" class="lf-input" [value]="formatDate(booking.date)" readonly />
             </div>
           </div>
 
-          <div class="lf-form-group">
-            <label>SỐ GHẾ / VỊ TRÍ PHÒNG (NẾU NHỚ)</label>
-            <div class="lf-select-wrap" *ngIf="orderTickets.length > 1; else seatInput">
-              <select [(ngModel)]="reportForm.maVe" (ngModelChange)="onSelectOrderTicket($event)" class="lf-input lf-select">
-                <option value="">Chọn ghế trong đơn {{ reportForm.maDonHang }}</option>
-                <option *ngFor="let t of orderTickets" [value]="t.id">Ghế {{ t.seat }}{{ t.route && t.route !== reportForm.route ? ' · ' + t.route : '' }} (Vé {{ t.id }})</option>
+          <div class="lf-form-group" *ngIf="booking">
+            <label for="lf-seat">SỐ GHẾ / VỊ TRÍ PHÒNG</label>
+            <div class="lf-select-wrap" *ngIf="orderTickets.length; else seatInput">
+              <select id="lf-seat" [(ngModel)]="reportForm.maVe" (ngModelChange)="onSelectOrderTicket($event)" class="lf-input lf-select">
+                <option value="">Chọn ghế trong đơn {{ booking.orderId }}</option>
+                <option *ngFor="let t of orderTickets" [value]="t.id">Ghế {{ t.seat }} · {{ t.passenger }} (Vé {{ t.id }})</option>
               </select>
               <i class="fas fa-chevron-down lf-select-icon"></i>
             </div>
             <ng-template #seatInput>
-              <input type="text" [(ngModel)]="reportForm.seat" class="lf-input" placeholder="Ví dụ: Phòng A12, số ghế 5..." />
+              <input id="lf-seat" type="text" [(ngModel)]="reportForm.seat" class="lf-input" maxlength="30" placeholder="Ví dụ: A12" />
             </ng-template>
           </div>
 
           <div class="lf-form-group">
-            <label>HỌ TÊN HÀNH KHÁCH <span class="lf-req">*</span></label>
-            <input type="text" [(ngModel)]="reportForm.fullName" class="lf-input" placeholder="Nguyễn Văn A" />
-          </div>
-
-          <div class="lf-form-row">
-            <div class="lf-form-group">
-              <label>SỐ ĐIỆN THOẠI <span class="lf-req">*</span></label>
-              <input type="text" [(ngModel)]="reportForm.phone" class="lf-input" placeholder="0987xxxxxx" />
-            </div>
-            <div class="lf-form-group">
-              <label>ĐỊA CHỈ EMAIL <span class="lf-req">*</span></label>
-              <input type="email" [(ngModel)]="reportForm.email" class="lf-input" placeholder="name@example.com" />
-            </div>
+            <label for="lf-item-name">TÊN VẬT PHẨM <span class="lf-req">*</span></label>
+            <input id="lf-item-name" type="text" [(ngModel)]="reportForm.itemName" class="lf-input" maxlength="150" placeholder="Ví dụ: Ví da màu đen, iPhone 14 Pro màu tím..." />
           </div>
 
           <div class="lf-form-group">
-            <label>HÌNH ẢNH VẬT PHẨM (NẾU CÓ)</label>
-            <div class="lf-upload-zone">
-              <span>Tải ảnh vật phẩm lên (.jpg, .png)</span>
+            <label for="lf-description">MÔ TẢ CHI TIẾT <span class="lf-req">*</span></label>
+            <textarea id="lf-description" [(ngModel)]="reportForm.description" class="lf-input" rows="3" maxlength="1000"
+              placeholder="Màu sắc, nhãn hiệu, đồ bên trong, vị trí để quên trên xe..."></textarea>
+          </div>
+
+          <div class="lf-form-group">
+            <label for="lf-fullname">HỌ TÊN HÀNH KHÁCH <span class="lf-req">*</span></label>
+            <input id="lf-fullname" type="text" [(ngModel)]="reportForm.fullName" class="lf-input" maxlength="100" placeholder="Nguyễn Văn A" />
+          </div>
+
+          <div class="lf-form-group">
+            <label for="lf-email">ĐỊA CHỈ EMAIL</label>
+            <input id="lf-email" type="email" [(ngModel)]="reportForm.email" class="lf-input" placeholder="name@example.com" />
+          </div>
+
+          <div class="lf-form-group">
+            <label for="lf-images">HÌNH ẢNH VẬT PHẨM (TỐI ĐA 3 ẢNH)</label>
+            <label class="lf-upload-zone" for="lf-images" style="cursor: pointer">
+              <span>Tải ảnh vật phẩm lên (.jpg, .png, .webp — tối đa 5 MB/ảnh)</span>
+            </label>
+            <input id="lf-images" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden (change)="onImagesSelected($event)" />
+            <small class="lf-field-error" *ngIf="imageError">{{ imageError }}</small>
+            <div *ngIf="reportImages.length" style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap">
+              <div *ngFor="let img of reportImages; let i = index" style="position: relative">
+                <img [src]="img.preview" alt="Ảnh vật phẩm" style="width: 72px; height: 72px; object-fit: cover; border-radius: 8px" />
+                <button type="button" (click)="removeImage(i)" aria-label="Bỏ ảnh"
+                  style="position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: none; background: #dc2626; color: #fff; cursor: pointer">×</button>
+              </div>
             </div>
           </div>
 
-          <button class="lf-btn-submit" (click)="submitReport()">
-            GỬI YÊU CẦU ĐỐI SOÁT
+          <button class="lf-btn-submit" (click)="submitReport()" [disabled]="submittingReport">
+            {{ submittingReport ? 'ĐANG GỬI...' : 'GỬI YÊU CẦU ĐỐI SOÁT' }}
           </button>
+        </div>
+      </div>
+
+      <!-- Tra cứu hồ sơ -->
+      <div class="lf-form-card" style="margin-top: 16px">
+        <h2 class="lf-form-title">Tra cứu tiến trình</h2>
+        <p class="lf-form-desc">Nhập mã hồ sơ khai báo (DTL...) hoặc mã yêu cầu nhận đồ (YCND...) và số điện thoại đã dùng.</p>
+        <div class="lf-form-body">
+          <div class="lf-form-row">
+            <div class="lf-form-group">
+              <label for="lf-status-code">MÃ HỒ SƠ / YÊU CẦU</label>
+              <input id="lf-status-code" type="text" [(ngModel)]="statusForm.code" class="lf-input" placeholder="DTL00001 / YCND001" (keydown.enter)="checkStatus()" />
+            </div>
+            <div class="lf-form-group">
+              <label for="lf-status-phone">SỐ ĐIỆN THOẠI</label>
+              <input id="lf-status-phone" appPhoneInput [(ngModel)]="statusForm.phone" class="lf-input" placeholder="0987xxxxxx" (keydown.enter)="checkStatus()" />
+            </div>
+          </div>
+          <small class="lf-field-error" *ngIf="statusError">{{ statusError }}</small>
+          <button class="lf-btn-outline" (click)="checkStatus()" [disabled]="checkingStatus">{{ checkingStatus ? 'Đang tra cứu...' : 'Tra cứu' }}</button>
+
+          <div *ngIf="statusResult as st" class="alert-box info" style="margin-top: 12px">
+            <strong>{{ st.code }} · {{ st.itemName }}</strong>
+            <div>Trạng thái: <strong>{{ st.statusLabel }}</strong></div>
+            <div *ngIf="st.storage">Nơi nhận lại đồ: {{ st.storage }}</div>
+            <ul style="margin: 8px 0 0; padding-left: 18px">
+              <li *ngFor="let t of st.timeline">{{ t.label }} — {{ formatDateTime(t.time) }}</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -105,20 +145,39 @@
     <div class="lf-left-col">
       <div class="lf-header">
         <h1 class="lf-title">
-          Đồ ải đồ ai
-          <span class="lf-badge-count">{{ filteredItems.length }}</span>
+          Đồ thất lạc đã tìm thấy
+          <span class="lf-badge-count">{{ totalItems }}</span>
         </h1>
         <div class="lf-pagination-info" *ngIf="totalPages > 0">
           Xem trang {{ currentPage }} trên {{ totalPages }}
         </div>
       </div>
 
-      <div class="lf-grid">
+      <div class="lf-form-row" style="margin-bottom: 16px; gap: 12px">
+        <input type="text" class="lf-input" [(ngModel)]="searchQuery" (ngModelChange)="onSearchInput()" placeholder="Tìm theo tên vật phẩm..." aria-label="Tìm theo tên vật phẩm" />
+        <div class="lf-select-wrap">
+          <select class="lf-input lf-select" [(ngModel)]="selectedRoute" (ngModelChange)="filterItems()" aria-label="Lọc theo tuyến">
+            <option value="">Tất cả các tuyến</option>
+            <option *ngFor="let r of routes" [value]="r.value">{{ r.label }}</option>
+          </select>
+          <i class="fas fa-chevron-down lf-select-icon"></i>
+        </div>
+        <div class="lf-select-wrap">
+          <select class="lf-input lf-select" [(ngModel)]="selectedStatus" (ngModelChange)="filterItems()" aria-label="Lọc theo trạng thái">
+            <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
+          </select>
+          <i class="fas fa-chevron-down lf-select-icon"></i>
+        </div>
+      </div>
+
+      <p *ngIf="loadingItems">Đang tải danh sách...</p>
+
+      <div class="lf-grid" *ngIf="!loadingItems">
         <div class="lf-card" *ngFor="let item of paginatedItems">
           <!-- Image and Status -->
           <div class="lf-card-image-wrap">
-            <img [src]="item.image" [alt]="item.name" class="lf-card-img" />
-            
+            <img [src]="item.image || placeholderImage" [alt]="item.name" class="lf-card-img" />
+
             <div class="lf-status-badge stored" *ngIf="item.status === 'stored'">
               ĐANG LƯU TRỮ
             </div>
@@ -129,46 +188,46 @@
               ĐÃ TRAO TRẢ
             </div>
           </div>
-          
+
           <!-- Info -->
           <div class="lf-card-body">
             <h3 class="lf-item-name">{{ item.name }}</h3>
-            
+
             <div class="lf-item-details">
               <div class="lf-detail-row">
                 <span class="lf-detail-label">Tìm thấy:</span>
-                <span class="lf-detail-val">{{ item.foundDate }}</span>
+                <span class="lf-detail-val">{{ formatDate(item.foundDate) }}</span>
               </div>
               <div class="lf-detail-row">
                 <span class="lf-detail-label">Tuyến:</span>
-                <span class="lf-detail-val truncate">{{ item.route }}</span>
+                <span class="lf-detail-val truncate">{{ item.route || 'Không rõ' }}</span>
               </div>
               <div class="lf-detail-row">
                 <span class="lf-detail-label">Lưu trữ:</span>
-                <span class="lf-detail-val truncate">{{ item.storage }}</span>
+                <span class="lf-detail-val truncate">{{ item.storage || 'Văn phòng VIAGO' }}</span>
               </div>
             </div>
-            
-            <button class="lf-btn-claim" (click)="openClaimModal(item)" [disabled]="item.status !== 'stored'">
+
+            <button class="lf-btn-claim" (click)="openClaimModal(item)" [disabled]="item.status === 'returned'">
               Báo nhận sở hữu
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Empty state -->
-      <div class="lf-empty" *ngIf="filteredItems.length === 0">
+      <!-- Empty / error state -->
+      <div class="lf-empty" *ngIf="!loadingItems && paginatedItems.length === 0">
         <i class="fas fa-box-open lf-empty-icon"></i>
-        <h3>Không tìm thấy dữ liệu</h3>
-        <p>Chúng tôi chưa ghi nhận vật phẩm nào khớp với bộ lọc tìm kiếm của bạn.</p>
-        <button class="lf-btn-outline" (click)="clearFilters()">Xóa bộ lọc</button>
+        <h3>{{ itemsError || 'Không tìm thấy dữ liệu' }}</h3>
+        <p *ngIf="!itemsError">Chúng tôi chưa ghi nhận vật phẩm nào khớp với bộ lọc tìm kiếm của bạn.</p>
+        <button class="lf-btn-outline" (click)="itemsError ? loadItems() : clearFilters()">{{ itemsError ? 'Thử lại' : 'Xóa bộ lọc' }}</button>
       </div>
 
       <!-- Pagination -->
       <div class="lf-pagination-wrapper" *ngIf="totalPages > 1" style="margin-top: 2rem; display: flex; justify-content: center;">
-        <app-pagination 
+        <app-pagination
           [currentPage]="currentPage"
-          [totalItems]="filteredItems.length"
+          [totalItems]="totalItems"
           [pageSize]="pageSize"
           [showSummary]="false"
           (pageChange)="setPage($event)">
@@ -189,29 +248,31 @@
       </div>
       <div class="modal-body">
         <div class="alert-box info">
-          Vui lòng cung cấp chính xác mã đơn hoặc mã vé, số điện thoại người đặt và đặc điểm nhận dạng độc nhất để hệ thống đối chiếu bảo mật.
+          Vui lòng cung cấp chính xác mã đơn hoặc mã vé của chuyến xe đó, số điện thoại người đặt và đặc điểm nhận dạng độc nhất để hệ thống đối chiếu bảo mật.
         </div>
         <div class="lf-form-row mt-3">
           <div class="lf-form-group">
-            <label>MÃ ĐƠN HOẶC MÃ VÉ <span class="lf-req">*</span></label>
+            <label for="claim-bookingCode">MÃ ĐƠN HOẶC MÃ VÉ <span class="lf-req">*</span></label>
             <input type="text" id="claim-bookingCode" [(ngModel)]="claimForm.bookingCode" (ngModelChange)="onClaimInput('bookingCode')" (blur)="onClaimBlur('bookingCode')" class="lf-input" [class.lf-input-invalid]="claimErrors.bookingCode" placeholder="Mã đơn / mã vé" />
             <small class="lf-field-error" *ngIf="claimErrors.bookingCode">{{ claimErrors.bookingCode }}</small>
           </div>
           <div class="lf-form-group">
-            <label>SĐT NGƯỜI ĐẶT <span class="lf-req">*</span></label>
+            <label for="claim-phone">SĐT NGƯỜI ĐẶT <span class="lf-req">*</span></label>
             <input appPhoneInput id="claim-phone" [(ngModel)]="claimForm.phone" (ngModelChange)="onClaimInput('phone')" (blur)="onClaimBlur('phone')" class="lf-input" [class.lf-input-invalid]="claimErrors.phone" placeholder="0987xxxxxx" />
             <small class="lf-field-error" *ngIf="claimErrors.phone">{{ claimErrors.phone }}</small>
           </div>
         </div>
         <div class="lf-form-group mt-3">
-          <label>ĐẶC ĐIỂM NHẬN DẠNG ĐỘC NHẤT <span class="lf-req">*</span></label>
-          <textarea id="claim-description" [(ngModel)]="claimForm.description" (ngModelChange)="onClaimInput('description')" (blur)="onClaimBlur('description')" class="lf-input" [class.lf-input-invalid]="claimErrors.description" rows="3" placeholder="Mật khẩu khóa máy, vết xước góc trái..."></textarea>
+          <label for="claim-description">ĐẶC ĐIỂM NHẬN DẠNG ĐỘC NHẤT <span class="lf-req">*</span></label>
+          <textarea id="claim-description" [(ngModel)]="claimForm.description" (ngModelChange)="onClaimInput('description')" (blur)="onClaimBlur('description')" class="lf-input" [class.lf-input-invalid]="claimErrors.description" rows="3" maxlength="1000" placeholder="Mật khẩu khóa máy, vết xước góc trái..."></textarea>
           <small class="lf-field-error" *ngIf="claimErrors.description">{{ claimErrors.description }}</small>
         </div>
       </div>
       <div class="modal-footer">
         <button class="lf-btn-outline" (click)="closeClaimModal()">Hủy bỏ</button>
-        <button class="lf-btn-submit" style="margin-top:0; width: auto;" (click)="submitClaim()">Gửi yêu cầu xác thực</button>
+        <button class="lf-btn-submit" style="margin-top:0; width: auto;" (click)="submitClaim()" [disabled]="submittingClaim">
+          {{ submittingClaim ? 'Đang gửi...' : 'Gửi yêu cầu xác thực' }}
+        </button>
       </div>
     </div>
   </div>

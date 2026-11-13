@@ -1,3 +1,9 @@
+<!-- Toast góc phải: admin-layout không vẽ ToastService nên trang tự hiển thị -->
+<div class="page-toast-stack" aria-live="polite">
+  @for (t of (toastStack | async) ?? []; track t.id) {
+    <app-toast [variant]="t.type" [title]="t.title ?? ''" [message]="t.message" (closed)="dismissToast(t.id)" />
+  }
+</div>
 <div class="baocao-container">
   <!-- Main Report Panel (Header, Stats, and Filters wrapped inside one card) -->
   <app-admin-page-header title="Báo cáo tổng hợp theo tuyến xe" section="BÁO CÁO QUẢN TRỊ">
@@ -46,7 +52,7 @@
       <div class="stat-card border-red">
         <div class="stat-info">
           <span class="stat-title">Tổng chi phí vận hành</span>
-          <span class="stat-val text-red">{{ formatCurrency(summary.totalRevenue * 0.55) }}</span>
+          <span class="stat-val text-red">{{ formatCurrency(summary.totalCost) }}</span>
         </div>
       </div>
 
@@ -153,12 +159,12 @@
       <div class="chart-header">
         <div>
           <h2 class="chart-title">So sánh Cơ cấu Tài chính (Doanh thu - Chi phí - Lợi nhuận)</h2>
-          <span class="chart-subtitle">Ước tính hiệu quả kinh tế trên mỗi tuyến đường</span>
+          <span class="chart-subtitle">Theo chi phí chuyến đã ghi nhận trên mỗi tuyến đường</span>
         </div>
       </div>
 
       <div class="financial-breakdown-list">
-        <div class="breakdown-item interactive-chart-item" *ngFor="let item of filteredRoutes" tabindex="0" [attr.data-tip]="item.tenTuyen + ': doanh thu ' + formatCurrency(item.doanhThu.tongDoanhThu) + ' · chi phí 55% · lợi nhuận 45%'">
+        <div class="breakdown-item interactive-chart-item" *ngFor="let item of filteredRoutes" tabindex="0" [attr.data-tip]="item.tenTuyen + ': doanh thu ' + formatCurrency(item.doanhThu.tongDoanhThu) + ' · chi phí ' + formatCurrency(item.chiPhi) + ' · lợi nhuận ' + formatCurrency(routeProfit(item))">
           <div class="breakdown-label-row">
             <span class="breakdown-name">{{ item.tenTuyen }}</span>
             <span class="breakdown-values">
@@ -168,15 +174,15 @@
           <div class="stacked-bar-container">
             <!-- Cost bar portion -->
             <div class="bar-segment cost-segment"
-                 [style.width.%]="item.doanhThu.tongDoanhThu > 0 ? 55 : 0"
-                 title="Chi phí vận hành: 55%">
-              <span class="segment-txt">CP: 55%</span>
+                 [style.width.%]="costShare(item)"
+                 [title]="'Chi phí vận hành: ' + costShare(item) + '%'">
+              <span class="segment-txt">CP: {{ costShare(item) }}%</span>
             </div>
             <!-- Profit bar portion -->
             <div class="bar-segment profit-segment"
-                 [style.width.%]="item.doanhThu.tongDoanhThu > 0 ? 45 : 0"
-                 title="Lợi nhuận: 45%">
-              <span class="segment-txt">LN: 45%</span>
+                 [style.width.%]="item.doanhThu.tongDoanhThu > 0 ? 100 - costShare(item) : 0"
+                 [title]="'Lợi nhuận: ' + (item.doanhThu.tongDoanhThu > 0 ? 100 - costShare(item) : 0) + '%'">
+              <span class="segment-txt">LN: {{ item.doanhThu.tongDoanhThu > 0 ? 100 - costShare(item) : 0 }}%</span>
             </div>
           </div>
         </div>
@@ -342,8 +348,8 @@
                 </div>
               </td>
               <td style="font-weight: 700; color: #0f172a;">{{ formatCurrency(item.doanhThu.tongDoanhThu) }}</td>
-              <td style="font-weight: 700; color: #FF6A00;">{{ formatCurrency(item.doanhThu.tongDoanhThu * 0.55) }}</td>
-              <td style="font-weight: 700; color: #10b981;">{{ formatCurrency(item.doanhThu.tongDoanhThu * 0.45) }}</td>
+              <td style="font-weight: 700; color: #FF6A00;">{{ formatCurrency(item.chiPhi) }}</td>
+              <td style="font-weight: 700; color: #10b981;">{{ formatCurrency(routeProfit(item)) }}</td>
               <td>
                 <span class="badge-status"
                       [class.badge-status-active]="item.trangThai === 'Hoạt động'"
