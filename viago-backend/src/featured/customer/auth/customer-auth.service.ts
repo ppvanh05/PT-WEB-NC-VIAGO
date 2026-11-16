@@ -39,8 +39,12 @@ export class CustomerAuthService {
     scope: 'customer' | 'admin' = 'customer',
   ) {
     const endpoint = process.env.ACCOUNT_SMS_WEBHOOK_URL,
-      secret = process.env.ACCOUNT_SMS_WEBHOOK_TOKEN;
-    if (!endpoint || !secret || !endpoint.startsWith('https://'))
+      secret = process.env.ACCOUNT_SMS_WEBHOOK_TOKEN || '';
+    const testMode =
+      scope === 'customer' &&
+      process.env.ACCOUNT_OTP_MODE === 'test' &&
+      process.env.NODE_ENV !== 'production';
+    if (!testMode && (!endpoint || !secret || !endpoint.startsWith('https://')))
       throw new ServiceUnavailableException(
         'Chưa cấu hình dịch vụ gửi SMS OTP.',
       );
@@ -72,12 +76,13 @@ export class CustomerAuthService {
       if (scope === 'admin' && dto.purpose !== 'XacThucHaiLop')
         throw new BadRequestException('Mục đích OTP không hợp lệ.');
       if (
-        dto.purpose === 'DangKy'
+        dto.purpose !== 'TraCuuVe' &&
+        (dto.purpose === 'DangKy'
           ? !!account
           : !account ||
             account.vaitrotaikhoan !==
               (scope === 'admin' ? 'NhanVien' : 'KhachHang') ||
-            account.trangthai !== 'HoatDong'
+            account.trangthai !== 'HoatDong')
       )
         return;
       await tx.otp.updateMany({
@@ -114,9 +119,13 @@ export class CustomerAuthService {
       where: { maotp: challengeId },
       select: { maotp: true },
     });
-    if (exists) {
+    if (exists && testMode)
+      console.info(
+        `[VIAGO OTP TEST] ${dto.phoneNumber} ${dto.purpose}: ${code}`,
+      );
+    if (exists && !testMode) {
       try {
-        const result = await fetch(endpoint, {
+        const result = await fetch(endpoint!, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -331,9 +340,13 @@ export class CustomerAuthService {
         const localSeed =
           process.env.NODE_ENV === 'development' &&
           process.env.CUSTOMER_ALLOW_LOCAL_SEED_LOGIN === 'true' &&
-          ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket?.remoteAddress ?? '') &&
+          ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(
+            req.socket?.remoteAddress ?? '',
+          ) &&
           /^HASH_MAU_\d{3}$/.test(account.matkhauhash);
-        if (!(await verifyPassword(dto.password, account.matkhauhash, localSeed))) {
+        if (
+          !(await verifyPassword(dto.password, account.matkhauhash, localSeed))
+        ) {
           const attempts =
             (account.khoatamden ? 0 : account.solandangnhapsai) + 1;
           await tx.tai_khoan.update({
@@ -380,7 +393,9 @@ export class CustomerAuthService {
         await tx.tai_khoan.update({
           where: { mataikhoan: account.mataikhoan },
           data: {
-            ...(!localSeed ? { matkhauhash: await hashPassword(dto.password) } : {}),
+            ...(!localSeed
+              ? { matkhauhash: await hashPassword(dto.password) }
+              : {}),
             solandangnhapsai: 0,
             khoatamden: null,
             landangnhapcuoi: now,

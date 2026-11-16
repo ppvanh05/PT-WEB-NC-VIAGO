@@ -1,3 +1,4 @@
+import { LookupService } from '../ticket-lookup/lookup.service';
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query, Req, UploadedFiles, UseFilters, UseGuards, UseInterceptors, UsePipes } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
@@ -26,6 +27,7 @@ import { CustomerReviewsService } from './reviews.service';
 export class CustomerReviewsController {
   constructor(
     private readonly service: CustomerReviewsService,
+    private readonly lookup: LookupService,
     private readonly orders: CustomerReviewOrdersService,
   ) {}
 
@@ -65,8 +67,8 @@ export class CustomerReviewsController {
 
   /** Khách chưa đăng nhập: mã đơn/mã vé + SĐT người đặt. */
   @Get('orders/:code')
-  orderByCode(@Param('code') code: string, @Query() q: OrderPhoneQueryDto) {
-    return this.orders.byCode(code, q.phone);
+  orderByCode(@Param('code') code: string, @Query() q: OrderPhoneQueryDto, @Req() req: Request) {
+    return this.lookup.detail(req, code);
   }
 
   /** Khách chưa đăng nhập gửi đánh giá (multipart: phone, ticketId, scores, comment, files). */
@@ -76,13 +78,14 @@ export class CustomerReviewsController {
       limits: { files: 3, fileSize: 20 * 1024 * 1024, fields: 4, fieldSize: 5000 },
     }),
   )
-  guestReview(
+  async guestReview(
     @Param('code') code: string,
     @Body() dto: GuestReviewDto,
     @Req() req: Request,
     @UploadedFiles() files?: ReviewUpload[],
   ) {
-    return this.orders.review(code, dto.phone, dto.ticketId, dto, req, files);
+    const order = await this.lookup.detail(req, code);
+    return this.orders.review(code, order.phone, dto.ticketId, dto, req, files);
   }
 
   @Get('eligibility/:ticketId')

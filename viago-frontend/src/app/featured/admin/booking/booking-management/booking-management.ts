@@ -9,15 +9,19 @@ import { Button } from '../../../../shared/components/button/button';
 import { Badge } from '../../../../shared/components/badge/badge';
 import { ModalComponent } from '../../../../shared/components/modal/modal';
 import { Pagination } from '../../../../shared/components/pagination/pagination';
-import { AfterViewInit, Component, ElementRef, OnInit, ViewChild, computed, signal, viewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnInit, ViewChild, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CounterOrder, CounterOrders } from '../counter-orders/counter-orders';
+import { AdminBookingOrders } from '../booking-orders';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { BookingCustomerApi, RawTicketRow } from './booking-customer-api';
+import { orderStatusVariant } from '../order-status-style';
+import { AdminSessionService } from '../../../../core/services/admin-session.service';
 
 type PhuongThucThanhToan = 'tien-mat' | 'chuyen-khoan' | 'the';
 type TrangThaiDonHang = 'cho-thanh-toan' | 'da-thanh-toan';
-type TrangThaiVe = 'cho-khoi-hanh' | 'da-hoan-thanh' | 'da-huy';
+type TrangThaiVe = 'GiuCho' | 'ChoKhoiHanh' | 'DaHoanThanh' | 'DaHuy' | 'giu-cho' | 'cho-khoi-hanh' | 'da-hoan-thanh' | 'da-huy';
 type NguonDat = 'tai-quay' | 'hotline' | 'online';
 type LoaiXeId = 'limousine' | 'giuong-nam' | 'cabin';
 type LoaiGheId = 'giuong-nam' | 'limousine' | 'cabin-don' | 'cabin-doi';
@@ -87,6 +91,7 @@ type BookingListRow =
   standalone: true,
   imports: [
     CounterOrders,
+    AdminBookingOrders,
     DatePickerComponent,
     Toast,
     BookingDialog,
@@ -102,17 +107,22 @@ type BookingListRow =
   styleUrl: './booking-management.css'
 })
 export class BookingManagement implements OnInit, AfterViewInit {
-  PaymentLabel = (ve: VeXe) => (ve.balanceDue || 0) > 0 || normalizeTicket(ve).paymentStatus === 'pending' ? 'Chờ thanh toán' : paymentLabel(ve);
+  private readonly bookingApi = inject(BookingCustomerApi);
+  readonly isLoadingTickets = signal(false);
+  readonly danhSachTuyenTuDb = signal<string[]>([]);
+
+  PaymentLabel = (ve: VeXe) => (ve.balanceDue || 0) > 0 || normalizeTicket(ve).paymentStatus === 'pending' || ve.TrangThaiDonHang === 'cho-thanh-toan' ? 'Chờ thanh toán' : paymentLabel(ve);
   PaymentVariant = (ve: VeXe) => (ve.balanceDue || 0) > 0 ? 'warning' as const : paymentVariant(ve); Countdown = countdown;
   TicketLifecycleLabel(ve: VeXe): string {
-    const state = normalizeTicket(ve).orderStatus;
-    if (state === 'expired') return 'Hết hạn';
-    if (state === 'cancelled' || ve.TrangThaiVe === 'da-huy') return 'Đã hủy';
-    if (state === 'used' || ve.TrangThaiVe === 'da-hoan-thanh') return 'Đã hoàn thành';
-    return state === 'held' ? 'Đang giữ chỗ' : 'Chờ khởi hành';
+    const raw = ve.TrangThaiVe;
+    if (raw === 'DaHuy' || raw === 'da-huy' || normalizeTicket(ve).orderStatus === 'cancelled') return 'Đã hủy';
+    if (raw === 'DaHoanThanh' || raw === 'da-hoan-thanh' || normalizeTicket(ve).orderStatus === 'used') return 'Đã hoàn thành';
+    if (raw === 'GiuCho' || raw === 'giu-cho' || normalizeTicket(ve).orderStatus === 'held') return 'Giữ chỗ';
+    return 'Chờ khởi hành';
   }
-  TicketLabel = (ve: VeXe) => normalizeTicket(ve).orderStatus === 'used' ? 'Đã hoàn thành' : ve.TrangThaiVe === 'da-huy' ? 'Đã hủy' : ve.TrangThaiDonHang === 'da-thanh-toan' ? 'Đã thanh toán' : 'Chờ thanh toán';
-  readonly currentUser = { id: 'NVBV001', name: 'Nguyễn An Ninh' };
+  TicketLabel = (ve: VeXe) => this.OrderLabel(ve);
+  private readonly adminSession = inject(AdminSessionService);
+  get currentUser() { return this.adminSession.account() ?? { id: '', name: '' }; }
   locNguonDat = signal('tat-ca');
   editPassengers = signal<Record<string, string>>({});
   printing = signal(false);
@@ -120,9 +130,9 @@ export class BookingManagement implements OnInit, AfterViewInit {
   EditCount(ve: VeXe) { return Math.max(0, ve.SoLanDaSua || 0, ...this.TatCaVeCungDon(ve).map(v => v.SoLanDaSua || 0)); }
   CancelReason(ve: VeXe): string {
     const state = normalizeTicket(ve).orderStatus;
-    if (state === 'cancelled') return 'Vé đã hủy.';
+    if (state === 'cancelled' || ve.TrangThaiVe === 'DaHuy' || ve.TrangThaiVe === 'da-huy') return 'Vé đã hủy.';
     if (state === 'expired') return 'Giữ chỗ đã hết hạn.';
-    if (state === 'used') return 'Vé đã hoàn thành, không thể hủy.';
+    if (state === 'used' || ve.TrangThaiVe === 'DaHoanThanh' || ve.TrangThaiVe === 'da-hoan-thanh') return 'Vé đã hoàn thành, không thể hủy.';
     if (ve.tripStatus === 'departed' || this.SoGioTruocKhoiHanh(ve) <= 0) return 'Đã qua giờ khởi hành, không thể hủy vé.';
     return this.CoTheHuy(ve) ? '' : 'Vé không còn đủ điều kiện hủy.';
   }
@@ -141,15 +151,22 @@ export class BookingManagement implements OnInit, AfterViewInit {
   }
   PassengerName(ve: VeXe) { return ve.passengerName || ve.HoTenNguoiDi; }
   ChangePassenger(code: string, value: string) { this.editPassengers.update(names => ({ ...names, [code]: value })); }
-  OrderLabel(ve: VeXe) {
-    const all = this.TatCaVeCungDon(ve); const active = all.filter(v => v.TrangThaiVe !== 'da-huy');
-    return !active.length ? 'Đã hủy' : active.length < all.length ? 'Hủy một phần' : active.every(v => v.TrangThaiVe === 'da-hoan-thanh' || v.orderStatus === 'used') ? 'Đã hoàn thành' : active.some(v => v.TrangThaiDonHang !== 'da-thanh-toan' || (v.balanceDue || 0) > 0) ? 'Chờ thanh toán' : 'Đã thanh toán';
+  OrderLabel(ve: VeXe): string {
+    const all = this.TatCaVeCungDon(ve);
+    const active = all.filter(v => v.TrangThaiVe !== 'da-huy' && v.TrangThaiVe !== 'DaHuy');
+    if (!active.length) return 'Đã hủy';
+    if (active.length < all.length) return 'Hủy một phần';
+    if (active.every(v => v.TrangThaiVe === 'da-hoan-thanh' || v.TrangThaiVe === 'DaHoanThanh' || v.orderStatus === 'used')) return 'Đã hoàn thành';
+    if (active.some(v => v.TrangThaiVe === 'GiuCho' || v.TrangThaiVe === 'giu-cho' || v.TrangThaiDonHang !== 'da-thanh-toan' || (v.balanceDue || 0) > 0)) return 'Giữ chỗ';
+    return 'Chờ khởi hành';
   }
-  OrderVariant(ve: VeXe): 'success' | 'warning' | 'danger' | 'info' | 'neutral' { const label = this.OrderLabel(ve); return label === 'Đã hủy' ? 'danger' : label === 'Hủy một phần' ? 'warning' : label === 'Chờ thanh toán' ? 'info' : 'success'; }
+  OrderVariant(ve: VeXe) {
+    return orderStatusVariant(this.OrderLabel(ve));
+  }
   PaymentDue(ve: VeXe) { return this.NhomVeCungDon(ve).reduce((sum,v) => sum + (v.TrangThaiDonHang === 'da-thanh-toan' ? v.balanceDue || 0 : v.GiaVe), 0); }
   OrderSeats(ve: VeXe) { return this.NhomVeCungDon(ve).map(v => v.SoGhe).join(', '); }
   RefundLabel(ve: VeXe) { const status = ve.refundStatus || (ve.paymentStatus === 'refunded' ? 'completed' : ve.paymentStatus === 'refund-failed' ? 'failed' : 'processing'); return ({ processing: 'Đang xử lý', completed: 'Đã hoàn', failed: 'Thất bại' })[status]; }
-  MemberPoints(ve: VeXe) { return this.danhSachVe().filter(v => v.SdtNguoiDi === ve.SdtNguoiDi).reduce((sum,v) => sum + (v.membershipPoints ?? (v.TrangThaiDonHang === 'da-thanh-toan' && v.TrangThaiVe !== 'da-huy' ? Math.floor(v.GiaVe / 10000) : 0)), 0); }
+  MemberPoints(ve: VeXe) { return this.danhSachVe().filter(v => v.SdtNguoiDi === ve.SdtNguoiDi).reduce((sum,v) => sum + (v.membershipPoints ?? (v.TrangThaiDonHang === 'da-thanh-toan' && v.TrangThaiVe !== 'da-huy' && v.TrangThaiVe !== 'DaHuy' ? Math.floor(v.GiaVe / 10000) : 0)), 0); }
   TransferSeats(ve: VeXe) {
     const available = this.LayGheTrongCuaChuyen(ve.MaLichTrinh);
     return this.seatLayouts[this.LoaiXeIdTheoVe(ve)].map(code => {
@@ -209,39 +226,11 @@ export class BookingManagement implements OnInit, AfterViewInit {
   }
   readonly storageKey = 'viago_ticket_bookings_v3';
 
-  readonly danhSachXe: XeKhach[] = [
-    { maXe: 'LIMO01', tenXe: 'VIAGO Limousine 01', bienSo: '51B-123.45', loaiXe: 'limousine', soCho: 9 },
-    { maXe: 'LIMO02', tenXe: 'VIAGO Limousine 02', bienSo: '51B-234.56', loaiXe: 'limousine', soCho: 9 },
-    { maXe: 'LIMO03', tenXe: 'VIAGO Limousine 03', bienSo: '51B-345.67', loaiXe: 'limousine', soCho: 9 },
-    { maXe: 'GN01', tenXe: 'VIAGO Giường Nằm 01', bienSo: '51F-456.78', loaiXe: 'giuong-nam', soCho: 34 },
-    { maXe: 'GN02', tenXe: 'VIAGO Giường Nằm 02', bienSo: '51F-567.89', loaiXe: 'giuong-nam', soCho: 34 },
-    { maXe: 'GN03', tenXe: 'VIAGO Giường Nằm 03', bienSo: '51F-678.90', loaiXe: 'giuong-nam', soCho: 34 },
-    { maXe: 'CAB01', tenXe: 'VIAGO Cabin 01', bienSo: '51F-789.12', loaiXe: 'cabin', soCho: 22 },
-    { maXe: 'CAB02', tenXe: 'VIAGO Cabin 02', bienSo: '51F-890.23', loaiXe: 'cabin', soCho: 22 },
-    { maXe: 'CAB03', tenXe: 'VIAGO Cabin 03', bienSo: '51F-901.34', loaiXe: 'cabin', soCho: 22 },
-    { maXe: 'GN04', tenXe: 'VIAGO Giường Nằm 04', bienSo: '51F-112.45', loaiXe: 'giuong-nam', soCho: 34 }
-  ];
+  readonly danhSachXe: XeKhach[] = [];
 
-  readonly giaCoSoTheoTuyen: Record<string, number> = {
-    'TP.HCM ↔ Cần Thơ': 180000,
-    'TP.HCM ↔ Vũng Tàu': 180000,
-    'Đà Lạt ↔ Buôn Ma Thuột': 220000,
-    'Đà Lạt ↔ Nha Trang': 220000,
-    'Cần Thơ ↔ Rạch Giá': 180000,
-    'TP.HCM ↔ Phan Thiết': 220000,
-    'TP.HCM ↔ Đà Lạt': 320000,
-    'TP.HCM ↔ Nha Trang': 420000,
-    'Nha Trang ↔ Đà Nẵng': 380000
-  };
+  readonly giaCoSoTheoTuyen: Record<string, number> = {};
 
-  readonly seatLayouts: Record<LoaiXeId, string[]> = {
-    limousine: ['1A', '2A', '3A', '4A', '5A', '6A', '7A', '8A', '9A'],
-    'giuong-nam': [
-      '1A', '2A', '3A', '4A', '5A', '6A', '7A', '8A', '9A', '10A', '11A', '12A', '13A', '14A', '15A', '16A', '17A',
-      '1B', '2B', '3B', '4B', '5B', '6B', '7B', '8B', '9B', '10B', '11B', '12B', '13B', '14B', '15B', '16B', '17B'
-    ],
-    cabin: ['1A', '2A', '3A', '4A', '5A', '6A', '7A', '8A', '9A', '10A', '11A', '12A', '1B', '2B', '3B', '4B', '5B', '6B', '7B', '8B', '9B', '10B']
-  };
+  readonly seatLayouts: Record<LoaiXeId, string[]> = {limousine:[], 'giuong-nam':[], cabin:[]};
 
   @ViewChild('searchInput') private searchInput?: ElementRef<HTMLInputElement>;
 
@@ -324,11 +313,7 @@ export class BookingManagement implements OnInit, AfterViewInit {
     setTimeout(() => this.showPromoSuggestions.set(false), 200);
   }
 
-  readonly maGiamGiaList = [
-    { code: '', label: 'Không dùng mã giảm giá', amount: 0 },
-    { code: 'VIP10', label: 'VIP10 - giảm 10%', amount: 0, percent: 10 },
-    { code: 'VIAGO50', label: 'VIAGO50 - giảm 50.000đ', amount: 50000 }
-  ];
+  readonly maGiamGiaList = [] as {code:string;label:string;amount:number;percent?:number}[];
 
   applyCancelToGroup = signal(false);
   applyUpdateToGroup = signal(true);
@@ -347,76 +332,22 @@ export class BookingManagement implements OnInit, AfterViewInit {
 
   toast = signal<{ msg: string; type: 'success' | 'danger' } | null>(null);
 
-  tuyenList = [
-    { id: 'tat-ca', name: 'Tất cả tuyến' },
-    { id: 'TP.HCM ↔ Cần Thơ', name: 'TP.HCM ↔ Cần Thơ' },
-    { id: 'TP.HCM ↔ Vũng Tàu', name: 'TP.HCM ↔ Vũng Tàu' },
-    { id: 'Đà Lạt ↔ Buôn Ma Thuột', name: 'Đà Lạt ↔ Buôn Ma Thuột' },
-    { id: 'Đà Lạt ↔ Nha Trang', name: 'Đà Lạt ↔ Nha Trang' },
-    { id: 'Cần Thơ ↔ Rạch Giá', name: 'Cần Thơ ↔ Rạch Giá' },
-    { id: 'TP.HCM ↔ Phan Thiết', name: 'TP.HCM ↔ Phan Thiết' },
-    { id: 'TP.HCM ↔ Đà Lạt', name: 'TP.HCM ↔ Đà Lạt' },
-    { id: 'TP.HCM ↔ Nha Trang', name: 'TP.HCM ↔ Nha Trang' },
-    { id: 'Nha Trang ↔ Đà Nẵng', name: 'Nha Trang ↔ Đà Nẵng' }
-  ];
+  tuyenList = [{id:'tat-ca',name:'T?t c? tuy?n'}];
 
-  private readonly diemTheoTuyen: Record<string, { don: string[]; tra: string[] }> = {
-    'TP.HCM ↔ Cần Thơ': {
-      don: ['Bến xe Miền Đông Mới', 'Bến xe Miền Tây', 'Văn phòng Quận 1', 'Văn phòng Quận 5', 'Văn phòng Quận 10', 'Ngã tư Thủ Đức', 'Ngã tư An Sương', 'Suối Tiên'],
-      tra: ['Bến xe Trung tâm Cần Thơ', 'Văn phòng Ninh Kiều', 'Bến Ninh Kiều', 'Đại học Cần Thơ']
-    },
-    'TP.HCM ↔ Vũng Tàu': {
-      don: ['Bến xe Miền Đông Mới', 'Bến xe Miền Tây', 'Văn phòng Quận 1', 'Văn phòng Quận 5', 'Văn phòng Quận 10', 'Ngã tư Thủ Đức', 'Ngã tư An Sương', 'Suối Tiên'],
-      tra: ['Bến xe Vũng Tàu', 'Văn phòng Vũng Tàu', 'Bãi Sau', 'Bãi Trước']
-    },
-    'Đà Lạt ↔ Buôn Ma Thuột': {
-      don: ['Bến xe Liên Tỉnh Đà Lạt', 'Chợ Đà Lạt', 'Hồ Xuân Hương', 'Quảng trường Lâm Viên'],
-      tra: ['Bến xe Phía Nam Buôn Ma Thuột', 'Ngã Sáu Buôn Ma Thuột', 'Coopmart Buôn Ma Thuột']
-    },
-    'Đà Lạt ↔ Nha Trang': {
-      don: ['Bến xe Liên Tỉnh Đà Lạt', 'Chợ Đà Lạt', 'Hồ Xuân Hương', 'Quảng trường Lâm Viên'],
-      tra: ['Bến xe phía Nam Nha Trang', 'Ga Nha Trang', 'Quảng trường 2/4', 'Vinpearl Harbour']
-    },
-    'Cần Thơ ↔ Rạch Giá': {
-      don: ['Bến xe Trung tâm Cần Thơ', 'Văn phòng Ninh Kiều', 'Bến Ninh Kiều', 'Đại học Cần Thơ'],
-      tra: ['Bến xe Rạch Giá', 'Bến tàu Rạch Giá', 'Văn phòng Rạch Giá']
-    },
-    'TP.HCM ↔ Phan Thiết': {
-      don: ['Bến xe Miền Đông Mới', 'Bến xe Miền Tây', 'Văn phòng Quận 1', 'Văn phòng Quận 5', 'Văn phòng Quận 10', 'Ngã tư Thủ Đức', 'Ngã tư An Sương', 'Suối Tiên'],
-      tra: ['Bến xe Phan Thiết', 'Chợ Phan Thiết', 'Mũi Né', 'NovaWorld Phan Thiết']
-    },
-    'TP.HCM ↔ Đà Lạt': {
-      don: ['Bến xe Miền Đông Mới', 'Bến xe Miền Tây', 'Văn phòng Quận 1', 'Văn phòng Quận 5', 'Văn phòng Quận 10', 'Ngã tư Thủ Đức', 'Ngã tư An Sương', 'Suối Tiên'],
-      tra: ['Bến xe Liên Tỉnh Đà Lạt', 'Chợ Đà Lạt', 'Hồ Xuân Hương', 'Quảng trường Lâm Viên']
-    },
-    'TP.HCM ↔ Nha Trang': {
-      don: ['Bến xe Miền Đông Mới', 'Bến xe Miền Tây', 'Văn phòng Quận 1', 'Văn phòng Quận 5', 'Văn phòng Quận 10', 'Ngã tư Thủ Đức', 'Ngã tư An Sương', 'Suối Tiên'],
-      tra: ['Bến xe phía Nam Nha Trang', 'Ga Nha Trang', 'Quảng trường 2/4', 'Vinpearl Harbour']
-    },
-    'Nha Trang ↔ Đà Nẵng': {
-      don: ['Bến xe phía Nam Nha Trang', 'Ga Nha Trang', 'Quảng trường 2/4', 'Vinpearl Harbour'],
-      tra: ['Bến xe Trung tâm Đà Nẵng', 'Sân bay Đà Nẵng', 'Công viên Biển Đông', 'Cầu Rồng']
-    }
-  };
+  private readonly diemTheoTuyen: Record<string, { don: string[]; tra: string[] }> = {};
 
-  private readonly maXeTheoTuyenId: Record<string, string> = {
-    'HCM-CT': 'LIMO01',
-    'HCM-VT': 'LIMO02',
-    'DL-BMT': 'GN02',
-    'DL-NT': 'CAB01',
-    'CT-RG': 'GN03',
-    'HCM-PT': 'GN04',
-    'HCM-DL': 'CAB02',
-    'HCM-NT': 'GN01',
-    'NT-DN': 'CAB03'
-  };
+  private readonly maXeTheoTuyenId: Record<string, string> = {};
 
   goiYTuyen = computed(() => {
+    const fromDb = this.danhSachTuyenTuDb().map(t => this.HienThiTuyen(t));
+    const fromTickets = this.danhSachVe().map(ve => this.HienThiTuyen(ve.TenTuyenXe));
+    const fromOrders = (this.counterOrders()?.rows() ?? []).map(order => `${order.from} → ${order.to}`);
     const routes = [
+      ...fromDb,
       ...this.tuyenList.filter(tuyen => tuyen.id !== 'tat-ca').map(tuyen => this.HienThiTuyen(tuyen.name)),
-      ...this.danhSachVe().map(ve => this.HienThiTuyen(ve.TenTuyenXe)),
-      ...(this.counterOrders()?.rows() ?? []).map(order => `${order.from} → ${order.to}`)
-    ];
+      ...fromTickets,
+      ...fromOrders
+    ].filter(Boolean);
 
     return Array.from(new Set(routes)).sort((a, b) => a.localeCompare(b, 'vi'));
   });
@@ -475,6 +406,9 @@ export class BookingManagement implements OnInit, AfterViewInit {
   });
 
   readonly counterOrders = viewChild(CounterOrders);
+  readonly adminOrders = viewChild(AdminBookingOrders);
+  OrderSource(order: CounterOrder): NguonDat { return order.source === 'TaiQuay' ? 'tai-quay' : order.source === 'Hotline' ? 'hotline' : 'online'; }
+  InspectOrder(order: CounterOrder) { if (order.adminCreated) void this.adminOrders()?.open(order.id, order); else this.counterOrders()?.inspect(order); }
 
   DepartureDate(value: string): string {
     const time = Date.parse(value);
@@ -487,6 +421,10 @@ export class BookingManagement implements OnInit, AfterViewInit {
     const statuses: Record<string, string> = {
       'cho-thanh-toan': 'ChoThanhToanTrucTiep', 'da-thanh-toan': 'DaThanhToan',
       'da-huy': 'DaHuy', 'het-han': 'HetHanThanhToan',
+      GiuCho: 'ChoThanhToanTrucTiep',
+      ChoKhoiHanh: 'DaThanhToan',
+      DaHoanThanh: 'DaThanhToan',
+      DaHuy: 'DaHuy',
     };
     const payments: Record<string, string> = {
       pending: 'ChoThanhToanTrucTiep', 'da-thanh-toan': 'DaThanhToan', expired: 'HetHanThanhToan',
@@ -499,9 +437,9 @@ export class BookingManagement implements OnInit, AfterViewInit {
           || (/^[\d\s()+.-]+$/.test(query) && !!digits && order.phone.replace(/\D/g, '').includes(digits)))
         && (!this.locTuyen() || this.KhopLocTuyenMotChieu(route, this.locTuyen()))
         && (!this.locNgay() || date === this.locNgay())
-        && (this.locTrangThaiVe() === 'tat-ca' || statuses[this.locTrangThaiVe()] === order.status)
-        && (this.locTrangThaiDonHang() === 'tat-ca' || payments[this.locTrangThaiDonHang()] === order.status)
-        && (this.locNguonDat() === 'tat-ca' || this.locNguonDat() === 'online');
+        && (this.locTrangThaiVe() === 'tat-ca' || statuses[this.locTrangThaiVe()] === order.status || (['GiuCho', 'cho-thanh-toan'].includes(this.locTrangThaiVe()) && order.status === 'ChoThanhToanOnline'))
+        && (this.locTrangThaiDonHang() === 'tat-ca' || payments[this.locTrangThaiDonHang()] === order.status || (this.locTrangThaiDonHang() === 'pending' && order.status === 'ChoThanhToanOnline'))
+        && (this.locNguonDat() === 'tat-ca' || this.locNguonDat() === this.OrderSource(order));
     });
   });
 
@@ -511,7 +449,7 @@ export class BookingManagement implements OnInit, AfterViewInit {
   ].sort((a, b) => b.time - a.time || b.key.localeCompare(a.key, 'vi', { numeric: true })));
 
   LamMoiDanhSach() {
-    this.TaiDuLieu();
+    void this.TaiDuLieu();
     void this.counterOrders()?.load();
   }
 
@@ -523,12 +461,15 @@ export class BookingManagement implements OnInit, AfterViewInit {
     const completed = (v: VeXe) => v.refundedAmount ?? (refunded(v) ? refund(v) : 0);
     const orders = this.donKhachLoc();
     const seats = (status?: string) => orders.filter(o => !status || o.status === status).reduce((sum, o) => sum + o.seatCount, 0);
-    return { tong: list.length + seats(), daBan: list.filter(v => v.TrangThaiDonHang === 'da-thanh-toan' && v.TrangThaiVe !== 'da-huy').length + seats('DaThanhToan'),
-      giuCho: list.filter(v => v.TrangThaiVe !== 'da-huy' && (v.TrangThaiDonHang !== 'da-thanh-toan' || (v.balanceDue || 0) > 0)).length + seats('ChoThanhToanTrucTiep'),
-      daHuy: list.filter(v => v.TrangThaiVe === 'da-huy').length + seats('DaHuy'),
+    return {
+      tong: list.length + seats(),
+      daBan: list.filter(v => v.TrangThaiDonHang === 'da-thanh-toan' && v.TrangThaiVe !== 'da-huy' && v.TrangThaiVe !== 'DaHuy').length + seats('DaThanhToan'),
+      giuCho: list.filter(v => v.TrangThaiVe !== 'da-huy' && v.TrangThaiVe !== 'DaHuy' && (v.TrangThaiVe === 'GiuCho' || v.TrangThaiVe === 'giu-cho' || v.TrangThaiDonHang !== 'da-thanh-toan' || (v.balanceDue || 0) > 0)).length + seats('ChoThanhToanTrucTiep') + seats('ChoThanhToanOnline'),
+      daHuy: list.filter(v => v.TrangThaiVe === 'da-huy' || v.TrangThaiVe === 'DaHuy').length + seats('DaHuy'),
       doanhThu: list.reduce((sum,v) => sum + paid(v) - completed(v), 0) + orders.filter(o => o.status === 'DaThanhToan').reduce((sum, o) => sum + o.total, 0),
       choHoan: list.filter(v => !refunded(v)).reduce((sum,v) => sum + refund(v), 0),
-      daHoan: list.reduce((sum,v) => sum + completed(v), 0) };
+      daHoan: list.reduce((sum,v) => sum + completed(v), 0)
+    };
   });
 
   tongTrang = computed(() => {
@@ -1116,13 +1057,18 @@ coThayDoiSua = computed(() => {
     return value === 'da-thanh-toan' ? 'Đã thanh toán' : 'Chờ thanh toán';
   }
 
-  LabelTrangThaiVe(value: TrangThaiVe) {
-    const labels: Record<TrangThaiVe, string> = {
+  LabelTrangThaiVe(value: TrangThaiVe | string): string {
+    const labels: Record<string, string> = {
+      GiuCho: 'Giữ chỗ',
+      ChoKhoiHanh: 'Chờ khởi hành',
+      DaHoanThanh: 'Đã hoàn thành',
+      DaHuy: 'Đã hủy',
+      'giu-cho': 'Giữ chỗ',
       'cho-khoi-hanh': 'Chờ khởi hành',
       'da-hoan-thanh': 'Đã hoàn thành',
-      'da-huy': 'Đã hủy'
+      'da-huy': 'Đã hủy',
     };
-    return labels[value];
+    return labels[value] ?? String(value);
   }
 
   LabelHinhThuc(value: PhuongThucThanhToan) {
@@ -1268,68 +1214,98 @@ coThayDoiSua = computed(() => {
   }
 
   private GiaVeTheoLoaiGhe(loaiGhe: LoaiGheId, giaCoSo: number) {
-    const phuThu: Record<LoaiGheId, number> = {
-      'giuong-nam': 0,
-      limousine: 40000,
-      'cabin-don': 60000,
-      'cabin-doi': 260000
-    };
-    return giaCoSo + phuThu[loaiGhe];
+    return giaCoSo;
   }
 
   private LayGiaCoSoTheoTuyen(tuyen: string) {
     return this.giaCoSoTheoTuyen[tuyen]
       ?? this.giaCoSoTheoTuyen[this.HienThiTuyen(tuyen).replace(' - ', ' ↔ ')]
-      ?? 180000;
+      ?? 0;
   }
 
   MaQr(ve: VeXe) { return localQr(ve.MaQRVe || ve.MaVe); }
 
-  private TaiDuLieu() {
-    const data = localStorage.getItem(this.storageKey);
-    if (data) {
-      try {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed)) {
-          const normalized = parsed.map(ve => this.ChuanHoaVeXe(ve));
-          this.danhSachVe.set(normalized);
-          this.LuuDuLieu(normalized);
-          return;
-        }
-      } catch (error) {
-        console.error('Không đọc được dữ liệu vé', error);
-      }
-    }
+  private async TaiDuLieu() {
+    this.isLoadingTickets.set(true);
+    try {
+      localStorage.removeItem(this.storageKey);
 
-    const sample = this.TaoDuLieuMau().map(ve => this.ChuanHoaVeXe(ve));
-    this.danhSachVe.set(sample);
-    this.LuuDuLieu(sample);
+      const [tickets, routes] = await Promise.all([
+        this.bookingApi.getAllTickets(),
+        this.bookingApi.getAllRoutesName(),
+      ]);
+
+      if (routes && routes.length > 0) {
+        this.danhSachTuyenTuDb.set(routes);
+        this.tuyenList = [
+          { id: 'tat-ca', name: 'Tất cả tuyến' },
+          ...routes.map(r => ({ id: r, name: r })),
+        ];
+      }
+
+      if (tickets && tickets.length > 0) {
+        const normalized = tickets.map(t => this.MapApiTicketToVeXe(t));
+        this.danhSachVe.set(normalized);
+      } else {
+        this.danhSachVe.set([]);
+      }
+    } catch (err) {
+      console.warn('Lỗi khi tải dữ liệu vé từ API:', err);
+      this.danhSachVe.set([]);
+    } finally {
+      this.isLoadingTickets.set(false);
+    }
+  }
+
+  private MapApiTicketToVeXe(raw: RawTicketRow): VeXe {
+    return this.ChuanHoaVeXe({
+      MaVe: raw.maVe,
+      MaDonHang: raw.maDonHang,
+      MaLichTrinh: raw.maLichTrinh,
+      HoTenNguoiDi: raw.hoTenNguoiDi,
+      SdtNguoiDi: raw.sdtNguoiDi,
+      TenTuyenXe: raw.tenTuyenXe,
+      NgayKhoiHanh: raw.ngayKhoiHanh,
+      GioKhoiHanh: raw.gioKhoiHanh,
+      SoGhe: raw.soGhe,
+      GiaVe: raw.giaVe, LoaiGhe: raw.loaiGhe ?? '', MaXe: raw.maXe, BienSoXe: raw.bienSoXe, TenXe: raw.tenXe, LoaiXe: raw.loaiXe, MaQRVe: raw.maQRVe, MaGheChuyen: raw.maGheChuyen, MaDiemDon: raw.maDiemDon, MaDiemTra: raw.maDiemTra,
+      NguonDat: raw.nguonDat === 'TaiQuay' ? 'tai-quay' : raw.nguonDat === 'Hotline' ? 'hotline' : 'online',
+      TrangThaiVe: raw.trangThaiVe,
+      TrangThaiDonHang: raw.trangThaiDonHang === 'DaThanhToan' ? 'da-thanh-toan' : 'cho-thanh-toan',
+      ThoiGianDat: raw.thoiGianDat,
+      orderStatus: raw.trangThaiVe === 'DaHuy' ? 'cancelled' : raw.trangThaiVe === 'DaHoanThanh' ? 'used' : raw.trangThaiVe === 'GiuCho' ? 'held' : 'confirmed',
+      paymentStatus: raw.trangThaiDonHang === 'DaThanhToan' ? 'paid' : 'pending',
+    });
   }
 
   private LuuDuLieu(ds: VeXe[]) {
-    localStorage.setItem(this.storageKey, JSON.stringify(ds.map(ve => this.ChuanHoaVeXe(ve))));
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(ds.map(ve => this.ChuanHoaVeXe(ve))));
+    } catch {
+      // Ignored
+    }
   }
 
   private ChuanHoaVeXe(raw: any): VeXe {
-    const maVe = String(raw?.MaVe ?? `VE${Date.now()}`);
+    const maVe = String(raw?.MaVe ?? '');
     const sdt = String(raw?.SdtNguoiDi ?? raw?.SoDienThoai ?? '');
     const soGhe = this.NormalizeSeatCode(String(raw?.SoGhe ?? ''));
-    const maDonHang = String(raw?.MaDonHang ?? `DH${maVe.replace(/\D/g, '') || Date.now()}`);
+    const maDonHang = String(raw?.MaDonHang ?? '');
     const maLichTrinh = String(raw?.MaLichTrinh ?? raw?.MaChuyenXe ?? '');
-    const thoiGianDat = String(raw?.ThoiGianDat ?? raw?.ThoiGianTao ?? new Date().toISOString());
+    const thoiGianDat = String(raw?.ThoiGianDat ?? raw?.ThoiGianTao ?? '');
     const rawMaXe = String(raw?.MaXe ?? '');
     const maXeDuPhong = this.LayMaXeTheoMaLichTrinh(maLichTrinh);
-    const maXe = this.danhSachXe.some(xe => xe.maXe === rawMaXe) ? rawMaXe : maXeDuPhong;
+    const maXe = rawMaXe;
     const xe = this.danhSachXe.find(item => item.maXe === maXe);
     const tenTuyenXe = String(raw?.TenTuyenXe ?? raw?.TuyenXe ?? '');
     const loaiXeId = xe?.loaiXe ?? 'limousine';
     const loaiGheId = this.LoaiGheIdTuLabel(raw?.LoaiGhe) ?? this.LoaiGheTheoSoGhe(soGhe, loaiXeId);
-    const loaiGhe = String(raw?.LoaiGhe ?? this.LabelLoaiGhe(loaiGheId));
+    const loaiGhe = String(raw?.LoaiGhe ?? '');
     const legacyRefund = String(raw?.GhiChu || '').match(/Hoàn:\s*([\d.,]+)\s*đ/);
     const refundAmount = raw?.refundAmount ?? (legacyRefund ? Number(legacyRefund[1].replace(/[.,]/g, '')) : undefined);
     const soLuongVeDaDat = Number(raw?.SoLuongVeDaDat ?? 1);
     const giaCoSo = this.LayGiaCoSoTheoTuyen(tenTuyenXe);
-    const giaVe = raw?.LoaiGhe ? Number(raw?.GiaVe ?? 0) : this.GiaVeTheoLoaiGhe(loaiGheId, giaCoSo);
+    const giaVe = Number(raw?.GiaVe ?? 0);
 
     return normalizeTicket({
       ...raw,
@@ -1340,27 +1316,27 @@ coThayDoiSua = computed(() => {
       refundReason: raw?.refundReason ?? (legacyRefund ? String(raw?.GhiChu || '').match(/Lý do:\s*(.*?)\s*-\s*Hoàn:/)?.[1] : undefined),
       MaVe: maVe,
       MaDonHang: maDonHang,
-      MaKhachHang: raw?.MaKhachHang ?? this.TaoMaKhachHang(sdt),
-      MaNVBanVe: raw?.MaNVBanVe ?? 'NVBV001',
+      MaKhachHang: raw?.MaKhachHang ?? '',
+      MaNVBanVe: raw?.MaNVBanVe ?? '',
       HoTenNguoiDi: String(raw?.HoTenNguoiDi ?? raw?.TenKhachHang ?? ''),
       SdtNguoiDi: sdt,
       EmailNguoiDi: String(raw?.EmailNguoiDi ?? raw?.Email ?? ''),
       ThoiGianDat: thoiGianDat,
       SoLuongVeDaDat: soLuongVeDaDat,
       TienBaoHiem: Number(raw?.TienBaoHiem ?? 0),
-      TongGiaVe: raw?.LoaiGhe ? Number(raw?.TongGiaVe ?? giaVe) : giaVe * soLuongVeDaDat,
+      TongGiaVe: Number(raw?.TongGiaVe ?? giaVe * soLuongVeDaDat),
       ThoiGianXuatVe: String(raw?.ThoiGianXuatVe ?? thoiGianDat),
-      MaQRVe: String(raw?.MaQRVe ?? this.TaoMaQrVe(maDonHang, soGhe)),
+      MaQRVe: String(raw?.MaQRVe ?? ''),
       MaLichTrinh: maLichTrinh,
       MaXe: maXe,
-      MaGheChuyen: String(raw?.MaGheChuyen ?? this.TaoMaGheChuyen(maLichTrinh, soGhe)),
-      LoaiXe: String(raw?.LoaiXe ?? this.LabelLoaiXeId(loaiXeId)),
+      MaGheChuyen: String(raw?.MaGheChuyen ?? ''),
+      LoaiXe: String(raw?.LoaiXe ?? ''),
       LoaiGhe: loaiGhe,
       TenXe: String(raw?.TenXe ?? xe?.tenXe ?? ''),
       BienSoXe: String(raw?.BienSoXe ?? xe?.bienSo ?? ''),
       TenTuyenXe: tenTuyenXe,
       NgayKhoiHanh: String(raw?.NgayKhoiHanh ?? raw?.NgayDi ?? this.todayString()),
-      GioKhoiHanh: String(raw?.GioKhoiHanh ?? raw?.GioChay ?? '10:45'),
+      GioKhoiHanh: String(raw?.GioKhoiHanh ?? raw?.GioChay ?? ''),
       SoGhe: soGhe,
       GiaVe: giaVe,
       MaGiamGia: raw?.MaGiamGia,
@@ -1552,7 +1528,7 @@ coThayDoiSua = computed(() => {
     const xeTrongLich = this.danhSachXe.find(xe => maLichTrinh.includes(`-${xe.maXe}-`));
     if (xeTrongLich) return xeTrongLich.maXe;
     const tuyenId = Object.keys(this.maXeTheoTuyenId).find(id => maLichTrinh.startsWith(`${id}-`));
-    return tuyenId ? this.maXeTheoTuyenId[tuyenId] : this.danhSachXe[0].maXe;
+    return tuyenId ? this.maXeTheoTuyenId[tuyenId] : (this.danhSachXe[0]?.maXe ?? '');
   }
 
   private TaoMaGheChuyen(maLichTrinh: string, soGhe: string) {
@@ -1563,13 +1539,31 @@ coThayDoiSua = computed(() => {
     return `QR-${maDonHang}-${soGhe}`.replace(/\s+/g, '');
   }
 
-  private KhopTrangThaiLoc(ve: VeXe, status: string) { const labels: Record<string,string> = { 'cho-thanh-toan': 'Chờ thanh toán', 'da-thanh-toan': 'Đã thanh toán', 'da-hoan-thanh': 'Đã hoàn thành', 'da-huy': 'Đã hủy', 'huy-mot-phan': 'Hủy một phần' }; return status === 'tat-ca' || this.OrderLabel(ve) === labels[status]; }
+  private KhopTrangThaiLoc(ve: VeXe, status: string) {
+    if (status === 'tat-ca') return true;
+    const rawStatus = ve.TrangThaiVe;
+    const orderLabel = this.OrderLabel(ve);
+
+    if (status === 'GiuCho' || status === 'giu-cho' || status === 'cho-thanh-toan') {
+      return rawStatus === 'GiuCho' || rawStatus === 'giu-cho' || orderLabel === 'Giữ chỗ';
+    }
+    if (status === 'ChoKhoiHanh' || status === 'cho-khoi-hanh' || status === 'da-thanh-toan') {
+      return rawStatus === 'ChoKhoiHanh' || rawStatus === 'cho-khoi-hanh' || orderLabel === 'Chờ khởi hành';
+    }
+    if (status === 'DaHoanThanh' || status === 'da-hoan-thanh') {
+      return rawStatus === 'DaHoanThanh' || rawStatus === 'da-hoan-thanh' || orderLabel === 'Đã hoàn thành';
+    }
+    if (status === 'DaHuy' || status === 'da-huy') {
+      return rawStatus === 'DaHuy' || rawStatus === 'da-huy' || orderLabel === 'Đã hủy';
+    }
+    return orderLabel === status;
+  }
 
   private KhopTrangThaiDonHangLoc(ve: VeXe, filter: string) { return filter === 'tat-ca' || normalizeTicket(ve).paymentStatus === (filter === 'da-thanh-toan' ? 'paid' : filter); }
 
   private DonHangDaHuyToanBo(ve: VeXe) {
     const tickets = this.TatCaVeCungDon(ve);
-    return tickets.length > 0 && tickets.every(item => item.TrangThaiVe === 'da-huy');
+    return tickets.length > 0 && tickets.every(item => item.TrangThaiVe === 'da-huy' || item.TrangThaiVe === 'DaHuy');
   }
 
   private MatchSearchText(source: string, query: string) {
@@ -1630,286 +1624,6 @@ coThayDoiSua = computed(() => {
 
   private HienToast(msg: string, type: 'success' | 'danger') {
     this.toast.set({ msg, type });
-  }
-
-  private TaoDuLieuMau(): VeXe[] {
-    const today = this.todayString();
-    const now = new Date().toISOString();
-    const tuyenTheoId: Record<string, { name: string; giaGoc: number; maXe: string }> = {
-      'HCM-CT': { name: 'TP.HCM ↔ Cần Thơ', giaGoc: 180000, maXe: 'LIMO01' },
-      'HCM-VT': { name: 'TP.HCM ↔ Vũng Tàu', giaGoc: 180000, maXe: 'LIMO02' },
-      'DL-BMT': { name: 'Đà Lạt ↔ Buôn Ma Thuột', giaGoc: 220000, maXe: 'GN02' },
-      'DL-NT': { name: 'Đà Lạt ↔ Nha Trang', giaGoc: 220000, maXe: 'CAB01' },
-      'CT-RG': { name: 'Cần Thơ ↔ Rạch Giá', giaGoc: 180000, maXe: 'GN03' },
-      'HCM-PT': { name: 'TP.HCM ↔ Phan Thiết', giaGoc: 220000, maXe: 'GN04' },
-      'HCM-DL': { name: 'TP.HCM ↔ Đà Lạt', giaGoc: 320000, maXe: 'CAB02' },
-      'HCM-NT': { name: 'TP.HCM ↔ Nha Trang', giaGoc: 420000, maXe: 'GN01' },
-      'NT-DN': { name: 'Nha Trang ↔ Đà Nẵng', giaGoc: 380000, maXe: 'CAB03' }
-    };
-
-    const thongTinTuyen = (tuyenId: string) => tuyenTheoId[tuyenId] ?? tuyenTheoId['HCM-CT'];
-    const thongTinChuyen = (tuyenId: string, gio: string) => {
-      const tuyen = thongTinTuyen(tuyenId);
-      return {
-        MaLichTrinh: `${tuyenId}-${today.replaceAll('-', '')}-${gio.replace(':', '')}`,
-        TenTuyenXe: tuyen.name,
-        NgayKhoiHanh: today,
-        GioKhoiHanh: gio,
-        MaXe: tuyen.maXe,
-        MaNVBanVe: 'NVBV001',
-        ThoiGianDat: now,
-        ThoiGianXuatVe: now
-      };
-    };
-    const tongGiaTriDon = (tuyenId: string, soVe: number) => thongTinTuyen(tuyenId).giaGoc * soVe;
-
-    return [
-      {
-        ...thongTinChuyen('HCM-CT', '05:30'),
-        MaVe: 'VE10000018-1',
-        MaDonHang: 'DH10000018',
-        MaKhachHang: 'KH00234567',
-        HoTenNguoiDi: 'Mỹ Mỹ',
-        SdtNguoiDi: '0900234567',
-        EmailNguoiDi: 'myan@example.com',
-        SoLuongVeDaDat: 3,
-        TongGiaVe: tongGiaTriDon('HCM-CT', 3),
-        MaQRVe: 'QR-VE10000018-1A',
-        SoGhe: '1A',
-        GiaVe: thongTinTuyen('HCM-CT').giaGoc,
-        MaDiemDon: 'Bến xe Miền Đông Mới',
-        MaDiemTra: 'Bến xe Trung tâm Cần Thơ',
-        PhuongThucThanhToan: 'chuyen-khoan',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Đơn 3 vé tuyến TP.HCM - Cần Thơ, khách đi gia đình.',
-        NguonDat: 'tai-quay',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('HCM-CT', '05:30'),
-        MaVe: 'VE10000018-2',
-        MaDonHang: 'DH10000018',
-        MaKhachHang: 'KH00234567',
-        HoTenNguoiDi: 'Mỹ Mỹ',
-        SdtNguoiDi: '0900234567',
-        EmailNguoiDi: 'myan@example.com',
-        SoLuongVeDaDat: 3,
-        TongGiaVe: tongGiaTriDon('HCM-CT', 3),
-        MaQRVe: 'QR-VE10000018-2A',
-        SoGhe: '2A',
-        GiaVe: thongTinTuyen('HCM-CT').giaGoc,
-        MaDiemDon: 'Bến xe Miền Đông Mới',
-        MaDiemTra: 'Bến xe Trung tâm Cần Thơ',
-        PhuongThucThanhToan: 'chuyen-khoan',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Đơn 3 vé tuyến TP.HCM - Cần Thơ, khách đi gia đình.',
-        NguonDat: 'tai-quay',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('HCM-CT', '05:30'),
-        MaVe: 'VE10000018-3',
-        MaDonHang: 'DH10000018',
-        MaKhachHang: 'KH00234567',
-        HoTenNguoiDi: 'Mỹ Mỹ',
-        SdtNguoiDi: '0900234567',
-        EmailNguoiDi: 'myan@example.com',
-        SoLuongVeDaDat: 3,
-        TongGiaVe: tongGiaTriDon('HCM-CT', 3),
-        MaQRVe: 'QR-VE10000018-3A',
-        SoGhe: '3A',
-        GiaVe: thongTinTuyen('HCM-CT').giaGoc,
-        MaDiemDon: 'Bến xe Miền Đông Mới',
-        MaDiemTra: 'Bến xe Trung tâm Cần Thơ',
-        PhuongThucThanhToan: 'chuyen-khoan',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'da-huy',
-        GhiChu: 'Đơn 3 vé tuyến TP.HCM - Cần Thơ, khách đi gia đình. | Đã hủy lúc 09:20 ngày 24/06/2026 - Lý do: Tôi đổi kế hoạch - Hoàn: 180.000 đ',
-        NguonDat: 'tai-quay',
-        SoLanDaSua: 0,
-        NguoiHuy: 'Nguyen An Ninh',
-        ThoiGianHuy: now,
-        TrangThaiGiaoDich: 'da-hoan'
-      },
-      {
-        ...thongTinChuyen('HCM-VT', '07:00'),
-        MaVe: 'VE10000019-1',
-        MaDonHang: 'DH10000019',
-        MaKhachHang: 'KH98776655',
-        HoTenNguoiDi: 'Nguyễn Văn Minh',
-        SdtNguoiDi: '0988776655',
-        EmailNguoiDi: 'minh.nguyen@gmail.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('HCM-VT', 1),
-        MaQRVe: 'QR-VE10000019-5A',
-        SoGhe: '5A',
-        GiaVe: thongTinTuyen('HCM-VT').giaGoc,
-        MaDiemDon: 'Văn phòng Quận 1',
-        MaDiemTra: 'Bãi Sau',
-        PhuongThucThanhToan: 'tien-mat',
-        TrangThaiDonHang: 'cho-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Khách hotline, giữ chỗ tuyến TP.HCM - Vũng Tàu.',
-        NguonDat: 'hotline',
-        SoLanDaSua: 1
-      },
-      {
-        ...thongTinChuyen('DL-BMT', '08:00'),
-        MaVe: 'VE10000020-1',
-        MaDonHang: 'DH10000020',
-        MaKhachHang: 'KH12345678',
-        HoTenNguoiDi: 'Trần Hoài Nam',
-        SdtNguoiDi: '0912345678',
-        EmailNguoiDi: 'nam.tran@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('DL-BMT', 1),
-        MaQRVe: 'QR-VE10000020-3B',
-        SoGhe: '3B',
-        GiaVe: thongTinTuyen('DL-BMT').giaGoc,
-        MaDiemDon: 'Bến xe Liên Tỉnh Đà Lạt',
-        MaDiemTra: 'Bến xe Phía Nam Buôn Ma Thuột',
-        PhuongThucThanhToan: 'the',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Khách đi công tác, cần xuất hóa đơn.',
-        NguonDat: 'online',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('DL-NT', '09:30'),
-        MaVe: 'VE10000021-1',
-        MaDonHang: 'DH10000021',
-        MaKhachHang: 'KH44556677',
-        HoTenNguoiDi: 'Lê Thu Hương',
-        SdtNguoiDi: '0981335599',
-        EmailNguoiDi: 'huong.le@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('DL-NT', 1),
-        MaQRVe: 'QR-VE10000021-7A',
-        SoGhe: '7A',
-        GiaVe: thongTinTuyen('DL-NT').giaGoc,
-        MaDiemDon: 'Chợ Đà Lạt',
-        MaDiemTra: 'Ga Nha Trang',
-        PhuongThucThanhToan: 'chuyen-khoan',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Khách chọn điểm đón trung tâm Đà Lạt.',
-        NguonDat: 'tai-quay',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('CT-RG', '10:00'),
-        MaVe: 'VE10000022-1',
-        MaDonHang: 'DH10000022',
-        MaKhachHang: 'KH55667788',
-        HoTenNguoiDi: 'Hoàng Minh Quân',
-        SdtNguoiDi: '0348995511',
-        EmailNguoiDi: 'quan.hoang@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('CT-RG', 1),
-        MaQRVe: 'QR-VE10000022-9A',
-        SoGhe: '9A',
-        GiaVe: thongTinTuyen('CT-RG').giaGoc,
-        MaDiemDon: 'Bến Ninh Kiều',
-        MaDiemTra: 'Bến tàu Rạch Giá',
-        PhuongThucThanhToan: 'tien-mat',
-        TrangThaiDonHang: 'cho-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Giữ chỗ chờ khách ra quầy thanh toán.',
-        NguonDat: 'hotline',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('HCM-PT', '13:00'),
-        MaVe: 'VE10000023-1',
-        MaDonHang: 'DH10000023',
-        MaKhachHang: 'KH66778899',
-        HoTenNguoiDi: 'Phạm Thị Thúy',
-        SdtNguoiDi: '0975612345',
-        EmailNguoiDi: 'thuy.pham@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('HCM-PT', 1),
-        MaQRVe: 'QR-VE10000023-11A',
-        SoGhe: '11A',
-        GiaVe: thongTinTuyen('HCM-PT').giaGoc,
-        MaDiemDon: 'Ngã tư Thủ Đức',
-        MaDiemTra: 'Mũi Né',
-        PhuongThucThanhToan: 'the',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Khách có hành lý gửi khoang.',
-        NguonDat: 'online',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('HCM-DL', '21:00'),
-        MaVe: 'VE10000024-1',
-        MaDonHang: 'DH10000024',
-        MaKhachHang: 'KH77889900',
-        HoTenNguoiDi: 'Vũ Hoài Lâm',
-        SdtNguoiDi: '0932114477',
-        EmailNguoiDi: 'lam.vu@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('HCM-DL', 1),
-        MaQRVe: 'QR-VE10000024-1B',
-        SoGhe: '1B',
-        GiaVe: thongTinTuyen('HCM-DL').giaGoc,
-        MaDiemDon: 'Bến xe Miền Tây',
-        MaDiemTra: 'Quảng trường Lâm Viên',
-        PhuongThucThanhToan: 'chuyen-khoan',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Chuyến đêm, khách cần nhắc giờ lên xe.',
-        NguonDat: 'tai-quay',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('HCM-NT', '22:15'),
-        MaVe: 'VE10000025-1',
-        MaDonHang: 'DH10000025',
-        MaKhachHang: 'KH88990011',
-        HoTenNguoiDi: 'Bùi Thị Hà',
-        SdtNguoiDi: '0918776655',
-        EmailNguoiDi: 'ha.bui@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('HCM-NT', 1),
-        MaQRVe: 'QR-VE10000025-4B',
-        SoGhe: '4B',
-        GiaVe: thongTinTuyen('HCM-NT').giaGoc,
-        MaDiemDon: 'Suối Tiên',
-        MaDiemTra: 'Vinpearl Harbour',
-        PhuongThucThanhToan: 'tien-mat',
-        TrangThaiDonHang: 'cho-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Khách đặt trước qua tổng đài.',
-        NguonDat: 'hotline',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('NT-DN', '23:00'),
-        MaVe: 'VE10000026-1',
-        MaDonHang: 'DH10000026',
-        MaKhachHang: 'KH99001122',
-        HoTenNguoiDi: 'Nguyễn Văn Đạt',
-        SdtNguoiDi: '0909552233',
-        EmailNguoiDi: 'dat.nguyen@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('NT-DN', 1),
-        MaQRVe: 'QR-VE10000026-8B',
-        SoGhe: '8B',
-        GiaVe: thongTinTuyen('NT-DN').giaGoc,
-        MaDiemDon: 'Bến xe phía Nam Nha Trang',
-        MaDiemTra: 'Cầu Rồng',
-        PhuongThucThanhToan: 'chuyen-khoan',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Khách cần xuống gần trung tâm Đà Nẵng.',
-        NguonDat: 'online',
-        SoLanDaSua: 0
-      }
-    ];
   }
 
   private todayString() {

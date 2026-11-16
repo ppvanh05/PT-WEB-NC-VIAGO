@@ -125,7 +125,7 @@ export class HomeApiService {
   // are never substituted for a backend credential.
   get accessToken(): string {
     try {
-      return sessionStorage.getItem('viago_backend_access_token') || '';
+      return sessionStorage.getItem('viago_customer_access_token') || '';
     } catch {
       return '';
     }

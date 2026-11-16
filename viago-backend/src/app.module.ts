@@ -15,6 +15,7 @@ import { CustomerChatbotModule } from './featured/customer/chatbot/chatbot.modul
 import { AdminCustomerSupportModule } from './featured/admin/customers/support/support.module';
 import { AdminAuthModule } from './featured/admin/auth/admin-auth.module';
 import { AdminIntakeModule } from './featured/admin/intake/intake.module';
+import { AdminBookingManagementModule } from './featured/admin/booking-management/booking-management.module';
 
 import { AdminDispatchModule } from './featured/admin/dispatch/dispatch.module';
 import { CustomerTripSearchModule } from './featured/customer/trip-search/trip-search.module';
@@ -42,6 +43,7 @@ import { AdminReportsModule } from './featured/admin/reports/reports.module';
     AdminCustomerSupportModule,
     AdminAuthModule,
     AdminIntakeModule,
+    AdminBookingManagementModule,
     AdminDispatchModule,
     CustomerTripSearchModule,
     CustomerReviewsModule,

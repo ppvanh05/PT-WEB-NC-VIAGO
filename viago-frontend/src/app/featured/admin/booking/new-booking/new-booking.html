@@ -1,4 +1,8 @@
 <div class="booking-counter">
+  <ng-template #holdFeedback>
+    @if (holdSyncing()) { <p class="booking-helper" role="status">Đang xác nhận ghế đã chọn. Bạn có thể tiếp tục chọn ghế hoặc nhập thông tin khách.</p> }
+    @if (holdSyncError()) { <p class="booking-error" role="alert">Chưa xác nhận được ghế: {{ holdSyncError() }}</p><app-button variant="outline" size="sm" [disabled]="holdSyncing() || processing()" (clicked)="RetryHold()">Thử giữ ghế lại</app-button> }
+  </ng-template>
   @if (toast(); as t) {
     <div class="booking-toast-container">@for (notification of [t]; track notification) {
       <app-toast [variant]="notification.type === 'danger' ? 'error' : 'success'" [message]="notification.msg" [duration]="3200" (closed)="toast.set(null)" />
@@ -8,6 +12,7 @@
   <app-admin-page-header title="Đặt vé xe" section="Quầy bán vé">
 
 </app-admin-page-header>
+  <app-admin-booking-orders [embedded]="true" (updated)="RefreshSeats()" />
 
   <section class="trip-control-panel">
     <div class="filters-grid">
@@ -16,7 +21,7 @@
         <div class="route-filter-wrapper" (keydown)="CityKeydown($event, 'origin')">
           <input id="booking-origin" type="text" role="combobox" aria-autocomplete="list"
             aria-controls="booking-origin-results" [attr.aria-expanded]="cityField() === 'origin'"
-            placeholder="Tìm điểm đi" [ngModel]="OriginText()"
+            placeholder="Chọn điểm đi" [ngModel]="OriginText()"
             (ngModelChange)="SearchCity('origin', $event)" (focus)="cityField.set('origin')"
             (blur)="BlurCity('origin')" />
           <button type="button" class="route-dropdown-toggle" aria-label="Chọn điểm đi"
@@ -28,7 +33,11 @@
               @for (city of CityOptions('origin'); track city) {
                 <button type="button" class="route-suggestion" role="option" [attr.aria-selected]="city === OriginText()"
                   (mousedown)="$event.preventDefault()" (click)="ChooseCity('origin', city)">{{ city }}</button>
-              } @empty { <div class="route-suggestion-empty">Không có điểm đi phù hợp.</div> }
+              } @empty {
+                <div class="route-suggestion-empty">
+                  {{ pointsLoading() ? 'Đang tải tỉnh/thành...' : pointsError() ? 'Không tải được danh sách tỉnh/thành.' : 'Không có điểm đi phù hợp.' }}
+                </div>
+              }
             </div>
           }
         </div>
@@ -38,7 +47,7 @@
         <div class="route-filter-wrapper" (keydown)="CityKeydown($event, 'destination')">
           <input id="booking-destination" type="text" role="combobox" aria-autocomplete="list"
             aria-controls="booking-destination-results" [attr.aria-expanded]="cityField() === 'destination'"
-            placeholder="Tìm điểm đến" [ngModel]="DestinationText()"
+            placeholder="Chọn điểm đến" [ngModel]="DestinationText()"
             (ngModelChange)="SearchCity('destination', $event)" (focus)="cityField.set('destination')"
             (blur)="BlurCity('destination')" />
           <button type="button" class="route-dropdown-toggle" aria-label="Chọn điểm đến"
@@ -50,20 +59,31 @@
               @for (city of CityOptions('destination'); track city) {
                 <button type="button" class="route-suggestion" role="option" [attr.aria-selected]="city === DestinationText()"
                   (mousedown)="$event.preventDefault()" (click)="ChooseCity('destination', city)">{{ city }}</button>
-              } @empty { <div class="route-suggestion-empty">Không có điểm đến phù hợp.</div> }
+              } @empty {
+                <div class="route-suggestion-empty">
+                  {{ pointsLoading() ? 'Đang tải tỉnh/thành...' : pointsError() ? 'Không tải được danh sách tỉnh/thành.' : 'Không có điểm đến phù hợp.' }}
+                </div>
+              }
             </div>
           }
         </div>
       </div>
       <div class="field compact">
         <label>Loại xe</label>
-        <select aria-label="Loại xe" [ngModel]="loaiXeDuocChon()" (ngModelChange)="ChonLoaiXe($event)">
+        <select aria-label="Loại xe" [disabled]="vehicleTypesLoading() || !loaiXeList.length"
+          [ngModel]="loaiXeDuocChon()" (ngModelChange)="ChonLoaiXe($event)">
+          <option value="" disabled>
+            {{ vehicleTypesLoading() ? 'Đang tải loại xe...' : loaiXeList.length ? 'Chọn loại xe' : 'Không có loại xe' }}
+          </option>
           @for (loai of loaiXeList; track loai.id) {
             <option [value]="loai.id">
-              {{ loai.ten }} - {{ loai.moTa }}
+              {{ loai.ten }}
             </option>
           }
         </select>
+        @if (vehicleTypesError()) {
+          <p class="booking-error" role="alert">{{ vehicleTypesError() }}</p>
+        }
       </div>
 
       <div class="field compact departure-date-field">
@@ -74,9 +94,10 @@
     </div>
 
     <p class="booking-helper selected-route-label">Tuyến đang bán: <strong>{{ HienThiTuyen(thongTinChuyen().name) }}</strong></p>
-    @if (draftOrigin() && !DestinationText()) { <p class="booking-helper" role="status">Chọn điểm đến để cập nhật tuyến đang bán.</p> }
+    @if (selectedOrigin() && !selectedDestination()) { <p class="booking-helper" role="status">Chọn điểm đến để cập nhật tuyến đang bán.</p> }
     @if (dateError()) { <p class="booking-error" role="alert">{{ dateError() }}</p> }
     @if (tripsLoading()) { <p class="booking-helper" role="status">Đang tải chuyến...</p> }
+    @if (routeTripsError()) { <p class="booking-error" role="alert">{{ routeTripsError() }}</p> }
     <div class="schedule-toolbar">
       <app-admin-tabs class="time-segments" aria-label="Lọc khung giờ">
         <button type="button" [class.active]="boLocGio() === 'tat-ca'" (click)="CapNhatBoLocGio('tat-ca')">Tất cả</button>
@@ -89,18 +110,18 @@
 
     <div class="time-strip" aria-label="Khung giờ chạy">
       @if (gioHienThi().length > 0) {
-        @for (gio of gioHienThi(); track gio) {
+        @for (trip of visibleTrips(); track trip.id) {
           <button
             type="button"
             class="time-chip"
-            [class.active]="gioChayDuocChon() === gio" [disabled]="TrangThaiChuyen(gio) !== 'Còn chỗ' || tripsLoading()" [attr.aria-pressed]="gioChayDuocChon() === gio"
-            (click)="ChuyenGio(gio)"
+            [class.active]="selectedTripId() === trip.id" [disabled]="trip.status !== 'DangMoBan' || trip.availableSeatCount === 0 || tripsLoading() || processing()" [attr.aria-pressed]="selectedTripId() === trip.id"
+            (click)="ChuyenGio(trip.departureTime, trip.id)"
           >
-            <span class="time">{{ gio }}</span>
-            <span class="seat-count">{{ TrangThaiChuyen(gio) }}</span>
-            <small>{{ ThongKeTheoGio(gio).trong }}/{{ totalSeats() }} trống</small>
+            <span class="time">{{ trip.departureTime }}</span>
+            <span class="seat-count">{{ trip.availableSeatCount > 0 ? 'Còn chỗ' : 'Hết chỗ' }}</span>
+            <small>{{ trip.availableSeatCount }}/{{ trip.seatCount }} trống · {{ trip.vehicle.licensePlate }}</small>
             <span class="load-bar">
-              <span [style.width.%]="ThongKeTheoGio(gio).tiLeDay"></span>
+              <span [style.width.%]="trip.seatCount ? (trip.seatCount - trip.availableSeatCount) / trip.seatCount * 100 : 0"></span>
             </span>
           </button>
         }
@@ -110,13 +131,14 @@
     </div>
   </section>
 
+  @if (selectedTripId()) {
   <section class="workbench">
     <main class="seat-workspace">
       <div class="trip-summary">
         <div>
           <span class="summary-label">Thuộc chuyến</span>
-          <strong>{{ gioChayDuocChon() }} ngày {{ NgayKhoiHanh() }} tuyến {{ HienThiTuyen(thongTinChuyen().name) }}</strong>
-          <small>{{ loaiXeDangChon().ten }} · {{ loaiXeDangChon().loaiGhe }} · {{ HienThiGiaLoaiXe(loaiXeDuocChon()) }}</small>
+          <strong>{{ gioChayDuocChon() || 'Chưa chọn chuyến' }} ngày {{ NgayKhoiHanh() }} tuyến {{ HienThiTuyen(thongTinChuyen().name) }}</strong>
+          <small>{{ loaiXeDangChon().ten }} · {{ loaiXeDangChon().loaiGhe }} · {{ HienThiGiaLoaiXe(loaiXeDangChon().category) }}</small>
         </div>
         <div class="summary-actions">
           <button type="button" class="ghost-button" [disabled]="!veDangSua() && veDangIn().length === 0" (click)="MoInVe()">In vé</button>
@@ -126,20 +148,21 @@
 
       @if (holdMessage()) { <p class="booking-error" role="alert">{{ holdMessage() }}</p> }
       @if (gheDangChon().length >= 5) { <p class="booking-helper" role="status">Bạn chỉ có thể chọn tối đa 5 ghế cho mỗi đơn.</p> }
-      @if (!gioChayDuocChon()) { <p class="booking-helper">Không có chuyến phù hợp. Vui lòng chọn ngày hoặc tuyến khác.</p> }
+      @if (!gioChayDuocChon()) { <p class="booking-helper">Vui lòng chọn chuyến khởi hành để xem sơ đồ ghế và tạo đơn.</p> }
+      @if (!showBookingModal()) { <ng-container [ngTemplateOutlet]="holdFeedback" /> }
       <div class="configuration-row">
         <span>Giá ghế đang chọn</span>
         @for (ghe of gheDangChon(); track ghe) {
-          <div class="seat-config-dropdown-wrapper" [class.readonly]="loaiXeDuocChon() !== 'cabin'">
+          <div class="seat-config-dropdown-wrapper" [class.readonly]="loaiXeDangChon().category !== 'cabin'">
             <span class="seat-config-label">Ghế {{ ghe }}</span>
-            @if (loaiXeDuocChon() === 'cabin') {
+            @if (loaiXeDangChon().category === 'cabin') {
               <select
                 [ngModel]="gheConfig()[ghe] || 'don'"
                 (ngModelChange)="CapNhatGheConfig(ghe, $event)"
                 class="seat-config-select"
               >
-                <option value="don">Cabin đơn ({{ GiaVeTheoLoaiGhe('cabin-don') | number }}đ)</option>
-                <option value="doi">Cabin đôi ({{ GiaVeTheoLoaiGhe('cabin-doi') | number }}đ)</option>
+                <option value="don">Cabin đơn ({{ CabinPrice(ghe) | number }}đ)</option>
+                <option value="doi" [disabled]="!CabinAllowsDouble(ghe)">Cabin đôi ({{ CabinPrice(ghe, true) | number }}đ)</option>
               </select>
             } @else {
               <strong>{{ MoTaGheNgan(ghe) }} · {{ GiaVeTheoSoGhe(ghe) | number }}đ</strong>
@@ -147,7 +170,7 @@
           </div>
         }
         @if (gheDangChon().length === 0) {
-          <small>{{ loaiXeDangChon().ten }} · {{ totalSeats() }} chỗ · {{ HienThiGiaLoaiXe(loaiXeDuocChon()) }}.</small>
+          <small>{{ loaiXeDangChon().ten }} · {{ totalSeats() }} chỗ · {{ HienThiGiaLoaiXe(loaiXeDangChon().category) }}.</small>
         }
       </div>
 
@@ -158,6 +181,7 @@
           class="seat-card {{ ghe.TrangThai }}"
           [class.has-ticket]="!!ghe.Ve"
           [class.editing]="veDangSua()?.SoGhe === ghe.SoGhe"
+          [attr.aria-busy]="holdSyncing() && gheDangChon().includes(ghe.SoGhe) ? 'true' : null"
           [title]="TieuDeGhe(ghe)" [disabled]="SeatDisabled(ghe)" [attr.aria-label]="'Ghế ' + ghe.SoGhe + ': ' + SeatLabel(ghe)" [attr.aria-pressed]="gheDangChon().includes(ghe.SoGhe)"
           (click)="ChonGhe(ghe.SoGhe)"
         >
@@ -220,6 +244,7 @@
         </button>
       </ng-template>
 
+      @if (gioChayDuocChon()) {
       <div class="seat-legend-bar">
         <span class="legend-title">Chú thích:</span>
         <span class="legend-item"><i class="legend-box da-thanh-toan"></i>Đã bán</span>
@@ -229,7 +254,7 @@
         <span class="room-note-text"><strong>{{ loaiXeDangChon().ten }}:</strong> {{ loaiXeDangChon().loaiGhe }} · {{ totalSeats() }} chỗ.</span>
       </div>
 
-      <div class="vehicle-seat-map {{ loaiXeDuocChon() }}">
+      <div class="vehicle-seat-map {{ loaiXeDangChon().category }}">
         @for (deck of soDoGheDangChon(); track deck.title) {
           <section class="seat-deck">
             <header>
@@ -251,6 +276,7 @@
           </section>
         }
       </div>
+      }
     </main>
 
     <aside class="trip-side-panel">
@@ -290,10 +316,10 @@
           Lấp đầy trong ngày
         </h2>
         <div style="max-height: 180px; overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px">
-          @for (item of bangTongQuanChuyen(); track item.gio) {
+          @for (item of bangTongQuanChuyen(); track item.id) {
             <button
               type="button"
-              (click)="ChuyenGio(item.gio)"
+              (click)="ChuyenGio(item.gio, item.id)"
               [style.background]="gioChayDuocChon() === item.gio ? '#eff6ff' : '#f8fafc'"
               [style.border-color]="gioChayDuocChon() === item.gio ? '#3b82f6' : '#e2e8f0'"
               style="border: 1px solid; border-radius: var(--radius-sm); padding: 6px; cursor: pointer; text-align: left; transition: all 0.2s"
@@ -347,7 +373,7 @@
         </div>
         <div class="side-line">
           <span>Giá vé</span>
-          <strong>{{ HienThiGiaLoaiXe(loaiXeDuocChon()) }}</strong>
+          <strong>{{ HienThiGiaLoaiXe(loaiXeDangChon().category) }}</strong>
         </div>
         <div class="side-line amenities-line">
           <span>Tiện ích</span>
@@ -383,6 +409,7 @@
     </aside>
   </section>
 
+  }
   @if (showBookingModal()) {
     <div class="modal-overlay" (click)="DongBookingModal()">
       <div bookingDialog class="booking-modal" role="dialog" aria-modal="true" aria-label="Thông tin đặt vé" tabindex="-1" (click)="$event.stopPropagation()">
@@ -409,6 +436,8 @@
           @if (held.orderStatus === 'expired') { <p class="booking-error" role="alert">Thời gian giữ chỗ đã hết. Ghế đã được trả về trạng thái còn trống.</p> }
         }
         @if (holdMessage()) { <p class="booking-error" role="alert">{{ holdMessage() }}</p> }
+        <ng-container [ngTemplateOutlet]="holdFeedback" />
+        @if (!veDangSua() && holdDeadline()) { <div class="booking-hold" role="status">Còn {{ remaining() }} giữ ghế. Thanh toán trước {{ holdDeadline() | date:'HH:mm:ss':'+0700' }}.</div> }
         @if (reviewMode() && !veDangSua()) {
           <div class="booking-review">
             <div class="review-heading"><h3>Kiểm tra thông tin lần cuối</h3><p>Đối chiếu thông tin toàn đơn trước khi xác nhận đặt vé.</p></div>
@@ -428,21 +457,26 @@
               <section class="review-section review-payment"><h4>Thanh toán</h4>
                 <dl><dt>Hình thức</dt><dd>{{ LabelHinhThuc(formHinhThuc()) }}</dd><dt>Trạng thái</dt><dd><app-badge [variant]="formTrangThaiThanhToan() === 'da-thanh-toan' ? 'success' : 'warning'" [label]="FormPaymentLabel()" /><app-badge variant="neutral" [label]="LabelNguonDat(formNguonDat())" /></dd>
                   <dt>Mã giảm giá</dt><dd>{{ couponApplied() || 'Không dùng' }}</dd></dl>
-                <div class="review-total"><span>Tổng tiền · {{ gheDangChon().length }} vé</span><strong>{{ tongTien() | number }}đ</strong></div>
-                @if (formNguonDat() === 'tai-quay') {
+                <div class="review-total" [attr.aria-busy]="reviewLoading()"><span>Tổng tiền · {{ gheDangChon().length }} vé</span>
+                  @if (reviewLoading()) { <strong role="status">Đang kiểm tra tổng tiền...</strong> }
+                  @else if (reviewError()) { <strong>Chưa xác nhận</strong> }
+                  @else { <strong>{{ tongTien() | number }}đ</strong> }
+                </div>
+                @if (reviewError()) { <p class="booking-error" role="alert">{{ reviewError() }}</p><app-button variant="outline" size="sm" (clicked)="Review()">Thử kiểm tra lại</app-button> }
+                @if (formNguonDat() === 'tai-quay' && formHinhThuc() === 'tien-mat') {
                   <div class="review-collection">
-                    <label class="booking-check"><input type="checkbox" [ngModel]="formTrangThaiThanhToan() === 'da-thanh-toan'" (ngModelChange)="formTrangThaiThanhToan.set($event ? 'da-thanh-toan' : 'cho-thanh-toan')" [disabled]="processing()" />
+                    <label class="booking-check"><input type="checkbox" [ngModel]="formTrangThaiThanhToan() === 'da-thanh-toan'" (ngModelChange)="formTrangThaiThanhToan.set($event ? 'da-thanh-toan' : 'cho-thanh-toan')" [disabled]="processing() || reviewLoading() || !!reviewError()" />
                       <span>Tôi xác nhận đã thu đủ <strong>{{ tongTien() | number }}đ</strong> của khách.</span>
                     </label>
-                    <p class="booking-helper">{{ formTrangThaiThanhToan() === 'da-thanh-toan' ? 'Đơn sẽ được ghi nhận đã thanh toán khi xác nhận đặt vé.' : 'Chưa thu tiền: đơn sẽ chờ thanh toán và giữ chỗ 10 phút.' }}</p>
+                    <p class="booking-helper">{{ formTrangThaiThanhToan() === 'da-thanh-toan' ? 'Đơn sẽ được ghi nhận đã thanh toán khi xác nhận đặt vé.' : 'Chưa thu tiền: đơn sẽ chờ thanh toán đến hạn giữ ghế hiện tại.' }}</p>
                   </div>
                 }
 
               </section>
             </div>
             <div class="review-consent">
-              <label class="booking-check"><input type="checkbox" [ngModel]="reviewConfirmed()" (ngModelChange)="reviewConfirmed.set($event)" />Tôi xác nhận thông tin trên là chính xác và đã thông báo điều kiện đặt vé cho khách.</label>
-              <p class="booking-helper">Vé giữ chỗ qua Hotline có thời hạn 10 phút để xác nhận thanh toán. Trạng thái thanh toán được hiển thị riêng trên vé.</p>
+              <label class="booking-check"><input type="checkbox" [ngModel]="reviewConfirmed()" (ngModelChange)="reviewConfirmed.set($event)" [disabled]="reviewLoading() || !!reviewError() || processing()" />Tôi xác nhận thông tin trên là chính xác và đã thông báo điều kiện đặt vé cho khách.</label>
+              <p class="booking-helper">Hoàn tất thanh toán trước {{ holdDeadline() | date:'HH:mm:ss':'+0700' }}. Hết hạn, ghế sẽ được trả để người khác đặt.</p>
             </div>
           </div>
         } @else {
@@ -506,9 +540,13 @@
                     type="tel"
                     placeholder="Nhập SĐT khách"
                     [ngModel]="formSdt()"
-                    (ngModelChange)="KiemTraSoDienThoai($event)" (blur)="phoneTouched.set(true)"
+                    (ngModelChange)="KiemTraSoDienThoai($event)" (blur)="OnPhoneBlur()"
                   />
-                  @if (phoneError()) { <small id="booking-phone-error" class="booking-error" role="alert">{{ phoneError() }}</small> }
+                  @if (customerLoading()) {
+                    <small class="booking-hint" role="status" style="color: var(--primary, #0284c7)">Đang tra cứu thông tin khách hàng...</small>
+                  } @else if (phoneError()) {
+                    <small id="booking-phone-error" class="booking-error" role="alert">{{ phoneError() }}</small>
+                  }
                 </div>
 
                 <div class="field">
@@ -542,15 +580,20 @@
 
                 @if (customerSuggestion(); as c) {
                   <div class="booking-customer full" role="status">
-                    <strong>Đã tìm thấy thông tin khách hàng: {{ c.HoTenNguoiDi }}</strong><span>{{ c.EmailNguoiDi || 'Không có email' }}</span>
-                    <span>Điểm đón: {{ c.MaDiemDon }} · Điểm trả: {{ c.MaDiemTra }}</span>
+                    <strong>Đã tìm thấy thông tin khách hàng: {{ c.hotenkhachhang }}</strong><span>{{ c.email || 'Không có email' }}</span>
+                    @if (c.diemdon || c.diemtra) {
+                      <span>Điểm đón gần nhất: {{ c.diemdon || 'Theo tuyến' }} · Điểm trả: {{ c.diemtra || 'Theo tuyến' }}</span>
+                    }
                     <app-button variant="outline" size="sm" (clicked)="ApplyCustomer()">Áp dụng thông tin</app-button>
-                    <app-button variant="ghost" size="sm" (clicked)="customerDismissed.set(formSdt())">Giữ thông tin hiện tại</app-button>
+                    <app-button variant="ghost" size="sm" (clicked)="customerDismissed.set(formSdt()); customerSuggestion.set(null)">Giữ thông tin hiện tại</app-button>
                   </div>
                 }
                 <div class="field">
                   <label for="booking-pickup">Điểm đón <span class="required-mark" aria-hidden="true">*</span></label>
                   <select id="booking-pickup" required aria-label="Điểm đón" [ngModel]="formDiemDon()" (ngModelChange)="formDiemDon.set($event)">
+                    @if (pickupPoints().length === 0) {
+                      <option value="" disabled selected>Chưa có điểm đón từ chuyến xe</option>
+                    }
                     @for (diem of pickupPoints(); track diem) {
                       <option [value]="diem">{{ diem }}</option>
                     }
@@ -560,6 +603,9 @@
                 <div class="field">
                   <label for="booking-dropoff">Điểm trả <span class="required-mark" aria-hidden="true">*</span></label>
                   <select id="booking-dropoff" required aria-label="Điểm trả" [ngModel]="formDiemTra()" (ngModelChange)="formDiemTra.set($event)">
+                    @if (dropoffPoints().length === 0) {
+                      <option value="" disabled selected>Chưa có điểm trả từ chuyến xe</option>
+                    }
                     @for (diem of dropoffPoints(); track diem) {
                       <option [value]="diem">{{ diem }}</option>
                     }
@@ -570,9 +616,13 @@
                   <label for="booking-method">Hình thức thanh toán <span class="required-mark" aria-hidden="true">*</span></label>
                   <select id="booking-method" required aria-label="Hình thức thanh toán" [ngModel]="formHinhThuc()" (ngModelChange)="CapNhatHinhThuc($event)">
                     <option value="tien-mat">Tiền mặt</option>
-                    <option value="chuyen-khoan">Chuyển khoản</option>
-                    <option value="the">Thẻ</option>
+                    <option value="chuyen-khoan" [disabled]="!sepayReady()">Chuyển khoản QR</option>
                   </select>
+                  @if (!sepayReady()) {
+                    <small class="booking-helper">{{ paymentOptionsError() || (paymentOptionsLoaded() ? 'Chuyển khoản QR chưa được cấu hình. Có thể đặt vé bằng tiền mặt.' : 'Đang kiểm tra phương thức thanh toán...') }}</small>
+                    @if (paymentOptionsLoaded()) { <app-button variant="outline" size="sm" (clicked)="LoadPaymentOptions()">Kiểm tra lại</app-button> }
+                  }
+                  @if (formHinhThuc() === 'chuyen-khoan') { <small class="booking-helper">QR chuyển khoản sẽ xuất hiện sau khi tạo đơn. Hệ thống tự xác nhận khi nhận tiền.</small> }
                 </div>
 
                 <div class="field full promo-field">
@@ -587,22 +637,6 @@
                       (blur)="onPromoBlur()"
                       class="promo-input"
                     />
-                    @if (showPromoSuggestions()) {
-                      <div class="promo-suggestions">
-                        @for (ma of maGiamGiaList; track ma.code) {
-                          @if (ma.code) {
-                            <button
-                              type="button"
-                              class="promo-suggestion-item"
-                              (mousedown)="$event.preventDefault()" (click)="SelectPromoCode(ma.code)"
-                            >
-                              <span class="promo-code-name">{{ ma.code }}</span>
-                              <span class="promo-code-desc">{{ ma.label }}</span>
-                            </button>
-                          }
-                        }
-                      </div>
-                    }
                   </div>
                   <app-button variant="outline" size="sm" [loading]="couponLoading()" [disabled]="!formMaGiamGia().trim()" (clicked)="ApplyCoupon()">Áp dụng mã</app-button></div>
                   @if (couponFeedback()) { <small role="status" [class.booking-error]="!couponApplied()" [class.booking-success]="!!couponApplied()">{{ couponFeedback() }}</small> }
@@ -674,10 +708,10 @@
           } @else {
             <app-button variant="outline" type="button" (clicked)="DongBookingModal()">Đóng</app-button>
             @if (reviewMode()) {
-              <app-button variant="outline" [disabled]="processing()" (clicked)="reviewMode.set(false); reviewConfirmed.set(false); formTrangThaiThanhToan.set('cho-thanh-toan')">Quay lại</app-button>
-              <app-button [disabled]="!formValid() || !reviewConfirmed()" [loading]="processing()" (clicked)="LuuDatVe()">{{ processing() ? 'Đang tạo vé...' : 'Xác nhận đặt vé' }}</app-button>
+              <app-button variant="outline" [disabled]="processing()" (clicked)="BackReview()">Quay lại</app-button>
+          <app-button [disabled]="!CanSubmitOrder()" [loading]="processing()" (clicked)="LuuDatVe()">{{ processing() ? 'Đang tạo vé...' : 'Xác nhận đặt vé' }}</app-button>
             } @else {
-              <app-button [disabled]="!formValid()" (clicked)="Review()">Kiểm tra thông tin</app-button>
+              <app-button [disabled]="!formValid() || couponLoading() || processing()" (clicked)="Review()">Kiểm tra thông tin</app-button>
             }
           }
         </footer>

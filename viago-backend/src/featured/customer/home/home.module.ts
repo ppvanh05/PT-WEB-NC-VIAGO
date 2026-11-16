@@ -31,6 +31,6 @@ import {
     CounterGuard,
     SepayWebhookGuard,
   ],
-  exports: [CustomerHomeService, HomePromotionsService],
+  exports: [CustomerHomeService, HomePromotionsService, HomeBookingService, CounterGuard],
 })
 export class CustomerHomeModule {}

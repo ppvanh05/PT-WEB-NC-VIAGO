@@ -4,7 +4,10 @@ import { AppModule } from './app.module';
 import { allowedFrontendOrigin } from './shared/http/frontend-origin';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    // Keep the original request bytes for SePay HMAC verification.
+    rawBody: true,
+  });
   app.useBodyParser('json', { limit: '20mb' });
   app.useBodyParser('urlencoded', { limit: '20mb', extended: true });
   app.enableCors({

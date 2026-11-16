@@ -1,3 +1,4 @@
+import { AccountsModule } from '../../accounts.module';
 import { Module } from '@nestjs/common';
 import { AccountsAccessModule } from '../../../shared/accounts/accounts-access';
 import { SupportRateGuard } from '../chatbot/auth/chatbot.auth';
@@ -7,7 +8,7 @@ import { CustomerReviewOrdersService } from './review-orders.service';
 import { CustomerReviewsService } from './reviews.service';
 
 @Module({
-  imports: [AccountsAccessModule],
+  imports: [AccountsAccessModule, AccountsModule],
   controllers: [CustomerReviewsController],
   providers: [CustomerReviewsService, CustomerReviewOrdersService, SupportRateGuard, NewsInteractionGuard],
 })

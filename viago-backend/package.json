@@ -48,6 +48,9 @@
     "test:e2e": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
     "db:intake-workflow": "prisma db execute --file prisma/sql/intake-workflow.sql --schema prisma/schema.prisma",
     "test:booking": "npm run build && node test/booking.integration.cjs",
+    "test:admin-booking": "npm run build && node test/admin-booking.integration.cjs",
+    "test:sepay": "npm run build && node --test test/sepay-hmac.unit.cjs test/sepay.unit.cjs",
+    "sepay:status": "npm run build && node scripts/sepay-status.cjs",
     "test:home": "npm run build && node test/home.integration.cjs"
   },
   "dependencies": {

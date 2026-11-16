@@ -70,8 +70,8 @@ export class ConfirmPasswordDto {
 }
 export class OtpRequestDto {
   @Matches(/^0\d{9}$/) phoneNumber: string;
-  @IsIn(['DangKy', 'QuenMatKhau', 'XacThucHaiLop']) purpose:
-    'DangKy' | 'QuenMatKhau' | 'XacThucHaiLop';
+  @IsIn(['DangKy', 'QuenMatKhau', 'XacThucHaiLop', 'TraCuuVe']) purpose:
+    'DangKy' | 'QuenMatKhau' | 'XacThucHaiLop' | 'TraCuuVe';
 }
 export class OtpVerifyDto {
   @IsString() @MaxLength(80) challengeId: string;

@@ -1,29 +1,37 @@
+import { AdminBookingOrders } from '../booking-orders';
+import { BookingOrdersApi, BookingQuote, BookingQuoteInput, BookingCreateInput } from '../booking-orders-api';
+import { ContentApiError } from '../../../../core/services/content-api.service';
 import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
 import { SidebarStateService } from '../../../../core/services/sidebar-state.service';
 import { BookingDialog, printBookingReceipts } from '../booking-dialog';
-import { BookingState, HOLD_MS, normalizeTicket, paymentLabel, ticketLabel, paymentVariant, normalizedName, validName, validPhone, validEmail, countdown, couponResult, localQr, mockSchedule } from '../booking-rules';
+import { BookingState, normalizeTicket, paymentLabel, ticketLabel, paymentVariant, normalizedName, validName, validPhone, validEmail, countdown, localQr } from '../booking-rules';
 import { Toast } from '../../../../shared/components/toast/toast';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker';
 import { Button } from '../../../../shared/components/button/button';
 import { Badge } from '../../../../shared/components/badge/badge';
 import { ModalComponent } from '../../../../shared/components/modal/modal';
-import { Component, HostListener, OnInit, computed, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { BookingPointsApi } from '../booking-management/booking-points-api';
+import { BookingVehicleTypesApi } from '../booking-management/booking-vehicle-types-api';
+import { BookingRouteTrip, BookingRoutesApi } from '../booking-management/booking-routes-api';
+import { BookingCustomerApi, CustomerBookingInfo } from '../booking-management/booking-customer-api';
 
 type PhuongThucThanhToan = 'tien-mat' | 'chuyen-khoan' | 'the';
 type TrangThaiDonHang = 'cho-thanh-toan' | 'da-thanh-toan';
 type TrangThaiVe = 'cho-khoi-hanh' | 'da-hoan-thanh' | 'da-huy';
-type TrangThaiGhe = 'trong' | 'dang-chon' | 'giu-cho' | 'da-thanh-toan';
+type TrangThaiGhe = 'trong' | 'dang-chon' | 'giu-cho' | 'da-thanh-toan' | 'da-khoa';
 type NguonDat = 'tai-quay' | 'hotline' | 'online';
 type BoLocGio = 'tat-ca' | 'sang' | 'chieu' | 'toi' | 'dem';
 type LoaiXeId = 'limousine' | 'giuong-nam' | 'cabin';
 type LoaiGheId = 'giuong-nam' | 'limousine' | 'cabin-don' | 'cabin-doi';
 
 interface LoaiXeOption {
-  id: LoaiXeId;
+  id: string;
+  category: LoaiXeId;
   ten: string;
   soCho: number;
   moTa: string;
@@ -95,6 +103,7 @@ interface GheXe {
   GiaVe: number;
   TrangThai: TrangThaiGhe;
   Ve?: VeXe;
+  Locked?: boolean;
 }
 
 interface TenTuyenXe {
@@ -121,6 +130,7 @@ interface TenTuyenXe {
   selector: 'app-new-booking',
   standalone: true,
   imports: [
+    AdminBookingOrders,
     Toast,
     DatePickerComponent,
     BookingDialog,
@@ -136,6 +146,35 @@ interface TenTuyenXe {
   styleUrl: './new-booking.css'
 })
 export class NewBooking implements OnInit {
+  private readonly bookingPointsApi = inject(BookingPointsApi);
+  private readonly bookingVehicleTypesApi = inject(BookingVehicleTypesApi);
+  private readonly bookingRoutesApi = inject(BookingRoutesApi);
+  private readonly bookingCustomerApi = inject(BookingCustomerApi);
+  readonly serverOrders = viewChild(AdminBookingOrders);
+  private readonly bookingApi = inject(BookingOrdersApi);
+  private draftHoldId: string | null = null;
+  private createRequest: BookingCreateInput | null = null;
+  private requestKey = crypto.randomUUID();
+  private serverOffset = 0;
+  private destroyed = false;
+  private inventoryLoading = false;
+  private inventoryTimer?: ReturnType<typeof setTimeout>;
+  private inventoryAbort?: AbortController;
+  private inventoryRevision = 0;
+  private holdContext = 0;
+  private holdSyncTask?: Promise<void>;
+  private readonly confirmedSeats = signal<string[]>([]);
+  private readonly releasingSeats = signal<{ context: number; tripId: string; names: string[] }[]>([]);
+  private releaseBarrier: Promise<void> = Promise.resolve();
+  readonly holdSyncing = signal(false);
+  readonly holdSyncError = signal('');
+  readonly sepayReady = signal(false);
+  readonly paymentOptionsLoaded = signal(false);
+  readonly paymentOptionsLoading = signal(false);
+  readonly paymentOptionsError = signal('');
+  readonly serverQuote = signal<{ fingerprint: string; value: BookingQuote } | null>(null);
+  private customerSearchTimer?: ReturnType<typeof setTimeout>;
+  private routeRequestId = 0;
   PaymentLabel = paymentLabel;
   PaymentVariant = paymentVariant;
   TicketLifecycleLabel(ve: VeXe): string {
@@ -151,12 +190,11 @@ export class NewBooking implements OnInit {
   processing = signal(false);
   closeConfirm = signal(false);
   private draftFormOpened = false;
-  private storageListener = (event: StorageEvent) => { if (event.key === this.storageKey) this.TaiDuLieu(); };
   private clockTimer?: ReturnType<typeof setInterval>;
   clockNow = signal(Date.now());
   cancellationOther = signal('');
   private refreshExpiry() {
-    this.clockNow.set(Date.now());
+    this.clockNow.set(Date.now() + this.serverOffset);
     const old = this.danhSachVe();
     const next = old.map(v => normalizeTicket(v, this.clockNow()));
     if (next.some((v, i) => v.orderStatus !== old[i].orderStatus)) {
@@ -164,44 +202,21 @@ export class NewBooking implements OnInit {
       const selected = this.veDangSua();
       if (selected) this.veDangSua.set(next.find(v => v.MaVe === selected.MaVe) ?? null);
     }
-    if (this.holdDeadline() && this.holdDeadline()! <= this.clockNow()) {
+    if (!this.createRequest && this.holdDeadline() && this.holdDeadline()! <= this.clockNow()) {
+      void this.releaseDraft(); this.serverQuote.set(null);
       this.holdDeadline.set(null); this.gheDangChon.set([]); this.gheConfig.set({});
       this.reviewMode.set(false); this.reviewConfirmed.set(false);
       this.holdMessage.set('Thời gian giữ ghế đã hết. Vui lòng chọn lại ghế.');
     }
-    if (this.gheDangChon().length && this.TrangThaiChuyen(this.gioChayDuocChon()) !== 'Còn chỗ') {
+    if (this.gheDangChon().length && !this.draftHoldId && this.TrangThaiChuyen(this.gioChayDuocChon()) !== 'Còn chỗ') {
       this.holdDeadline.set(null); this.gheDangChon.set([]); this.reviewMode.set(false);
       this.holdMessage.set('Chuyến đã ngừng bán vé. Vui lòng chọn chuyến khác.');
     }
   }
-  ngOnDestroy() { if (this.clockTimer) clearInterval(this.clockTimer); window.removeEventListener('storage', this.storageListener); }
-  readonly storageKey = 'viago_ticket_bookings_v3';
-  readonly loaiXeList: LoaiXeOption[] = [
-    {
-      id: 'limousine',
-      ten: 'Limousine',
-      soCho: 9,
-      moTa: '9 chỗ',
-      loaiGhe: 'Ghế VIP',
-      icon: 'airline_seat_recline_extra'
-    },
-    {
-      id: 'giuong-nam',
-      ten: 'Giường nằm',
-      soCho: 34,
-      moTa: '34 chỗ',
-      loaiGhe: 'Giường đơn',
-      icon: 'airline_seat_individual_suite'
-    },
-    {
-      id: 'cabin',
-      ten: 'Cabin',
-      soCho: 22,
-      moTa: '22 phòng',
-      loaiGhe: 'Cabin đơn, Cabin đôi',
-      icon: 'bed'
-    }
-  ];
+  ngOnDestroy() { this.destroyed = true; this.pauseInventory(); if (this.clockTimer) clearInterval(this.clockTimer); if (this.customerSearchTimer) clearTimeout(this.customerSearchTimer); void this.releaseDraft(); }
+  loaiXeList: LoaiXeOption[] = [];
+  vehicleTypesLoading = signal(true);
+  vehicleTypesError = signal('');
 
   readonly danhSachXe: XeKhach[] = [
     {
@@ -382,10 +397,10 @@ export class NewBooking implements OnInit {
       phuXe: 'Trần Minh Hải',
       giaGoc: 180000,
       ghiChu: 'Qua Trung Lương, Cai Lậy, Vĩnh Long. Có trung chuyển nội thành TP.HCM và Cần Thơ.',
-      MaDiemDon: ['Bến xe Miền Đông Mới', 'Bến xe Miền Tây', 'Văn phòng Quận 1', 'Văn phòng Quận 5', 'Văn phòng Quận 10', 'Ngã tư Thủ Đức', 'Ngã tư An Sương', 'Suối Tiên'],
-      MaDiemTra: ['Bến xe Trung tâm Cần Thơ', 'Văn phòng Ninh Kiều', 'Bến Ninh Kiều', 'Đại học Cần Thơ'],
-      diemDung: ['Trung Lương', 'Cai Lậy', 'Cái Bè', 'Vĩnh Long'],
-      diemTrungChuyen: ['Sân bay Tân Sơn Nhất', 'Crescent Mall Quận 7', 'AEON Mall Tân Phú', 'Gigamall Thủ Đức', 'Vincom Xuân Khánh', 'LOTTE Mart Cần Thơ'],
+      MaDiemDon: [],
+      MaDiemTra: [],
+      diemDung: [],
+      diemTrungChuyen: [],
       gioCoMatTruocPhut: 15
     },
     {
@@ -401,10 +416,10 @@ export class NewBooking implements OnInit {
       phuXe: 'Phạm Đăng Khoa',
       giaGoc: 180000,
       ghiChu: 'Tuyến ngắn qua Long Thành, Bà Rịa; phù hợp khách đi trong ngày.',
-      MaDiemDon: ['Bến xe Miền Đông Mới', 'Bến xe Miền Tây', 'Văn phòng Quận 1', 'Văn phòng Quận 5', 'Văn phòng Quận 10', 'Ngã tư Thủ Đức', 'Ngã tư An Sương', 'Suối Tiên'],
-      MaDiemTra: ['Bến xe Vũng Tàu', 'Văn phòng Vũng Tàu', 'Bãi Sau', 'Bãi Trước'],
-      diemDung: ['Long Thành', 'Bà Rịa'],
-      diemTrungChuyen: ['Sân bay Tân Sơn Nhất', 'Crescent Mall Quận 7', 'AEON Mall Tân Phú', 'Gigamall Thủ Đức', 'LOTTE Mart Vũng Tàu', 'Bãi Sau'],
+      MaDiemDon: [],
+      MaDiemTra: [],
+      diemDung: [],
+      diemTrungChuyen: [],
       gioCoMatTruocPhut: 20
     },
     {
@@ -420,10 +435,10 @@ export class NewBooking implements OnInit {
       phuXe: 'Nguyễn Quốc Bảo',
       giaGoc: 220000,
       ghiChu: 'Tuyến Tây Nguyên qua Liên Khương và Krông Pắc.',
-      MaDiemDon: ['Bến xe Liên Tỉnh Đà Lạt', 'Chợ Đà Lạt', 'Hồ Xuân Hương', 'Quảng trường Lâm Viên'],
-      MaDiemTra: ['Bến xe Phía Nam Buôn Ma Thuột', 'Ngã Sáu Buôn Ma Thuột', 'Coopmart Buôn Ma Thuột'],
-      diemDung: ['Liên Khương', 'Krông Pắc'],
-      diemTrungChuyen: ['Quảng trường Lâm Viên', 'Big C Đà Lạt', 'Coopmart Buôn Ma Thuột', 'Ngã Sáu Buôn Ma Thuột'],
+      MaDiemDon: [],
+      MaDiemTra: [],
+      diemDung: [],
+      diemTrungChuyen: [],
       gioCoMatTruocPhut: 30
     },
     {
@@ -439,10 +454,10 @@ export class NewBooking implements OnInit {
       phuXe: 'Lâm Tuấn Kiệt',
       giaGoc: 220000,
       ghiChu: 'Di chuyển theo cung đường Khánh Vĩnh, cảnh đẹp đèo núi.',
-      MaDiemDon: ['Bến xe Liên Tỉnh Đà Lạt', 'Chợ Đà Lạt', 'Hồ Xuân Hương', 'Quảng trường Lâm Viên'],
-      MaDiemTra: ['Bến xe phía Nam Nha Trang', 'Ga Nha Trang', 'Quảng trường 2/4', 'Vinpearl Harbour'],
-      diemDung: ['Khánh Vĩnh'],
-      diemTrungChuyen: ['Quảng trường Lâm Viên', 'Big C Đà Lạt', 'Vincom Plaza Nha Trang', 'Tháp Trầm Hương'],
+      MaDiemDon: [],
+      MaDiemTra: [],
+      diemDung: [],
+      diemTrungChuyen: [],
       gioCoMatTruocPhut: 15
     },
     {
@@ -458,10 +473,10 @@ export class NewBooking implements OnInit {
       phuXe: 'Nguyễn Minh Phúc',
       giaGoc: 180000,
       ghiChu: 'Kết nối miền Tây qua Thốt Nốt và Long Xuyên.',
-      MaDiemDon: ['Bến xe Trung tâm Cần Thơ', 'Văn phòng Ninh Kiều', 'Bến Ninh Kiều', 'Đại học Cần Thơ'],
-      MaDiemTra: ['Bến xe Rạch Giá', 'Bến tàu Rạch Giá', 'Văn phòng Rạch Giá'],
-      diemDung: ['Thốt Nốt', 'Long Xuyên'],
-      diemTrungChuyen: ['Vincom Xuân Khánh', 'LOTTE Mart Cần Thơ', 'Coopmart Rạch Giá', 'Bến tàu Rạch Giá'],
+      MaDiemDon: [],
+      MaDiemTra: [],
+      diemDung: [],
+      diemTrungChuyen: [],
       gioCoMatTruocPhut: 15
     },
     {
@@ -477,10 +492,10 @@ export class NewBooking implements OnInit {
       phuXe: 'Đỗ Hoàng Nam',
       giaGoc: 220000,
       ghiChu: 'Tuyến biển qua Long Thành, Dầu Giây, Hàm Thuận Nam.',
-      MaDiemDon: ['Bến xe Miền Đông Mới', 'Bến xe Miền Tây', 'Văn phòng Quận 1', 'Văn phòng Quận 5', 'Văn phòng Quận 10', 'Ngã tư Thủ Đức', 'Ngã tư An Sương', 'Suối Tiên'],
-      MaDiemTra: ['Bến xe Phan Thiết', 'Chợ Phan Thiết', 'Mũi Né', 'NovaWorld Phan Thiết'],
-      diemDung: ['Long Thành', 'Dầu Giây', 'Hàm Thuận Nam'],
-      diemTrungChuyen: ['Sân bay Tân Sơn Nhất', 'Crescent Mall Quận 7', 'AEON Mall Tân Phú', 'Gigamall Thủ Đức', 'NovaWorld Phan Thiết', 'Mũi Né'],
+      MaDiemDon: [],
+      MaDiemTra: [],
+      diemDung: [],
+      diemTrungChuyen: [],
       gioCoMatTruocPhut: 20
     },
     {
@@ -496,10 +511,10 @@ export class NewBooking implements OnInit {
       phuXe: 'Võ Gia Huy',
       giaGoc: 320000,
       ghiChu: 'Tuyến cao điểm, nhiều khung giờ trong ngày qua Bảo Lộc và Di Linh.',
-      MaDiemDon: ['Bến xe Miền Đông Mới', 'Bến xe Miền Tây', 'Văn phòng Quận 1', 'Văn phòng Quận 5', 'Văn phòng Quận 10', 'Ngã tư Thủ Đức', 'Ngã tư An Sương', 'Suối Tiên'],
-      MaDiemTra: ['Bến xe Liên Tỉnh Đà Lạt', 'Chợ Đà Lạt', 'Hồ Xuân Hương', 'Quảng trường Lâm Viên'],
-      diemDung: ['Dầu Giây', 'Bảo Lộc', 'Di Linh'],
-      diemTrungChuyen: ['Sân bay Tân Sơn Nhất', 'Crescent Mall Quận 7', 'AEON Mall Tân Phú', 'Gigamall Thủ Đức', 'Quảng trường Lâm Viên', 'Big C Đà Lạt'],
+      MaDiemDon: [],
+      MaDiemTra: [],
+      diemDung: [],
+      diemTrungChuyen: [],
       gioCoMatTruocPhut: 30
     },
     {
@@ -515,10 +530,10 @@ export class NewBooking implements OnInit {
       phuXe: 'Lê Quốc Việt',
       giaGoc: 420000,
       ghiChu: 'Tuyến dài qua Dầu Giây, Phan Thiết, Phan Rang, Cam Ranh.',
-      MaDiemDon: ['Bến xe Miền Đông Mới', 'Bến xe Miền Tây', 'Văn phòng Quận 1', 'Văn phòng Quận 5', 'Văn phòng Quận 10', 'Ngã tư Thủ Đức', 'Ngã tư An Sương', 'Suối Tiên'],
-      MaDiemTra: ['Bến xe phía Nam Nha Trang', 'Ga Nha Trang', 'Quảng trường 2/4', 'Vinpearl Harbour'],
-      diemDung: ['Dầu Giây', 'Phan Thiết', 'Phan Rang', 'Cam Ranh'],
-      diemTrungChuyen: ['Sân bay Tân Sơn Nhất', 'Crescent Mall Quận 7', 'AEON Mall Tân Phú', 'Gigamall Thủ Đức', 'Vincom Plaza Nha Trang', 'Tháp Trầm Hương'],
+      MaDiemDon: [],
+      MaDiemTra: [],
+      diemDung: [],
+      diemTrungChuyen: [],
       gioCoMatTruocPhut: 30
     },
     {
@@ -534,10 +549,10 @@ export class NewBooking implements OnInit {
       phuXe: 'Phạm Thành Long',
       giaGoc: 380000,
       ghiChu: 'Tuyến ven biển miền Trung qua Quy Nhơn, Quảng Ngãi, Tam Kỳ.',
-      MaDiemDon: ['Bến xe phía Nam Nha Trang', 'Ga Nha Trang', 'Quảng trường 2/4', 'Vinpearl Harbour'],
-      MaDiemTra: ['Bến xe Trung tâm Đà Nẵng', 'Sân bay Đà Nẵng', 'Công viên Biển Đông', 'Cầu Rồng'],
-      diemDung: ['Cam Ranh', 'Phan Rang', 'Quy Nhơn', 'Quảng Ngãi', 'Tam Kỳ'],
-      diemTrungChuyen: ['Vincom Plaza Nha Trang', 'Tháp Trầm Hương', 'Vincom Đà Nẵng', 'Cầu Rồng'],
+      MaDiemDon: [],
+      MaDiemTra: [],
+      diemDung: [],
+      diemTrungChuyen: [],
       gioCoMatTruocPhut: 30
     }
   ];
@@ -551,28 +566,20 @@ export class NewBooking implements OnInit {
   cityField = signal<'origin' | 'destination' | null>(null);
   originKeyword = signal<string | null>(null);
   destinationKeyword = signal<string | null>(null);
-  draftOrigin = signal<string | null>(null);
-  selectedEndpoints = computed(() => this.HienThiTuyen(this.thongTinChuyen().name).split(' → '));
-  OriginText() { return this.originKeyword() ?? this.draftOrigin() ?? this.selectedEndpoints()[0]; }
-  DestinationText() {
-    return this.destinationKeyword() ?? (this.draftOrigin() && !this.FindCityRoute(this.draftOrigin()!, this.selectedEndpoints()[1]) ? '' : this.selectedEndpoints()[1]);
-  }
-  private FindCityRoute(origin: string, destination: string) {
-    for (const route of this.tuyenList) {
-      const [a, b] = this.TachDiemTuyen(route.name);
-      if (origin === a && destination === b) return { route, direction: 'di' as const };
-      if (origin === b && destination === a) return { route, direction: 've' as const };
-    }
-    return null;
-  }
+  selectedOrigin = signal('');
+  selectedDestination = signal('');
+  availablePoints = signal<string[]>([]);
+  pointsLoading = signal(false);
+  pointsError = signal('');
+  routeTrips = signal<BookingRouteTrip[]>([]);
+  routeTripsError = signal('');
+  OriginText() { return this.originKeyword() ?? this.selectedOrigin(); }
+  DestinationText() { return this.destinationKeyword() ?? this.selectedDestination(); }
   CityOptions(field: 'origin' | 'destination') {
-    const origin = this.draftOrigin() ?? this.selectedEndpoints()[0];
-    const cities = field === 'origin'
-      ? this.tuyenList.flatMap(route => this.TachDiemTuyen(route.name))
-      : this.tuyenList.flatMap(route => {
-          const [a, b] = this.TachDiemTuyen(route.name);
-          return origin === a ? [b] : origin === b ? [a] : [];
-        });
+    const origin = this.selectedOrigin();
+    const cities = this.availablePoints().filter(city =>
+      field === 'origin' || city !== origin,
+    );
     const query = (field === 'origin' ? this.originKeyword() : this.destinationKeyword()) ?? '';
     return [...new Set(cities)].filter(city => this.MatchSearchText(this.TuyenDiemSearchText(city), query));
   }
@@ -583,22 +590,25 @@ export class NewBooking implements OnInit {
   ChooseCity(field: 'origin' | 'destination', city: string) {
     this.cityField.set(null);
     if (field === 'origin') {
-      this.draftOrigin.set(city); this.originKeyword.set(null); this.destinationKeyword.set(null);
-      if (!this.FindCityRoute(city, this.selectedEndpoints()[1])) {
-        this.cityField.set('destination'); return;
-      }
+      this.guardDraft(() => {
+        this.selectedOrigin.set(city);
+        this.selectedDestination.set('');
+        this.originKeyword.set(null);
+        this.destinationKeyword.set(null);
+        this.direction.set('di');
+        this.BoChonTatCa();
+        void this.LoadTrips();
+      });
+      this.cityField.set('destination');
+      return;
     }
-    const origin = this.draftOrigin() ?? this.selectedEndpoints()[0];
-    const destination = field === 'destination' ? city : this.selectedEndpoints()[1];
-    const match = this.FindCityRoute(origin, destination);
-    if (!match) return;
-    if (match.route.id === this.tuyenDuocChon() && match.direction === this.direction()) {
-      this.draftOrigin.set(null); this.originKeyword.set(null); this.destinationKeyword.set(null); return;
-    }
+    this.selectedDestination.set(city);
+    this.destinationKeyword.set(null);
     this.guardDraft(() => {
-      this.tuyenDuocChon.set(match.route.id); this.direction.set(match.direction);
-      this.draftOrigin.set(null); this.originKeyword.set(null); this.destinationKeyword.set(null);
-      this.BoChonTatCa(); this.SelectFirstTrip();
+      this.direction.set('di');
+      this.tuyenDuocChon.set('');
+      this.BoChonTatCa();
+      void this.LoadTrips();
     });
   }
   BlurCity(field: 'origin' | 'destination') {
@@ -611,7 +621,7 @@ export class NewBooking implements OnInit {
   }
   CityKeydown(event: KeyboardEvent, field: 'origin' | 'destination') {
     if (event.key === 'Escape') {
-      this.cityField.set(null); this.draftOrigin.set(null); this.originKeyword.set(null); this.destinationKeyword.set(null); return;
+      this.cityField.set(null); this.originKeyword.set(null); this.destinationKeyword.set(null); return;
     }
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
     event.preventDefault(); this.cityField.set(field);
@@ -628,6 +638,10 @@ export class NewBooking implements OnInit {
   dateError = signal('');
   tripsLoading = signal(false);
   reviewMode = signal(false);
+  reviewLoading = signal(false);
+  reviewError = signal('');
+  private reviewVersion = 0;
+  private quoteVersion = 0;
   reviewConfirmed = signal(false);
   phoneTouched = signal(false);
   nameTouched = signal(false);
@@ -642,42 +656,101 @@ export class NewBooking implements OnInit {
   phoneError = computed(() => this.phoneTouched() && !validPhone(this.formSdt()) ? 'Số điện thoại phải gồm 10 chữ số.' : '');
   nameError = computed(() => this.nameTouched() && !validName(this.formTen()) ? 'Họ tên phải từ 2–100 ký tự.' : '');
   emailError = computed(() => this.emailTouched() && !validEmail(this.formEmail()) ? 'Email không đúng định dạng.' : '');
-  customerSuggestion = computed(() => this.customerDismissed() === this.formSdt() ? null : this.danhSachVe().find(v => v.SdtNguoiDi === this.formSdt()) ?? null);
+  customerSuggestion = signal<CustomerBookingInfo | null>(null);
+  customerLoading = signal(false);
   pickupPoints = computed(() => this.direction() === 'di' ? this.thongTinChuyen().MaDiemDon : this.thongTinChuyen().MaDiemTra);
   dropoffPoints = computed(() => this.direction() === 'di' ? this.thongTinChuyen().MaDiemTra : this.thongTinChuyen().MaDiemDon);
-  schedule = computed(() => mockSchedule(this.tuyenDuocChon(), this.NgayKhoiHanh(), this.direction()));
+  schedule = computed(() => this.routeTrips().map(trip => ({
+    gio: trip.departureTime,
+    status: trip.availableSeatCount > 0 ? 'Còn chỗ' as const : 'Hết chỗ' as const,
+  })));
   remaining = computed(() => countdown(this.holdDeadline() ?? undefined, this.clockNow()));
-  formValid = computed(() => validName(this.formTen()) && validPhone(this.formSdt()) && validEmail(this.formEmail())
+  selectedTripId = signal('');
+  visibleTrips = computed(() => this.routeTrips().filter(trip => this.gioHienThi().includes(trip.departureTime)));
+  private selectedTrip() { return this.routeTrips().find(trip => trip.id === this.selectedTripId()) ?? this.routeTrips().find(trip => trip.departureTime === this.gioChayDuocChon()); }
+  CanSubmitOrder() { return !this.processing() && !this.reviewLoading() && !this.reviewError() && (!!this.createRequest || (this.formValid() && this.serverQuote()?.fingerprint === this.quoteFingerprint())) && this.reviewConfirmed(); }
+  formValid = computed(() => !!this.selectedTripId() && validName(this.formTen()) && validPhone(this.formSdt()) && validEmail(this.formEmail())
     && this.pickupPoints().includes(this.formDiemDon()) && this.dropoffPoints().includes(this.formDiemTra())
     && ['hotline','tai-quay'].includes(this.formNguonDat()) && this.gheDangChon().length > 0 && this.gheDangChon().length <= 5
-    && this.TrangThaiChuyen(this.gioChayDuocChon()) === 'Còn chỗ' && !this.dateError()
-    && (!this.formMaGiamGia().trim() || (this.couponApplied() === this.formMaGiamGia().trim().toUpperCase() && couponResult(this.couponApplied(), this.tuyenDuocChon(), this.tamTinh()).valid)));
+    && !!this.draftHoldId && !!this.holdDeadline() && this.holdDeadline()! > this.clockNow() && !this.dateError()
+    && !this.holdSyncing() && !this.holdSyncError() && this.sameSeats(this.gheDangChon(), this.confirmedSeats())
+    && (this.formHinhThuc() !== 'chuyen-khoan' || this.sepayReady()));
   FormPaymentLabel() { return this.formTrangThaiThanhToan() === 'da-thanh-toan' ? 'Đã thanh toán' : 'Chờ thanh toán'; }
   ApplyCustomer() {
     const c = this.customerSuggestion(); if (!c) return;
-    this.formTen.set(c.HoTenNguoiDi); this.formEmail.set(c.EmailNguoiDi || '');
-    if (this.pickupPoints().includes(c.MaDiemDon)) this.formDiemDon.set(c.MaDiemDon);
-    if (this.dropoffPoints().includes(c.MaDiemTra)) this.formDiemTra.set(c.MaDiemTra);
+    this.formMaKhachHang.set(c.makhachhang);
+    this.formTen.set(c.hotenkhachhang); this.formEmail.set(c.email || '');
+    if (c.diemdon && this.pickupPoints().includes(c.diemdon)) this.formDiemDon.set(c.diemdon);
+    if (c.diemtra && this.dropoffPoints().includes(c.diemtra)) this.formDiemTra.set(c.diemtra);
     this.customerDismissed.set(this.formSdt());
+    this.customerSuggestion.set(null);
+  }
+  private quoteInput(): BookingQuoteInput {
+    const trip = this.selectedTrip();
+    if (!trip || !this.draftHoldId) throw new Error('Vui lòng giữ ghế trước khi đặt vé.');
+    return {
+      holdId: this.draftHoldId,
+      seatIds: this.gheDangChon().map(name => trip.seats.find(seat => seat.name === name)!.id),
+      customer: { name: normalizedName(this.formTen()), phone: this.formSdt(), ...(this.formEmail().trim() ? { email: this.formEmail().trim() } : {}) },
+      pickupId: trip.route.pickupPoints.find(point => point.name === this.formDiemDon())?.id ?? '',
+      dropoffId: trip.route.dropoffPoints.find(point => point.name === this.formDiemTra())?.id ?? '',
+      ...(this.formMaGiamGia().trim() ? { voucherCode: this.formMaGiamGia().trim().toUpperCase() } : {}),
+      doubleSeatIds: this.gheDangChon().filter(name => this.gheConfig()[name] === 'doi').map(name => trip.seats.find(seat => seat.name === name)!.id),
+    };
+  }
+  private quoteFingerprint() { return JSON.stringify([this.draftHoldId, this.selectedTripId(), this.formTen(), this.formSdt(), this.formEmail(), this.formDiemDon(), this.formDiemTra(), this.formMaGiamGia(), this.gheDangChon(), this.gheConfig()]); }
+  private async requestQuote() {
+    const version = ++this.quoteVersion;
+    const fingerprint = this.quoteFingerprint();
+    const value = await this.bookingApi.quote(this.quoteInput());
+    if (this.destroyed || version !== this.quoteVersion || this.quoteFingerprint() !== fingerprint) throw new Error('Thông tin vừa thay đổi. Vui lòng kiểm tra lại.');
+    this.serverQuote.set({ fingerprint, value });
+    return value;
   }
   async ApplyCoupon() {
-    if (this.couponLoading()) return;
-    this.couponLoading.set(true); await new Promise(r => setTimeout(r, 300));
-    const result = couponResult(this.formMaGiamGia(), this.tuyenDuocChon(), this.tamTinh());
-    this.couponApplied.set(result.valid ? this.formMaGiamGia().trim().toUpperCase() : '');
-    this.couponFeedback.set(result.valid ? 'Áp dụng mã giảm giá thành công.' : result.error);
-    this.couponLoading.set(false);
+    if (this.couponLoading() || this.processing()) return;
+    if (!this.formValid()) { this.couponFeedback.set('Nhập thông tin khách và chọn điểm đón/trả trước khi áp dụng mã.'); return; }
+    this.couponLoading.set(true);
+    try { await this.requestQuote(); this.couponApplied.set(this.formMaGiamGia().trim().toUpperCase()); this.couponFeedback.set('Đã áp dụng mã giảm giá.'); }
+    catch (e) { this.serverQuote.set(null); this.couponApplied.set(''); this.couponFeedback.set(e instanceof Error ? e.message : 'Không áp dụng được mã.'); }
+    finally { this.couponLoading.set(false); }
   }
-  Review() { if (!this.formValid() || this.processing()) return; this.formTen.set(normalizedName(this.formTen())); this.formEmail.set(this.formEmail().trim()); this.formTrangThaiThanhToan.set('cho-thanh-toan'); this.reviewMode.set(true); this.reviewConfirmed.set(false); }
+  async Review() {
+    if (!this.formValid() || this.processing() || this.reviewLoading() || this.couponLoading()) return;
+    const version = ++this.reviewVersion;
+    this.reviewMode.set(true); this.reviewConfirmed.set(false); this.createRequest = null;
+    this.formTrangThaiThanhToan.set('cho-thanh-toan');
+    this.serverQuote.set(null); this.reviewError.set(''); this.reviewLoading.set(true);
+    try {
+      await this.requestQuote();
+    } catch (e) {
+      if (!this.destroyed && version === this.reviewVersion) this.reviewError.set(e instanceof Error ? e.message : 'Không tính được tổng tiền.');
+    } finally {
+      if (!this.destroyed && version === this.reviewVersion) this.reviewLoading.set(false);
+    }
+  }
+  BackReview() {
+    ++this.reviewVersion; ++this.quoteVersion;
+    this.reviewLoading.set(false); this.reviewError.set('');
+    this.reviewMode.set(false); this.reviewConfirmed.set(false);
+    this.formTrangThaiThanhToan.set('cho-thanh-toan');
+  }
   TrangThaiChuyen(gio: string): import('../booking-rules').TripStatus {
     this.clockNow();
-    if (!gio || new Date(this.NgayKhoiHanh() + 'T' + gio + ':00').getTime() <= this.clockNow()) return 'Đã khởi hành';
-    const trip = this.schedule().find(t => t.gio === gio);
+    const trip = this.selectedTrip()?.departureTime === gio ? this.selectedTrip() : this.routeTrips().find(item => item.departureTime === gio);
     if (!trip) return 'Đã khóa';
-    return trip.status === 'Còn chỗ' && this.ThongKeTheoGio(gio).trong === 0 ? 'Hết chỗ' : trip.status;
+    if (Date.parse(trip.departureAt) <= this.clockNow()) return 'Đã khởi hành';
+    if (trip.status !== 'DangMoBan') return 'Đã khóa';
+    return trip.availableSeatCount > 0 ? 'Còn chỗ' : 'Hết chỗ';
   }
-  SeatDisabled(ghe: GheXe) { return !ghe.Ve && (this.TrangThaiChuyen(this.gioChayDuocChon()) !== 'Còn chỗ' || (this.gheDangChon().length >= 5 && !this.gheDangChon().includes(ghe.SoGhe))); }
-  SeatLabel(ghe: GheXe) { return ({ trong:'Trống', 'dang-chon':'Đang chọn', 'giu-cho':'Đang giữ chỗ', 'da-thanh-toan':'Đã bán' })[ghe.TrangThai]; }
+  SeatDisabled(ghe: GheXe) {
+    if (this.gheDangChon().includes(ghe.SoGhe)) return false;
+    const status = this.TrangThaiChuyen(this.gioChayDuocChon());
+    return !!ghe.Locked || ['giu-cho', 'da-thanh-toan', 'da-khoa'].includes(ghe.TrangThai)
+      || (status !== 'Còn chỗ' && !(status === 'Hết chỗ' && this.ownsHeldSeat(ghe.SoGhe))) || this.gheDangChon().length >= 5;
+  }
+  private ownsHeldSeat(name: string) { return this.confirmedSeats().includes(name) || this.releasingSeats().some(release => release.tripId === this.selectedTrip()?.id && release.names.includes(name)); }
+  SeatLabel(ghe: GheXe) { return ({ trong:'Trống', 'dang-chon':'Đang chọn', 'giu-cho':'Đang giữ chỗ', 'da-thanh-toan':'Đã bán', 'da-khoa':'Đã khóa' })[ghe.TrangThai]; }
   DraftHasChanges() {
     return this.draftFormOpened && !this.veDangSua() && !!(
       this.formTen().trim() || this.formSdt() || this.formEmail().trim() || this.formGhiChu().trim() || this.formMaGiamGia().trim()
@@ -696,18 +769,67 @@ export class NewBooking implements OnInit {
   }
   RefreshDraft() { this.guardDraft(() => this.BoChonTatCa()); }
   ContinueDraft() { this.closeConfirm.set(false); this.deferredAction = null; }
-  DiscardDraft() { const action = this.deferredAction; this.deferredAction = null; this.closeConfirm.set(false); this.holdDeadline.set(null); this.gheDangChon.set([]); this.ResetForm(); action?.(); }
+  DiscardDraft() { const action = this.deferredAction; this.deferredAction = null; this.closeConfirm.set(false); this.BoChonTatCa(); action?.(); }
   @HostListener('document:keydown.escape', ['$event'])
   HandleEscape(event: Event) { if (this.closeConfirm()) return; if (this.showPaymentConfirmModal()) { this.showPaymentConfirmModal.set(false); return; } if (this.showPrintModal()) { this.DongInVe(); return; } if (this.showBookingModal()) { event.preventDefault(); this.DongBookingModal(); } }
-  ChangeDirection(value: string) { this.guardDraft(() => { this.direction.set(value === 've' ? 've' : 'di'); this.BoChonTatCa(); this.SelectFirstTrip(); this.tuyenTimKiem.set(''); }); }
-  private SelectFirstTrip() { this.tripsLoading.set(true); this.gioChayDuocChon.set(this.schedule().find(t => this.TrangThaiChuyen(t.gio) === 'Còn chỗ')?.gio ?? ''); setTimeout(() => this.tripsLoading.set(false), 250); }
-  tuyenDuocChon = signal('HCM-CT');
-  loaiXeDuocChon = signal<LoaiXeId>('limousine');
+  ChangeDirection(value: string) {
+    this.guardDraft(() => {
+      this.direction.set('di');
+      if (value === 've') {
+        const origin = this.selectedOrigin();
+        this.selectedOrigin.set(this.selectedDestination());
+        this.selectedDestination.set(origin);
+      }
+      this.BoChonTatCa();
+      void this.LoadTrips();
+      this.tuyenTimKiem.set('');
+    });
+  }
+  private async LoadTrips() {
+    const requestId = ++this.routeRequestId;
+    this.selectedTripId.set('');
+    this.gioChayDuocChon.set('');
+    this.routeTrips.set([]);
+    this.tuyenDuocChon.set('');
+    this.routeTripsError.set('');
+    if (
+      !this.selectedOrigin() ||
+      !this.selectedDestination() ||
+      !this.NgayKhoiHanh()
+    ) {
+      this.routeTrips.set([]);
+      this.tripsLoading.set(false);
+      return;
+    }
+
+    this.tripsLoading.set(true);
+    try {
+      const trips = await this.bookingRoutesApi.getAllRoutes(
+        this.selectedOrigin(),
+        this.selectedDestination(),
+        this.loaiXeDuocChon(),
+        this.NgayKhoiHanh(),
+      );
+      if (requestId !== this.routeRequestId) return;
+      this.routeTrips.set(trips);
+      if (trips[0]) this.tuyenDuocChon.set(trips[0].route.id);
+    } catch (error) {
+      if (requestId !== this.routeRequestId) return;
+      this.routeTrips.set([]);
+      this.routeTripsError.set(
+        error instanceof Error ? error.message : 'Không thể tải danh sách chuyến.',
+      );
+    } finally {
+      if (requestId === this.routeRequestId) this.tripsLoading.set(false);
+    }
+  }
+  tuyenDuocChon = signal('');
+  loaiXeDuocChon = signal('');
   maXeDuocChon = signal('LIMO01');
   tuyenTimKiem = signal('');
   showTuyenSuggestions = signal(false);
   NgayKhoiHanh = signal(this.todayString());
-  gioChayDuocChon = signal('10:45');
+  gioChayDuocChon = signal('');
   boLocGio = signal<BoLocGio>('tat-ca');
   tuKhoaNhanh = signal('');
 
@@ -737,6 +859,7 @@ export class NewBooking implements OnInit {
     { title: 'Không hoàn', description: 'Hủy dưới 12 giờ trước khởi hành: không hoàn tiền.' }
   ];
 
+  formMaKhachHang = signal('');
   formSdt = signal('');
   formTen = signal('');
   formEmail = signal('');
@@ -791,27 +914,90 @@ export class NewBooking implements OnInit {
   gheConfig = signal<Record<string, 'don' | 'doi'>>({});
 
   CapNhatGheConfig(ghe: string, type: string) {
+    if (this.processing()) return;
+    if (type === 'doi' && !this.CabinAllowsDouble(ghe)) return;
     const loaiCabin = type === 'doi' ? 'doi' : 'don';
     this.gheConfig.set({ ...this.gheConfig(), [ghe]: loaiCabin });
+    this.serverQuote.set(null); this.reviewMode.set(false); this.reviewConfirmed.set(false);
   }
+  CabinAllowsDouble(name: string) { return this.selectedTrip()?.seats.find(seat => seat.name === name)?.type === 'CabinDoi'; }
+  CabinPrice(name: string, double = false) { return (this.selectedTrip()?.seats.find(seat => seat.name === name)?.price ?? 0) * (double ? 2 : 1); }
 
   LaySoLuongGheLienQuan(ve: VeXe): number {
     return this.NhomVeCungDon(ve).length;
   }
 
   thongTinChuyen = computed(() => {
-    return this.tuyenList.find(t => t.id === this.tuyenDuocChon()) ?? this.tuyenList[0];
+    const route = this.selectedTrip()
+      ?? this.routeTrips().find(trip => trip.route.id === this.tuyenDuocChon())
+      ?? this.routeTrips()[0];
+    if (route) {
+      return {
+        id: route.route.id,
+        name: route.route.name || `${route.route.from} ↔ ${route.route.to}`,
+        loaiXe: route.vehicle.type,
+        khoangCach: `${route.route.distance} km`,
+        thoiGian: `${route.route.durationMinutes} phút`,
+        soChuyenNgay: `${route.route.tripsPerDay} chuyến/ngày`,
+        bienSo: route.vehicle.licensePlate,
+        maXe: route.vehicle.id,
+        taiXe: '',
+        phuXe: '',
+        giaGoc: route.price,
+        ghiChu: '',
+        MaDiemDon: route.route.pickupPoints.map(point => point.name),
+        MaDiemTra: route.route.dropoffPoints.map(point => point.name),
+        diemDung: [],
+        diemTrungChuyen: [],
+        gioCoMatTruocPhut: 30,
+      };
+    }
+    const fallbackTuyen = this.tuyenList.find(t => t.id === this.tuyenDuocChon());
+    return {
+      id: fallbackTuyen?.id ?? '',
+      name: fallbackTuyen?.name ?? 'Chưa chọn tuyến',
+      loaiXe: fallbackTuyen?.loaiXe ?? '',
+      khoangCach: fallbackTuyen?.khoangCach ?? '',
+      thoiGian: fallbackTuyen?.thoiGian ?? '',
+      soChuyenNgay: fallbackTuyen?.soChuyenNgay ?? '',
+      bienSo: fallbackTuyen?.bienSo ?? '',
+      maXe: fallbackTuyen?.maXe ?? '',
+      taiXe: '',
+      phuXe: '',
+      giaGoc: fallbackTuyen?.giaGoc ?? 0,
+      ghiChu: fallbackTuyen?.ghiChu ?? '',
+      MaDiemDon: [],
+      MaDiemTra: [],
+      diemDung: [],
+      diemTrungChuyen: [],
+      gioCoMatTruocPhut: 30,
+    };
   });
 
   loaiXeDangChon = computed(() => {
-    return this.loaiXeList.find(item => item.id === this.loaiXeDuocChon()) ?? this.loaiXeList[0];
+    const trip = this.selectedTrip();
+    const category = trip ? this.VehicleTypeCategory(trip.vehicle.type) : 'limousine';
+    return this.loaiXeList.find(item => item.id === this.loaiXeDuocChon())
+      ?? (trip ? this.loaiXeList.find(item => item.category === category) : undefined) ?? {
+      id: '',
+      category,
+      ten: trip?.vehicle.type ?? '',
+      soCho: trip?.seatCount ?? 0,
+      moTa: '',
+      loaiGhe: '',
+      icon: '',
+    };
   });
 
   xeTheoLoaiDangChon = computed(() => {
-    return this.danhSachXe.filter(xe => xe.loaiXe === this.loaiXeDuocChon());
+    return this.danhSachXe.filter(xe => xe.loaiXe === this.loaiXeDangChon().category);
   });
 
   xeDangChon = computed(() => {
+    const trip = this.selectedTrip();
+    if (trip) return { maXe: trip.vehicle.id, tenXe: trip.vehicle.name ?? '', bienSo: trip.vehicle.licensePlate,
+      loaiXe: this.VehicleTypeCategory(trip.vehicle.type), soCho: trip.seatCount,
+      hanDangKiem: trip.vehicle.registrationDue ?? '', tienIch: trip.vehicle.amenities ?? [] };
     return this.danhSachXe.find(xe => xe.maXe === this.maXeDuocChon())
       ?? this.xeTheoLoaiDangChon()[0]
       ?? this.danhSachXe[0];
@@ -819,12 +1005,32 @@ export class NewBooking implements OnInit {
 
   tienIchXeDangChon = computed(() => this.xeDangChon().tienIch.join(', '));
 
-  soDoGheDangChon = computed(() => this.seatLayouts[this.loaiXeDuocChon()]);
+  soDoGheDangChon = computed(() => {
+    const trip = this.selectedTrip();
+    if (!trip) return [];
+    if (!trip.seats.length) return [];
+
+    return [...new Set(trip.seats.map(seat => seat.floor))]
+      .sort((a, b) => a - b)
+      .map(floor => {
+        const seatsOnFloor = trip.seats.filter(seat => seat.floor === floor);
+        const rows = [...new Set(seatsOnFloor.map(seat => seat.row))]
+          .sort((a, b) => a - b)
+          .map(row => seatsOnFloor
+            .filter(seat => seat.row === row)
+            .sort((a, b) => a.column - b.column)
+            .map(seat => seat.name));
+        return {
+          title: `Tầng ${floor}`,
+          subtitle: `${seatsOnFloor.length} chỗ`,
+          rows: rows.map(seats => seats.length === 2 ? [seats[0], '', seats[1]] : seats),
+        };
+      });
+  });
 
   totalSeats = computed(() => {
-    return this.soDoGheDangChon().reduce((sum, deck) => {
-      return sum + deck.rows.reduce((deckSum, row) => deckSum + row.filter(Boolean).length, 0);
-    }, 0);
+    const trip = this.selectedTrip();
+    return trip?.seatCount ?? 0;
   });
 
   goiYTuyenLoc = computed(() => {
@@ -833,7 +1039,10 @@ export class NewBooking implements OnInit {
     return this.tuyenList.filter(tuyen => this.KhopLocTuyenMotChieu(tuyen.name, query));
   });
 
-  seatCodes = computed(() => this.soDoGheDangChon().flatMap(deck => deck.rows.flat()).filter(Boolean));
+  seatCodes = computed(() => {
+    const trip = this.selectedTrip();
+    return trip?.seats.map(seat => seat.name) ?? [];
+  });
 
   veTheoChuyen = computed(() => {
     const chuyen = this.thongTinChuyen();
@@ -853,22 +1062,33 @@ export class NewBooking implements OnInit {
 
     return this.seatCodes().map(soGhe => {
       const ticket = activeTickets.find(v => v.SoGhe === soGhe);
-      const loaiGhe = this.LoaiGheTheoSoGhe(soGhe);
+      const apiSeat = this.selectedTrip()
+        ?.seats.find(seat => seat.name === soGhe);
+      const loaiGhe = apiSeat
+        ? this.ApiSeatType(apiSeat.type)
+        : this.LoaiGheTheoSoGhe(soGhe);
       let trangThai: TrangThaiGhe = 'trong';
 
       if (ticket) {
         trangThai = ticket.TrangThaiDonHang === 'da-thanh-toan' ? 'da-thanh-toan' : 'giu-cho';
       } else if (selected.includes(soGhe)) {
         trangThai = 'dang-chon';
+      } else if (apiSeat?.status === 'DangGiu' && !this.ownsHeldSeat(soGhe)) {
+        trangThai = 'giu-cho';
+      } else if (apiSeat?.status === 'DaBan') {
+        trangThai = 'da-thanh-toan';
+      } else if (apiSeat?.status === 'Khoa') {
+        trangThai = 'da-khoa';
       }
 
       return {
         SoGhe: soGhe,
         Tang: soGhe.endsWith('B') ? 'B' : 'A',
         LoaiGhe: loaiGhe,
-        GiaVe: this.GiaVeTheoLoaiGhe(loaiGhe),
+        GiaVe: apiSeat ? this.GiaVeTheoSoGhe(soGhe) : this.GiaVeTheoLoaiGhe(loaiGhe),
         TrangThai: trangThai,
-        Ve: ticket
+        Ve: ticket,
+        Locked: apiSeat?.status === 'Khoa',
       };
     });
   });
@@ -881,9 +1101,9 @@ export class NewBooking implements OnInit {
     return this.gheDangChon().reduce((sum, soGhe) => sum + this.GiaVeTheoSoGhe(soGhe), 0);
   });
 
-  soTienGiam = computed(() => this.veDangSua() ? this.NhomVeCungDon(this.veDangSua()!).reduce((sum, v) => sum + (v.GiamGia || 0), 0) : this.TinhGiamGia(this.tamTinh()));
+  soTienGiam = computed(() => this.serverQuote()?.fingerprint === this.quoteFingerprint() ? this.serverQuote()!.value.discount : this.veDangSua() ? this.NhomVeCungDon(this.veDangSua()!).reduce((sum, v) => sum + (v.GiamGia || 0), 0) : this.TinhGiamGia(this.tamTinh()));
 
-  tongTien = computed(() => Math.max(0, this.tamTinh() - this.soTienGiam()));
+  tongTien = computed(() => this.serverQuote()?.fingerprint === this.quoteFingerprint() ? this.serverQuote()!.value.total : Math.max(0, this.tamTinh() - this.soTienGiam()));
 
   tongTienIn = computed(() => this.veDangIn().reduce((sum, ve) => sum + ve.GiaVe, 0));
 
@@ -902,27 +1122,12 @@ export class NewBooking implements OnInit {
       .sort((a, b) => b.ThoiGianDat.localeCompare(a.ThoiGianDat));
   });
 
-  bangTongQuanChuyen = computed(() => {
-    const chuyen = this.thongTinChuyen();
-    const date = this.NgayKhoiHanh();
-    const list = this.danhSachVe().filter(v =>
-      v.TenTuyenXe === chuyen.name &&
-      (v.ChieuTuyen ?? 'di') === this.direction() &&
-      this.VeThuocLoaiXeDangChon(v) &&
-      v.NgayKhoiHanh === date &&
-      v.TrangThaiVe !== 'da-huy'
-    );
-
-    return this.schedule().map(({ gio }) => {
-      const tickets = list.filter(v => v.GioKhoiHanh === gio);
-      const daThanhToan = tickets.filter(v => v.TrangThaiDonHang === 'da-thanh-toan').length;
-      const giuCho = tickets.filter(v => v.TrangThaiDonHang === 'cho-thanh-toan').length;
-      const total = this.totalSeats();
-      const empty = Math.max(0, total - daThanhToan - giuCho);
-      const pct = Math.round(((total - empty) / total) * 100);
-      return { gio, daThanhToan, giuCho, empty, pct };
-    });
-  });
+  bangTongQuanChuyen = computed(() => this.routeTrips().map(trip => {
+    const daThanhToan = trip.seats.filter(seat => seat.status === 'DaBan').length;
+    const giuCho = trip.seats.filter(seat => seat.status === 'DangGiu').length;
+    return { id: trip.id, gio: trip.departureTime, daThanhToan, giuCho, empty: trip.availableSeatCount,
+      pct: trip.seatCount ? Math.round((daThanhToan + giuCho) / trip.seatCount * 100) : 0 };
+  }));
 
   noiDungChuyenKhoan = computed(() => {
     const selected = this.veDangSua();
@@ -978,31 +1183,249 @@ export class NewBooking implements OnInit {
 
   ngOnInit() {
     if (window.innerWidth < 768) this.sidebarState.collapse();
-    this.clockTimer = setInterval(() => this.refreshExpiry(), 1000);
+    this.clockTimer = setInterval(() => {
+      this.refreshExpiry();
+    }, 1000);
     this.TaiDuLieu();
-    this.ResetForm(); this.SelectFirstTrip();
+    this.ResetForm(); void this.LoadTrips();
     this.tuyenTimKiem.set('');
-    window.addEventListener('storage', this.storageListener);
+    void this.LoadPaymentOptions();
+    void this.loadPoints();
+    void this.loadVehicleTypes();
 
   }
 
-  ChonGhe(soGhe: string, forceSelect = false) {
-    const item = this.GheTheoMa(soGhe); if (!item) return;
-    if (item.Ve) { this.guardDraft(() => this.MoThongTinVe(item.Ve!)); return; }
-    if (this.SeatDisabled(item) || this.processing()) return;
-    const selected = this.gheDangChon(); this.veDangSua.set(null);
-    if (selected.includes(soGhe)) {
-      if (selected.length === 1) { this.guardDraft(() => this.BoChonTatCa()); return; }
-      this.gheDangChon.set(selected.filter(g => g !== soGhe));
-      if (!this.gheDangChon().length) this.holdDeadline.set(null);
-    } else {
-      if (selected.length >= 5) return;
-      if (!selected.length) { this.ResetForm(); this.holdMessage.set(''); }
-      this.gheDangChon.set([...selected, soGhe]); this.gheConfig.set({ ...this.gheConfig(), [soGhe]: 'don' });
+  async LoadPaymentOptions() {
+    if (this.paymentOptionsLoading() || this.destroyed) return;
+    this.paymentOptionsLoading.set(true); this.paymentOptionsLoaded.set(false);
+    this.paymentOptionsError.set(''); this.sepayReady.set(false);
+    try {
+      const options = await this.bookingApi.options();
+      if (!this.destroyed) this.sepayReady.set(options.paymentMethods.some(method => method.id === 'vietqr' && method.configured));
+    } catch {
+      if (!this.destroyed) this.paymentOptionsError.set('Chưa kiểm tra được phương thức thanh toán. Vui lòng thử lại.');
+    } finally {
+      if (!this.destroyed) { this.paymentOptionsLoading.set(false); this.paymentOptionsLoaded.set(true); }
     }
-    this.reviewConfirmed.set(false);
   }
 
+  private async loadVehicleTypes() {
+    this.vehicleTypesLoading.set(true);
+    this.vehicleTypesError.set('');
+    try {
+      const names = await this.bookingVehicleTypesApi.getAllVehicleTypes();
+      this.loaiXeList = names.map((ten) => {
+        const category = this.VehicleTypeCategory(ten);
+        const soCho = this.seatLayouts[category].reduce(
+          (total, deck) =>
+            total + deck.rows.reduce((deckTotal, row) => deckTotal + row.filter(Boolean).length, 0),
+          0,
+        );
+        return {
+          id: ten,
+          category,
+          ten,
+          soCho,
+          moTa: `${soCho} chỗ`,
+          loaiGhe:
+            category === 'cabin'
+              ? 'Cabin đơn, Cabin đôi'
+              : category === 'limousine'
+                ? 'Ghế VIP'
+                : 'Giường đơn',
+          icon:
+            category === 'cabin'
+              ? 'bed'
+              : category === 'limousine'
+                ? 'airline_seat_recline_extra'
+                : 'airline_seat_individual_suite',
+        };
+      });
+      this.loaiXeDuocChon.set('');
+    } catch (error) {
+      this.loaiXeList = [];
+      this.loaiXeDuocChon.set('');
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Không thể tải danh sách loại xe.';
+      this.vehicleTypesError.set(message);
+      this.HienToast(message, 'danger');
+    } finally {
+      this.vehicleTypesLoading.set(false);
+    }
+  }
+
+  private VehicleTypeCategory(name: string): LoaiXeId {
+    const normalized = this.NormalizeSearchText(name);
+    if (normalized.includes('limousine')) return 'limousine';
+    if (normalized.includes('cabin')) return 'cabin';
+    return 'giuong-nam';
+  }
+
+  private async loadPoints() {
+    this.pointsLoading.set(true);
+    this.pointsError.set('');
+    try {
+      this.availablePoints.set(await this.bookingPointsApi.getAllPoints());
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Không thể tải danh sách tỉnh/thành.';
+      this.pointsError.set(message);
+      this.HienToast(message, 'danger');
+      this.availablePoints.set([]);
+    } finally {
+      this.pointsLoading.set(false);
+    }
+  }
+
+  async ChonGhe(soGhe: string, forceSelect = false) {
+    const item = this.GheTheoMa(soGhe);
+    if (!item || this.SeatDisabled(item) || this.processing()) return;
+    const selected = this.gheDangChon();
+    const next = selected.includes(soGhe) ? selected.filter(name => name !== soGhe) : [...selected, soGhe];
+    if (next.length > 5) return;
+    if (!next.length) { this.guardDraft(() => this.BoChonTatCa()); return; }
+    const trip = this.selectedTrip();
+    if (!trip) return;
+    if (!selected.length && !this.confirmedSeats().length) this.ResetForm();
+    this.draftHoldId ??= crypto.randomUUID();
+    this.gheDangChon.set(next); this.gheConfig.set({ ...this.gheConfig(), [soGhe]: this.gheConfig()[soGhe] ?? 'don' });
+    this.holdMessage.set(''); this.holdSyncError.set(''); this.serverQuote.set(null); this.reviewConfirmed.set(false); this.reviewMode.set(false);
+    return this.queueHoldSync(trip.id);
+  }
+  private sameSeats(a: string[], b: string[]) { return a.length === b.length && a.every(seat => b.includes(seat)); }
+  private queueHoldSync(tripId: string): Promise<void> {
+    this.pauseInventory(); this.holdSyncing.set(true);
+    if (this.holdSyncTask) return this.holdSyncTask;
+    const context = this.holdContext, holdId = this.draftHoldId!;
+    const task = this.releaseBarrier.then(() => this.syncHeldSeats(context, holdId, tripId));
+    this.holdSyncTask = task;
+    void task.then(() => { if (this.holdSyncTask === task) this.holdSyncTask = undefined; });
+    return task;
+  }
+  private applyHeldSeats(tripId: string, names: string[]) {
+    const previous = this.confirmedSeats();
+    this.routeTrips.update(trips => trips.map(trip => {
+      if (trip.id !== tripId) return trip;
+      const seats = trip.seats.map(seat => names.includes(seat.name) ? { ...seat, status: 'DangGiu' }
+        : previous.includes(seat.name) && seat.status === 'DangGiu' ? { ...seat, status: 'Trong' } : seat);
+      return { ...trip, seats, availableSeatCount: seats.filter(seat => seat.status === 'Trong').length };
+    }));
+    this.confirmedSeats.set(names);
+  }
+  private async syncHeldSeats(context: number, holdId: string, tripId: string) {
+    let refresh = false;
+    try {
+      while (!this.destroyed && context === this.holdContext) {
+        // Coalesce rapid clicks, including clicks made while an earlier request is in flight.
+        await new Promise(resolve => setTimeout(resolve, 120));
+        if (this.destroyed || context !== this.holdContext) return;
+        const names = [...this.gheDangChon()];
+        if (!names.length) return;
+        const trip = this.selectedTrip();
+        if (!trip || trip.id !== tripId) return;
+        try {
+          const result = await this.bookingApi.hold(holdId, tripId, names.map(name => trip.seats.find(seat => seat.name === name)!.id));
+          if (this.destroyed || context !== this.holdContext) return;
+          this.serverOffset = Date.parse(result.serverTime) - Date.now();
+          this.clockNow.set(Date.now() + this.serverOffset); this.holdDeadline.set(Date.parse(result.expiresAt));
+          this.applyHeldSeats(tripId, names); this.holdSyncError.set('');
+          if (this.sameSeats(names, this.gheDangChon())) return;
+        } catch (e) {
+          if (this.destroyed || context !== this.holdContext) return;
+          const message = e instanceof Error ? e.message : 'Chưa xác nhận được ghế. Vui lòng thử lại.';
+          const rejected = e instanceof ContentApiError && [400, 401, 403, 404, 409].includes(e.status);
+          if (rejected && !this.sameSeats(names, this.gheDangChon()) && ![401, 403].includes(e.status)) continue;
+          if (rejected) {
+            this.gheDangChon.set(this.confirmedSeats()); this.holdMessage.set(message); refresh = true;
+          } else this.holdSyncError.set(message);
+          this.HienToast(message, 'danger'); return;
+        }
+      }
+    } finally {
+      if (context === this.holdContext) {
+        this.holdSyncing.set(false);
+        if (refresh) void this.RefreshSeats(); else this.scheduleInventory();
+      }
+    }
+  }
+  RetryHold() {
+    const trip = this.selectedTrip();
+    if (!trip || !this.draftHoldId || !this.gheDangChon().length || this.processing()) return;
+    this.holdSyncError.set(''); return this.queueHoldSync(trip.id);
+  }
+  private async releaseDraft() {
+    const id = this.draftHoldId;
+    const task = this.holdSyncTask;
+    const pendingCreate = this.createRequest;
+    const tripId = this.selectedTrip()?.id;
+    const names = [...new Set([...this.confirmedSeats(), ...this.gheDangChon()])];
+    const context = ++this.holdContext; this.holdSyncTask = undefined; this.pauseInventory();
+    if (id && !pendingCreate && tripId) this.releasingSeats.update(releases => [...releases, { context, tripId, names }]);
+    this.draftHoldId = null;
+    this.confirmedSeats.set([]); this.holdSyncing.set(false); this.holdSyncError.set('');
+    this.scheduleInventory();
+    if (id && !pendingCreate) {
+      const previousRelease = this.releaseBarrier;
+      const release = async () => {
+        // Finish older releases and holds before freeing this draft. New holds
+        // wait for this operation so a quick reselect cannot race the old release.
+        await previousRelease;
+        await task;
+        try {
+          await this.bookingApi.release(id);
+          this.routeTrips.update(trips => trips.map(trip => {
+            if (trip.id !== tripId) return trip;
+            const seats = trip.seats.map(seat => names.includes(seat.name) && seat.status === 'DangGiu' ? { ...seat, status: 'Trong' } : seat);
+            return { ...trip, seats, availableSeatCount: seats.filter(seat => seat.status === 'Trong').length };
+          }));
+        } catch {
+          if (!this.destroyed) this.HienToast('Chưa trả được ghế. Ghế sẽ tự hết hạn theo thời gian giữ.', 'danger');
+        } finally {
+          this.releasingSeats.update(releases => releases.filter(release => release.context !== context));
+        }
+      };
+      this.releaseBarrier = release();
+      await this.releaseBarrier;
+    }
+  }
+  private pauseInventory() {
+    if (this.inventoryTimer) clearTimeout(this.inventoryTimer);
+    this.inventoryTimer = undefined; ++this.inventoryRevision;
+    this.inventoryAbort?.abort(); this.inventoryAbort = undefined; this.inventoryLoading = false;
+  }
+  private scheduleInventory(delay = 30000) {
+    if (this.inventoryTimer) clearTimeout(this.inventoryTimer);
+    this.inventoryTimer = undefined;
+    if (this.destroyed || document.visibilityState === 'hidden' || !this.selectedTrip()) return;
+    this.inventoryTimer = setTimeout(() => { this.inventoryTimer = undefined; void this.RefreshSeats(); }, delay);
+  }
+  @HostListener('document:visibilitychange')
+  InventoryVisibilityChanged() {
+    if (document.visibilityState === 'hidden') this.pauseInventory();
+    else this.scheduleInventory(0);
+  }
+  async RefreshSeats() {
+    const trip = this.selectedTrip();
+    if (!trip || this.inventoryLoading) return;
+    if (this.destroyed || document.visibilityState === 'hidden') return;
+    if (this.processing() || this.holdSyncing()) { this.scheduleInventory(); return; }
+    if (this.inventoryTimer) clearTimeout(this.inventoryTimer);
+    this.inventoryTimer = undefined;
+    const revision = ++this.inventoryRevision;
+    const context = this.holdContext;
+    const abort = new AbortController(); this.inventoryAbort = abort;
+    this.inventoryLoading = true;
+    try {
+      const result = await this.bookingApi.seats(trip.id, abort.signal);
+      if (this.destroyed || abort.signal.aborted || revision !== this.inventoryRevision || context !== this.holdContext || this.selectedTrip()?.id !== trip.id || this.processing() || this.holdSyncing()) return;
+      this.routeTrips.update(trips => trips.map(value => value.id !== trip.id ? value : { ...value, status: result.status === 'closed' ? 'DaDongBan' : value.status, availableSeatCount: result.availableSeats, seats: result.seatDetails.map(seat => ({ id: seat.id, name: seat.label, floor: seat.floor, row: seat.row, column: seat.column, type: seat.type, price: seat.price, status: ({ available: 'Trong', selected: 'DangGiu', held: 'DangGiu', sold: 'DaBan', locked: 'Khoa' } as Record<string, string>)[seat.status] ?? 'Khoa' })) }));
+    } catch (e) { if (!abort.signal.aborted && !this.destroyed) this.HienToast(e instanceof Error ? e.message : 'Chưa cập nhật được ghế.', 'danger'); }
+    finally { if (revision === this.inventoryRevision) { this.inventoryLoading = false; this.inventoryAbort = undefined; this.scheduleInventory(); } }
+  }
   GheTheoMa(soGhe: string) {
     return this.gheList().find(g => g.SoGhe === soGhe);
   }
@@ -1063,8 +1486,11 @@ export class NewBooking implements OnInit {
 
   LayGioCoMat(gio: string): string { return this.PickupTime(gio, -15); }
   PickupTime(gio: string, buffer = 0): string {
-    const index = Math.max(0, this.pickupPoints().indexOf(this.formDiemDon()));
-    const minutes = (Number(gio.split(':')[0]) * 60 + Number(gio.split(':')[1]) + index * 10 + buffer + 1440) % 1440;
+    const at = this.selectedTrip()?.route.pickupPoints.find(point => point.name === this.formDiemDon())?.at;
+    if (at && Number.isFinite(Date.parse(at))) return new Intl.DateTimeFormat('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).format(new Date(Date.parse(at) + buffer * 60000));
+    const minutes = (Number(gio.split(':')[0]) * 60 + Number(gio.split(':')[1]) + buffer + 1440) % 1440;
     return String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
   }
 
@@ -1085,136 +1511,89 @@ export class NewBooking implements OnInit {
     this.showBookingModal.set(true);
   }
 
-  KiemTraSoDienThoai(sdt: string) { this.formSdt.set(sdt.replace(/\D/g, '').slice(0, 10)); this.phoneTouched.set(true); }
+  KiemTraSoDienThoai(sdt: string) {
+    let clean = sdt.replace(/\D/g, '');
+    if (clean.startsWith('84') && clean.length > 2) {
+      clean = '0' + clean.slice(2);
+    }
+    clean = clean.slice(0, 10);
+    this.formSdt.set(clean);
+    this.phoneTouched.set(true);
 
-  async LuuDatVe(trangThai?: TrangThaiDonHang) {
-    if (this.processing() || !this.reviewMode() || !this.reviewConfirmed() || !this.formValid()) return;
-    this.processing.set(true);
-    await new Promise(r => setTimeout(r, 500));
-    this.refreshExpiry();
-    this.processing.set(false);
-    if (!this.formValid()) return;
-    if (this.gheDangChon().some(code => this.veTheoChuyen().some(v => v.SoGhe === code))) { this.holdMessage.set('Ghế này vừa được giữ. Vui lòng chọn ghế khác.'); return; }
-    const status = this.formNguonDat() === 'hotline' ? 'cho-thanh-toan' : this.formTrangThaiThanhToan();
-    this.formTrangThaiThanhToan.set(status);
+    if (this.customerSearchTimer) {
+      clearTimeout(this.customerSearchTimer);
+    }
 
-    if (!this.KiemTraForm()) return;
+    if (this.customerDismissed() !== clean) {
+      this.formMaKhachHang.set('');
+    }
 
-    const seats = this.gheDangChon();
-    if (seats.length === 0) {
-      this.HienToast('Vui lòng chọn ít nhất một ghế.', 'danger');
+    if (clean.length < 10 || this.customerDismissed() === clean) {
+      this.customerSuggestion.set(null);
       return;
     }
 
-    let maDonHang = '';
-    do {
-      const dhSuffix = Date.now().toString().slice(-6);
-      const dhRandom = Math.floor(100 + Math.random() * 900);
-      maDonHang = `DH10${dhSuffix}${dhRandom}`;
-    } while (this.danhSachVe().some(v => v.MaDonHang === maDonHang));
-
-    const createdAt = Date.now();
-    const now = new Date(createdAt).toISOString();
-    const holdExpiresAt = status === 'cho-thanh-toan' ? createdAt + HOLD_MS : undefined;
-    const chuyen = this.thongTinChuyen();
-    const xe = this.xeDangChon();
-    const loaiXe = this.loaiXeDangChon();
-    const maChuyen = this.TaoMaChuyen();
-    const tongGiaVe = this.tongTien();
-    const soLuongVeDaDat = seats.length;
-
-    const totalDiscount = this.soTienGiam();
-    const baseDiscount = seats.length > 0 ? Math.floor(totalDiscount / seats.length) : 0;
-    const remainder = seats.length > 0 ? (totalDiscount - (baseDiscount * seats.length)) : 0;
-    const maGiamGia = this.formMaGiamGia().trim().toUpperCase();
-
-    const veMoi = seats.map((soGhe, index): VeXe => {
-      const loaiGhe = this.LoaiGheTheoSoGhe(soGhe);
-      const basePrice = this.GiaVeTheoLoaiGhe(loaiGhe);
-      const seatDiscount = baseDiscount + (index < remainder ? 1 : 0);
-      return {
-        MaVe: this.TaoMaVe(index),
-        MaDonHang: maDonHang,
-        MaKhachHang: this.TaoMaKhachHang(this.formSdt().trim()),
-        MaNVBanVe: 'NVBV001',
-        HoTenNguoiDi: normalizedName(this.formTen()),
-        passengerName: normalizedName(this.formTen()),
-        paidAmount: status === 'da-thanh-toan' ? Math.max(0, basePrice - seatDiscount) : 0,
-        paymentAt: status === 'da-thanh-toan' ? now : undefined,
-        paymentStaff: status === 'da-thanh-toan' ? 'Nguyễn An Ninh' : undefined,
-        transactionCode: status === 'da-thanh-toan' ? 'GD-' + maDonHang : undefined,
-        membershipPoints: status === 'da-thanh-toan' ? Math.floor(Math.max(0, basePrice - seatDiscount) / 10000) : 0,
-        SdtNguoiDi: this.formSdt().trim(),
-        EmailNguoiDi: this.formEmail().trim(),
-        ThoiGianDat: now,
-        SoLuongVeDaDat: soLuongVeDaDat,
-        TienBaoHiem: 0,
-        TongGiaVe: tongGiaVe,
-        ThoiGianXuatVe: status === 'da-thanh-toan' ? now : '',
-        bookingSource: this.formNguonDat(),
-        paymentStatus: status === 'da-thanh-toan' ? 'paid' : 'pending',
-        orderStatus: status === 'da-thanh-toan' ? 'confirmed' : 'held',
-        holdExpiresAt,
-        ChieuTuyen: this.direction(),
-        MaQRVe: this.TaoMaQrVe(maDonHang, soGhe),
-        MaLichTrinh: maChuyen,
-        MaXe: xe.maXe,
-        MaGheChuyen: this.TaoMaGheChuyen(maChuyen, soGhe),
-        LoaiXe: loaiXe.ten,
-        LoaiGhe: this.LabelLoaiGhe(loaiGhe),
-        TenXe: xe.tenXe,
-        BienSoXe: xe.bienSo,
-        TenTuyenXe: chuyen.name,
-        NgayKhoiHanh: this.NgayKhoiHanh(),
-        GioKhoiHanh: this.gioChayDuocChon(),
-        SoGhe: soGhe,
-        GiaVe: Math.max(0, basePrice - seatDiscount),
-        MaGiamGia: maGiamGia || undefined,
-        GiamGia: seatDiscount,
-        MaDiemDon: this.formDiemDon().trim(),
-        MaDiemTra: this.formDiemTra().trim(),
-        PhuongThucThanhToan: this.formHinhThuc(),
-        TrangThaiDonHang: status,
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: this.formGhiChu().trim(),
-        NguonDat: this.formNguonDat(),
-        SoLanDaSua: 0
-      };
-    });
-
-    const updated = [...this.danhSachVe(), ...veMoi];
-    this.danhSachVe.set(updated);
-    this.LuuDuLieu(updated);
-    this.HienToast(`${status === 'da-thanh-toan' ? 'Đã tạo vé chờ khởi hành' : 'Đã giữ chỗ'} ${seats.length} vé: ${seats.join(', ')}.`, 'success');
-    this.gheDangChon.set([]);
-    this.veDangSua.set(null);
-    this.showBookingModal.set(false);
-    if (status === 'da-thanh-toan') {
-      this.veDangIn.set(veMoi);
-    }
-    this.ResetForm(); this.holdDeadline.set(null); this.reviewMode.set(false); this.reviewConfirmed.set(false);
-    this.veDangIn.set(veMoi); this.MoThongTinVe(veMoi[0]);
+    this.customerSearchTimer = setTimeout(() => {
+      void this.TraCuuKhachHangTheoSdt(clean);
+    }, 250);
   }
 
-  async XacNhanThanhToan() {
-    if (this.processing()) return;
-    const ticket = this.veDangSua();
-    if (!ticket) {
-      if (this.formNguonDat() !== 'tai-quay' || this.formTrangThaiThanhToan() === 'da-thanh-toan') { this.showPaymentConfirmModal.set(false); return; }
-      this.processing.set(true);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      this.formTrangThaiThanhToan.set('da-thanh-toan');
-      this.processing.set(false); this.showPaymentConfirmModal.set(false);
-      this.HienToast('Đã xác nhận thu tiền cho toàn bộ đơn.', 'success');
+  OnPhoneBlur() {
+    this.phoneTouched.set(true);
+    const phone = this.formSdt();
+    if (validPhone(phone) && this.customerDismissed() !== phone && !this.customerSuggestion()) {
+      if (this.customerSearchTimer) {
+        clearTimeout(this.customerSearchTimer);
+      }
+      void this.TraCuuKhachHangTheoSdt(phone);
+    }
+  }
+
+  async TraCuuKhachHangTheoSdt(phone: string) {
+    if (!validPhone(phone) || this.customerDismissed() === phone) {
+      this.customerSuggestion.set(null);
       return;
     }
-    if (normalizeTicket(ticket).orderStatus !== 'held') { this.showPaymentConfirmModal.set(false); return; }
-    this.processing.set(true); await new Promise(r => setTimeout(r, 400)); this.refreshExpiry();
-    if (normalizeTicket(ticket).orderStatus === 'held') {
-      const next = this.danhSachVe().map(v => v.MaDonHang === ticket.MaDonHang && normalizeTicket(v).orderStatus === 'held' ? { ...v, paymentStatus: 'paid' as const, orderStatus: 'confirmed' as const, TrangThaiDonHang: 'da-thanh-toan' as const, ThoiGianXuatVe: new Date().toISOString(), paidAmount: v.GiaVe, paymentAt: new Date().toISOString(), paymentStaff: 'Nguyễn An Ninh', transactionCode: 'GD-' + ticket.MaDonHang, membershipPoints: Math.floor(v.GiaVe / 10000) } : v);
-      this.danhSachVe.set(next); this.LuuDuLieu(next); const refreshed = next.find(v => v.MaVe === ticket.MaVe)!; this.veDangSua.set(refreshed); this.NapFormTuVe(refreshed); this.veDangIn.set(this.NhomVeCungDon(refreshed)); this.HienToast('Đã xác nhận thanh toán cho toàn đơn.', 'success');
+    this.customerLoading.set(true);
+    try {
+      const info = await this.bookingCustomerApi.getCustomerInfoByPhone(phone);
+      if (this.formSdt() === phone && this.customerDismissed() !== phone) {
+        this.customerSuggestion.set(info);
+      }
+    } catch {
+      this.customerSuggestion.set(null);
+    } finally {
+      this.customerLoading.set(false);
     }
-    this.processing.set(false); this.showPaymentConfirmModal.set(false);
+  }
+
+  async LuuDatVe(trangThai?: TrangThaiDonHang) {
+    if (!this.reviewMode() || !this.CanSubmitOrder()) return;
+    if (!this.createRequest && !this.formValid()) return;
+    this.processing.set(true);
+    this.pauseInventory();
+    let created = false;
+    try {
+      if (!this.createRequest) {
+        const quote = this.serverQuote();
+        if (!quote || quote.fingerprint !== this.quoteFingerprint()) throw new Error('Vui lòng kiểm tra lại tổng tiền trước khi đặt vé.');
+        this.createRequest = { ...this.quoteInput(), idempotencyKey: this.requestKey, expectedTotal: quote.value.total,
+          source: this.formNguonDat() === 'hotline' ? 'Hotline' : 'TaiQuay', note: this.formGhiChu().trim(),
+          payment: { method: this.formHinhThuc() === 'chuyen-khoan' ? 'VIETQR' : 'TIEN_MAT', confirmReceived: this.formHinhThuc() === 'tien-mat' && this.formNguonDat() === 'tai-quay' && this.formTrangThaiThanhToan() === 'da-thanh-toan' } };
+      }
+      const order = await this.bookingApi.create(this.createRequest);
+      created = true;
+      this.draftHoldId = null; this.createRequest = null; this.requestKey = crypto.randomUUID();
+      this.BoChonTatCa(); await this.serverOrders()?.open(order);
+      this.HienToast(order.status === 'paid' ? 'Đã thanh toán và xuất vé.' : 'Đã tạo đơn giữ chỗ. Vui lòng hoàn tất thanh toán.', 'success');
+    } catch (e) {
+      if (e instanceof ContentApiError && [400, 409, 503].includes(e.status)) { this.createRequest = null; this.reviewMode.set(false); this.reviewConfirmed.set(false); }
+      this.HienToast(e instanceof Error ? e.message : 'Chưa nhận được kết quả. Bấm lại để kiểm tra cùng yêu cầu, tránh tạo trùng đơn.', 'danger');
+    } finally { this.processing.set(false); if (created) void this.RefreshSeats(); else this.scheduleInventory(); }
+  }
+  async XacNhanThanhToan() {
+    if (this.formHinhThuc() !== 'tien-mat' || this.formNguonDat() !== 'tai-quay') return;
+    this.formTrangThaiThanhToan.set('da-thanh-toan'); this.showPaymentConfirmModal.set(false);
   }
 
   MoInVe() {
@@ -1398,6 +1777,8 @@ export class NewBooking implements OnInit {
   DongBookingModal() { this.guardDraft(() => this.veDangSua() ? this.showBookingModal.set(false) : this.BoChonTatCa()); }
 
   BoChonTatCa() {
+    this.BackReview();
+    void this.releaseDraft(); this.serverQuote.set(null); this.createRequest = null; this.requestKey = crypto.randomUUID();
     this.holdDeadline.set(null); this.reviewMode.set(false); this.reviewConfirmed.set(false);
     this.gheDangChon.set([]);
     this.veDangSua.set(null);
@@ -1406,16 +1787,17 @@ export class NewBooking implements OnInit {
     this.ResetForm();
   }
 
-  ChuyenTuyen(tuyenId: string) { if (!this.tuyenList.some(t => t.id === tuyenId)) return; this.guardDraft(() => { this.tuyenDuocChon.set(tuyenId); this.tuyenTimKiem.set(''); this.showTuyenSuggestions.set(false); this.BoChonTatCa(); this.SelectFirstTrip(); }); }
+  ChuyenTuyen(tuyenId: string) { if (!this.tuyenList.some(t => t.id === tuyenId)) return; this.guardDraft(() => { this.tuyenDuocChon.set(tuyenId); this.tuyenTimKiem.set(''); this.showTuyenSuggestions.set(false); this.BoChonTatCa(); void this.LoadTrips(); }); }
 
   ChonLoaiXe(loaiXe: string) {
     this.guardDraft(() => {
-    const loaiXeHopLe = this.loaiXeList.some(item => item.id === loaiXe) ? loaiXe as LoaiXeId : 'limousine';
-    this.loaiXeDuocChon.set(loaiXeHopLe);
-    const xeDauTien = this.danhSachXe.find(xe => xe.loaiXe === loaiXeHopLe);
+    const loaiXeHopLe = this.loaiXeList.find(item => item.id === loaiXe);
+    if (!loaiXeHopLe) return;
+    this.loaiXeDuocChon.set(loaiXeHopLe.id);
+    const xeDauTien = this.danhSachXe.find(xe => xe.loaiXe === loaiXeHopLe.category);
     if (xeDauTien) this.maXeDuocChon.set(xeDauTien.maXe);
     this.BoChonTatCa();
-
+    void this.LoadTrips();
     });
   }
 
@@ -1423,7 +1805,8 @@ export class NewBooking implements OnInit {
     this.guardDraft(() => {
     const xe = this.danhSachXe.find(item => item.maXe === maXe);
     if (!xe) return;
-    this.loaiXeDuocChon.set(xe.loaiXe);
+    const vehicleType = this.loaiXeList.find(item => item.category === xe.loaiXe);
+    if (vehicleType) this.loaiXeDuocChon.set(vehicleType.id);
     this.maXeDuocChon.set(xe.maXe);
     this.BoChonTatCa();
 
@@ -1451,7 +1834,11 @@ export class NewBooking implements OnInit {
     this.ChuyenTuyen(tuyen.id);
   }
 
-  ChuyenGio(gio: string) { if (this.TrangThaiChuyen(gio) !== 'Còn chỗ') return; this.guardDraft(() => { this.gioChayDuocChon.set(gio); this.BoChonTatCa(); }); }
+  ChuyenGio(gio: string, tripId?: string) {
+    const trip = tripId ? this.routeTrips().find(item => item.id === tripId) : this.routeTrips().find(item => item.departureTime === gio);
+    if (!trip || trip.status !== 'DangMoBan' || trip.availableSeatCount === 0 || Date.parse(trip.departureAt) <= this.clockNow()) return;
+    this.guardDraft(() => { this.BoChonTatCa(); this.selectedTripId.set(trip.id); this.gioChayDuocChon.set(gio); void this.RefreshSeats(); });
+  }
 
   CapNhatBoLocGio(value: string) {
     this.boLocGio.set(value as BoLocGio);
@@ -1459,11 +1846,12 @@ export class NewBooking implements OnInit {
 
   ChuyenNgay(ngay: string) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(ngay) || !Number.isFinite(new Date(ngay+'T00:00:00').getTime()) || ngay < this.todayString()) { this.dateError.set('Không được chọn ngày trong quá khứ hoặc ngày không hợp lệ.'); return; }
-    this.dateError.set(''); this.guardDraft(() => { this.NgayKhoiHanh.set(ngay); this.BoChonTatCa(); this.SelectFirstTrip(); });
+    this.dateError.set(''); this.guardDraft(() => { this.NgayKhoiHanh.set(ngay); this.BoChonTatCa(); void this.LoadTrips(); });
   }
 
   CapNhatHinhThuc(value: string) {
-    this.formHinhThuc.set(value as PhuongThucThanhToan);
+    if (!['tien-mat', 'chuyen-khoan'].includes(value)) return;
+    this.formHinhThuc.set(value as PhuongThucThanhToan); this.formTrangThaiThanhToan.set('cho-thanh-toan');
   }
 
   CapNhatTrangThaiThanhToan(value: string) { if (value === 'cho-thanh-toan') this.formTrangThaiThanhToan.set('cho-thanh-toan'); }
@@ -1473,33 +1861,14 @@ export class NewBooking implements OnInit {
   CapNhatMaGiamGia(value: string) { this.formMaGiamGia.set(value.toUpperCase()); this.couponApplied.set(''); this.couponFeedback.set(''); }
 
   ThongKeTheoGio(gio: string) {
-    const chuyen = this.thongTinChuyen();
-    const tickets = this.danhSachVe().filter(v =>
-      v.TenTuyenXe === chuyen.name &&
-      (v.ChieuTuyen ?? 'di') === this.direction() &&
-      this.VeThuocLoaiXeDangChon(v) &&
-      v.NgayKhoiHanh === this.NgayKhoiHanh() &&
-      v.GioKhoiHanh === gio &&
-      v.TrangThaiVe !== 'da-huy'
-    );
-
-    const daThanhToan = tickets.filter(v => v.TrangThaiDonHang === 'da-thanh-toan').length;
-    const giuCho = tickets.filter(v => v.TrangThaiDonHang === 'cho-thanh-toan').length;
-    const total = this.totalSeats();
-    const trip = this.schedule().find(t => t.gio === gio);
-    const trong = trip?.status === 'Hết chỗ' ? 0 : Math.max(0, total - daThanhToan - giuCho);
-    const tyLe = (value: number) => Math.round((value / total) * 100);
-
-    return {
-      tong: total,
-      trong,
-      giuCho,
-      daThanhToan,
-      tiLeDay: tyLe(daThanhToan + giuCho),
-      tiLeDaThanhToan: tyLe(daThanhToan),
-      tiLeGiuCho: tyLe(giuCho),
-      tiLeTrong: tyLe(trong)
-    };
+    const trip = this.selectedTrip()?.departureTime === gio ? this.selectedTrip() : this.routeTrips().find(item => item.departureTime === gio);
+    const total = trip?.seatCount ?? 0;
+    const daThanhToan = trip?.seats.filter(seat => seat.status === 'DaBan').length ?? 0;
+    const giuCho = trip?.seats.filter(seat => seat.status === 'DangGiu').length ?? 0;
+    const trong = trip?.availableSeatCount ?? 0;
+    const tyLe = (value: number) => total ? Math.round(value / total * 100) : 0;
+    return { tong: total, trong, giuCho, daThanhToan, tiLeDay: tyLe(daThanhToan + giuCho),
+      tiLeDaThanhToan: tyLe(daThanhToan), tiLeGiuCho: tyLe(giuCho), tiLeTrong: tyLe(trong) };
   }
 
   LabelThanhToan(value: TrangThaiDonHang) {
@@ -1538,35 +1907,39 @@ export class NewBooking implements OnInit {
   }
 
   GiaVeTheoLoaiGhe(loaiGhe: LoaiGheId, giaCoSo = this.thongTinChuyen().giaGoc) {
-    const phuThu: Record<LoaiGheId, number> = {
-      'giuong-nam': 0,
-      limousine: 40000,
-      'cabin-don': 60000,
-      'cabin-doi': 260000
-    };
-    return giaCoSo + phuThu[loaiGhe];
+    const prices = this.selectedTrip()?.seats
+      .filter(seat => this.ApiSeatType(seat.type) === loaiGhe || (loaiGhe === 'cabin-don' && seat.type === 'CabinDoi'))
+      .map(seat => seat.price * (loaiGhe === 'cabin-doi' ? 2 : 1)) ?? [];
+    return prices.length ? Math.min(...prices) : giaCoSo;
   }
 
   GiaVeTheoSoGhe(soGhe: string) {
+    const apiSeat = this.selectedTrip()
+      ?.seats.find(seat => seat.name === soGhe);
+    if (apiSeat) return apiSeat.price * (this.gheConfig()[soGhe] === 'doi' ? 2 : 1);
     return this.GiaVeTheoLoaiGhe(this.LoaiGheTheoSoGhe(soGhe));
   }
 
-  GiaThapNhatTheoLoaiXe(loaiXe: LoaiXeId) {
-    if (loaiXe === 'cabin') return this.GiaVeTheoLoaiGhe('cabin-don');
-    const prices = this.seatLayouts[loaiXe]
-      .flatMap(deck => deck.rows.flat())
-      .filter(Boolean)
-      .map(soGhe => this.GiaVeTheoLoaiGhe(this.LoaiGheTheoSoGhe(soGhe, loaiXe)));
-    return Math.min(...prices);
+  private ApiSeatType(type: string): LoaiGheId {
+    if (type === 'CabinDon') return 'cabin-don';
+    if (type === 'CabinDoi') return 'cabin-doi';
+    if (type === 'GiuongNam') return 'giuong-nam';
+    return 'limousine';
   }
 
+  private actualPrices(category: LoaiXeId) {
+    const selected = this.selectedTrip();
+    const trips = selected && this.VehicleTypeCategory(selected.vehicle.type) === category ? [selected]
+      : this.routeTrips().filter(trip => this.VehicleTypeCategory(trip.vehicle.type) === category);
+    return trips.flatMap(trip => trip.seats.flatMap(seat => seat.type === 'CabinDoi' ? [seat.price, seat.price * 2] : [seat.price]));
+  }
+  GiaThapNhatTheoLoaiXe(loaiXe: LoaiXeId) {
+    const prices = this.actualPrices(loaiXe);
+    return prices.length ? Math.min(...prices) : 0;
+  }
   GiaCaoNhatTheoLoaiXe(loaiXe: LoaiXeId) {
-    if (loaiXe === 'cabin') return this.GiaVeTheoLoaiGhe('cabin-doi');
-    const prices = this.seatLayouts[loaiXe]
-      .flatMap(deck => deck.rows.flat())
-      .filter(Boolean)
-      .map(soGhe => this.GiaVeTheoLoaiGhe(this.LoaiGheTheoSoGhe(soGhe, loaiXe)));
-    return Math.max(...prices);
+    const prices = this.actualPrices(loaiXe);
+    return prices.length ? Math.max(...prices) : 0;
   }
 
   HienThiGiaLoaiXe(loaiXe: LoaiXeId) {
@@ -1615,45 +1988,8 @@ export class NewBooking implements OnInit {
     this.HienToast(`${label} đã được ghi nhận cho chuyến ${this.gioChayDuocChon()}.`, 'success');
   }
 
-  private TaiDuLieu() {
-    const data = localStorage.getItem(this.storageKey);
-    if (data) {
-      try {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed)) {
-          const cleaned = parsed.map(ve => {
-            const veChuan = this.ChuanHoaVeXe(ve);
-            let note = veChuan.GhiChu || '';
-            note = note.split(' | ')
-              .filter(part =>
-                !part.includes('Cập nhật thông tin lúc') &&
-                !part.includes('Đổi ghế từ') &&
-                !part.includes('Xác nhận thanh toán qua')
-              )
-              .join(' | ');
-
-            return {
-              ...veChuan,
-              GhiChu: note
-            };
-          });
-          this.danhSachVe.set(cleaned);
-          this.LuuDuLieu(cleaned);
-          return;
-        }
-      } catch (error) {
-        console.error('Không đọc được dữ liệu vé', error);
-      }
-    }
-
-    const sample = this.TaoDuLieuMau().map(ve => this.ChuanHoaVeXe(ve));
-    this.danhSachVe.set(sample);
-    this.LuuDuLieu(sample);
-  }
-
-  private LuuDuLieu(ds: VeXe[]) {
-    localStorage.setItem(this.storageKey, JSON.stringify(ds.map(ve => this.ChuanHoaVeXe(ve))));
-  }
+  private TaiDuLieu() { this.danhSachVe.set([]); }
+  private LuuDuLieu(ds: VeXe[]) { /* Server orders are loaded through BookingOrdersApi. */ }
 
   private ChuanHoaVeXe(raw: any): VeXe {
     const maVe = String(raw?.MaVe ?? `VE${Date.now()}`);
@@ -1693,7 +2029,7 @@ export class NewBooking implements OnInit {
       MaLichTrinh: maLichTrinh,
       MaXe: maXe,
       MaGheChuyen: String(raw?.MaGheChuyen ?? this.TaoMaGheChuyen(maLichTrinh, soGhe)),
-      LoaiXe: String(raw?.LoaiXe ?? (xe ? this.loaiXeList.find(item => item.id === xe.loaiXe)?.ten : '') ?? ''),
+      LoaiXe: String(raw?.LoaiXe ?? (xe ? this.loaiXeList.find(item => item.category === xe.loaiXe)?.ten : '') ?? ''),
       LoaiGhe: loaiGhe,
       TenXe: String(raw?.TenXe ?? xe?.tenXe ?? ''),
       BienSoXe: String(raw?.BienSoXe ?? xe?.bienSo ?? ''),
@@ -1781,6 +2117,7 @@ export class NewBooking implements OnInit {
     if (resetCustomer) {
       this.draftFormOpened = false;
       this.phoneTouched.set(false); this.nameTouched.set(false); this.emailTouched.set(false); this.couponApplied.set(''); this.couponFeedback.set(''); this.customerDismissed.set('');
+      this.customerSuggestion.set(null);
       this.formSdt.set('');
       this.formTen.set('');
       this.formEmail.set('');
@@ -1795,7 +2132,7 @@ export class NewBooking implements OnInit {
     this.formNguonDat.set('tai-quay');
   }
 
-  private TinhGiamGia(tamTinh: number) { if (this.couponApplied() !== this.formMaGiamGia().trim().toUpperCase()) return 0; return couponResult(this.couponApplied(), this.tuyenDuocChon(), tamTinh).amount; }
+  private TinhGiamGia(tamTinh: number) { return 0; }
 
   NhomVeCungDon(ticket: VeXe) {
     if (!ticket.MaDonHang) return [ticket];
@@ -1814,8 +2151,13 @@ export class NewBooking implements OnInit {
   }
 
   private LoaiGheTheoSoGhe(soGhe: string, loaiXe = this.loaiXeDuocChon()): LoaiGheId {
-    if (loaiXe === 'limousine') return 'limousine';
-    if (loaiXe === 'giuong-nam') return 'giuong-nam';
+    const seat = this.selectedTrip()?.seats.find(item => item.name === soGhe);
+    if (seat) return seat.type.startsWith('Cabin')
+      ? (this.gheConfig()[soGhe] === 'doi' ? 'cabin-doi' : 'cabin-don')
+      : this.ApiSeatType(seat.type);
+    const category = this.VehicleTypeCategory(loaiXe);
+    if (category === 'limousine') return 'limousine';
+    if (category === 'giuong-nam') return 'giuong-nam';
     return this.gheConfig()[soGhe] === 'doi' ? 'cabin-doi' : 'cabin-don';
   }
 
@@ -1823,17 +2165,20 @@ export class NewBooking implements OnInit {
     const loaiXe = this.loaiXeDangChon().ten;
     if (ve.LoaiXe === loaiXe) return true;
     const xe = this.danhSachXe.find(item => item.maXe === ve.MaXe);
-    return xe?.loaiXe === this.loaiXeDuocChon();
+    return xe?.loaiXe === this.loaiXeDangChon().category;
   }
 
   private DongBoXeTuVe(ve: VeXe) {
     const xe = this.danhSachXe.find(item => item.maXe === ve.MaXe);
     if (!xe) return;
-    this.loaiXeDuocChon.set(xe.loaiXe);
+    const vehicleType = this.loaiXeList.find(item => item.category === xe.loaiXe);
+    if (vehicleType) this.loaiXeDuocChon.set(vehicleType.id);
     this.maXeDuocChon.set(xe.maXe);
   }
 
   private TaoMaChuyen() {
+    const trip = this.selectedTrip();
+    if (trip) return trip.id;
     return `${this.tuyenDuocChon()}-${this.direction()}-${this.xeDangChon().maXe}-${this.NgayKhoiHanh().replaceAll('-', '')}-${this.gioChayDuocChon().replace(':', '')}`;
   }
 
@@ -1927,6 +2272,10 @@ export class NewBooking implements OnInit {
   }
 
   private TaoMaGheChuyen(maLichTrinh: string, soGhe: string) {
+    const seat = this.routeTrips()
+      .find(trip => trip.id === maLichTrinh)
+      ?.seats.find(item => item.name === soGhe);
+    if (seat) return seat.id;
     return `GC-${maLichTrinh}-${soGhe}`.replace(/\s+/g, '');
   }
 
@@ -1953,275 +2302,6 @@ export class NewBooking implements OnInit {
 
   HienToast(msg: string, type: 'success' | 'danger') {
     this.toast.set({ msg, type });
-  }
-
-  private TaoDuLieuMau(): VeXe[] {
-    const today = this.todayString();
-    const now = new Date().toISOString();
-
-    const thongTinTuyen = (tuyenId: string) => this.tuyenList.find(tuyen => tuyen.id === tuyenId) ?? this.tuyenList[0];
-    const thongTinChuyen = (tuyenId: string, gio: string) => {
-      const tuyen = thongTinTuyen(tuyenId);
-      return {
-        MaLichTrinh: `${tuyen.id}-${today.replaceAll('-', '')}-${gio.replace(':', '')}`,
-        TenTuyenXe: tuyen.name,
-        NgayKhoiHanh: today,
-        GioKhoiHanh: gio,
-        MaXe: tuyen.maXe,
-        MaNVBanVe: 'NVBV001',
-        ThoiGianDat: now,
-        ThoiGianXuatVe: now
-      };
-    };
-    const tongGiaTriDon = (tuyenId: string, soVe: number) => thongTinTuyen(tuyenId).giaGoc * soVe;
-
-    return [
-      {
-        ...thongTinChuyen('HCM-CT', '05:30'),
-        MaVe: 'VE10000018-1',
-        MaDonHang: 'DH10000018',
-        MaKhachHang: 'KH00234567',
-        HoTenNguoiDi: 'Mỹ Mỹ',
-        SdtNguoiDi: '0900234567',
-        EmailNguoiDi: 'myan@example.com',
-        SoLuongVeDaDat: 3,
-        TongGiaVe: tongGiaTriDon('HCM-CT', 3),
-        MaQRVe: 'QR-VE10000018-1A',
-        SoGhe: '1A',
-        GiaVe: thongTinTuyen('HCM-CT').giaGoc,
-        MaDiemDon: 'Bến xe Miền Đông Mới',
-        MaDiemTra: 'Bến xe Trung tâm Cần Thơ',
-        PhuongThucThanhToan: 'chuyen-khoan',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Đơn 3 vé tuyến TP.HCM - Cần Thơ, khách đi gia đình.',
-        NguonDat: 'tai-quay',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('HCM-CT', '05:30'),
-        MaVe: 'VE10000018-2',
-        MaDonHang: 'DH10000018',
-        MaKhachHang: 'KH00234567',
-        HoTenNguoiDi: 'Mỹ Mỹ',
-        SdtNguoiDi: '0900234567',
-        EmailNguoiDi: 'myan@example.com',
-        SoLuongVeDaDat: 3,
-        TongGiaVe: tongGiaTriDon('HCM-CT', 3),
-        MaQRVe: 'QR-VE10000018-2A',
-        SoGhe: '2A',
-        GiaVe: thongTinTuyen('HCM-CT').giaGoc,
-        MaDiemDon: 'Bến xe Miền Đông Mới',
-        MaDiemTra: 'Bến xe Trung tâm Cần Thơ',
-        PhuongThucThanhToan: 'chuyen-khoan',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Đơn 3 vé tuyến TP.HCM - Cần Thơ, khách đi gia đình.',
-        NguonDat: 'tai-quay',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('HCM-CT', '05:30'),
-        MaVe: 'VE10000018-3',
-        MaDonHang: 'DH10000018',
-        MaKhachHang: 'KH00234567',
-        HoTenNguoiDi: 'Mỹ Mỹ',
-        SdtNguoiDi: '0900234567',
-        EmailNguoiDi: 'myan@example.com',
-        SoLuongVeDaDat: 3,
-        TongGiaVe: tongGiaTriDon('HCM-CT', 3),
-        MaQRVe: 'QR-VE10000018-3A',
-        SoGhe: '3A',
-        GiaVe: thongTinTuyen('HCM-CT').giaGoc,
-        MaDiemDon: 'Bến xe Miền Đông Mới',
-        MaDiemTra: 'Bến xe Trung tâm Cần Thơ',
-        PhuongThucThanhToan: 'chuyen-khoan',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'da-huy',
-        GhiChu: 'Đơn 3 vé tuyến TP.HCM - Cần Thơ, khách đi gia đình. | Đã hủy lúc 09:20 ngày 24/06/2026 - Lý do: Tôi đổi kế hoạch - Hoàn: 180.000 đ',
-        NguonDat: 'tai-quay',
-        SoLanDaSua: 0,
-        NguoiHuy: 'Nguyen An Ninh',
-        ThoiGianHuy: now,
-        TrangThaiGiaoDich: 'da-hoan'
-      },
-      {
-        ...thongTinChuyen('HCM-VT', '07:00'),
-        MaVe: 'VE10000019-1',
-        MaDonHang: 'DH10000019',
-        MaKhachHang: 'KH98776655',
-        HoTenNguoiDi: 'Nguyễn Văn Minh',
-        SdtNguoiDi: '0988776655',
-        EmailNguoiDi: 'minh.nguyen@gmail.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('HCM-VT', 1),
-        MaQRVe: 'QR-VE10000019-5A',
-        SoGhe: '5A',
-        GiaVe: thongTinTuyen('HCM-VT').giaGoc,
-        MaDiemDon: 'Văn phòng Quận 1',
-        MaDiemTra: 'Bãi Sau',
-        PhuongThucThanhToan: 'tien-mat',
-        TrangThaiDonHang: 'cho-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Khách hotline, giữ chỗ tuyến TP.HCM - Vũng Tàu.',
-        NguonDat: 'hotline',
-        SoLanDaSua: 1
-      },
-      {
-        ...thongTinChuyen('DL-BMT', '08:00'),
-        MaVe: 'VE10000020-1',
-        MaDonHang: 'DH10000020',
-        MaKhachHang: 'KH12345678',
-        HoTenNguoiDi: 'Trần Hoài Nam',
-        SdtNguoiDi: '0912345678',
-        EmailNguoiDi: 'nam.tran@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('DL-BMT', 1),
-        MaQRVe: 'QR-VE10000020-3B',
-        SoGhe: '3B',
-        GiaVe: thongTinTuyen('DL-BMT').giaGoc,
-        MaDiemDon: 'Bến xe Liên Tỉnh Đà Lạt',
-        MaDiemTra: 'Bến xe Phía Nam Buôn Ma Thuột',
-        PhuongThucThanhToan: 'the',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Khách đi công tác, cần xuất hóa đơn.',
-        NguonDat: 'online',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('DL-NT', '09:30'),
-        MaVe: 'VE10000021-1',
-        MaDonHang: 'DH10000021',
-        MaKhachHang: 'KH44556677',
-        HoTenNguoiDi: 'Lê Thu Hương',
-        SdtNguoiDi: '0981335599',
-        EmailNguoiDi: 'huong.le@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('DL-NT', 1),
-        MaQRVe: 'QR-VE10000021-7A',
-        SoGhe: '7A',
-        GiaVe: thongTinTuyen('DL-NT').giaGoc,
-        MaDiemDon: 'Chợ Đà Lạt',
-        MaDiemTra: 'Ga Nha Trang',
-        PhuongThucThanhToan: 'chuyen-khoan',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Khách chọn điểm đón trung tâm Đà Lạt.',
-        NguonDat: 'tai-quay',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('CT-RG', '10:00'),
-        MaVe: 'VE10000022-1',
-        MaDonHang: 'DH10000022',
-        MaKhachHang: 'KH55667788',
-        HoTenNguoiDi: 'Hoàng Minh Quân',
-        SdtNguoiDi: '0348995511',
-        EmailNguoiDi: 'quan.hoang@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('CT-RG', 1),
-        MaQRVe: 'QR-VE10000022-9A',
-        SoGhe: '9A',
-        GiaVe: thongTinTuyen('CT-RG').giaGoc,
-        MaDiemDon: 'Bến Ninh Kiều',
-        MaDiemTra: 'Bến tàu Rạch Giá',
-        PhuongThucThanhToan: 'tien-mat',
-        TrangThaiDonHang: 'cho-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Giữ chỗ chờ khách ra quầy thanh toán.',
-        NguonDat: 'hotline',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('HCM-PT', '13:00'),
-        MaVe: 'VE10000023-1',
-        MaDonHang: 'DH10000023',
-        MaKhachHang: 'KH66778899',
-        HoTenNguoiDi: 'Phạm Thị Thúy',
-        SdtNguoiDi: '0975612345',
-        EmailNguoiDi: 'thuy.pham@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('HCM-PT', 1),
-        MaQRVe: 'QR-VE10000023-11A',
-        SoGhe: '11A',
-        GiaVe: thongTinTuyen('HCM-PT').giaGoc,
-        MaDiemDon: 'Ngã tư Thủ Đức',
-        MaDiemTra: 'Mũi Né',
-        PhuongThucThanhToan: 'the',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Khách có hành lý gửi khoang.',
-        NguonDat: 'online',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('HCM-DL', '21:00'),
-        MaVe: 'VE10000024-1',
-        MaDonHang: 'DH10000024',
-        MaKhachHang: 'KH77889900',
-        HoTenNguoiDi: 'Vũ Hoài Lâm',
-        SdtNguoiDi: '0932114477',
-        EmailNguoiDi: 'lam.vu@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('HCM-DL', 1),
-        MaQRVe: 'QR-VE10000024-1B',
-        SoGhe: '1B',
-        GiaVe: thongTinTuyen('HCM-DL').giaGoc,
-        MaDiemDon: 'Bến xe Miền Tây',
-        MaDiemTra: 'Quảng trường Lâm Viên',
-        PhuongThucThanhToan: 'chuyen-khoan',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Chuyến đêm, khách cần nhắc giờ lên xe.',
-        NguonDat: 'tai-quay',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('HCM-NT', '22:15'),
-        MaVe: 'VE10000025-1',
-        MaDonHang: 'DH10000025',
-        MaKhachHang: 'KH88990011',
-        HoTenNguoiDi: 'Bùi Thị Hà',
-        SdtNguoiDi: '0918776655',
-        EmailNguoiDi: 'ha.bui@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('HCM-NT', 1),
-        MaQRVe: 'QR-VE10000025-4B',
-        SoGhe: '4B',
-        GiaVe: thongTinTuyen('HCM-NT').giaGoc,
-        MaDiemDon: 'Suối Tiên',
-        MaDiemTra: 'Vinpearl Harbour',
-        PhuongThucThanhToan: 'tien-mat',
-        TrangThaiDonHang: 'cho-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Khách đặt trước qua tổng đài.',
-        NguonDat: 'hotline',
-        SoLanDaSua: 0
-      },
-      {
-        ...thongTinChuyen('NT-DN', '23:00'),
-        MaVe: 'VE10000026-1',
-        MaDonHang: 'DH10000026',
-        MaKhachHang: 'KH99001122',
-        HoTenNguoiDi: 'Nguyễn Văn Đạt',
-        SdtNguoiDi: '0909552233',
-        EmailNguoiDi: 'dat.nguyen@example.com',
-        SoLuongVeDaDat: 1,
-        TongGiaVe: tongGiaTriDon('NT-DN', 1),
-        MaQRVe: 'QR-VE10000026-8B',
-        SoGhe: '8B',
-        GiaVe: thongTinTuyen('NT-DN').giaGoc,
-        MaDiemDon: 'Bến xe phía Nam Nha Trang',
-        MaDiemTra: 'Cầu Rồng',
-        PhuongThucThanhToan: 'chuyen-khoan',
-        TrangThaiDonHang: 'da-thanh-toan',
-        TrangThaiVe: 'cho-khoi-hanh',
-        GhiChu: 'Khách cần xuống gần trung tâm Đà Nẵng.',
-        NguonDat: 'online',
-        SoLanDaSua: 0
-      }
-    ];
   }
 
   private todayString() {

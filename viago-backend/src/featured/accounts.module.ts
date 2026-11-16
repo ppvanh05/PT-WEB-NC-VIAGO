@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { LookupController } from './customer/ticket-lookup/lookup.controller';
+import { LookupService } from './customer/ticket-lookup/lookup.service';
 import { AccountsAccessModule } from '../shared/accounts/accounts-access';
 import { SupportRateGuard } from './customer/chatbot/auth/chatbot.auth';
 import { CustomerAuthController } from './customer/auth/customer-auth.controller';
@@ -16,6 +18,7 @@ import { ActivityLogsService } from './admin/activity-logs/activity-logs.service
 @Module({
   imports: [AccountsAccessModule],
   controllers: [
+    LookupController,
     ReviewMediaController,
     CustomerAuthController,
     CustomerProfileController,
@@ -24,6 +27,7 @@ import { ActivityLogsService } from './admin/activity-logs/activity-logs.service
     ActivityLogsController,
   ],
   providers: [
+    LookupService,
     ReviewMediaService,
     SupportRateGuard,
     CustomerAuthService,
@@ -32,6 +36,6 @@ import { ActivityLogsService } from './admin/activity-logs/activity-logs.service
     CustomersService,
     ActivityLogsService,
   ],
-  exports: [CustomerAuthService, CustomerProfileService],
+  exports: [LookupService, CustomerAuthService, CustomerProfileService],
 })
 export class AccountsModule {}

@@ -9,6 +9,7 @@ import { Input } from '../../../../shared/components/input/input';
 import { Select } from '../../../../shared/components/input/select/select';
 import { Pagination } from '../../../../shared/components/pagination/pagination';
 import { ModalComponent } from '../../../../shared/components/modal/modal';
+import { orderStatusVariant } from '../order-status-style';
 export interface CounterOrder {
   id: string;
   name: string;
@@ -20,7 +21,11 @@ export interface CounterOrder {
   expiresAt: string;
   total: number;
   seatCount: number;
+  seats?: string[];
   status: string;
+  journeyStatus?: 'upcoming' | 'completed';
+  source?: 'Online' | 'TaiQuay' | 'Hotline';
+  adminCreated?: boolean;
 }
 @Component({
   selector: 'app-counter-orders',
@@ -72,15 +77,20 @@ export class CounterOrders implements OnInit {
       (
         {
           ChoThanhToanTrucTiep: 'Chờ thu tiền',
-          DaThanhToan: 'Đã thanh toán',
+          ChoThanhToanOnline: 'Chờ chuyển khoản',
+          DaThanhToan: 'Chờ khởi hành',
           DaHuy: 'Đã hủy',
           HetHanThanhToan: 'Hết hạn',
         } as Record<string, string>
       )[status] || status
     );
   }
+  rowVariant(row: CounterOrder) { return orderStatusVariant(this.rowLabel(row)); }
   canCollect(row: CounterOrder) {
     return row.status === 'ChoThanhToanTrucTiep' && Date.parse(row.expiresAt) > Date.now();
+  }
+  rowLabel(row: CounterOrder) {
+    return row.status === 'DaThanhToan' && row.journeyStatus === 'completed' ? 'Đã hoàn thành' : this.label(row.status);
   }
   async load(reset = false) {
     if (reset) this.page = 1;

@@ -2,13 +2,25 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { createHash, randomBytes } from 'node:crypto';
 import { nextBusinessId } from '../../../../shared/business-id';
+import {
+  readSepayConfig,
+  sepayRecipientMatches,
+} from '../payments/sepay.config';
+import {
+  extractSepayPaymentCode,
+  generateSepayPaymentCode,
+} from '../payments/sepay-payment-code';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { readOrderDetailTrips } from './order-detail-trips';
 import {
   HomeHoldDto,
   HomeLegDto,
@@ -26,6 +38,12 @@ import {
 } from '../catalog/home.service';
 import { HomePromotionsService } from '../promotions/promotions.service';
 import type { CounterActor, CounterQueryDto } from './counter.controller';
+import {
+  expiredAssignment,
+  inventoryIsOpen,
+  inventorySeatState,
+  readSeatInventory,
+} from './seat-inventory';
 
 type Tx = Prisma.TransactionClient;
 type Leg = { dto: HomeLegDto; trip: HomeTrip; subtotal: number };
@@ -35,6 +53,14 @@ type OrderNote = {
   requestHash: string;
   leg: HomeLegDto;
   seatPrices: Record<string, number>;
+  note?: string;
+};
+export type AdminBookingContext = {
+  actor: CounterActor;
+  source: 'TaiQuay' | 'Hotline';
+  note?: string;
+  expectedTotal: number;
+  confirmReceived: boolean;
 };
 const pending = {
   in: ['ChoThanhToanOnline', 'ChoThanhToanTrucTiep'] as (
@@ -44,14 +70,39 @@ const pending = {
 const prefix = (session: string) => 'HOME:' + session + ':';
 
 @Injectable()
-export class HomeBookingService {
+export class HomeBookingService implements OnModuleInit, OnModuleDestroy {
+  private expiryTimer?: ReturnType<typeof setInterval>;
+  private sweeping = false;
+  onModuleInit() {
+    if (process.env.NODE_ENV === 'test') return;
+    this.expiryTimer = setInterval(() => {
+      if (this.sweeping) return;
+      this.sweeping = true;
+      void this.cleanupExpired()
+        .catch(() =>
+          new Logger(HomeBookingService.name).warn(
+            'Chưa dọn được đơn hết hạn; sẽ thử lại.',
+          ),
+        )
+        .finally(() => {
+          this.sweeping = false;
+        });
+    }, 30000);
+    this.expiryTimer.unref();
+  }
+  onModuleDestroy() {
+    if (this.expiryTimer) clearInterval(this.expiryTimer);
+  }
+  cleanupExpired() {
+    return this.write((tx) => this.expire(tx));
+  }
   constructor(
     private readonly prisma: PrismaService,
     private readonly home: CustomerHomeService,
     private readonly promotions: HomePromotionsService,
   ) {}
 
-  async hold(session: string, dto: HomeHoldDto) {
+  async hold(session: string, dto: HomeHoldDto, actor?: CounterActor) {
     return this.write(async (tx) => {
       await this.expire(tx);
       if (
@@ -116,6 +167,7 @@ export class HomeBookingService {
         data: {
           trangthaighe: 'DangGiu',
           sessiongiucho: session,
+          nguoigiughe: actor?.staffId,
           giuchoden: expires,
           thoigiancapnhat: now,
         },
@@ -126,6 +178,166 @@ export class HomeBookingService {
         );
       return {
         legs: dto.legs,
+        expiresAt: expires.toISOString(),
+        serverTime: now.toISOString(),
+      };
+    });
+  }
+  async holdAdmin(
+    session: string,
+    tripId: string,
+    seatIds: string[],
+    actor: CounterActor,
+  ) {
+    if (
+      !seatIds.length ||
+      seatIds.length > 5 ||
+      new Set(seatIds).size !== seatIds.length
+    )
+      throw new BadRequestException('Chọn tối đa 5 ghế duy nhất cho mỗi đơn.');
+    return this.write(async (tx) => {
+      const now = new Date();
+      const snapshot = await readSeatInventory(tx, tripId, {
+        seatIds,
+        session,
+      });
+      if (!snapshot || !inventoryIsOpen(snapshot.trip, now))
+        throw new ConflictException('Chuyến đã ngừng bán vé.');
+      const requested = seatIds.map((id) =>
+        snapshot.seats.find(
+          (row) => row.seatId === id && row.seatTripId === tripId,
+        ),
+      );
+      if (requested.some((row) => !row))
+        throw new BadRequestException('Ghế không thuộc chuyến đã chọn.');
+      const rows = requested.map((row) => row!);
+      if (
+        rows.some(
+          (row) =>
+            !Number.isSafeInteger(Number(row.price)) || Number(row.price) <= 0,
+        )
+      )
+        throw new ConflictException('Giá ghế chưa hợp lệ.');
+      const conflicts = rows.filter(
+        (row) =>
+          !['available', 'selected'].includes(
+            inventorySeatState(row, snapshot.trip, session, now),
+          ) ||
+          (row.orderId &&
+            !expiredAssignment(row, now) &&
+            !['DaHuy', 'HetHanThanhToan'].includes(row.orderStatus ?? '')),
+      );
+      if (conflicts.length)
+        throw new ConflictException({
+          code: 'SEAT_UNAVAILABLE',
+          message: 'Ghế vừa được người khác giữ. Vui lòng chọn lại.',
+          seatIds: conflicts.map((row) => row.seatId),
+        });
+      if (
+        await tx.don_hang.findFirst({
+          where: {
+            khoachonglap: { startsWith: prefix(session) },
+            trangthaidonhang: pending,
+            thoigianhethangiucho: { gt: now },
+          },
+          select: { madonhang: true },
+        })
+      )
+        throw new ConflictException(
+          'Hãy hủy đơn đang chờ thanh toán trước khi đổi ghế.',
+        );
+      const expiredOrders = [
+        ...new Set(
+          rows
+            .filter((row) => expiredAssignment(row, now))
+            .map((row) => row.orderId!),
+        ),
+      ];
+      if (expiredOrders.length) await this.expire(tx, expiredOrders);
+      const previous = snapshot.seats.filter(
+        (row) =>
+          row.heldBySession === session &&
+          row.seatStatus === 'DangGiu' &&
+          !row.orderId,
+      );
+      const expires = new Date(
+        Math.min(
+          now.getTime() +
+            Math.min(10, Math.max(0, snapshot.trip.holdMinutes)) * 60000,
+          snapshot.trip.saleClosesAt.getTime(),
+          ...previous
+            .filter((row) => row.heldUntil && row.heldUntil > now)
+            .map((row) => row.heldUntil!.getTime()),
+        ),
+      );
+      if (expires <= now)
+        throw new ConflictException('Chuyến không còn nhận giữ ghế.');
+      const removed = previous
+        .filter((row) => !seatIds.includes(row.seatId!))
+        .map((row) => row.seatId!);
+      if (removed.length)
+        await tx.ghe_chuyen.updateMany({
+          where: {
+            maghechuyen: { in: removed },
+            sessiongiucho: session,
+            trangthaighe: 'DangGiu',
+            madonhanggiu: null,
+          },
+          data: {
+            trangthaighe: 'Trong',
+            sessiongiucho: null,
+            nguoigiughe: null,
+            giuchoden: null,
+            thoigiancapnhat: now,
+          },
+        });
+      const changed = rows
+        .filter(
+          (row) =>
+            row.heldBySession !== session ||
+            row.seatStatus !== 'DangGiu' ||
+            row.orderId ||
+            row.heldUntil?.getTime() !== expires.getTime(),
+        )
+        .map((row) => row.seatId!);
+      if (changed.length) {
+        const updated = await tx.ghe_chuyen.updateMany({
+          where: {
+            maghechuyen: { in: changed },
+            OR: [
+              { trangthaighe: 'Trong' },
+              {
+                trangthaighe: 'DangGiu',
+                madonhanggiu: null,
+                OR: [{ sessiongiucho: session }, { giuchoden: { lte: now } }],
+              },
+              {
+                trangthaighe: 'DangGiu',
+                don_hang: {
+                  is: {
+                    trangthaidonhang: { in: ['DaHuy', 'HetHanThanhToan'] },
+                  },
+                },
+              },
+            ],
+          },
+          data: {
+            trangthaighe: 'DangGiu',
+            sessiongiucho: session,
+            nguoigiughe: actor.staffId,
+            giuchoden: expires,
+            madonhanggiu: null,
+            thoigiancapnhat: now,
+          },
+        });
+        if (updated.count !== changed.length)
+          throw new ConflictException(
+            'Ghế vừa được người khác giữ. Vui lòng chọn lại.',
+          );
+      }
+      return {
+        seatIds,
+        releasedSeatIds: removed,
         expiresAt: expires.toISOString(),
         serverTime: now.toISOString(),
       };
@@ -188,7 +400,12 @@ export class HomeBookingService {
       return { released: true };
     });
   }
-  async quote(session: string, dto: HomeQuoteDto, authorization?: string) {
+  async quote(
+    session: string,
+    dto: HomeQuoteDto,
+    authorization?: string,
+    operator = false,
+  ) {
     return this.write(async (tx) => {
       await this.expire(tx);
       const legs = await this.validateLegs(tx, dto.legs, session, true);
@@ -201,6 +418,7 @@ export class HomeBookingService {
         })),
         dto.passenger.phone,
         authorization,
+        operator,
       );
       const subtotal = legs.reduce((sum, leg) => sum + leg.subtotal, 0);
       return {
@@ -215,11 +433,16 @@ export class HomeBookingService {
       };
     });
   }
-  async create(session: string, dto: HomeOrderDto, authorization?: string) {
+  async create(
+    session: string,
+    dto: HomeOrderDto,
+    authorization?: string,
+    admin?: AdminBookingContext,
+  ) {
     return this.write(async (tx) => {
       await this.expire(tx);
       const requestHash = createHash('sha256')
-        .update(JSON.stringify(dto))
+        .update(JSON.stringify(admin ? { dto, admin } : dto))
         .digest('hex');
       const existing = await tx.don_hang.findUnique({
         where: { khoachonglap: prefix(session) + dto.key + ':0' },
@@ -252,10 +475,25 @@ export class HomeBookingService {
         })),
         dto.passenger.phone,
         authorization,
+        !!admin,
       );
       const subtotal = legs.reduce((sum, leg) => sum + leg.subtotal, 0);
       if (!Number.isSafeInteger(subtotal) || subtotal <= 0)
         throw new BadRequestException('Giá vé không hợp lệ.');
+      if (admin && subtotal - p.discount !== admin.expectedTotal)
+        throw new ConflictException({
+          code: 'PRICE_CHANGED',
+          message:
+            'Giá hoặc khuyến mãi đã thay đổi. Vui lòng kiểm tra lại tổng tiền.',
+          total: subtotal - p.discount,
+        });
+      if (
+        admin?.confirmReceived &&
+        (dto.method !== 'counter' || admin.source !== 'TaiQuay')
+      )
+        throw new BadRequestException(
+          'Chỉ xác nhận đã thu tiền mặt khi bán tại quầy.',
+        );
       const held = await tx.ghe_chuyen.findMany({
         where: { maghechuyen: { in: legs.flatMap((leg) => leg.dto.seats) } },
         select: { giuchoden: true },
@@ -288,6 +526,7 @@ export class HomeBookingService {
                   (leg.dto.doubleSeats.includes(seat.maghechuyen) ? 2 : 1),
               ]),
           ),
+          ...(admin ? { note: admin.note } : {}),
         };
         const row = await tx.don_hang.create({
           data: {
@@ -311,7 +550,8 @@ export class HomeBookingService {
             thoigiancomattruocphut: 15,
             thoigiandat: now,
             thoigianhethangiucho: expires,
-            nguondat: 'Online',
+            nguondat: admin?.source ?? 'Online',
+            manhanvien: admin?.actor.staffId,
             tonggiave: leg.subtotal,
             tienbaohiem: 0,
             sotiengiam: discount,
@@ -405,22 +645,41 @@ export class HomeBookingService {
           trangthaithanhtoan: 'ChoThanhToan',
           mathamchieuyeucau:
             dto.method === 'vietqr'
-              ? 'VG' + randomBytes(10).toString('hex').toUpperCase()
+              ? await generateSepayPaymentCode(tx)
               : orders[0].madonhang,
           thoigiantao: now,
           thoigianhethan: expires,
           thoigiancapnhat: now,
         },
       });
-      if (subtotal === p.discount)
+      if (subtotal === p.discount || admin?.confirmReceived)
         await this.confirm(
           tx,
           orders,
           payment.mathanhtoan,
           session,
           now,
-          'FREE:' + orders[0].madonhang,
+          subtotal === p.discount
+            ? 'FREE:' + orders[0].madonhang
+            : 'COUNTER:' + orders[0].madonhang,
+          admin?.actor,
         );
+      if (admin)
+        await tx.nhat_ky_he_thong.create({
+          data: {
+            manhatky: await nextBusinessId(tx, 'NK'),
+            mataikhoan: admin.actor.id,
+            manhanvien: admin.actor.staffId,
+            hanhdong: 'TaoDonDatVeAdmin',
+            banglienquan: 'don_hang',
+            madoituong: orders[0].madonhang,
+            tendoituong: orders[0].madonhang,
+            loaidoituong: 'DonHang',
+            trangthai: 'ThanhCong',
+            thoigian: now,
+            chitiet: admin.source,
+          },
+        });
       return this.orderResponse(
         tx,
         await tx.don_hang.findUniqueOrThrow({
@@ -440,6 +699,42 @@ export class HomeBookingService {
       );
     });
   }
+  async getAdmin(id: string) {
+    return this.write(async (tx) => {
+      let root = await tx.don_hang.findFirst({
+        where: {
+          madonhang: id,
+          khoachonglap: { startsWith: 'HOME:ADM' },
+          nguondat: { in: ['TaiQuay', 'Hotline'] },
+        },
+      });
+      if (!root)
+        throw new NotFoundException('Không tìm thấy đơn do admin tạo.');
+      const session = root.khoachonglap.split(':')[1];
+      if (root.loaichuyen === 'KhuHoiChieuVe')
+        root = await this.ownedOrder(tx, session, id);
+      let orders = await this.group(tx, root);
+      if (
+        orders.some(
+          (row) =>
+            pending.in.includes(
+              row.trangthaidonhang as (typeof pending.in)[number],
+            ) && row.thoigianhethangiucho <= new Date(),
+        )
+      ) {
+        const ids = orders.map((row) => row.madonhang);
+        await this.expire(tx, ids);
+        const refreshed = await tx.don_hang.findMany({
+          where: { madonhang: { in: ids } },
+        });
+        orders = orders.map((row) =>
+          refreshed.find((value) => value.madonhang === row.madonhang)!,
+        );
+        root = orders[0];
+      }
+      return this.orderResponse(tx, root, session, orders);
+    });
+  }
   async pending(session: string) {
     return this.write(async (tx) => {
       await this.expire(tx);
@@ -455,7 +750,12 @@ export class HomeBookingService {
       return { order: row ? await this.orderResponse(tx, row, session) : null };
     });
   }
-  async cancel(session: string, id: string) {
+  async cancel(
+    session: string,
+    id: string,
+    actor?: CounterActor,
+    reason?: string,
+  ) {
     return this.write(async (tx) => {
       await this.expire(tx);
       const root = await this.ownedOrder(tx, session, id),
@@ -470,11 +770,27 @@ export class HomeBookingService {
         );
       const ids = orders.map((row) => row.madonhang),
         now = new Date();
-      await tx.don_hang.updateMany({
+      const cancelled = await tx.don_hang.updateMany({
         where: { madonhang: { in: ids }, trangthaidonhang: pending },
         data: { trangthaidonhang: 'DaHuy', thoigiancapnhat: now },
       });
       await this.releaseOrders(tx, ids, 'DaHuy');
+      if (actor && cancelled.count)
+        await tx.nhat_ky_he_thong.create({
+          data: {
+            manhatky: await nextBusinessId(tx, 'NK'),
+            mataikhoan: actor.id,
+            manhanvien: actor.staffId,
+            hanhdong: 'HuyDonDatVeAdmin',
+            banglienquan: 'don_hang',
+            madoituong: id,
+            tendoituong: id,
+            loaidoituong: 'DonHang',
+            trangthai: 'ThanhCong',
+            thoigian: now,
+            chitiet: reason ?? 'Hủy đơn giữ chỗ',
+          },
+        });
       return this.orderResponse(
         tx,
         await tx.don_hang.findUniqueOrThrow({
@@ -486,57 +802,49 @@ export class HomeBookingService {
   }
   async payment(session: string, id: string) {
     const order = await this.get(session, id);
+    return this.paymentInfo(order);
+  }
+  paymentInfo(order: Awaited<ReturnType<HomeBookingService['get']>>) {
     if (order.status !== 'pending')
       throw new ConflictException('Đơn không còn chờ thanh toán.');
-    const bank = process.env.VIETQR_BANK_ID,
-      account = process.env.VIETQR_ACCOUNT_NO,
-      name = process.env.VIETQR_ACCOUNT_NAME;
-    if (
-      !bank ||
-      !account ||
-      !name ||
-      !process.env.SEPAY_BANK_NAME ||
-      !process.env.SEPAY_WEBHOOK_API_KEY ||
-      process.env.SEPAY_WEBHOOK_API_KEY.length < 32 ||
-      !/^[a-zA-Z0-9]{2,30}$/.test(bank) ||
-      !/^[a-zA-Z0-9]{4,40}$/.test(account)
-    )
+    if (order.method !== 'vietqr')
+      throw new ConflictException('Đơn không thanh toán bằng chuyển khoản QR.');
+    const { config } = readSepayConfig();
+    if (!config)
       throw new ServiceUnavailableException(
-        'Chưa cấu hình ngân hàng và webhook VietQR.',
+        'Cấu hình ngân hàng hoặc webhook VietQR chưa hợp lệ.',
       );
     const params = new URLSearchParams({
       amount: String(order.total),
       addInfo: order.paymentCode!,
-      accountName: name,
+      accountName: config.accountName,
     });
     return {
       method: 'vietqr',
-      bankId: bank,
-      accountNumber: account,
-      accountName: name,
+      environment: config.environment,
+      bankId: config.bankId,
+      accountNumber: config.qrAccountNumber,
+      accountName: config.accountName,
+      accountType: config.accountType,
       amount: order.total,
       currency: 'VND',
       content: order.paymentCode,
-      qrUrl: `https://img.vietqr.io/image/${bank}-${account}-compact2.png?${params}`,
+      qrUrl: `https://img.vietqr.io/image/${config.bankId}-${config.qrAccountNumber}-compact2.png?${params}`,
       expiresAt: order.expiresAt,
       status: 'pending',
     };
   }
   async webhook(dto: SepayWebhookDto) {
     if (dto.transferType !== 'in') return { success: true, processed: false };
-    if (!process.env.VIETQR_ACCOUNT_NO || !process.env.SEPAY_BANK_NAME)
+    const { config } = readSepayConfig();
+    if (!config)
       throw new ServiceUnavailableException(
         'Chưa cấu hình tài khoản nhận tiền.',
       );
-    if (
-      dto.accountNumber !== process.env.VIETQR_ACCOUNT_NO ||
-      dto.gateway.toLowerCase() !== process.env.SEPAY_BANK_NAME.toLowerCase()
-    )
+    if (!sepayRecipientMatches(config, dto))
       throw new BadRequestException('Tài khoản nhận tiền không khớp.');
-    const codes = dto.content.toUpperCase().match(/\bVG[A-F0-9]{20}\b/g);
-    if (!codes || new Set(codes).size !== 1)
-      return { success: true, processed: false };
-    const code = codes[0];
+    const code = extractSepayPaymentCode(dto.content);
+    if (!code) return { success: true, processed: false };
     return this.write(async (tx) => {
       const eventKey = 'SEPAY:' + dto.id,
         duplicate = await tx.thanh_toan.findUnique({
@@ -626,7 +934,7 @@ export class HomeBookingService {
             khoachonglap: eventKey,
             phuongthucthanhtoan: 'VIETQR',
             kenhthanhtoan: 'SePay',
-            dinhdanhtaikhoandoitac: dto.accountNumber,
+            dinhdanhtaikhoandoitac: config.qrAccountNumber,
             sotienthanhtoan: dto.transferAmount,
             trangthaithanhtoan: 'DangXuLy',
             mathamchieuyeucau: code,
@@ -644,7 +952,7 @@ export class HomeBookingService {
         where: { mathanhtoan: intent!.mathanhtoan },
         data: {
           khoachonglap: eventKey,
-          dinhdanhtaikhoandoitac: dto.accountNumber,
+          dinhdanhtaikhoandoitac: config.qrAccountNumber,
           magiaodichdoitac: dto.referenceCode ?? String(dto.id),
           thoigianthanhtoan: receivedAt,
           thoigiancapnhat: now,
@@ -667,9 +975,21 @@ export class HomeBookingService {
       const where: Prisma.don_hangWhereInput = {
         khoachonglap: { startsWith: 'HOME:' },
         loaichuyen: { not: 'KhuHoiChieuVe' },
-        thanh_toan: {
-          some: { phuongthucthanhtoan: 'TIEN_MAT', kenhthanhtoan: 'TaiQuay' },
-        },
+        AND: [
+          {
+            OR: [
+              {
+                thanh_toan: {
+                  some: {
+                    phuongthucthanhtoan: 'TIEN_MAT',
+                    kenhthanhtoan: 'TaiQuay',
+                  },
+                },
+              },
+              { khoachonglap: { startsWith: 'HOME:ADM' } },
+            ],
+          },
+        ],
         ...(q.status === 'pending' && {
           trangthaidonhang: 'ChoThanhToanTrucTiep',
         }),
@@ -705,9 +1025,18 @@ export class HomeBookingService {
           },
         },
       });
+      const seatIds = [...new Set([...rows, ...linked].flatMap(r => this.note(r).leg.seats))];
+      const seatRows = await tx.ghe_chuyen.findMany({ where: { maghechuyen: { in: seatIds } }, select: { maghechuyen: true, ghe: { select: { soghe: true } } } });
+      const seatNames = new Map(seatRows.map(s => [s.maghechuyen, s.ghe.soghe]));
+      const journeyTickets = await tx.ve_xe.findMany({
+        where: { madonhang: { in: [...rows, ...linked].map(o => o.madonhang) }, trangthaive: { not: 'DaHuy' } },
+        select: { madonhang: true, trangthaive: true },
+      });
       return {
         data: rows.map((r) => ({
           id: r.madonhang,
+          source: r.nguondat,
+          adminCreated: r.khoachonglap.startsWith('HOME:ADM'),
           name: r.hotennguoidat,
           phone: r.sodienthoainguoidat,
           from: r.lich_trinh.tuyen_xe.diemdi,
@@ -716,6 +1045,12 @@ export class HomeBookingService {
           createdAt: r.thoigiantao,
           expiresAt: r.thoigianhethangiucho,
           status: r.trangthaidonhang,
+          journeyStatus: (() => {
+            const ids = [r.madonhang, r.madonhangkhuhoi].filter(Boolean);
+            const tickets = journeyTickets.filter(t => ids.includes(t.madonhang));
+            return tickets.length > 0 && tickets.every(t => t.trangthaive === 'DaHoanThanh') ? 'completed' : 'upcoming';
+          })(),
+          seats: [r, ...linked.filter(l => l.madonhang === r.madonhangkhuhoi)].flatMap(o => this.note(o).leg.seats.map(id => seatNames.get(id)).filter((name): name is string => !!name)),
           seatCount:
             this.note(r).leg.seats.length +
             (r.madonhangkhuhoi
@@ -738,7 +1073,11 @@ export class HomeBookingService {
       };
     });
   }
-  async confirmCounter(id: string, actor: CounterActor) {
+  async confirmCounter(
+    id: string,
+    actor: CounterActor,
+    receivedAmount?: number,
+  ) {
     return this.write(async (tx) => {
       await tx.$queryRaw`SELECT madonhang FROM public.don_hang WHERE madonhang=${id} FOR UPDATE`;
       await this.expire(tx);
@@ -752,6 +1091,14 @@ export class HomeBookingService {
       if (!root) throw new NotFoundException('Không tìm thấy đơn khách đặt.');
       const orders = await this.group(tx, root),
         session = root.khoachonglap.split(':')[1];
+      if (
+        receivedAmount !== undefined &&
+        receivedAmount !==
+          orders.reduce((sum, order) => sum + Number(order.tongthanhtoan), 0)
+      )
+        throw new BadRequestException(
+          'Số tiền xác nhận phải bằng tổng tiền của đơn.',
+        );
       const payment = await tx.thanh_toan.findFirst({
         where: {
           madonhang: id,
@@ -990,13 +1337,14 @@ export class HomeBookingService {
     }
     return result;
   }
-  private async expire(tx: Tx) {
+  private async expire(tx: Tx, orderIds?: string[]) {
     const now = new Date();
     const expired = await tx.don_hang.findMany({
       where: {
         khoachonglap: { startsWith: 'HOME:' },
         trangthaidonhang: pending,
         thoigianhethangiucho: { lte: now },
+        ...(orderIds ? { madonhang: { in: orderIds } } : {}),
       },
       select: { madonhang: true },
     });
@@ -1008,6 +1356,7 @@ export class HomeBookingService {
       });
       await this.releaseOrders(tx, ids, 'HetHan');
     }
+    if (orderIds) return;
     await tx.ghe_chuyen.updateMany({
       where: {
         trangthaighe: 'DangGiu',
@@ -1123,8 +1472,13 @@ export class HomeBookingService {
     }
     return rows;
   }
-  private async orderResponse(tx: Tx, root: Order, session: string) {
-    const orders = await this.group(tx, root),
+  private async orderResponse(
+    tx: Tx,
+    root: Order,
+    session: string,
+    detailOrders?: Order[],
+  ) {
+    const orders = detailOrders ?? (await this.group(tx, root)),
       ids = orders.map((row) => row.madonhang);
     const tickets = await tx.ve_xe.findMany({
       where: { madonhang: { in: ids }, trangthaive: { not: 'DaHuy' } },
@@ -1134,6 +1488,10 @@ export class HomeBookingService {
         maghechuyen: true,
         tokentracuu: true,
         loaiphong: true,
+        trangthaive: true,
+        giave: true,
+        thoigianxuatve: true,
+        phan_bo_thanh_toan_ve: { select: { sotienphanbo: true } },
         ghe_chuyen: { select: { ghe: { select: { soghe: true } } } },
       },
       orderBy: { mave: 'asc' },
@@ -1144,12 +1502,23 @@ export class HomeBookingService {
         mathamchieuyeucau: true,
         trangthaithanhtoan: true,
         phuongthucthanhtoan: true,
+        mathanhtoan: true,
+        thoigianthanhtoan: true,
+        manhanvienthu: true,
       },
       orderBy: { thoigiantao: 'asc' },
     });
     const legs = [];
+    const detailTrips = detailOrders
+      ? await readOrderDetailTrips(
+          tx,
+          orders.map((row) => row.malichtrinh),
+        )
+      : null;
     for (const row of orders) {
-      const trip = await readTrip(tx, row.malichtrinh);
+      const trip = detailTrips
+        ? (detailTrips.get(row.malichtrinh) ?? null)
+        : await readTrip(tx, row.malichtrinh);
       const leg = this.note(row).leg;
       legs.push({
         tripId: leg.tripId,
@@ -1162,10 +1531,17 @@ export class HomeBookingService {
         subtotal: Number(row.tonggiave),
         discount: Number(row.sotiengiam),
         total: Number(row.tongthanhtoan),
+        seatPrices: this.note(row).seatPrices,
       });
     }
     return {
       id: root.madonhang,
+      orderStatus: root.trangthaidonhang,
+      journeyStatus: tickets.length > 0 && tickets.every(t => t.trangthaive === 'DaHoanThanh') ? 'completed' : 'upcoming',
+      source: root.nguondat,
+      staffId: root.manhanvien,
+      customerId: root.makhachhang,
+      note: this.note(root).note ?? '',
       status:
         orders.some((row) => row.trangthaidonhang === 'HuyMotPhan') ||
         (orders.some((row) => row.trangthaidonhang === 'DaThanhToan') &&
@@ -1193,6 +1569,16 @@ export class HomeBookingService {
       method: payment?.phuongthucthanhtoan === 'VIETQR' ? 'vietqr' : 'counter',
       paymentCode: payment?.mathamchieuyeucau,
       paymentStatus: payment?.trangthaithanhtoan,
+      paymentId: payment?.mathanhtoan,
+      paidAt: payment?.thoigianthanhtoan?.toISOString() ?? null,
+      collectedBy: payment?.manhanvienthu ?? null,
+      requiresReview: !!(await tx.thanh_toan.count({
+        where: {
+          madonhang: { in: ids },
+          trangthaithanhtoan: 'DangXuLy',
+          maloi: { not: null },
+        },
+      })),
       tickets: tickets.map((row) => ({
         id: row.mave,
         orderId: row.madonhang,
@@ -1201,6 +1587,12 @@ export class HomeBookingService {
         roomType: row.loaiphong,
         token: row.tokentracuu,
         qrValue: row.tokentracuu,
+        price: Number(row.giave),
+        paidAmount: row.phan_bo_thanh_toan_ve.reduce(
+          (sum, allocation) => sum + Number(allocation.sotienphanbo),
+          0,
+        ),
+        issuedAt: row.thoigianxuatve?.toISOString() ?? null,
       })),
     };
   }

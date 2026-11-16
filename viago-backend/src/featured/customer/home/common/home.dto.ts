@@ -171,6 +171,10 @@ export class SepayWebhookDto {
   @IsInt() @Min(1) id: number;
   @IsString() @IsNotEmpty() @MaxLength(100) gateway: string;
   @IsString() @MaxLength(100) accountNumber: string;
+  @ValidateIf((_object, value) => value !== undefined && value !== null)
+  @IsString()
+  @MaxLength(100)
+  subAccount?: string | null;
   @IsIn(['in', 'out']) transferType: string;
   @IsInt() @Min(1) @Max(100000000000) transferAmount: number;
   @IsString() @MaxLength(2000) content: string;

@@ -1,9 +1,13 @@
+// Keep the background expiry sweep out of this rollback transaction.
+process.env.NODE_ENV = 'test';
 const path = require('node:path'),
   assert = require('node:assert/strict'),
   { randomBytes, randomUUID, createHash } = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 require('dotenv').config({ path: path.join(root, '.env'), quiet: true });
 require('reflect-metadata');
+const { postSepayWebhook } = require('./helpers/sepay-webhook.cjs');
+const { BaseExceptionFilter } = require('@nestjs/core');
 const { Test } = require('@nestjs/testing'),
   { PrismaClient } = require('@prisma/client'),
   request = require('supertest');
@@ -27,6 +31,14 @@ async function run(tx) {
   let serial = 0;
   const prisma = new Proxy(tx, {
     get(target, key) {
+      // Business sequences are not rolled back by PostgreSQL. Use fixture IDs
+      // instead so regression tests never advance the real order/ticket counters.
+      if (key === '$queryRaw')
+        return (strings, ...values) => {
+          if (Array.isArray(strings) && strings.join('').includes('nextval('))
+            return Promise.resolve([{ number: String(900000000 + ++serial) }]);
+          return target.$queryRaw(strings, ...values);
+        };
       if (key === '$transaction')
         return async (fn) => {
           const save = 'booking_test_' + ++serial;
@@ -58,7 +70,14 @@ async function run(tx) {
     .overrideProvider(PrismaService)
     .useValue(prisma)
     .compile();
-  app = module.createNestApplication({ logger: false });
+  app = module.createNestApplication({ logger: false, rawBody: true });
+  const exceptionFilter = new BaseExceptionFilter(app.getHttpAdapter());
+  app.useGlobalFilters({ catch(error, host) {
+    if (typeof error.getStatus !== 'function') console.error(JSON.stringify({
+      unexpectedError: error.name, code: error.code ?? null,
+    }));
+    exceptionFilter.catch(error, host);
+  } });
   await app.init();
   const api = request(app.getHttpServer()),
     a = request.agent(app.getHttpServer()),
@@ -475,10 +494,12 @@ async function run(tx) {
     async () => {
       const keys = [
         'VIETQR_BANK_ID',
+        'SEPAY_MODE',
+        'SEPAY_ACCOUNT_NO',
         'VIETQR_ACCOUNT_NO',
         'VIETQR_ACCOUNT_NAME',
         'SEPAY_BANK_NAME',
-        'SEPAY_WEBHOOK_API_KEY',
+        'SEPAY_WEBHOOK_SECRET',
       ];
       const prior = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
       try {
@@ -503,7 +524,7 @@ async function run(tx) {
           VIETQR_ACCOUNT_NO: 'TEST0001',
           VIETQR_ACCOUNT_NAME: 'Integration Test',
           SEPAY_BANK_NAME: 'TestBank',
-          SEPAY_WEBHOOK_API_KEY: randomBytes(32).toString('hex'),
+          SEPAY_WEBHOOK_SECRET: randomBytes(32).toString('hex'),
         });
         const pending = (
           await online.post('/customer/home/orders').send(body).expect(201)
@@ -511,7 +532,7 @@ async function run(tx) {
         created.push(pending.id);
         assert.equal(pending.method, 'vietqr');
         assert.equal(pending.status, 'pending');
-        assert.match(pending.paymentCode, /^VG[A-F0-9]{20}$/);
+        assert.match(pending.paymentCode, /^VIAGO[0-9]{8}$/);
         const stored = await tx.don_hang.findUniqueOrThrow({
           where: { madonhang: pending.id },
         });
@@ -523,6 +544,10 @@ async function run(tx) {
         ).body;
         assert.equal(qr.amount, pending.total);
         assert.equal(qr.content, pending.paymentCode);
+        assert.equal(
+          new URL(qr.qrUrl).searchParams.get('addInfo'),
+          pending.paymentCode,
+        );
         assert.match(qr.qrUrl, /^https:\/\/img\.vietqr\.io\/image\//);
         const payload = {
           id: Math.floor(Date.now() / 1000),
@@ -538,11 +563,7 @@ async function run(tx) {
           .post('/customer/home/payments/sepay')
           .send(payload)
           .expect(401);
-        const webhook = (data) =>
-          api
-            .post('/customer/home/payments/sepay')
-            .set('Authorization', 'Apikey ' + process.env.SEPAY_WEBHOOK_API_KEY)
-            .send(data);
+        const webhook = (data) => postSepayWebhook(api, data);
         await webhook({ ...payload, accountNumber: 'WRONG0001' }).expect(400);
         const mismatch = (
           await webhook({

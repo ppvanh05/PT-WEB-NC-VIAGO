@@ -64,14 +64,8 @@
               <td>{{ row.total | number }}đ</td>
               <td>
                 <app-badge
-                  [variant]="
-                    row.status === 'DaThanhToan'
-                      ? 'success'
-                      : canCollect(row)
-                        ? 'warning'
-                        : 'neutral'
-                  "
-                  [label]="label(row.status)"
+                  [variant]="rowVariant(row)"
+                  [label]="rowLabel(row)"
                   size="sm"
                 /><small>Hạn: {{ row.expiresAt | date: 'HH:mm dd/MM' : '+0700' }}</small>
               </td>
@@ -137,7 +131,7 @@
       </div>
       <div>
         <dt>Trạng thái</dt>
-        <dd><app-badge [label]="label(row.status)" [variant]="row.status === 'DaThanhToan' ? 'success' : 'neutral'" /></dd>
+        <dd><app-badge [label]="rowLabel(row)" [variant]="rowVariant(row)" /></dd>
       </div>
       <div>
         <dt>Phương thức</dt>
