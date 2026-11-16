@@ -313,6 +313,11 @@ export class AdminBookingManagementService {
         hotenhanhkhach: true,
         sodienthoaihanhkhach: true,
         giave: true,
+        loaiphong: true,
+        maqrve: true,
+        maghechuyen: true,
+        madiemdon: true,
+        madiemtra: true,
         trangthaive: true,
         thoigiantao: true,
         don_hang: {
@@ -331,11 +336,13 @@ export class AdminBookingManagementService {
             ghe: {
               select: {
                 soghe: true,
+                loaighe: true,
               },
             },
             lich_trinh: {
               select: {
                 malichtrinh: true,
+                xe: true,
                 ngaykhoihanh: true,
                 giokhoihanh: true,
                 tuyen_xe: {
@@ -395,6 +402,15 @@ export class AdminBookingManagementService {
         gioKhoiHanh,
         soGhe: ve.ghe_chuyen?.ghe?.soghe || '',
         giaVe: Number(ve.giave),
+        loaiGhe: ve.ghe_chuyen.ghe.loaighe,
+        maXe: ve.ghe_chuyen.lich_trinh.xe.maxe,
+        bienSoXe: ve.ghe_chuyen.lich_trinh.xe.biensoxe,
+        tenXe: ve.ghe_chuyen.lich_trinh.xe.tenxe,
+        loaiXe: ve.ghe_chuyen.lich_trinh.xe.loaixe,
+        maQRVe: ve.maqrve,
+        maGheChuyen: ve.maghechuyen,
+        maDiemDon: ve.madiemdon,
+        maDiemTra: ve.madiemtra,
         nguonDat: ve.don_hang?.nguondat || 'TaiQuay',
         trangThaiVe,
         trangThaiDonHang: orderStatus || 'DaThanhToan',

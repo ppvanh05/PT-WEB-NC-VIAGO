@@ -50,6 +50,7 @@ export interface AdminBookingOrder {
   id: string;
   status: string;
   orderStatus: string;
+  journeyStatus?: 'upcoming' | 'completed';
   source: string;
   note: string;
   createdAt: string;

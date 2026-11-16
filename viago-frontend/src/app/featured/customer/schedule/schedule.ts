@@ -1,11 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { HomeApiService } from '../home/home-api.service';
 import { Amenities } from '../../../shared/components/amenities/amenities';
 
 interface Route {
-  id: number;
+  id: string | number;
   from: string;
   to: string;
   distance: string;
@@ -28,177 +29,59 @@ interface Route {
 })
 export class Schedule implements OnInit {
   searchTerm: string = '';
-  
+
   constructor(private router: Router) {}
 
-  featuredRoutes: Route[] = [
-    {
-      id: 1,
-      from: 'TP.HCM',
-      to: 'Đà Lạt',
-      distance: '310 km',
-      duration: '6 tiếng',
-      price: 280000,
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDSmGIrRFRFx_kzLYR064A6J5uisqCpA-LY9T0llmwr2B4rvU5DlclwbSiWwGu75f66_dQz5mfVcvMorSjHt-G62lnri4AUjn4LaS9r7ZDCD03KnNSHug-ln3R_uvkqMxoYk-Rd1roCpCSn8fEy9a42MpqHsjJ3D7RaT-fUEkWdUOWU6_CqXTjId1UAzlGdhzl0-yLN71kJSZpXGLl36NcW8yeBxkV3W9NXqmryIbg4g2fTO9qH_UGTh_vCMkxFcQ_9POhgNyTkf-w',
-      tags: ['🔥 Đặt nhiều nhất'],
-      vehicleTypes: ['Cabin', 'Giường nằm', 'Limousine'],
-      isFeatured: true
-    },
-    {
-      id: 2,
-      from: 'TP.HCM',
-      to: 'Nha Trang',
-      distance: '435 km',
-      duration: '8.5 tiếng',
-      price: 300000,
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYW1nZ_9EJ3Ur2ppLf1Q-hjThgEtCajmtHZfMbTxniyvusm5ETmABShyi3lWM7y6snE_w1HlZGhVErqqnhP1Wy0V9dKvJPHEgFQj81-Ovt08dVZ_BlthUcJxmZe8JJYNLHYnzc14Nwkl2HrVpy1ack2ffCxn91NHf-FK_1unVEDqzYfXFW9jN29GPlMW7hGh47HGj0iz0LxaVfLFg-1Lt4-vIeQYwFFl_Fa-W4zpUn1nVMpkmy7xiGBNp13xgL7z-T1mty25iFwgs',
-      tags: ['☀️ Phổ biến mùa hè'],
-      vehicleTypes: ['Limousine', 'Giường nằm'],
-      isFeatured: true
-    },
-    {
-      id: 3,
-      from: 'Nha Trang',
-      to: 'Đà Nẵng',
-      distance: '530 km',
-      duration: '10 tiếng',
-      price: 350000,
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDQE2FCeFBgPBF37jZ9xjHeSSmEIicpYboxFK0w_u9h9j4tYMt-2Usi0e_FB3g5dQe6w3RLJl-nu7miS1aFgVKIIrh7_d1rHgp4HEZVFwMs31bijE-0a5ERBNpl6sm22ATcuj1QgRRK6hQQ_4W5NSXt_lTV5ZL0Jsb7Ir9ZaE2eCYUAJvW3LnI_bTOATJPQl8HMO-swJYwqZy_EcOWh8vUwa30qVymtZctul4-EwdNKJ1zbMedft6E_dWbg8I915KSgU8BT2Tcdl_8',
-      tags: ['⭐ Tuyến mới'],
-      vehicleTypes: ['Limousine 34'],
-      isFeatured: true
-    }
-  ];
+  featuredRoutes: Route[] = [];
 
-allRoutes: Route[] = [
-  {
-    id: 1,
-    from: 'TP.HCM',
-    to: 'Cần Thơ',
-    distance: '170km',
-    duration: '3.5 tiếng',
-    price: 180000,
-    image: '/assets/customer/can_tho.jpg',
-    vehicleTypes: ['Limousine', 'Cabin'],
-    tripsPerDay: 12
-  },
-  {
-    id: 2,
-    from: 'TP.HCM',
-    to: 'Vũng Tàu',
-    distance: '100km',
-    duration: '2 tiếng',
-    price: 160000,
-    image: '/assets/customer/vung_tau.jpg',
-    vehicleTypes: ['Limousine', 'Giường nằm'],
-    tripsPerDay: 20
-  },
-  {
-    id: 3,
-    from: 'Đà Lạt',
-    to: 'Buôn Ma Thuột',
-    distance: '210km',
-    duration: '5 tiếng',
-    price: 220000,
-    image: '/assets/customer/buon_me_thuot.jpg',
-    vehicleTypes: ['Giường nằm', 'Cabin'],
-    tripsPerDay: 8
-  },
-  {
-    id: 4,
-    from: 'Đà Lạt',
-    to: 'Nha Trang',
-    distance: '140km',
-    duration: '3 tiếng',
-    price: 220000,
-    image: '/assets/customer/nha_trang.jpg',
-    vehicleTypes: ['Limousine', 'Cabin'],
-    tripsPerDay: 15
-  },
-  {
-    id: 5,
-    from: 'Cần Thơ',
-    to: 'Rạch Giá',
-    distance: '115km',
-    duration: '2.5 tiếng',
-    price: 140000,
-    image: '/assets/customer/rach_gia.jpg',
-    vehicleTypes: ['Giường nằm', 'Limousine'],
-    tripsPerDay: 10
-  },
-  {
-    id: 6,
-    from: 'TP.HCM',
-    to: 'Phan Thiết',
-    distance: '200km',
-    duration: '4 tiếng',
-    price: 220000,
-    image: '/assets/customer/phan_thiet.jpg',
-    vehicleTypes: ['Giường nằm', 'Cabin'],
-    tripsPerDay: 18
-  },
-  {
-    id: 7,
-    from: 'TP.HCM',
-    to: 'Đà Lạt',
-    distance: '310km',
-    duration: '6 tiếng',
-    price: 280000,
-    image: '/assets/customer/da_lat.jpg',
-    vehicleTypes: ['Cabin', 'Limousine'],
-    tripsPerDay: 25
-  },
-  {
-    id: 8,
-    from: 'TP.HCM',
-    to: 'Nha Trang',
-    distance: '435km',
-    duration: '8.5 tiếng',
-    price: 420000,
-    image: '/assets/customer/nha_trang.jpg',
-    vehicleTypes: ['Limousine', 'Giường nằm'],
-    tripsPerDay: 22
-  },
-  {
-    id: 9,
-    from: 'Nha Trang',
-    to: 'Đà Nẵng',
-    distance: '530km',
-    duration: '10 tiếng',
-    price: 350000,
-    image: '/assets/customer/da_nang.jpg',
-    vehicleTypes: ['Limousine', 'Cabin'],
-    tripsPerDay: 14
-  }
-];
+  allRoutes: Route[] = [];
 
   filteredRoutes: Route[] = [];
   selectedRouteForDetails: Route | null = null;
   selectedDirection: 'forward' | 'backward' = 'forward';
 
-  mockTrips = [
-    { time: '08:00', type: 'Limousine 9 chỗ', price: 250000, amenities: 'Ghế massage, Cổng sạc, Nước uống' },
-    { time: '10:30', type: 'Limousine giường nằm 34 chỗ', price: 250000, amenities: 'Giường rộng rãi, Tivi riêng, Wifi' },
-    { time: '13:00', type: 'Limousine 9 chỗ', price: 250000, amenities: 'Ghế massage, Cổng sạc, Nước uống' },
-    { time: '16:00', type: 'Limousine giường nằm 34 chỗ', price: 250000, amenities: 'Giường rộng rãi, Tivi riêng, Wifi' },
-    { time: '21:00', type: 'Limousine 22 giường phòng (có WC)', price: 350000, amenities: 'Cabin cung điện, WC khép kín, Tivi' },
-    { time: '22:30', type: 'Limousine 22 giường phòng (có WC)', price: 350000, amenities: 'Cabin cung điện, WC khép kín, Tivi' },
-    { time: '23:00', type: 'Limousine giường nằm 34 chỗ', price: 250000, amenities: 'Giường rộng rãi, Tivi riêng, Wifi' }
-  ];
+  private liveTrips: Record<
+    'forward' | 'backward',
+    { time: string; type: string; price: number; amenities: string }[]
+  > = { forward: [], backward: [] };
+  get mockTrips() {
+    return this.liveTrips[this.selectedDirection];
+  }
 
   mockStops = {
-    forward: {
-      pickups: ['Văn phòng Hàng Xanh (TP.HCM)', 'Bến xe Miền Đông mới', 'Ngã ba Dầu Giây'],
-      dropoffs: ['Di Linh', 'Đức Trọng', 'Văn phòng Phan Bội Châu (Đà Lạt)', 'Bến xe Liên tỉnh Đà Lạt']
-    },
-    backward: {
-      pickups: ['Bến xe Liên tỉnh Đà Lạt', 'Văn phòng Phan Bội Châu (Đà Lạt)', 'Đức Trọng', 'Di Linh'],
-      dropoffs: ['Ngã ba Dầu Giây', 'Bến xe Miền Đông mới', 'Văn phòng Hàng Xanh (TP.HCM)']
-    }
+    forward: { pickups: [] as string[], dropoffs: [] as string[] },
+    backward: { pickups: [] as string[], dropoffs: [] as string[] },
   };
 
-  ngOnInit() {
-    this.filteredRoutes = [...this.allRoutes];
+  private readonly api = inject(HomeApiService);
+  error = '';
+  async ngOnInit() {
+    try {
+      let page = 1,
+        pages = 1;
+      this.allRoutes = [];
+      do {
+        const data = await this.api.request<any>('/routes?pageSize=100&page=' + page);
+        pages = data.pagination.totalPages;
+        this.allRoutes.push(
+          ...data.data.map((r: any) => ({
+            id: r.id,
+            from: r.from,
+            to: r.to,
+            distance: r.distance + ' km',
+            duration: r.durationMinutes + ' phút',
+            price: r.price,
+            image: r.image || '/assets/brand/logo.png',
+            vehicleTypes: r.vehicleTypes || [],
+          })),
+        );
+        page++;
+      } while (page <= pages);
+      this.filteredRoutes = [...this.allRoutes];
+      this.featuredRoutes = this.allRoutes.slice(0, 3);
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : 'Không tải được tuyến xe.';
+    }
   }
 
   onSearch() {
@@ -211,10 +94,15 @@ allRoutes: Route[] = [
     // Smart aliases matching user request ("Lâm Đồng", "Sài Gòn/Sgon")
     if (term.includes('lâm đồng') || term.includes('lam dong') || term.includes('lâmđồng')) {
       term = 'đà lạt';
-    } else if (term.includes('sài gòn') || term.includes('sai gon') || term.includes('sgon') || term.includes('sg')) {
+    } else if (
+      term.includes('sài gòn') ||
+      term.includes('sai gon') ||
+      term.includes('sgon') ||
+      term.includes('sg')
+    ) {
       term = 'tp.hcm';
     }
-    
+
     term = this.normalizeSearchTerm(term);
 
     const aliases: Record<string, string> = {
@@ -229,7 +117,7 @@ allRoutes: Route[] = [
     };
     term = aliases[term] ?? (term.startsWith('thanh') ? 'tphcm' : term);
 
-    this.filteredRoutes = this.allRoutes.filter(route => {
+    this.filteredRoutes = this.allRoutes.filter((route) => {
       const from = this.normalizeSearchTerm(route.from);
       const to = this.normalizeSearchTerm(route.to);
       return from.includes(term) || to.includes(term);
@@ -244,9 +132,54 @@ allRoutes: Route[] = [
       .replace(/[^a-z0-9]/g, '');
   }
 
-  viewSchedule(route: Route) {
+  async viewSchedule(route: Route) {
     this.selectedRouteForDetails = route;
+    this.error = '';
     this.selectedDirection = 'forward';
+    this.liveTrips = { forward: [], backward: [] };
+    try {
+      const data = await this.api.request<any>(
+        '/trips?from=' +
+          encodeURIComponent(route.from) +
+          '&to=' +
+          encodeURIComponent(route.to) +
+          '&date=' +
+          this.getTodayDateString() +
+          '&roundTrip=true&returnDate=' +
+          this.getTodayDateString() +
+          '&count=1&pageSize=100',
+      );
+      this.liveTrips.forward = data.outbound.data.map((t: any) => ({
+        time: new Date(t.departureAt).toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'Asia/Ho_Chi_Minh',
+        }),
+        type: t.typeCode || t.type,
+        price: t.price,
+        amenities: t.amenities.join(', '),
+      }));
+      this.liveTrips.backward = (data.inbound?.data || []).map((t: any) => ({
+        time: new Date(t.departureAt).toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'Asia/Ho_Chi_Minh',
+        }),
+        type: t.typeCode || t.type,
+        price: t.price,
+        amenities: t.amenities.join(', '),
+      }));
+      const stops = (rows: any[]) => ({
+        pickups: rows[0]?.pickup.map((p: any) => p.name) || [],
+        dropoffs: rows[0]?.dropoff.map((p: any) => p.name) || [],
+      });
+      this.mockStops = {
+        forward: stops(data.outbound.data),
+        backward: stops(data.inbound?.data || []),
+      };
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : 'Không tải được chuyến xe.';
+    }
   }
 
   closeSchedule() {
@@ -273,8 +206,8 @@ allRoutes: Route[] = [
         from,
         to,
         date: today,
-        autoSearch: 'true'
-      }
+        autoSearch: 'true',
+      },
     });
   }
 
@@ -285,12 +218,14 @@ allRoutes: Route[] = [
   bookSelectedRoute() {
     if (!this.selectedRouteForDetails) return;
 
-    const from = this.selectedDirection === 'forward'
-      ? this.selectedRouteForDetails.from
-      : this.selectedRouteForDetails.to;
-    const to = this.selectedDirection === 'forward'
-      ? this.selectedRouteForDetails.to
-      : this.selectedRouteForDetails.from;
+    const from =
+      this.selectedDirection === 'forward'
+        ? this.selectedRouteForDetails.from
+        : this.selectedRouteForDetails.to;
+    const to =
+      this.selectedDirection === 'forward'
+        ? this.selectedRouteForDetails.to
+        : this.selectedRouteForDetails.from;
 
     this.navigateToBooking(from, to);
   }

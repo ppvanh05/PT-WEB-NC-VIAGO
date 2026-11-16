@@ -31,6 +31,12 @@ const pending: AdminBookingOrder = {
   },
 };
 describe('Admin persisted order and payment UI', () => {
+  it('shows the booking journey state in the detail banner after payment', () => {
+    const page = Object.create(AdminBookingOrders.prototype) as AdminBookingOrders;
+    expect(page.orderLabel({...pending, status:'paid', journeyStatus:'upcoming'})).toBe('Chờ khởi hành');
+    expect(page.orderLabel({...pending, status:'paid', journeyStatus:'completed'})).toBe('Đã hoàn thành');
+    expect(page.orderLabel({...pending, status:'cancelled', journeyStatus:'completed'})).toBe('Đã hủy');
+  });
   function deferred<T>() {
     let resolve!: (value: T) => void;
     let reject!: (error: Error) => void;

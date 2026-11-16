@@ -1,4 +1,6 @@
 import { CommonModule } from '@angular/common';
+import { Badge } from '../../../shared/components/badge/badge';
+import { orderStatusVariant } from './order-status-style';
 import { Component, Input, OnDestroy, OnInit, inject, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from '../../../shared/components/button/button';
@@ -8,7 +10,7 @@ import { AdminBookingOrder, AdminBookingOrderRow, BookingOrdersApi } from './boo
 @Component({
   selector: 'app-admin-booking-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule, Button, ModalComponent],
+  imports: [CommonModule, FormsModule, Button, ModalComponent, Badge],
   templateUrl: './booking-orders.html',
   styleUrl: './booking-orders.css',
 })
@@ -52,18 +54,22 @@ export class AdminBookingOrders implements OnInit, OnDestroy {
       (
         {
           pending: 'Chờ thanh toán',
-          paid: 'Đã thanh toán',
+          paid: 'Chờ khởi hành',
           cancelled: 'Đã hủy',
           expired: 'Hết hạn',
           ChoThanhToanOnline: 'Chờ chuyển khoản',
           ChoThanhToanTrucTiep: 'Chờ thu tiền mặt',
-          DaThanhToan: 'Đã thanh toán',
+          DaThanhToan: 'Chờ khởi hành',
           DaHuy: 'Đã hủy',
           HetHanThanhToan: 'Hết hạn',
         } as Record<string, string>
       )[status] ?? status
     );
   }
+  orderLabel(order: AdminBookingOrder) {
+    return order.status === 'paid' && order.journeyStatus === 'completed' ? 'Đã hoàn thành' : this.label(order.status);
+  }
+  orderVariant(order: AdminBookingOrder) { return orderStatusVariant(this.orderLabel(order)); }
   bankName(id: string) {
     return ({ '970448': 'OCB', '970407': 'Techcombank', '970422': 'MB Bank', '970436': 'Vietcombank' } as Record<string, string>)[id] ?? id;
   }

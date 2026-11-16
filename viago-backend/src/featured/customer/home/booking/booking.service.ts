@@ -1025,6 +1025,13 @@ export class HomeBookingService implements OnModuleInit, OnModuleDestroy {
           },
         },
       });
+      const seatIds = [...new Set([...rows, ...linked].flatMap(r => this.note(r).leg.seats))];
+      const seatRows = await tx.ghe_chuyen.findMany({ where: { maghechuyen: { in: seatIds } }, select: { maghechuyen: true, ghe: { select: { soghe: true } } } });
+      const seatNames = new Map(seatRows.map(s => [s.maghechuyen, s.ghe.soghe]));
+      const journeyTickets = await tx.ve_xe.findMany({
+        where: { madonhang: { in: [...rows, ...linked].map(o => o.madonhang) }, trangthaive: { not: 'DaHuy' } },
+        select: { madonhang: true, trangthaive: true },
+      });
       return {
         data: rows.map((r) => ({
           id: r.madonhang,
@@ -1038,6 +1045,12 @@ export class HomeBookingService implements OnModuleInit, OnModuleDestroy {
           createdAt: r.thoigiantao,
           expiresAt: r.thoigianhethangiucho,
           status: r.trangthaidonhang,
+          journeyStatus: (() => {
+            const ids = [r.madonhang, r.madonhangkhuhoi].filter(Boolean);
+            const tickets = journeyTickets.filter(t => ids.includes(t.madonhang));
+            return tickets.length > 0 && tickets.every(t => t.trangthaive === 'DaHoanThanh') ? 'completed' : 'upcoming';
+          })(),
+          seats: [r, ...linked.filter(l => l.madonhang === r.madonhangkhuhoi)].flatMap(o => this.note(o).leg.seats.map(id => seatNames.get(id)).filter((name): name is string => !!name)),
           seatCount:
             this.note(r).leg.seats.length +
             (r.madonhangkhuhoi
@@ -1475,6 +1488,7 @@ export class HomeBookingService implements OnModuleInit, OnModuleDestroy {
         maghechuyen: true,
         tokentracuu: true,
         loaiphong: true,
+        trangthaive: true,
         giave: true,
         thoigianxuatve: true,
         phan_bo_thanh_toan_ve: { select: { sotienphanbo: true } },
@@ -1523,6 +1537,7 @@ export class HomeBookingService implements OnModuleInit, OnModuleDestroy {
     return {
       id: root.madonhang,
       orderStatus: root.trangthaidonhang,
+      journeyStatus: tickets.length > 0 && tickets.every(t => t.trangthaive === 'DaHoanThanh') ? 'completed' : 'upcoming',
       source: root.nguondat,
       staffId: root.manhanvien,
       customerId: root.makhachhang,

@@ -148,11 +148,11 @@
             <td class="code"><strong>{{ order.id }}</strong><small>{{ order.adminCreated ? 'Đơn nhân viên tạo' : 'Đơn khách đặt' }}</small></td>
             <td class="customer-cell"><strong>{{ order.name }}</strong><small>{{ order.phone }}</small></td>
             <td class="journey-cell"><span>{{ order.from }} → {{ order.to }}</span><small>{{ order.departureAt | date: 'HH:mm · dd/MM/yyyy' : '+0700' }}</small></td>
-            <td class="seat"><strong>{{ order.seatCount }} ghế</strong></td>
+            <td class="seat"><strong>{{ order.seats?.join(', ') || '—' }}</strong></td>
             <td class="price-cell">{{ order.total | number }} đ<small>Tổng đơn</small></td>
             <td><app-badge variant="neutral" [label]="LabelNguonDat(OrderSource(order))" /></td>
             <td class="ticket-status-cell">
-              <app-badge [label]="counterOrders()!.label(order.status)" [variant]="order.status === 'DaThanhToan' ? 'success' : order.status === 'ChoThanhToanTrucTiep' ? 'info' : 'neutral'" />
+              <app-badge [label]="counterOrders()!.rowLabel(order)" [variant]="counterOrders()!.rowVariant(order)" />
               @if (order.status === 'ChoThanhToanTrucTiep' || order.status === 'ChoThanhToanOnline') { <small class="payment-caption">Hạn thu: {{ order.expiresAt | date: 'HH:mm dd/MM' : '+0700' }}</small> }
             </td>
             <td class="actions-col"><button type="button" class="admin-edit-action" [attr.aria-label]="'Xem và xử lý đơn ' + order.id" title="Xem và xử lý đơn" (click)="InspectOrder(order)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></td>

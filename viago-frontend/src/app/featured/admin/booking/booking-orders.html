@@ -98,13 +98,7 @@
             <h3>{{ order.id }}</h3>
           </div>
         </div>
-        <span
-          class="order-status"
-          [class.is-paid]="order.status === 'paid'"
-          [class.is-closed]="order.status === 'expired' || order.status === 'cancelled'"
-        >
-          <span class="status-dot" aria-hidden="true"></span>{{ label(order.status) }}
-        </span>
+        <app-badge [label]="orderLabel(order)" [variant]="orderVariant(order)" [dot]="true" />
       </div>
       <div class="order-layout">
         <section class="order-information" aria-label="Thông tin đơn vé">

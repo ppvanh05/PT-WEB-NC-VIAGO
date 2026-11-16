@@ -238,6 +238,8 @@ async function main() {
     'PASS HTTP module wiring, role/permission isolation, DTO validation, profile and pagination',
   );
 
+  const originalMode = process.env.ACCOUNT_OTP_MODE;
+  process.env.ACCOUNT_OTP_MODE = 'sms';
   const originalSms = process.env.ACCOUNT_SMS_WEBHOOK_URL;
   delete process.env.ACCOUNT_SMS_WEBHOOK_URL;
   await api
@@ -245,6 +247,7 @@ async function main() {
     .send({ phoneNumber: '0900000000', purpose: 'DangKy' })
     .expect(503);
   if (originalSms) process.env.ACCOUNT_SMS_WEBHOOK_URL = originalSms;
+  if(originalMode===undefined) delete process.env.ACCOUNT_OTP_MODE; else process.env.ACCOUNT_OTP_MODE=originalMode;
   console.log('PASS no fake OTP success when SMS delivery is missing');
 
   const hash = await hashPassword('CorrectPassword!');

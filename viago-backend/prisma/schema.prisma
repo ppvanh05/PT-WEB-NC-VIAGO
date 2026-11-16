@@ -2023,3 +2023,13 @@ model quan_ly_tiep_nhan {
   @@id([loaidoituong, madoituong])
   @@index([manhanvienphutrach], map: "quan_ly_tiep_nhan_phutrach_idx")
 }
+
+/// Private backend sessions; RLS is enabled by prisma/sql/customer-ticket-lookup.sql.
+model phien_tra_cuu_ve {
+  tokenhash     String   @id @db.VarChar(64)
+  sodienthoai   String   @db.VarChar(10)
+  thoigiantao   DateTime @default(now()) @db.Timestamptz(6)
+  thoigianhethan DateTime @db.Timestamptz(6)
+
+  @@index([thoigianhethan], map: "phien_tra_cuu_ve_expiry")
+}

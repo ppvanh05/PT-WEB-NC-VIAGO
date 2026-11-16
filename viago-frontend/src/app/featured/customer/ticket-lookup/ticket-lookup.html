@@ -89,7 +89,7 @@
             <h3>{{ order.TenTuyen }}</h3>
             <dl class="lookup-order-facts">
               <div><dt>Khởi hành</dt><dd>{{ formatTimeStr(order.GioKhoiHanh) }} · {{ formatDisplayDate(order.DepartureDate) }}</dd></div>
-              <div><dt>Số lượng vé</dt><dd>{{ order.Tickets.length }} vé · Ghế {{ orderSeats(order) }}</dd></div>
+              <div><dt>Số lượng vé</dt><dd>{{ order.SoLuongVeDaDat }} vé · Ghế {{ orderSeats(order) }}</dd></div>
               <div><dt>Tổng tiền đã đặt</dt><dd>{{ formatPrice(order.TongGiaVe) }}</dd></div>
             </dl>
             <app-button class="full-width" variant="outline" (clicked)="openOrder(order)" [ariaLabel]="'Xem đơn ' + order.MaDonHang">Xem đơn và các vé</app-button>
@@ -279,7 +279,8 @@
                  >
                   <span class="material-symbols-outlined text-base" aria-hidden="true">download</span> Tải vé
                 </app-button>
-                <app-button variant="danger" class="lookup-action full-width"
+              <app-button variant="outline" class="lookup-action full-width" [disabled]="ticket.TrangThaiVe === 'Đã hủy' || ticket.TrangThaiVe === 'Chờ thanh toán'" (clicked)="openPrintModal(ticket)">Xem và in vé</app-button>
+              <app-button *ngIf="!currentOrder.FromDb" variant="danger" class="lookup-action full-width"
                   [disabled]="isTicketCancelDisabled(ticket)"
                   [title]="getCancelButtonTitle(ticket)"
                   (clicked)="openCancelModal(ticket)"
@@ -615,24 +616,24 @@
         <div class="lookup-edit-grid">
           <app-input label="Mã đơn hàng" [id]="'edit-order-code'" [value]="currentOrder.MaDonHang" [readonly]="true" />
           <app-input label="Họ tên người đặt" [id]="'edit-full-name'" placeholder="Nhập họ tên đầy đủ"
-            [required]="true" [value]="editFullName" (valueChange)="editFullName = $event"
+            [readonly]="true" [value]="editFullName" (valueChange)="editFullName = $event"
             [error]="editFieldErrors['HoTenNguoiDi'] || ''" />
           <app-input label="Số điện thoại" type="tel" [id]="'edit-phone'" placeholder="Nhập số điện thoại"
-            [required]="true" [value]="editPhone" (valueChange)="editPhone = $event"
+            [readonly]="true" [value]="editPhone" (valueChange)="editPhone = $event"
             [error]="editFieldErrors['SoDienThoai'] || ''" />
           <app-input label="Email" type="email" [id]="'edit-email'" placeholder="Nhập email (không bắt buộc)"
             [value]="editEmail" (valueChange)="editEmail = $event" />
           <!-- Điểm đón dropdown -->
           <div>
             <app-searchable-dropdown label="Điểm đón khách" [id]="'edit-pickup'"
-              [items]="locationOptions" bindLabel="TenDiem" bindValue="MaDiem"
+              [items]="pickupLocationOptions" bindLabel="TenDiem" bindValue="MaDiem"
               [value]="editMaDiemDon" (selected)="selectDiemDon($event)" />
             <p *ngIf="editFieldErrors['MaDiemDon']" class="field-error">{{ editFieldErrors['MaDiemDon'] }}</p>
           </div>
           <!-- Điểm trả dropdown -->
           <div>
             <app-searchable-dropdown label="Điểm trả khách" [id]="'edit-dropoff'"
-              [items]="locationOptions" bindLabel="TenDiem" bindValue="MaDiem"
+              [items]="dropoffLocationOptions" bindLabel="TenDiem" bindValue="MaDiem"
               [value]="editMaDiemTra" (selected)="selectDiemTra($event)" />
             <p *ngIf="editFieldErrors['MaDiemTra']" class="field-error">{{ editFieldErrors['MaDiemTra'] }}</p>
           </div>

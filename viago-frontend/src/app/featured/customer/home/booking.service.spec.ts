@@ -241,7 +241,7 @@ describe('Booking API connection', () => {
     const api = TestBed.inject(HomeApiService);
     await api.wallet();
     expect(fetcher.mock.calls[0][1].headers.Authorization).toBeUndefined();
-    sessionStorage.setItem('viago_backend_access_token', 'a'.repeat(64));
+    sessionStorage.setItem('viago_customer_access_token', 'a'.repeat(64));
     await api.wallet();
     expect(fetcher.mock.calls[1][1].headers.Authorization).toBe('Bearer ' + 'a'.repeat(64));
     expect(fetcher.mock.calls[1][1].credentials).toBe('include');

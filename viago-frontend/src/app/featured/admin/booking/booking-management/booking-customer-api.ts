@@ -22,6 +22,15 @@ export interface RawTicketRow {
   gioKhoiHanh: string;
   soGhe: string;
   giaVe: number;
+  loaiGhe?: string;
+  maXe?: string;
+  bienSoXe?: string;
+  tenXe?: string | null;
+  loaiXe?: string;
+  maQRVe?: string;
+  maGheChuyen?: string;
+  maDiemDon?: string | null;
+  maDiemTra?: string | null;
   nguonDat: string;
   trangThaiVe: 'GiuCho' | 'ChoKhoiHanh' | 'DaHoanThanh' | 'DaHuy';
   trangThaiDonHang: string;

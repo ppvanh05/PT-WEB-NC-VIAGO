@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { AdminContentApi } from '../../../../core/services/content-api.service';
-import { CounterOrder } from '../counter-orders/counter-orders';
+import { CounterOrder, CounterOrders } from '../counter-orders/counter-orders';
 import { BookingManagement } from './booking-management';
 
 type Ticket = ReturnType<BookingManagement['danhSachVe']>[number];
@@ -16,10 +16,29 @@ const ticket: Ticket = {
 const order: CounterOrder = {
   id: 'DH200', name: 'Nguyễn Bình', phone: '0900000000', from: 'TP.HCM', to: 'Cần Thơ',
   createdAt: '2050-01-02T00:00:00Z', departureAt: '2050-01-03T22:30:00Z',
-  expiresAt: '2050-01-03T23:00:00Z', total: 360000, seatCount: 2, status: 'ChoThanhToanTrucTiep',
+  expiresAt: '2050-01-03T23:00:00Z', total: 360000, seatCount: 2, seats: ['1A', '2A'], status: 'ChoThanhToanTrucTiep',
 };
 
 describe('Unified booked tickets list', () => {
+  it('shows paid counter and website orders by their backend journey state', () => {
+    const page = Object.create(CounterOrders.prototype) as CounterOrders;
+    expect(page.rowLabel({...order, status:'DaThanhToan', journeyStatus:'upcoming'})).toBe('Chờ khởi hành');
+    expect(page.rowLabel({...order, status:'DaThanhToan', journeyStatus:'completed'})).toBe('Đã hoàn thành');
+    expect(page.rowLabel({...order, status:'DaHuy', journeyStatus:'completed'})).toBe('Đã hủy');
+  });
+  it('preserves the backend fare when seat type is missing and labels paid orders consistently', () => {
+    const page = Object.create(BookingManagement.prototype) as any;
+    page.danhSachXe = []; page.giaCoSoTheoTuyen = {}; page.maXeTheoTuyenId = {};
+    page.danhSachVe = () => [];
+    const mapped = page.MapApiTicketToVeXe({maVe:'VE034',maDonHang:'DH039',maLichTrinh:'LT003',soGhe:'2A',giaVe:160000,trangThaiVe:'ChoKhoiHanh',trangThaiDonHang:'DaThanhToan',nguonDat:'Online'});
+    expect(mapped.GiaVe).toBe(160000);
+    expect(mapped.TongGiaVe).toBe(160000);
+    page.danhSachVe = () => [mapped];
+    expect(page.OrderLabel(mapped)).toBe('Chờ khởi hành');
+    expect(page.TicketLifecycleLabel(mapped)).toBe('Chờ khởi hành');
+    mapped.TrangThaiVe = 'DaHoanThanh';
+    expect(page.OrderLabel(mapped)).toBe('Đã hoàn thành');
+  });
   let request: ReturnType<typeof vi.fn>;
   beforeEach(() => {
     request = vi.fn().mockResolvedValue({ data: [order], pagination: { total: 1, totalPages: 1 } });
@@ -51,6 +70,7 @@ describe('Unified booked tickets list', () => {
     expect(root.querySelector('.order-result-panel, .order-matches-panel, #counter-search')).toBeNull();
     expect(root.querySelector('tbody')!.textContent).toContain('DH200');
     expect(root.querySelector('tbody')!.textContent).toContain('VE100');
+    expect(root.querySelector('tbody')!.textContent).toContain('1A, 2A');
     expect(page.danhSachTongHop().map(row => row.key)).toEqual(['order:DH200', 'ticket:VE100']);
 
     const input = root.querySelector('input[aria-label="Tìm kiếm"]') as HTMLInputElement;
