@@ -1,41 +1,60 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Pagination } from '../../../../shared/components/pagination/pagination';
 import { AuthService } from '../../../../core/services/auth.service';
-import { BookingService } from '../../home/booking.service';
-import { vietnamDate } from '../../home/booking.models';
+import { AccountsApiService } from '../../../../core/services/accounts-api.service';
 import { PhoneInputDirective } from '../../../../shared/utils/input-guards';
 import { VN_PHONE_REGEX } from '../../../../shared/utils/form-validators';
 
 type ClaimField = 'bookingCode' | 'phone' | 'description';
 
-interface MockOrderTicket {
-  id: string;   // Mã vé
-  seat: string;
-  route?: string; // Đơn khứ hồi: mỗi chiều có tuyến/ngày riêng
-  date?: string;
-}
-
-interface MockOrder {
-  route: string;
-  date: string; // yyyy-mm-dd
-  fullName: string;
-  phone: string; // SĐT người đặt
-  email: string;
-  tickets: MockOrderTicket[];
-  owner?: string;
-}
-
+/** GET customer/lost-and-found/items (bảng do_that_lac, chỉ đồ đã tìm thấy/đã trả). */
 export interface LostItem {
   id: string;
   name: string;
-  image: string;
+  image: string | null;
   foundDate: string;
-  route: string;
-  storage: string;
+  route: string | null;
+  storage: string | null;
   status: 'stored' | 'processing' | 'returned';
 }
+
+/** GET customer/lost-and-found/bookings/:code?phone (đơn hàng + vé đã xác minh SĐT). */
+interface BookingInfo {
+  orderId: string;
+  ticketId: string | null;
+  route: string;
+  date: string;
+  fullName: string;
+  email: string | null;
+  tickets: { id: string; seat: string; passenger: string }[];
+}
+
+interface StatusResult {
+  type: 'report' | 'claim';
+  code: string;
+  itemName: string;
+  status: string;
+  statusLabel: string;
+  storage: string | null;
+  timeline: { label: string; time: string }[];
+}
+
+interface MyTicket {
+  id: string;
+  orderId: string;
+  status: string;
+  date: string;
+  dateLabel: string;
+  depLoc: string;
+  arrLoc: string;
+}
+
+const MAX_IMAGES = 3;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="100%" height="100%" fill="#e5e7eb"/><text x="50%" y="50%" fill="#6b7280" font-family="sans-serif" font-size="16" text-anchor="middle" dominant-baseline="middle">Chưa có ảnh</text></svg>');
 
 @Component({
   selector: 'app-lost-and-found',
@@ -46,200 +65,160 @@ export interface LostItem {
 })
 export class LostAndFound implements OnInit {
   private readonly authService = inject(AuthService);
-  private readonly bookingService = inject(BookingService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly accountsApi = inject(AccountsApiService);
+  /** App chạy không có zone.js: gọi API xong thì báo Angular vẽ lại giao diện. */
+  private readonly api = {
+    request: <T>(...args: Parameters<AccountsApiService['request']>): Promise<T> =>
+      this.accountsApi.request<T>(...args).finally(() => this.cdr.markForCheck()),
+  };
 
-  // Items logic
-  allItems: LostItem[] = [
-    { id: '1', name: 'Điện thoại iPhone 14 Pro Max 256GB', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&auto=format&fit=crop&q=80', foundDate: '21/10/2026', route: 'Đà Lạt - TP.HCM', storage: 'VP Đà Nẵng', status: 'stored' },
-    { id: '2', name: 'Balo The North Face Surge', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&auto=format&fit=crop&q=80', foundDate: '22/10/2026', route: 'TP.HCM - Nha Trang', storage: 'VP Mỹ Đình', status: 'stored' },
-    { id: '3', name: 'Apple Watch Series 8', image: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=300&auto=format&fit=crop&q=80', foundDate: '23/10/2026', route: 'Nha Trang - TP.HCM', storage: 'VP Quảng Ngãi', status: 'processing' },
-    { id: '4', name: 'Túi xách tay nữ Charles & Keith', image: 'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?w=300&auto=format&fit=crop&q=80', foundDate: '20/10/2026', route: 'Cần Thơ - TP.HCM', storage: 'VP Gia Lâm', status: 'stored' },
-    { id: '5', name: 'Kính râm Ray-Ban Aviator', image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=300&auto=format&fit=crop&q=80', foundDate: '26/10/2026', route: 'TP.HCM - Vũng Tàu', storage: 'VP Lê Hồng Phong', status: 'stored' },
-    { id: '6', name: 'Laptop Dell XPS 13 (2022)', image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=300&auto=format&fit=crop&q=80', foundDate: '19/10/2026', route: 'Vũng Tàu - TP.HCM', storage: 'VP Huế', status: 'stored' },
-    { id: '7', name: 'Ví da thật Pedro màu nâu', image: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=300&auto=format&fit=crop&q=80', foundDate: '28/10/2026', route: 'TP.HCM - Đà Lạt', storage: 'VP Bến Xe Miền Đông', status: 'stored' },
-    { id: '8', name: 'Tai nghe AirPods Pro 2', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&auto=format&fit=crop&q=80', foundDate: '29/10/2026', route: 'TP.HCM - Cần Thơ', storage: 'VP Bến Xe Miền Tây', status: 'returned' },
-    { id: '9', name: 'Vali kéo nhựa size 20 màu bạc', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&auto=format&fit=crop&q=80', foundDate: '15/10/2026', route: 'Đà Nẵng - Nha Trang', storage: 'VP Đà Nẵng', status: 'stored' },
-    { id: '10', name: 'Áo khoác gió Canifa xám', image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=300&auto=format&fit=crop&q=80', foundDate: '18/10/2026', route: 'Nha Trang - Đà Lạt', storage: 'VP Vũng Tàu', status: 'processing' }
-  ];
+  readonly placeholderImage = PLACEHOLDER_IMAGE;
 
-  filteredItems: LostItem[] = [];
+  // Danh sách đồ thất lạc (phân trang phía server)
   paginatedItems: LostItem[] = [];
-  
-  searchQuery = '';
-  selectedRoute = 'Tất cả các tuyến';
-  selectedStatus = 'Tất cả trạng thái';
-  searchTicketCode = '';
+  totalItems = 0;
+  loadingItems = false;
+  itemsError = '';
 
-  routes = ['Tất cả các tuyến', 'TP.HCM - Đà Lạt', 'Đà Lạt - TP.HCM', 'TP.HCM - Nha Trang', 'Nha Trang - TP.HCM', 'Cần Thơ - TP.HCM', 'TP.HCM - Cần Thơ', 'TP.HCM - Vũng Tàu', 'Vũng Tàu - TP.HCM'];
+  searchQuery = '';
+  selectedRoute = '';
+  selectedStatus = '';
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Tuyến lấy từ GET customer/lost-and-found/routes */
+  routes: { value: string; label: string }[] = [];
   statuses = [
-    { value: 'Tất cả trạng thái', label: 'Tất cả trạng thái' },
+    { value: '', label: 'Tất cả trạng thái' },
     { value: 'stored', label: 'Đang lưu trữ' },
-    { value: 'processing', label: 'Đang xử lý' }
+    { value: 'processing', label: 'Đang xử lý' },
+    { value: 'returned', label: 'Đã trao trả' },
   ];
 
   currentPage = 1;
   pageSize = 8;
   totalPages = 1;
 
-  get pagesArray(): number[] {
-    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
-  }
-
-  // Report Form Logic
-  reportForm = {
-    bookingCode: '',   // Mã đơn hoặc mã vé khách nhập
-    maDonHang: '',     // DO_THAT_LAC.MaDonHang
-    maVe: '',          // DO_THAT_LAC.MaVe
-    description: '',
-    route: '',
-    date: '',
-    seat: '',
-    fullName: '',
-    phone: '',
-    email: '',
-    image: null as File | null
-  };
-
-  // Mock đơn hàng (mỗi đơn 1 chuyến, có thể nhiều vé) để tự động điền theo mã đơn / mã vé
-  mockOrders: { [orderId: string]: MockOrder } = {
-    'DH10000001': { route: 'TP.HCM - Đà Lạt', date: '2026-10-25', fullName: 'Nguyễn Văn Anh', phone: '0987654321', email: 'vananh.nguyen@email.com',
-      tickets: [{ id: 'VE00001', seat: 'A01' }, { id: 'VE00002', seat: 'A02' }] },
-    'DH10000002': { route: 'Nha Trang - TP.HCM', date: '2026-10-28', fullName: 'Trần Thị Ngọc Bích', phone: '0912345678', email: 'ngocbich.tran@email.com',
-      tickets: [{ id: 'VE00003', seat: 'B05' }] },
-    'DH10000003': { route: 'Cần Thơ - TP.HCM', date: '2026-10-15', fullName: 'Lê Hoàng Long', phone: '0909123456', email: 'long.lehoang@email.com',
-      tickets: [{ id: 'VE00004', seat: 'Phòng 02' }, { id: 'VE00005', seat: 'Phòng 03' }, { id: 'VE00006', seat: 'Phòng 04' }] },
-  };
-
-  /** Các vé trong đơn đang chọn (dùng để chọn ghế khi đơn có nhiều vé). */
-  orderTickets: MockOrderTicket[] = [];
+  // Form khai báo mất đồ → POST customer/lost-and-found/reports
+  reportForm = this.emptyReport();
+  booking: BookingInfo | null = null;
   bookingCodeError = '';
+  checkingBooking = false;
+  reportImages: { file: File; preview: string }[] = [];
+  imageError = '';
+  submittingReport = false;
 
-  /** Chuyến đi của tôi (chỉ khi đã đăng nhập). */
-  myTrips: { orderId: string; route: string; date: string }[] = [];
+  /** Vé của tôi (chỉ khi đã đăng nhập) — GET customer/profile/tickets */
+  myTrips: MyTicket[] = [];
   selectedTripId = '';
+
+  // Tra cứu hồ sơ / yêu cầu đã gửi → GET customer/lost-and-found/status/:code
+  statusForm = { code: '', phone: '' };
+  statusResult: StatusResult | null = null;
+  statusError = '';
+  checkingStatus = false;
 
   showToast = false;
   toastMessage = '';
+  toastError = false;
   isClaimModalOpen = false;
   selectedClaimItem: LostItem | null = null;
+  submittingClaim = false;
 
   ngOnInit() {
-    // Generate 37 more items to total 47 items
-    const bases = this.allItems.slice();
-    for (let i = 11; i <= 47; i++) {
-      const base = bases[i % bases.length];
-      this.allItems.push({
-        ...base,
-        id: i.toString(),
-        name: `${base.name} #${i}`,
-      });
-    }
-
-    this.loadBookedOrders();
-
-    // Đã đăng nhập: cho chọn nhanh từ "Chuyến đi của tôi" và điền sẵn thông tin liên hệ
     const user = this.authService.currentUser();
     if (user) {
-      const entries = Object.entries(this.mockOrders);
-      const own = entries.filter(([, o]) => o.owner && (o.owner === user.id || o.phone === user.phoneNumber));
-      const samples = entries.filter(([, o]) => !o.owner);
-      this.myTrips = [...own, ...samples].map(([orderId, o]) => ({ orderId, route: o.route, date: o.date }));
       this.applyUserContact();
       this.claimForm.phone = user.phoneNumber || '';
+      this.statusForm.phone = user.phoneNumber || '';
+      void this.loadMyTrips();
     }
-
-    this.filterItems();
+    void this.loadRoutes();
+    void this.loadItems();
   }
 
-  /** Đơn đã thanh toán từ luồng đặt vé: mã đơn = order.id, mã vé = {mã đơn}-{chiều}-{thứ tự ghế}. */
-  private loadBookedOrders() {
+  private emptyReport() {
+    return {
+      bookingCode: '',
+      maVe: '',
+      itemName: '',
+      description: '',
+      seat: '',
+      fullName: '',
+      phone: '',
+      email: '',
+    };
+  }
+
+  private async loadRoutes() {
     try {
-      const trips = this.bookingService.catalog();
-      for (const order of this.bookingService.state().orders) {
-        if (order.status !== 'paid') continue;
-        const tickets: MockOrderTicket[] = [];
-        order.legs.forEach((leg, li) => {
-          const trip = trips.find(t => t.id === leg.tripId);
-          if (!trip) return;
-          const route = `${trip.from} - ${trip.to}`;
-          const date = vietnamDate(Date.parse(trip.departureAt));
-          if (!this.routes.includes(route)) this.routes.push(route);
-          leg.seats.forEach((seat, si) => tickets.push({ id: `${order.id}-${li + 1}-${si + 1}`.toUpperCase(), seat, route, date }));
-        });
-        if (!tickets.length) continue;
-        this.mockOrders[order.id.toUpperCase()] = {
-          route: tickets[0].route!, date: tickets[0].date!,
-          fullName: order.passenger.name, phone: order.passenger.phone, email: order.passenger.email,
-          tickets, owner: order.owner,
-        };
-      }
+      this.routes = await this.api.request<{ value: string; label: string }[]>('customer/lost-and-found/routes');
     } catch {
-      // Không đọc được dữ liệu đặt vé -> chỉ dùng dữ liệu mẫu
+      this.routes = [];
     }
   }
 
-  /** Tra mã đơn hoặc mã vé -> đơn hàng (và vé cụ thể nếu nhập mã vé). */
-  resolveBookingCode(raw: string): { orderId: string; order: MockOrder; ticket?: MockOrderTicket } | null {
-    const code = raw.trim().toUpperCase();
-    if (!code) return null;
-    if (this.mockOrders[code]) return { orderId: code, order: this.mockOrders[code] };
-    for (const [orderId, order] of Object.entries(this.mockOrders)) {
-      const ticket = order.tickets.find(t => t.id.toUpperCase() === code);
-      if (ticket) return { orderId, order, ticket };
+  private async loadMyTrips() {
+    try {
+      const res = await this.api.request<{ items: MyTicket[] }>('customer/profile/tickets?page=1&pageSize=20&sort=newest');
+      this.myTrips = res.items.filter(t => t.status !== 'ĐÃ HỦY');
+    } catch {
+      this.myTrips = [];
     }
-    return null;
+  }
+
+  async loadItems() {
+    this.loadingItems = true;
+    this.itemsError = '';
+    const params = new URLSearchParams({ page: String(this.currentPage), pageSize: String(this.pageSize) });
+    if (this.searchQuery.trim()) params.set('search', this.searchQuery.trim());
+    if (this.selectedRoute) params.set('routeId', this.selectedRoute);
+    if (this.selectedStatus) params.set('status', this.selectedStatus);
+    try {
+      const res = await this.api.request<{ items: LostItem[]; pagination: { total: number; totalPages: number } }>(
+        `customer/lost-and-found/items?${params}`);
+      this.paginatedItems = res.items;
+      this.totalItems = res.pagination.total;
+      this.totalPages = res.pagination.totalPages;
+    } catch (error) {
+      this.itemsError = this.message(error, 'Không tải được danh sách đồ thất lạc.');
+      this.paginatedItems = [];
+      this.totalItems = 0;
+      this.totalPages = 1;
+    } finally {
+      this.loadingItems = false;
+    }
   }
 
   private applyUserContact() {
     const user = this.authService.currentUser();
     if (!user) return;
-    this.reportForm.fullName = user.name || this.reportForm.fullName;
-    this.reportForm.phone = user.phoneNumber || this.reportForm.phone;
-    this.reportForm.email = user.email || this.reportForm.email;
+    this.reportForm.fullName = this.reportForm.fullName || user.name || '';
+    this.reportForm.phone = this.reportForm.phone || user.phoneNumber || '';
+    this.reportForm.email = this.reportForm.email || user.email || '';
   }
 
   filterItems() {
-    this.filteredItems = this.allItems.filter(item => {
-      // Hide returned items from customers
-      if (item.status === 'returned') return false;
-      
-      const matchSearch = item.name.toLowerCase().includes(this.searchQuery.toLowerCase());
-      const matchRoute = this.selectedRoute === 'Tất cả các tuyến' || item.route === this.selectedRoute;
-      const matchStatus = this.selectedStatus === 'Tất cả trạng thái' || item.status === this.selectedStatus;
-      // If a ticket code is entered, simulate filtering by checking if the ticket exists
-      // and if the item's route matches the ticket's route.
-      let matchTicket = true;
-      if (this.searchTicketCode.trim()) {
-        const found = this.resolveBookingCode(this.searchTicketCode);
-        if (found) {
-          matchTicket = item.route === found.order.route;
-        } else {
-          matchTicket = false; // Invalid ticket code shows no items
-        }
-      }
-      
-      return matchSearch && matchRoute && matchStatus && matchTicket;
-    });
+    this.currentPage = 1;
+    void this.loadItems();
+  }
 
-    this.totalPages = Math.max(1, Math.ceil(this.filteredItems.length / this.pageSize));
-    this.setPage(1);
+  onSearchInput() {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.filterItems(), 350);
   }
 
   clearFilters() {
     this.searchQuery = '';
-    this.selectedRoute = 'Tất cả các tuyến';
-    this.selectedStatus = 'Tất cả trạng thái';
-    this.searchTicketCode = '';
+    this.selectedRoute = '';
+    this.selectedStatus = '';
     this.filterItems();
   }
 
   setPage(page: number) {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
-    const start = (this.currentPage - 1) * this.pageSize;
-    this.paginatedItems = this.filteredItems.slice(start, start + this.pageSize);
-    
-    // Requirement: Scroll to top of list when changing page
+    void this.loadItems();
     const listElement = document.getElementById('items-list-top');
     if (listElement) {
       listElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -248,115 +227,173 @@ export class LostAndFound implements OnInit {
     }
   }
 
-  onBookingCodeChange() {
-    this.bookingCodeError = '';
-    this.orderTickets = [];
-    this.reportForm.maDonHang = '';
-    this.reportForm.maVe = '';
-    if (!this.reportForm.bookingCode.trim()) return;
+  // ─── KHAI BÁO MẤT ĐỒ ─────────────────────────────────────────────────────
 
-    const found = this.resolveBookingCode(this.reportForm.bookingCode);
-    if (!found) {
-      this.bookingCodeError = 'Không tìm thấy mã này.';
+  /** Xác minh mã đơn/mã vé + SĐT người đặt rồi tự điền tuyến, ngày, ghế. */
+  async onBookingCodeChange() {
+    this.bookingCodeError = '';
+    const code = this.reportForm.bookingCode.trim().toUpperCase();
+    const phone = this.reportForm.phone.trim();
+    if (!code) {
+      this.booking = null;
       return;
     }
-
-    const { orderId, order, ticket } = found;
-    this.reportForm.bookingCode = this.reportForm.bookingCode.trim().toUpperCase();
-    this.reportForm.maDonHang = orderId;
-    this.reportForm.route = order.route;
-    this.reportForm.date = order.date;
-    this.reportForm.fullName = order.fullName;
-    this.reportForm.phone = order.phone;
-    this.reportForm.email = order.email;
-
-    if (ticket) {
-      // Nhập mã vé -> xác định đúng 1 ghế
-      this.applyTicket(ticket);
-    } else if (order.tickets.length === 1) {
-      this.applyTicket(order.tickets[0]);
-    } else {
-      // Đơn nhiều vé -> cho khách chọn ghế
-      this.orderTickets = order.tickets;
-      this.reportForm.seat = '';
+    if (!VN_PHONE_REGEX.test(phone)) {
+      this.booking = null;
+      this.bookingCodeError = 'Nhập số điện thoại người đặt để xác minh mã này.';
+      return;
     }
-
-    if (this.selectedTripId) this.applyUserContact();
+    if (this.booking && (this.booking.orderId === code || this.booking.ticketId === code)) return;
+    this.checkingBooking = true;
+    try {
+      const info = await this.api.request<BookingInfo>(
+        `customer/lost-and-found/bookings/${encodeURIComponent(code)}?phone=${encodeURIComponent(phone)}`);
+      this.booking = info;
+      this.reportForm.bookingCode = code;
+      this.reportForm.fullName = this.reportForm.fullName || info.fullName;
+      this.reportForm.email = this.reportForm.email || info.email || '';
+      const ticket = info.ticketId ? info.tickets.find(t => t.id === info.ticketId) : info.tickets.length === 1 ? info.tickets[0] : undefined;
+      this.reportForm.maVe = ticket?.id ?? '';
+      this.reportForm.seat = ticket?.seat ?? '';
+    } catch (error) {
+      this.booking = null;
+      this.bookingCodeError = this.message(error, 'Không tìm thấy mã này.');
+    } finally {
+      this.checkingBooking = false;
+    }
   }
 
-  onSelectMyTrip(orderId: string) {
-    this.reportForm.bookingCode = orderId;
-    this.onBookingCodeChange();
+  get orderTickets() {
+    return this.booking && !this.booking.ticketId && this.booking.tickets.length > 1 ? this.booking.tickets : [];
+  }
+
+  onSelectMyTrip(ticketId: string) {
+    if (!ticketId) return;
+    this.reportForm.bookingCode = ticketId;
+    this.reportForm.phone = this.authService.currentUser()?.phoneNumber || this.reportForm.phone;
+    this.booking = null;
+    void this.onBookingCodeChange();
   }
 
   onSelectOrderTicket(ticketId: string) {
-    const ticket = this.orderTickets.find(t => t.id === ticketId);
-    if (ticket) this.applyTicket(ticket);
-    else this.reportForm.seat = '';
+    const ticket = this.booking?.tickets.find(t => t.id === ticketId);
+    this.reportForm.seat = ticket?.seat ?? '';
   }
 
-  private applyTicket(ticket: MockOrderTicket) {
-    this.reportForm.maVe = ticket.id;
-    this.reportForm.seat = ticket.seat;
-    if (ticket.route) this.reportForm.route = ticket.route;
-    if (ticket.date) this.reportForm.date = ticket.date;
-  }
-
-  openDatePicker(event: Event) {
-    try {
-      (event.target as any).showPicker();
-    } catch (e) {
-      // Fallback for older browsers
-    }
-  }
-
-  submitReport() {
-    if (this.reportForm.bookingCode.trim() && !this.reportForm.maDonHang) {
-      alert('Mã đơn hoặc mã vé không hợp lệ. Vui lòng kiểm tra lại hoặc để trống ô này.');
-      return;
-    }
-
-    if (!this.reportForm.description || !this.reportForm.route || !this.reportForm.date || !this.reportForm.fullName || !this.reportForm.phone) {
-      alert('Vui lòng điền đầy đủ các thông tin bắt buộc (*)');
-      return;
-    }
-
-    // Phone validation
-    const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
-    if (!phoneRegex.test(this.reportForm.phone)) {
-      alert('Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam (ví dụ: 0987654321).');
-      return;
-    }
-
-    // Email validation (if provided)
-    if (this.reportForm.email) {
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      if (!emailRegex.test(this.reportForm.email)) {
-        alert('Địa chỉ email không hợp lệ!');
-        return;
+  onImagesSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    this.imageError = '';
+    for (const file of files) {
+      if (this.reportImages.length >= MAX_IMAGES) {
+        this.imageError = `Tối đa ${MAX_IMAGES} ảnh.`;
+        break;
       }
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+        this.imageError = 'Chỉ nhận ảnh JPG, PNG hoặc WEBP.';
+        continue;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        this.imageError = 'Mỗi ảnh tối đa 5 MB.';
+        continue;
+      }
+      this.reportImages.push({ file, preview: URL.createObjectURL(file) });
+    }
+  }
+
+  removeImage(index: number) {
+    const [removed] = this.reportImages.splice(index, 1);
+    if (removed) URL.revokeObjectURL(removed.preview);
+  }
+
+  async submitReport() {
+    if (this.submittingReport) return;
+    const f = this.reportForm;
+    if (!f.bookingCode.trim() || !VN_PHONE_REGEX.test(f.phone.trim())) {
+      this.triggerToast('Vui lòng nhập mã đơn/mã vé và số điện thoại người đặt.', true);
+      return;
+    }
+    if (!this.booking) await this.onBookingCodeChange();
+    if (!this.booking) {
+      this.triggerToast(this.bookingCodeError || 'Mã đơn hoặc mã vé không hợp lệ.', true);
+      return;
+    }
+    if (this.orderTickets.length && !f.maVe) {
+      this.triggerToast('Đơn có nhiều vé, vui lòng chọn ghế của người để quên đồ.', true);
+      return;
+    }
+    if (f.itemName.trim().length < 3) {
+      this.triggerToast('Vui lòng nhập tên vật phẩm (tối thiểu 3 ký tự).', true);
+      return;
+    }
+    if (f.description.trim().length < 10) {
+      this.triggerToast('Mô tả chi tiết cần tối thiểu 10 ký tự.', true);
+      return;
+    }
+    if (f.fullName.trim().length < 2) {
+      this.triggerToast('Vui lòng nhập họ tên hành khách.', true);
+      return;
+    }
+    if (f.email.trim() && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(f.email.trim())) {
+      this.triggerToast('Địa chỉ email không hợp lệ!', true);
+      return;
     }
 
-    this.triggerToast('Gửi yêu cầu khai báo thành công! Chúng tôi sẽ liên hệ sớm nhất.');
-    // Reset form
-    this.reportForm = {
-      bookingCode: '',
-      maDonHang: '',
-      maVe: '',
-      description: '',
-      route: '',
-      date: '',
-      seat: '',
-      fullName: '',
-      phone: '',
-      email: '',
-      image: null
-    };
-    this.orderTickets = [];
-    this.bookingCodeError = '';
-    this.selectedTripId = '';
-    this.applyUserContact();
+    const form = new FormData();
+    form.append('bookingCode', f.bookingCode.trim());
+    form.append('phone', f.phone.trim());
+    if (f.maVe) form.append('ticketId', f.maVe);
+    form.append('itemName', f.itemName.trim());
+    form.append('description', f.description.trim());
+    if (f.seat.trim()) form.append('seat', f.seat.trim());
+    form.append('fullName', f.fullName.trim());
+    if (f.email.trim()) form.append('email', f.email.trim());
+    this.reportImages.forEach(img => form.append('files', img.file));
+
+    this.submittingReport = true;
+    try {
+      const res = await this.api.request<{ code: string; statusLabel: string }>('customer/lost-and-found/reports', 'POST', form);
+      this.triggerToast(`Đã gửi khai báo ${res.code}. Lưu mã này để tra cứu tiến trình.`);
+      this.statusForm = { code: res.code, phone: f.phone.trim() };
+      this.reportImages.forEach(img => URL.revokeObjectURL(img.preview));
+      this.reportImages = [];
+      this.reportForm = this.emptyReport();
+      this.booking = null;
+      this.bookingCodeError = '';
+      this.selectedTripId = '';
+      this.applyUserContact();
+      void this.checkStatus();
+    } catch (error) {
+      this.triggerToast(this.message(error, 'Không gửi được khai báo.'), true);
+    } finally {
+      this.submittingReport = false;
+    }
   }
+
+  // ─── TRA CỨU ─────────────────────────────────────────────────────────────
+
+  async checkStatus() {
+    const code = this.statusForm.code.trim().toUpperCase();
+    const phone = this.statusForm.phone.trim();
+    if (!code || !VN_PHONE_REGEX.test(phone)) {
+      this.statusError = 'Nhập mã hồ sơ (DTL...) hoặc mã yêu cầu nhận đồ (YCND...) và số điện thoại.';
+      return;
+    }
+    this.checkingStatus = true;
+    this.statusError = '';
+    try {
+      this.statusResult = await this.api.request<StatusResult>(
+        `customer/lost-and-found/status/${encodeURIComponent(code)}?phone=${encodeURIComponent(phone)}`);
+    } catch (error) {
+      this.statusResult = null;
+      this.statusError = this.message(error, 'Không tìm thấy hồ sơ.');
+    } finally {
+      this.checkingStatus = false;
+    }
+  }
+
+  // ─── BÁO NHẬN SỞ HỮU ─────────────────────────────────────────────────────
 
   openClaimModal(item: LostItem) {
     this.selectedClaimItem = item;
@@ -375,14 +412,13 @@ export class LostAndFound implements OnInit {
     this.claimTouched = { bookingCode: false, phone: false, description: false };
   }
 
-  // YEU_CAU_NHAN_DO: mã đơn hoặc mã vé (bắt buộc 1 trong 2) + SĐT người đặt + đặc điểm nhận dạng
+  // YEU_CAU_NHAN_DO: mã đơn hoặc mã vé + SĐT người đặt + đặc điểm nhận dạng
   claimForm = {
     bookingCode: '',
     phone: '',
     description: ''
   };
 
-  // Lỗi inline dưới từng ô (không dùng alert/toast cho lỗi của một ô)
   claimErrors = { bookingCode: '', phone: '', description: '' };
   private claimTouched = { bookingCode: false, phone: false, description: false };
 
@@ -390,36 +426,30 @@ export class LostAndFound implements OnInit {
     const value = this.claimForm[field].trim();
     if (field === 'bookingCode') {
       if (!value) return 'Vui lòng nhập mã đơn hoặc mã vé';
-      return this.resolveBookingCode(value) ? '' : 'Không tìm thấy mã này';
+      return /^[A-Za-z0-9_-]{3,60}$/.test(value) ? '' : 'Mã đơn hoặc mã vé không hợp lệ';
     }
     if (field === 'phone') {
       if (!value) return 'Vui lòng nhập số điện thoại';
       if (!VN_PHONE_REGEX.test(value)) return 'Số điện thoại không hợp lệ (10 chữ số, bắt đầu bằng 0)';
-      const found = this.resolveBookingCode(this.claimForm.bookingCode);
-      if (found && found.order.phone !== value) return 'Không khớp với SĐT người đặt của mã này';
       return '';
     }
-    return value ? '' : 'Vui lòng nhập đặc điểm nhận dạng';
+    if (!value) return 'Vui lòng nhập đặc điểm nhận dạng';
+    return value.length < 10 ? 'Mô tả tối thiểu 10 ký tự' : '';
   }
 
-  /** Rời ô -> kiểm tra lần đầu. */
   onClaimBlur(field: ClaimField) {
     this.claimTouched[field] = true;
     this.claimErrors[field] = this.claimFieldError(field);
   }
 
-  /** Ô đã từng kiểm tra -> kiểm tra liên tục khi gõ, đúng thì lỗi biến mất ngay. */
   onClaimInput(field: ClaimField) {
     if (this.claimTouched[field] || this.claimErrors[field]) {
       this.claimErrors[field] = this.claimFieldError(field);
     }
-    // Đổi mã thì SĐT cần đối chiếu lại với người đặt của mã mới
-    if (field === 'bookingCode' && this.claimTouched.phone) {
-      this.claimErrors.phone = this.claimFieldError('phone');
-    }
   }
 
-  submitClaim() {
+  async submitClaim() {
+    if (this.submittingClaim || !this.selectedClaimItem) return;
     const fields: ClaimField[] = ['bookingCode', 'phone', 'description'];
     fields.forEach(f => {
       this.claimTouched[f] = true;
@@ -427,7 +457,6 @@ export class LostAndFound implements OnInit {
     });
     const firstInvalid = fields.find(f => this.claimErrors[f]);
     if (firstInvalid) {
-      // Focus và cuộn tới ô sai đầu tiên, chặn gửi yêu cầu
       setTimeout(() => {
         const el = document.getElementById(`claim-${firstInvalid}`);
         el?.focus();
@@ -435,20 +464,56 @@ export class LostAndFound implements OnInit {
       });
       return;
     }
-    this.triggerToast('Yêu cầu nhận lại tài sản đã được gửi. Bộ phận CSKH sẽ xác minh và liên hệ.');
-    this.closeClaimModal();
+    this.submittingClaim = true;
+    try {
+      const phone = this.claimForm.phone.trim();
+      const res = await this.api.request<{ code: string }>(
+        `customer/lost-and-found/items/${encodeURIComponent(this.selectedClaimItem.id)}/claims`, 'POST', {
+          bookingCode: this.claimForm.bookingCode.trim().toUpperCase(),
+          phone,
+          description: this.claimForm.description.trim(),
+        });
+      this.triggerToast(`Đã gửi yêu cầu ${res.code}. Bộ phận CSKH sẽ xác minh và liên hệ.`);
+      this.statusForm = { code: res.code, phone };
+      this.closeClaimModal();
+      void this.loadItems();
+      void this.checkStatus();
+    } catch (error) {
+      // Lỗi xác minh mã/SĐT hiển thị ngay dưới ô mã đơn
+      this.claimErrors.bookingCode = this.message(error, 'Không gửi được yêu cầu.');
+    } finally {
+      this.submittingClaim = false;
+    }
   }
 
-  triggerToast(msg: string) {
+  triggerToast(msg: string, isError = false) {
     this.toastMessage = msg;
+    this.toastError = isError;
     this.showToast = true;
     setTimeout(() => {
       this.showToast = false;
-    }, 3000);
+      this.cdr.markForCheck();
+    }, 3500);
+  }
+
+  formatDate(value: string | null | undefined): string {
+    if (!value) return '';
+    const [y, m, d] = value.slice(0, 10).split('-');
+    return d ? `${d}/${m}/${y}` : value;
+  }
+
+  formatDateTime(iso: string): string {
+    return new Date(iso).toLocaleString('vi-VN', {
+      hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh',
+    });
   }
 
   getStatusLabel(status: string): string {
     const s = this.statuses.find(x => x.value === status);
     return s ? s.label : status;
+  }
+
+  private message(error: unknown, fallback: string): string {
+    return error instanceof Error && error.message ? error.message : fallback;
   }
 }

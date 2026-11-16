@@ -1,92 +1,155 @@
-import { AdminTabs } from '../../../shared/components/admin-tabs/admin-tabs';
-import { AdminPageHeader } from '../../../shared/components/admin-page-header/admin-page-header';
-import { Pagination } from '../../../shared/components/pagination/pagination';
-import { Component } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-type RequestStatus = 'Chờ xử lý' | 'Đã báo giá' | 'Đã hủy';
-type QuoteStatus = 'Chờ phản hồi' | 'Đã chấp nhận' | 'Đã từ chối' | 'Hết hiệu lực';
-type ContractStatus = 'Chờ thực hiện' | 'Đang thực hiện' | 'Hoàn thành' | 'Đã hủy';
+import { Pagination } from '../../../shared/components/pagination/pagination';
+import { AdminPageHeader } from '../../../shared/components/admin-page-header/admin-page-header';
+import { AdminTabs } from '../../../shared/components/admin-tabs/admin-tabs';
+import { AccountsApiService } from '../../../core/services/accounts-api.service';
+import { Toast } from '../../../shared/components/toast/toast';
+import { ToastService } from '../../../core/services/toast.service';
 
 type MainTab = 'request' | 'quote' | 'contract';
 type QuoteSubTab = 'standard' | 'customer';
-type DrawerType = 'request' | 'quote' | 'contract' | null;
+type DrawerType = 'request' | 'quote' | 'contract' | 'price' | null;
 type PageKey = 'request' | 'standard' | 'customer' | 'contract';
+type Unit = 'Chuyen' | 'Ngay' | 'Gio';
 
+interface Estimate { unitPrice: number; unit: Unit; units: number; basePrice: number; surcharge: number; discount: number; total: number }
+
+/** GET admin/contract-rentals/requests (yeu_cau_thue_xe) */
 interface RequestItem {
   code: string;
   customer: string;
   phone: string;
+  email: string | null;
+  vehicleTypeId: string;
   vehicleType: string;
+  rentalType: 'CoTaiXe' | 'TuLai';
   guests: number;
   vehicles: number;
-  departure: string;
-  status: RequestStatus;
-  email: string;
   pickup: string;
   destination: string;
-  note: string;
+  departure: string;
+  returnAt: string | null;
+  preferredDriver: { id: string; name: string } | null;
+  promoCode: string | null;
+  estimate: Estimate;
+  note: string | null;
+  status: string;
+  statusLabel: string;
+  cancelReason: string | null;
+  createdAt: string;
+  latestQuote: { code: string; version: number; statusLabel: string; total: number } | null;
+  canQuote: boolean;
+  history?: { id: string; content: string; by: string; at: string }[];
 }
 
+interface PriceCell { id: string; price: number; unit: Unit; status: 'DangApDung' | 'NgungApDung'; surchargeNote: string | null }
 interface StandardPriceItem {
-  id: number;
+  vehicleTypeId: string;
   vehicleType: string;
-  seats: string;
-  inland: string;
-  intercity: string;
-  daily: string;
-  extra: string;
-  status: 'Đang áp dụng' | 'Ngưng áp dụng';
+  seats: number;
+  inland: PriceCell | null;
+  intercity: PriceCell | null;
+  daily: PriceCell | null;
+  status: 'DangApDung' | 'NgungApDung';
 }
 
-interface CustomerQuoteItem {
+/** GET admin/contract-rentals/quotes (bao_gia_thue_xe) */
+interface QuoteItem {
   code: string;
   requestCode: string;
+  version: number;
   customer: string;
   phone: string;
+  email: string | null;
   vehicleType: string;
+  rentalType: string;
   vehicles: number;
-  price: string;
-  sent: string;
-  status: QuoteStatus;
   guests: number;
   pickup: string;
   destination: string;
-  basePrice: string;
-  fees: string;
-  discount: string;
-  total: string;
+  departure: string;
+  unitPrice: number;
+  unit: Unit;
+  units: number;
+  basePrice: number;
+  fees: number;
+  discount: number;
+  total: number;
+  deposit: number;
+  promoCode: string | null;
+  terms: string | null;
+  status: string;
+  statusLabel: string;
+  rejectReason: string | null;
+  salesStaff: string;
+  createdAt: string;
+  sentAt: string | null;
+  expiresAt: string | null;
+  contract: { code: string; status: string } | null;
+  canCreateContract: boolean;
 }
 
+/** GET admin/contract-rentals/contracts (hop_dong_thue_xe) */
 interface ContractItem {
   code: string;
   quoteCode: string;
-  created: string;
+  requestCode: string;
   customer: string;
   phone: string;
-  email: string;
+  email: string | null;
   vehicleType: string;
+  rentalType: string;
   vehicles: number;
   guests: number;
-  departure: string;
-  amount: string;
-  status: ContractStatus;
   pickup: string;
   destination: string;
-  price: string;
-  fees: string;
-  discount: string;
-  total: string;
+  startAt: string;
+  endAt: string;
+  price: number;
+  fees: number;
+  discount: number;
+  total: number;
+  depositRequired: number;
+  depositPaid: number;
+  paid: number;
+  remaining: number;
+  status: string;
+  statusLabel: string;
+  staffInCharge: { id: string; name: string };
   terms: string[];
-  history: string[];
+  cancelReason: string | null;
+  createdAt: string;
+  signedAt: string | null;
+  payments: { id: string; type: string; method: string; amount: number; status: string; content: string | null; collectedBy: string | null; paidAt: string | null }[];
+  assignments: { vehicleId: string; vehicleName: string; plateNumber: string; driverId: string | null; driverName: string | null; note: string | null }[];
+  cancellationFeeRateIfCancelledNow: number | null;
+  nextActions: { collectDeposit: boolean; collectRemaining: boolean; assign: boolean; start: boolean; complete: boolean; cancel: boolean };
 }
+
+interface AssignmentOptions {
+  vehiclesNeeded: number;
+  needDriver: boolean;
+  preferredDriverId: string | null;
+  vehicles: { id: string; name: string; plateNumber: string; available: boolean }[];
+  drivers: { id: string; name: string; licenseClass: string; available: boolean }[];
+}
+
+interface Page<T> { items: T[]; pagination: { totalPages: number } }
+
+const UNIT_LABEL: Record<string, string> = { Chuyen: 'chuyến', Ngay: 'ngày', Gio: 'giờ' };
+const PAYMENT_TYPE_LABEL: Record<string, string> = { TienCoc: 'Tiền cọc', ThanhToanConLai: 'Thanh toán còn lại', PhatSinh: 'Phát sinh' };
+const METHOD_LABEL: Record<string, string> = {
+  TIEN_MAT: 'Tiền mặt', CHUYEN_KHOAN: 'Chuyển khoản', VIETQR: 'VietQR', VNPAY: 'VNPay', MOMO: 'MoMo', ZALOPAY: 'ZaloPay', THE: 'Thẻ',
+};
 
 @Component({
   selector: 'app-contract-rentals',
   standalone: true,
   imports: [
     CommonModule,
+    Toast,
     FormsModule,
     Pagination,
     AdminPageHeader,
@@ -95,17 +158,28 @@ interface ContractItem {
   templateUrl: './contract-rentals.html',
   styleUrls: ['./contract-rentals.css'],
 })
-export class ContractRentalsComponent {
+export class ContractRentalsComponent implements OnInit {
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly accountsApi = inject(AccountsApiService);
+  /** App chạy không có zone.js: gọi API xong thì báo Angular vẽ lại giao diện. */
+  private readonly api = {
+    request: <T>(...args: Parameters<AccountsApiService['request']>): Promise<T> =>
+      this.accountsApi.request<T>(...args).finally(() => this.cdr.markForCheck()),
+  };
+  private readonly toast = inject(ToastService);
+  protected readonly toastStack = this.toast.toasts$;
+  protected dismissToast(id: string): void {
+    this.toast.dismissToast(id);
+  }
+
   // Tabs State
   activeMainTab: MainTab = 'request';
   activeQuoteSubTab: QuoteSubTab = 'standard';
   pageSize = 10;
-  currentPages: Record<PageKey, number> = {
-    request: 1,
-    standard: 1,
-    customer: 1,
-    contract: 1
-  };
+  currentPages: Record<PageKey, number> = { request: 1, standard: 1, customer: 1, contract: 1 };
+
+  loading = false;
+  busy = false;
 
   // Filters State
   requestSearch = '';
@@ -127,206 +201,130 @@ export class ContractRentalsComponent {
   activeDrawer: DrawerType = null;
   selectedItem: any = null;
 
-  // Mock Data
-  requests: RequestItem[] = [
-    {
-      code: 'YC001', customer: 'Nguyễn Minh Anh', phone: '0901234567', vehicleType: 'Limousine 9 chỗ',
-      guests: 7, vehicles: 1, departure: '25/06/2026', status: 'Chờ xử lý',
-      email: 'minhanh@example.com', pickup: 'Sân bay Nội Bài', destination: 'Hà Nội',
-      note: 'Ưu tiên xe có nước uống và wifi.'
-    },
-    {
-      code: 'YC002', customer: 'Trần Quốc Bảo', phone: '0912345678', vehicleType: 'Giường nằm 34 chỗ',
-      guests: 30, vehicles: 1, departure: '28/06/2026', status: 'Đã báo giá',
-      email: 'quocbao@example.com', pickup: 'Bến xe Giáp Bát', destination: 'Thanh Hóa',
-      note: 'Hành trình có 1 đêm nghỉ, cần chỗ ngủ thoải mái.'
-    },
-    {
-      code: 'YC003', customer: 'Lê Thu Hà', phone: '0933456789', vehicleType: 'Cabin đôi cao cấp',
-      guests: 20, vehicles: 1, departure: '02/07/2026', status: 'Chờ xử lý',
-      email: 'lethuha@example.com', pickup: 'Ga Hà Nội', destination: 'Hạ Long',
-      note: 'Yêu cầu cabin riêng, trưa có ăn nhẹ trên xe.'
-    },
-    {
-      code: 'YC004', customer: 'Phạm Gia Hưng', phone: '0944567890', vehicleType: 'Giường nằm 40 chỗ',
-      guests: 75, vehicles: 2, departure: '05/07/2026', status: 'Đã báo giá',
-      email: 'giahung@example.com', pickup: 'Khách sạn Melia', destination: 'Ninh Bình',
-      note: 'Lịch trình tham quan cố định, vui lòng có hướng dẫn viên.'
-    },
-    {
-      code: 'YC005', customer: 'Võ Thanh Tâm', phone: '0965678901', vehicleType: 'Limousine 9 chỗ',
-      guests: 15, vehicles: 2, departure: '08/07/2026', status: 'Đã hủy',
-      email: 'thanhtam@example.com', pickup: 'Nội thành Hà Nội', destination: 'Sân bay Nội Bài',
-      note: 'Hủy do thay đổi lịch bay.'
-    },
-    {
-      code: 'YC006', customer: 'Đặng Hoài Nam', phone: '0976789012', vehicleType: 'Cabin đôi cao cấp',
-      guests: 42, vehicles: 2, departure: '12/07/2026', status: 'Chờ xử lý',
-      email: 'hoanam@example.com', pickup: 'Bến xe Mỹ Đình', destination: 'Sapa',
-      note: 'Đi theo đoàn, cần lịch trình linh hoạt.'
+  // Dữ liệu từ DB
+  requests: RequestItem[] = [];
+  standardPrices: StandardPriceItem[] = [];
+  customerQuotes: QuoteItem[] = [];
+  contracts: ContractItem[] = [];
+  vehicleTypeNames: string[] = [];
+
+  readonly requestStatuses = ['Chờ báo giá', 'Đã báo giá', 'Đồng ý', 'Từ chối', 'Đã hủy'];
+  readonly quoteStatuses = ['Chờ khách duyệt', 'Đã chấp nhận', 'Đã từ chối', 'Hết hiệu lực', 'Đã hủy'];
+  readonly contractStatuses = ['Mới tạo', 'Đã ký', 'Đã cọc', 'Đang thực hiện', 'Hoàn thành', 'Đã hủy'];
+  readonly paymentMethods = Object.entries(METHOD_LABEL).map(([value, label]) => ({ value, label }));
+
+  // Form lập báo giá
+  quoteForm = { scope: 'LienTinh', surcharge: 0, promoCode: '', depositRate: 30, validDays: 3, terms: '' };
+  // Form sửa bảng giá
+  priceForm = { inland: 0, intercity: 0, daily: 0, status: 'DangApDung' as 'DangApDung' | 'NgungApDung', surchargeNote: '' };
+  // Form thu tiền
+  paymentForm = { open: false, type: 'TienCoc' as 'TienCoc' | 'ThanhToanConLai' | 'PhatSinh', method: 'CHUYEN_KHOAN', amount: 0, note: '' };
+  // Phân công xe
+  assignOptions: AssignmentOptions | null = null;
+  assignForm: { vehicleId: string; driverId: string }[] = [];
+
+  ngOnInit(): void {
+    void this.loadAll();
+  }
+
+  // ─── TẢI DỮ LIỆU ─────────────────────────────────────────────────────────
+
+  async loadAll(): Promise<void> {
+    this.loading = true;
+    try {
+      const [requests, prices, quotes, contracts, types] = await Promise.all([
+        this.loadPages<RequestItem>('admin/contract-rentals/requests'),
+        this.get<StandardPriceItem[]>('admin/contract-rentals/price-list'),
+        this.loadPages<QuoteItem>('admin/contract-rentals/quotes'),
+        this.loadPages<ContractItem>('admin/contract-rentals/contracts'),
+        this.get<{ name: string }[]>('admin/contract-rentals/vehicle-types'),
+      ]);
+      this.requests = requests;
+      this.standardPrices = prices;
+      this.customerQuotes = quotes;
+      this.contracts = contracts;
+      this.vehicleTypeNames = types.map(t => t.name);
+    } catch (error) {
+      this.toast.showError(this.message(error, 'Không tải được dữ liệu thuê xe hợp đồng.'));
+    } finally {
+      this.loading = false;
     }
-  ];
+  }
 
-  standardPrices: StandardPriceItem[] = [
-    { id: 1, vehicleType: 'Limousine 9 chỗ', seats: '9', inland: '1.200.000đ', intercity: '2.500.000đ', daily: '4.000.000đ', extra: 'Cầu đường, ngoài giờ', status: 'Đang áp dụng' },
-    { id: 2, vehicleType: 'Giường nằm 34 chỗ', seats: '34', inland: '2.500.000đ', intercity: '5.500.000đ', daily: '8.000.000đ', extra: 'Cầu đường, lưu đêm', status: 'Đang áp dụng' },
-    { id: 3, vehicleType: 'Giường nằm 40 chỗ', seats: '40', inland: '3.000.000đ', intercity: '6.500.000đ', daily: '9.000.000đ', extra: 'Cầu đường, lưu đêm', status: 'Đang áp dụng' },
-    { id: 4, vehicleType: 'Cabin đôi cao cấp', seats: '22', inland: '4.500.000đ', intercity: '8.000.000đ', daily: '12.000.000đ', extra: 'Cầu đường, phụ phí lễ/tết', status: 'Đang áp dụng' }
-  ];
-
-  customerQuotes: CustomerQuoteItem[] = [
-    {
-      code: 'BG001', requestCode: 'YC002', customer: 'Trần Quốc Bảo', phone: '0912345678', vehicleType: 'Giường nằm 34 chỗ',
-      vehicles: 1, price: '6.200.000đ', sent: '22/06/2026', status: 'Chờ phản hồi', guests: 30,
-      pickup: 'Bến xe Giáp Bát', destination: 'Thanh Hóa', basePrice: '5.500.000đ', fees: '700.000đ', discount: '0đ', total: '6.200.000đ'
-    },
-    {
-      code: 'BG002', requestCode: 'YC004', customer: 'Phạm Gia Hưng', phone: '0944567890', vehicleType: 'Giường nằm 40 chỗ',
-      vehicles: 2, price: '13.800.000đ', sent: '23/06/2026', status: 'Đã chấp nhận', guests: 75,
-      pickup: 'Khách sạn Melia', destination: 'Ninh Bình', basePrice: '13.000.000đ', fees: '800.000đ', discount: '0đ', total: '13.800.000đ'
-    },
-    {
-      code: 'BG003', requestCode: 'YC005', customer: 'Võ Thanh Tâm', phone: '0965678901', vehicleType: 'Limousine 9 chỗ',
-      vehicles: 2, price: '5.300.000đ', sent: '20/06/2026', status: 'Đã từ chối', guests: 15,
-      pickup: 'Nội thành Hà Nội', destination: 'Sân bay Nội Bài', basePrice: '5.000.000đ', fees: '300.000đ', discount: '0đ', total: '5.300.000đ'
-    },
-    {
-      code: 'BG004', requestCode: 'YC003', customer: 'Lê Thu Hà', phone: '0933456789', vehicleType: 'Cabin đôi cao cấp',
-      vehicles: 1, price: '8.800.000đ', sent: '24/06/2026', status: 'Chờ phản hồi', guests: 20,
-      pickup: 'Ga Hà Nội', destination: 'Hạ Long', basePrice: '8.500.000đ', fees: '300.000đ', discount: '0đ', total: '8.800.000đ'
+  private async loadPages<T>(path: string): Promise<T[]> {
+    const rows: T[] = [];
+    for (let page = 1; ; page++) {
+      const res = await this.get<Page<T>>(`${path}?page=${page}&pageSize=100`);
+      rows.push(...res.items);
+      if (page >= res.pagination.totalPages || !res.items.length) return rows;
     }
-  ];
+  }
 
-  contracts: ContractItem[] = [
-    {
-      code: 'HD001', quoteCode: 'BG002', created: '24/06/2026', customer: 'Phạm Gia Hưng', phone: '0944567890',
-      email: 'giahung@example.com', vehicleType: 'Giường nằm 40 chỗ', vehicles: 2, guests: 75,
-      departure: '05/07/2026', amount: '13.800.000đ', status: 'Chờ thực hiện',
-      pickup: 'Khách sạn Melia', destination: 'Ninh Bình', price: '13.000.000đ', fees: '800.000đ', discount: '0đ', total: '13.800.000đ',
-      terms: ['Có tài xế đi kèm', 'Giá có thể thay đổi nếu phát sinh lộ trình', 'Khách cần xác nhận trước ngày khởi hành', 'Hợp đồng có thể bị hủy theo chính sách hủy'],
-      history: ['Khách gửi yêu cầu', 'Nhân viên gửi báo giá', 'Khách xác nhận', 'Tạo hợp đồng']
-    },
-    {
-      code: 'HD002', quoteCode: 'BG005', created: '26/06/2026', customer: 'Nguyễn Hoàng Phúc', phone: '0988881234',
-      email: 'hoangphuc@example.com', vehicleType: 'Limousine 9 chỗ', vehicles: 1, guests: 7,
-      departure: '26/06/2026', amount: '2.800.000đ', status: 'Đang thực hiện',
-      pickup: 'Sân bay Nội Bài', destination: 'Hà Nội', price: '2.500.000đ', fees: '300.000đ', discount: '0đ', total: '2.800.000đ',
-      terms: ['Có tài xế đi kèm', 'Giá có thể thay đổi nếu phát sinh lộ trình', 'Khách cần xác nhận trước ngày khởi hành', 'Hợp đồng có thể bị hủy theo chính sách hủy'],
-      history: ['Khách gửi yêu cầu', 'Nhân viên gửi báo giá', 'Khách xác nhận', 'Tạo hợp đồng']
-    },
-    {
-      code: 'HD003', quoteCode: 'BG004', created: '18/06/2026', customer: 'Mai Thanh Trúc', phone: '0977774567',
-      email: 'maitruc@example.com', vehicleType: 'Cabin đôi cao cấp', vehicles: 1, guests: 20,
-      departure: '18/06/2026', amount: '9.200.000đ', status: 'Hoàn thành',
-      pickup: 'Ga Hà Nội', destination: 'Hạ Long', price: '9.000.000đ', fees: '200.000đ', discount: '0đ', total: '9.200.000đ',
-      terms: ['Có tài xế đi kèm', 'Giá có thể thay đổi nếu phát sinh lộ trình', 'Khách cần xác nhận trước ngày khởi hành', 'Hợp đồng có thể bị hủy theo chính sách hủy'],
-      history: ['Khách gửi yêu cầu', 'Nhân viên gửi báo giá', 'Khách xác nhận', 'Tạo hợp đồng']
-    },
-    {
-      code: 'HD004', quoteCode: 'BG003', created: '20/06/2026', customer: 'Đỗ Quốc Huy', phone: '0966667890',
-      email: 'quochuy@example.com', vehicleType: 'Giường nằm 34 chỗ', vehicles: 1, guests: 30,
-      departure: '20/06/2026', amount: '5.900.000đ', status: 'Đã hủy',
-      pickup: 'Bến xe Giáp Bát', destination: 'Hà Nội', price: '5.500.000đ', fees: '400.000đ', discount: '0đ', total: '5.900.000đ',
-      terms: ['Có tài xế đi kèm', 'Giá có thể thay đổi nếu phát sinh lộ trình', 'Khách cần xác nhận trước ngày khởi hành', 'Hợp đồng có thể bị hủy theo chính sách hủy'],
-      history: ['Khách gửi yêu cầu', 'Nhân viên gửi báo giá', 'Khách xác nhận', 'Tạo hợp đồng']
-    }
-  ];
+  private get<T>(path: string): Promise<T> {
+    return this.api.request<T>(path, 'GET', undefined, 'admin');
+  }
 
-  // Stats
-  get pendingRequestCount() { return this.requests.filter(r => r.status === 'Chờ xử lý').length; }
-  get pendingQuoteCount() { return this.customerQuotes.filter(q => q.status === 'Chờ phản hồi').length; }
-  get activeContractCount() { return this.contracts.filter(c => c.status === 'Đang thực hiện').length; }
+  private send<T>(path: string, method: 'POST' | 'PATCH' | 'PUT', body: unknown): Promise<T> {
+    return this.api.request<T>(path, method, body, 'admin');
+  }
 
-  // Filter Logic
+  // ─── STATS ───────────────────────────────────────────────────────────────
+  get pendingRequestCount() { return this.requests.filter(r => r.status === 'ChoBaoGia').length; }
+  get pendingQuoteCount() { return this.customerQuotes.filter(q => q.status === 'ChoKhachDuyet').length; }
+  get activeContractCount() { return this.contracts.filter(c => c.status === 'DangThucHien').length; }
+
+  // ─── FILTER ──────────────────────────────────────────────────────────────
   get filteredRequests() {
-    const s = this.requestSearch.toLowerCase();
+    const s = this.requestSearch.toLowerCase().trim();
     return this.requests.filter(r =>
       (r.code.toLowerCase().includes(s) || r.customer.toLowerCase().includes(s) || r.phone.includes(s)) &&
       (this.requestTypeFilter === 'Tất cả loại xe' || r.vehicleType === this.requestTypeFilter) &&
-      (this.requestStatusFilter === 'Tất cả trạng thái' || r.status === this.requestStatusFilter) &&
-      (!this.requestDateFilter || r.departure === this.requestDateFilter)
+      (this.requestStatusFilter === 'Tất cả trạng thái' || r.statusLabel === this.requestStatusFilter) &&
+      (!this.requestDateFilter || r.departure.slice(0, 10) === this.requestDateFilter)
     );
   }
 
   get filteredStandardPrices() {
-    const s = this.standardPriceSearch.toLowerCase();
+    const s = this.standardPriceSearch.toLowerCase().trim();
     return this.standardPrices.filter(p =>
       p.vehicleType.toLowerCase().includes(s) &&
-      (this.standardPriceStatus === 'Tất cả' || p.status === this.standardPriceStatus)
+      (this.standardPriceStatus === 'Tất cả' || this.priceStatusLabel(p.status) === this.standardPriceStatus)
     );
   }
 
   get filteredCustomerQuotes() {
-    const s = this.customerQuoteSearch.toLowerCase();
+    const s = this.customerQuoteSearch.toLowerCase().trim();
     return this.customerQuotes.filter(q =>
       (q.code.toLowerCase().includes(s) || q.requestCode.toLowerCase().includes(s) || q.customer.toLowerCase().includes(s)) &&
-      (this.customerQuoteStatus === 'Tất cả' || q.status === this.customerQuoteStatus)
+      (this.customerQuoteStatus === 'Tất cả' || q.statusLabel === this.customerQuoteStatus)
     );
   }
 
   get filteredContracts() {
-    const s = this.contractSearch.toLowerCase();
+    const s = this.contractSearch.toLowerCase().trim();
     return this.contracts.filter(c =>
       (c.code.toLowerCase().includes(s) || c.customer.toLowerCase().includes(s) || c.phone.includes(s)) &&
-      (this.contractStatus === 'Tất cả' || c.status === this.contractStatus) &&
-      (!this.contractDateFilter || c.departure === this.contractDateFilter)
+      (this.contractStatus === 'Tất cả' || c.statusLabel === this.contractStatus) &&
+      (!this.contractDateFilter || c.startAt.slice(0, 10) === this.contractDateFilter)
     );
   }
 
-  get paginatedRequests() {
-    return this.paginateItems(this.filteredRequests);
-  }
+  get paginatedRequests() { return this.paginateItems(this.filteredRequests); }
+  get paginatedStandardPrices() { return this.paginateItems(this.filteredStandardPrices); }
+  get paginatedCustomerQuotes() { return this.paginateItems(this.filteredCustomerQuotes); }
+  get paginatedContracts() { return this.paginateItems(this.filteredContracts); }
 
-  get paginatedStandardPrices() {
-    return this.paginateItems(this.filteredStandardPrices);
-  }
-
-  get paginatedCustomerQuotes() {
-    return this.paginateItems(this.filteredCustomerQuotes);
-  }
-
-  get paginatedContracts() {
-    return this.paginateItems(this.filteredContracts);
-  }
-
-  get currentPage(): number {
-    return this.currentPages[this.activePageKey];
-  }
-
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.activeTotalItems / this.pageSize));
-  }
-
-  get activeTotalItems(): number {
-    return this.getActiveFilteredItems().length;
-  }
-
-  get visibleStart(): number {
-    return this.activeTotalItems > 0 ? (this.currentPage - 1) * this.pageSize + 1 : 0;
-  }
-
-  get visibleEnd(): number {
-    return Math.min(this.currentPage * this.pageSize, this.activeTotalItems);
-  }
+  get currentPage(): number { return this.currentPages[this.activePageKey]; }
+  get totalPages(): number { return Math.max(1, Math.ceil(this.activeTotalItems / this.pageSize)); }
+  get activeTotalItems(): number { return this.getActiveFilteredItems().length; }
+  get visibleStart(): number { return this.activeTotalItems > 0 ? (this.currentPage - 1) * this.pageSize + 1 : 0; }
+  get visibleEnd(): number { return Math.min(this.currentPage * this.pageSize, this.activeTotalItems); }
 
   get activeListLabel(): string {
     if (this.activeMainTab === 'request') return 'yêu cầu';
     if (this.activeMainTab === 'quote' && this.activeQuoteSubTab === 'standard') return 'bảng giá';
     if (this.activeMainTab === 'quote') return 'báo giá';
     return 'hợp đồng';
-  }
-
-  getPaginationItems(): (number | string)[] {
-    const total = this.totalPages;
-    const current = this.currentPage;
-
-    if (total <= 6) {
-      return Array.from({ length: total }, (_, i) => i + 1);
-    }
-
-    if (current <= 3) return [1, 2, 3, 4, '...', total - 2, total - 1, total];
-    if (current >= total - 2) return [1, 2, 3, '...', total - 3, total - 2, total - 1, total];
-    return [1, '...', current - 1, current, current + 1, '...', total];
   }
 
   setPage(page: number | string) {
@@ -339,7 +337,6 @@ export class ContractRentalsComponent {
     this.currentPages[this.activePageKey] = 1;
   }
 
-  // Actions
   setTab(tab: MainTab) {
     this.activeMainTab = tab;
     this.resetActivePagination();
@@ -351,22 +348,8 @@ export class ContractRentalsComponent {
     this.resetActivePagination();
   }
 
-  viewDetail(item: any, type: DrawerType) {
-    this.selectedItem = item;
-    this.activeDrawer = type;
-  }
-
-  closeDrawer() {
-    this.activeDrawer = null;
-    this.selectedItem = null;
-  }
-
   isTableEmpty(): boolean {
-    if (this.activeMainTab === 'request') return this.filteredRequests.length === 0;
-    if (this.activeMainTab === 'quote') {
-      return this.activeQuoteSubTab === 'standard' ? this.filteredStandardPrices.length === 0 : this.filteredCustomerQuotes.length === 0;
-    }
-    return this.filteredContracts.length === 0;
+    return !this.loading && this.getActiveFilteredItems().length === 0;
   }
 
   refreshFilters() {
@@ -381,142 +364,278 @@ export class ContractRentalsComponent {
     this.contractSearch = '';
     this.contractStatus = 'Tất cả';
     this.contractDateFilter = '';
-    this.currentPages = {
-      request: 1,
-      standard: 1,
-      customer: 1,
-      contract: 1
-    };
+    this.currentPages = { request: 1, standard: 1, customer: 1, contract: 1 };
   }
 
+  /** Nút hành động đầu trang: mở mục cần xử lý tiếp theo. */
   openCreateAction() {
     if (this.activeMainTab === 'request') {
-      const request = this.filteredRequests[0] || this.requests[0];
-      if (request) {
-        this.viewDetail(request, 'request');
-      }
+      const next = this.requests.find(r => r.canQuote) ?? this.filteredRequests[0];
+      if (next) void this.viewDetail(next, 'request');
+      else this.toast.showSuccess('Không có yêu cầu nào đang chờ báo giá.');
       return;
     }
-
     if (this.activeMainTab === 'quote') {
-      if (this.activeQuoteSubTab === 'standard') {
-        this.activeQuoteSubTab = 'customer';
-      }
-
-      const quote = this.filteredCustomerQuotes[0] || this.customerQuotes[0];
-      if (quote) {
-        this.viewDetail(quote, 'quote');
-      }
+      this.activeQuoteSubTab = 'customer';
+      const next = this.customerQuotes.find(q => q.canCreateContract || q.status === 'ChoKhachDuyet') ?? this.filteredCustomerQuotes[0];
+      if (next) void this.viewDetail(next, 'quote');
       return;
     }
-
-    const contract = this.filteredContracts[0] || this.contracts[0];
-    if (contract) {
-      this.viewDetail(contract, 'contract');
-      return;
-    }
-
-    console.log('Mở modal thêm mới cho tab:', this.activeMainTab);
-    // Logic mở modal sẽ được bổ sung sau
+    const next = this.contracts.find(c => Object.values(c.nextActions).some(Boolean)) ?? this.filteredContracts[0];
+    if (next) void this.viewDetail(next, 'contract');
   }
+
+  // ─── DRAWER ──────────────────────────────────────────────────────────────
+
+  async viewDetail(item: any, type: DrawerType) {
+    this.selectedItem = item;
+    this.activeDrawer = type;
+    this.paymentForm.open = false;
+    this.assignOptions = null;
+    try {
+      if (type === 'request') {
+        const detail = await this.get<RequestItem>(`admin/contract-rentals/requests/${encodeURIComponent(item.code)}`);
+        this.selectedItem = detail;
+        this.quoteForm = {
+          scope: detail.rentalType === 'TuLai' ? 'TheoNgay' : 'LienTinh',
+          surcharge: 0,
+          promoCode: detail.promoCode ?? '',
+          depositRate: 30,
+          validDays: 3,
+          terms: '',
+        };
+      } else if (type === 'quote') {
+        this.selectedItem = await this.get<QuoteItem>(`admin/contract-rentals/quotes/${encodeURIComponent(item.code)}`);
+      } else if (type === 'contract') {
+        this.selectedItem = await this.get<ContractItem>(`admin/contract-rentals/contracts/${encodeURIComponent(item.code)}`);
+      }
+    } catch (error) {
+      this.toast.showError(this.message(error, 'Không tải được chi tiết.'));
+    }
+  }
+
+  editPrice(item: StandardPriceItem) {
+    this.selectedItem = item;
+    this.activeDrawer = 'price';
+    this.priceForm = {
+      inland: item.inland?.price ?? 0,
+      intercity: item.intercity?.price ?? 0,
+      daily: item.daily?.price ?? 0,
+      status: item.status,
+      surchargeNote: item.inland?.surchargeNote ?? item.intercity?.surchargeNote ?? item.daily?.surchargeNote ?? '',
+    };
+  }
+
+  closeDrawer() {
+    this.activeDrawer = null;
+    this.selectedItem = null;
+    this.paymentForm.open = false;
+    this.assignOptions = null;
+  }
+
+  private async run(action: () => Promise<void>, success: string) {
+    if (this.busy) return;
+    this.busy = true;
+    try {
+      await action();
+      this.toast.showSuccess(success);
+    } catch (error) {
+      this.toast.showError(this.message(error, 'Thao tác không thành công.'));
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  // ─── YÊU CẦU → BÁO GIÁ ───────────────────────────────────────────────────
 
   createQuoteFromRequest(request: RequestItem) {
-    if (!request) return;
-
-    // 1. Update request status
-    request.status = 'Đã báo giá';
-
-    // 2. Generate new quote
-    const newQuoteCode = 'BG' + Math.floor(100 + Math.random() * 900);
-    const basePriceNum = request.vehicleType.includes('Limousine') ? 2500000 : 5500000;
-    const feesNum = 300000;
-    const totalNum = basePriceNum * request.vehicles + feesNum;
-
-    const newQuote: CustomerQuoteItem = {
-      code: newQuoteCode,
-      requestCode: request.code,
-      customer: request.customer,
-      phone: request.phone,
-      vehicleType: request.vehicleType,
-      vehicles: request.vehicles,
-      price: totalNum.toLocaleString('vi-VN') + 'đ',
-      sent: new Date().toLocaleDateString('vi-VN'),
-      status: 'Chờ phản hồi',
-      guests: request.guests,
-      pickup: request.pickup,
-      destination: request.destination,
-      basePrice: (basePriceNum * request.vehicles).toLocaleString('vi-VN') + 'đ',
-      fees: feesNum.toLocaleString('vi-VN') + 'đ',
-      discount: '0đ',
-      total: totalNum.toLocaleString('vi-VN') + 'đ'
-    };
-
-    this.customerQuotes.unshift(newQuote);
-
-    // 3. Switch tab and open quote detail
-    this.setTab('quote');
-    this.setSubTab('customer');
-    this.viewDetail(newQuote, 'quote');
+    if (!request?.canQuote) return;
+    const f = this.quoteForm;
+    void this.run(async () => {
+      const quote = await this.send<QuoteItem>(`admin/contract-rentals/requests/${encodeURIComponent(request.code)}/quotes`, 'POST', {
+        scope: f.scope,
+        surcharge: Number(f.surcharge) || 0,
+        promoCode: f.promoCode.trim(),
+        depositRate: Math.min(100, Math.max(0, Number(f.depositRate) || 0)) / 100,
+        validDays: Number(f.validDays) || 3,
+        ...(f.terms.trim() ? { terms: f.terms.trim() } : {}),
+      });
+      await this.loadAll();
+      this.activeMainTab = 'quote';
+      this.activeQuoteSubTab = 'customer';
+      await this.viewDetail(quote, 'quote');
+    }, 'Đã lập và gửi báo giá cho khách.');
   }
 
-  convertQuoteToContract(quote: CustomerQuoteItem) {
-    if (!quote) return;
-
-    // 1. Update quote status
-    quote.status = 'Đã chấp nhận';
-
-    // 2. Generate new contract
-    const newContractCode = 'HD' + Math.floor(100 + Math.random() * 900);
-    const newContract: ContractItem = {
-      code: newContractCode,
-      quoteCode: quote.code,
-      created: new Date().toLocaleDateString('vi-VN'),
-      customer: quote.customer,
-      phone: quote.phone,
-      email: quote.customer.toLowerCase().replace(/\s+/g, '') + '@example.com',
-      vehicleType: quote.vehicleType,
-      vehicles: quote.vehicles,
-      guests: quote.guests,
-      departure: new Date(Date.now() + 3*24*60*60*1000).toLocaleDateString('vi-VN'),
-      amount: quote.total,
-      status: 'Chờ thực hiện',
-      pickup: quote.pickup,
-      destination: quote.destination,
-      price: quote.basePrice,
-      fees: quote.fees,
-      discount: quote.discount,
-      total: quote.total,
-      terms: [
-        'Có tài xế đi kèm',
-        'Giá có thể thay đổi nếu phát sinh lộ trình',
-        'Khách cần xác nhận trước ngày khởi hành',
-        'Hợp đồng có thể bị hủy theo chính sách hủy'
-      ],
-      history: [
-        'Khách gửi yêu cầu',
-        'Nhân viên gửi báo giá',
-        'Khách xác nhận',
-        'Tạo hợp đồng'
-      ]
-    };
-
-    this.contracts.unshift(newContract);
-
-    // 3. Switch tab and open contract detail
-    this.setTab('contract');
-    this.viewDetail(newContract, 'contract');
+  cancelRequest(request: RequestItem) {
+    const reason = window.prompt('Lý do hủy yêu cầu (tối thiểu 5 ký tự):')?.trim();
+    if (!reason) return;
+    void this.run(async () => {
+      await this.send(`admin/contract-rentals/requests/${encodeURIComponent(request.code)}/cancel`, 'PATCH', { reason });
+      await this.loadAll();
+      await this.viewDetail(request, 'request');
+    }, 'Đã hủy yêu cầu.');
   }
 
-  updateContractStatus(contract: ContractItem) {
-    if (!contract) return;
+  // ─── BÁO GIÁ → HỢP ĐỒNG ──────────────────────────────────────────────────
 
-    if (contract.status === 'Chờ thực hiện') {
-      contract.status = 'Đang thực hiện';
-      contract.history.push('Bắt đầu thực hiện chuyến đi');
-    } else if (contract.status === 'Đang thực hiện') {
-      contract.status = 'Hoàn thành';
-      contract.history.push('Hoàn thành chuyến đi, tất toán hợp đồng');
+  decideQuote(quote: QuoteItem, decision: 'accept' | 'reject') {
+    let reason: string | undefined;
+    if (decision === 'reject') {
+      reason = window.prompt('Lý do khách từ chối (không bắt buộc):')?.trim() || undefined;
     }
+    void this.run(async () => {
+      await this.send(`admin/contract-rentals/quotes/${encodeURIComponent(quote.code)}/decision`, 'PATCH', { decision, ...(reason ? { reason } : {}) });
+      await this.loadAll();
+      await this.viewDetail(quote, 'quote');
+    }, decision === 'accept' ? 'Đã ghi nhận khách đồng ý báo giá.' : 'Đã ghi nhận khách từ chối báo giá.');
+  }
+
+  convertQuoteToContract(quote: QuoteItem) {
+    if (!quote?.canCreateContract) return;
+    void this.run(async () => {
+      const contract = await this.send<ContractItem>(`admin/contract-rentals/quotes/${encodeURIComponent(quote.code)}/contract`, 'POST', {});
+      await this.loadAll();
+      this.activeMainTab = 'contract';
+      await this.viewDetail(contract, 'contract');
+    }, 'Đã lập hợp đồng từ báo giá.');
+  }
+
+  // ─── HỢP ĐỒNG ────────────────────────────────────────────────────────────
+
+  openPayment(contract: ContractItem, type: 'TienCoc' | 'ThanhToanConLai') {
+    this.paymentForm = {
+      open: true,
+      type,
+      method: 'CHUYEN_KHOAN',
+      amount: type === 'TienCoc' ? Math.max(0, contract.depositRequired - contract.depositPaid) : contract.remaining,
+      note: '',
+    };
+  }
+
+  submitPayment(contract: ContractItem) {
+    const f = this.paymentForm;
+    if (!(Number(f.amount) >= 1000)) {
+      this.toast.showError('Số tiền tối thiểu 1.000đ.');
+      return;
+    }
+    void this.run(async () => {
+      await this.send(`admin/contract-rentals/contracts/${encodeURIComponent(contract.code)}/payments`, 'POST', {
+        type: f.type, method: f.method, amount: Number(f.amount), ...(f.note.trim() ? { note: f.note.trim() } : {}),
+      });
+      this.paymentForm.open = false;
+      await this.loadAll();
+      await this.viewDetail(contract, 'contract');
+    }, 'Đã ghi nhận thanh toán.');
+  }
+
+  async openAssign(contract: ContractItem) {
+    try {
+      const options = await this.get<AssignmentOptions>(`admin/contract-rentals/contracts/${encodeURIComponent(contract.code)}/assignment-options`);
+      this.assignOptions = options;
+      this.assignForm = Array.from({ length: options.vehiclesNeeded }, (_, i) => ({
+        vehicleId: contract.assignments[i]?.vehicleId ?? '',
+        driverId: contract.assignments[i]?.driverId ?? (i === 0 ? options.preferredDriverId ?? '' : ''),
+      }));
+    } catch (error) {
+      this.toast.showError(this.message(error, 'Không tải được danh sách xe/tài xế.'));
+    }
+  }
+
+  submitAssign(contract: ContractItem) {
+    const opt = this.assignOptions;
+    if (!opt) return;
+    if (this.assignForm.some(a => !a.vehicleId) || (opt.needDriver && this.assignForm.some(a => !a.driverId))) {
+      this.toast.showError(opt.needDriver ? 'Chọn đủ xe và tài xế cho từng xe.' : 'Chọn đủ xe.');
+      return;
+    }
+    void this.run(async () => {
+      await this.send(`admin/contract-rentals/contracts/${encodeURIComponent(contract.code)}/assignments`, 'PUT', {
+        items: this.assignForm.map(a => ({ vehicleId: a.vehicleId, ...(a.driverId ? { driverId: a.driverId } : {}) })),
+      });
+      this.assignOptions = null;
+      await this.loadAll();
+      await this.viewDetail(contract, 'contract');
+    }, 'Đã phân công xe.');
+  }
+
+  updateContractStatus(contract: ContractItem, status: 'DangThucHien' | 'HoanThanh' | 'DaHuy') {
+    let reason: string | undefined;
+    if (status === 'DaHuy') {
+      const rate = contract.cancellationFeeRateIfCancelledNow;
+      reason = window.prompt(`Lý do hủy hợp đồng${rate != null ? ` (phí hủy hiện tại ${Math.round(rate * 100)}% tiền cọc)` : ''}:`)?.trim();
+      if (!reason) return;
+    }
+    const label = status === 'DangThucHien' ? 'Đã bắt đầu thực hiện hợp đồng.' : status === 'HoanThanh' ? 'Đã hoàn thành hợp đồng.' : 'Đã hủy hợp đồng.';
+    void this.run(async () => {
+      await this.send(`admin/contract-rentals/contracts/${encodeURIComponent(contract.code)}/status`, 'PATCH', { status, ...(reason ? { reason } : {}) });
+      await this.loadAll();
+      await this.viewDetail(contract, 'contract');
+    }, label);
+  }
+
+  // ─── BẢNG GIÁ CHUẨN ──────────────────────────────────────────────────────
+
+  savePrice(item: StandardPriceItem) {
+    const f = this.priceForm;
+    const cells: [PriceCell | null, number][] = [[item.inland, f.inland], [item.intercity, f.intercity], [item.daily, f.daily]];
+    const note = f.surchargeNote.trim();
+    void this.run(async () => {
+      for (const [cell, price] of cells) {
+        if (!cell) continue;
+        const body: Record<string, unknown> = {};
+        if (Number(price) !== cell.price) body['price'] = Number(price);
+        if (f.status !== cell.status) body['status'] = f.status;
+        if (note !== (cell.surchargeNote ?? '')) body['surchargeNote'] = note;
+        if (Object.keys(body).length) await this.send(`admin/contract-rentals/price-list/${encodeURIComponent(cell.id)}`, 'PATCH', body);
+      }
+      await this.loadAll();
+      this.closeDrawer();
+    }, 'Đã cập nhật bảng giá.');
+  }
+
+  // ─── HELPERS ─────────────────────────────────────────────────────────────
+
+  money(value: number | null | undefined): string {
+    return `${Math.round(Number(value) || 0).toLocaleString('vi-VN')}đ`;
+  }
+
+  priceText(cell: PriceCell | null): string {
+    return cell ? `${this.money(cell.price)}/${UNIT_LABEL[cell.unit] ?? cell.unit}` : '—';
+  }
+
+  priceStatusLabel(status: string): string {
+    return status === 'DangApDung' ? 'Đang áp dụng' : 'Ngưng áp dụng';
+  }
+
+  unitLabel(unit: string): string {
+    return UNIT_LABEL[unit] ?? unit;
+  }
+
+  paymentTypeLabel(type: string): string {
+    return PAYMENT_TYPE_LABEL[type] ?? type;
+  }
+
+  methodLabel(method: string): string {
+    return METHOD_LABEL[method] ?? method;
+  }
+
+  rentalTypeLabel(type: string): string {
+    return type === 'TuLai' ? 'Tự lái' : 'Có tài xế';
+  }
+
+  date(iso: string | null | undefined): string {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
+  }
+
+  dateTime(iso: string | null | undefined): string {
+    if (!iso) return '';
+    return new Date(iso).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
+  }
+
+  private message(error: unknown, fallback: string): string {
+    return error instanceof Error && error.message ? error.message : fallback;
   }
 
   private get activePageKey(): PageKey {
@@ -539,7 +658,6 @@ export class ContractRentalsComponent {
     const key = this.activePageKey;
     const safePage = Math.min(Math.max(this.currentPages[key], 1), totalPages);
     this.currentPages[key] = safePage;
-
     const startIndex = (safePage - 1) * this.pageSize;
     return items.slice(startIndex, startIndex + this.pageSize);
   }

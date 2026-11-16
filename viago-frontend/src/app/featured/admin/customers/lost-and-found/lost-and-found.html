@@ -1,3 +1,9 @@
+<!-- Toast góc phải: admin-layout không vẽ ToastService nên trang tự hiển thị -->
+<div class="page-toast-stack" aria-live="polite">
+  @for (t of (toastStack | async) ?? []; track t.id) {
+    <app-toast [variant]="t.type" [title]="t.title ?? ''" [message]="t.message" (closed)="dismissToast(t.id)" />
+  }
+</div>
 <div class="news-page-container">
   <!-- Premium Header Card Container -->
   <app-admin-page-header title="Quản lý đồ thất lạc" section="Khách hàng / Đồ thất lạc">
@@ -148,8 +154,11 @@
           <!-- Card Body -->
           <div class="lost-card-body">
             <!-- Item Description -->
-            <div class="lost-card-desc" [title]="item.mo_ta_vat_pham">
-              {{ item.mo_ta_vat_pham }}
+            <div class="lost-card-desc" [title]="item.ten_vat_pham + (item.mo_ta_vat_pham ? ' — ' + item.mo_ta_vat_pham : '')">
+              <strong>{{ item.ten_vat_pham }}</strong><span *ngIf="item.mo_ta_vat_pham"> — {{ item.mo_ta_vat_pham }}</span>
+            </div>
+            <div *ngIf="item.so_yeu_cau_cho > 0" style="font-size: 11.5px; color: #b45309; font-weight: 600; margin-top: 4px;">
+              {{ item.so_yeu_cau_cho }} yêu cầu nhận đồ đang chờ xác minh
             </div>
 
             <!-- Route & Seat & Date (Formatted dd/mm/yyyy) -->
@@ -158,7 +167,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; color: #94a3b8;">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span class="category-badge" style="font-size: 11px; padding: 2px 6px;">{{ item.tuyen_xe }}</span>
+                <span class="category-badge" style="font-size: 11px; padding: 2px 6px;">{{ item.tuyen_xe || 'Chưa rõ tuyến' }}</span>
               </div>
               <div class="lost-card-meta-row">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; color: #94a3b8;">
@@ -195,7 +204,8 @@
       </div>
 
       <!-- Empty state inside cards area -->
-      <div *ngIf="paginatedItems.length === 0" class="empty-row-text">
+      <div *ngIf="loading && items.length === 0" class="empty-row-text"><p style="padding: 40px 0; color: #64748b;">Đang tải dữ liệu...</p></div>
+      <div *ngIf="!loading && paginatedItems.length === 0" class="empty-row-text">
         <div class="empty-state-content" style="padding: 40px 0;">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"></circle>
@@ -236,12 +246,12 @@
 
       <!-- 0. Khung Tra cứu tự động theo Mã đơn / Mã vé / SĐT -->
       <div class="form-group-unified" style="background: #f8fafc; padding: 14px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px;">
-        <label class="field-label-lbl" style="color: #0f172a; font-weight: 700;">Tra cứu tự động theo Mã đơn / Mã vé / SĐT (Nếu có)</label>
+        <label class="field-label-lbl" style="color: #0f172a; font-weight: 700;">Tra cứu tự động theo Mã đơn / Mã vé (Nếu có)</label>
         <div style="display: flex; gap: 10px; margin-top: 6px;">
           <input
             type="text"
             [(ngModel)]="lookupKeyword"
-            placeholder="Nhập mã đơn, mã vé hoặc SĐT (VD: DH00002, VE00001, 0912345678...)"
+            placeholder="Nhập mã đơn hoặc mã vé (VD: DH001, VE001)"
             class="form-input-control"
             style="flex: 1;"
             (keyup.enter)="lookupTicketInCreate()" />
@@ -263,152 +273,90 @@
           <option *ngFor="let t of lookupTicketOptions" [value]="t.ma_ve">{{ t.ma_don_hang }} · {{ t.ma_ve }} · {{ t.vi_tri_ghe }} · {{ t.tuyen_xe }} ({{ formatDate(t.ngay_di_chuyen) }})</option>
         </select>
         <small style="color: #64748b; font-size: 11.5px; margin-top: 6px; display: block; line-height: 1.4;">
-          💡 <em>Nhập mã đơn, mã vé hoặc SĐT rồi nhấn "Tra cứu" để tự động điền thông tin hành khách, tuyến xe, ngày đi và số ghế.</em>
+          💡 <em>Nhập mã đơn hoặc mã vé rồi nhấn "Tra cứu" để tự động điền thông tin hành khách, tuyến xe, ngày đi và số ghế từ hệ thống.</em>
+          <a *ngIf="newItem.ma_don_hang" (click)="clearLookup()" style="margin-left: 6px; color: #dc2626; cursor: pointer;">Bỏ liên kết vé</a>
         </small>
       </div>
 
-      <!-- 1. Mã đơn & Mã vé (không bắt buộc) -->
-      <div style="display: flex; gap: 16px;">
-        <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Mã đơn hàng liên quan</label>
-          <input
-            type="text"
-            id="create-ma-don"
-            [(ngModel)]="newItem.ma_don_hang"
-            placeholder="VD: DH00001 (nếu có)"
-            class="form-input-control" />
-        </div>
-        <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Mã vé liên quan</label>
-          <input
-            type="text"
-            id="create-ma-ve"
-            [(ngModel)]="newItem.ma_ve"
-            placeholder="VD: VE00001 (nếu có)"
-            class="form-input-control" />
-        </div>
-      </div>
-      <label style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12.5px; color: #475569; cursor: pointer;">
+      <!-- 1. Loại ghi nhận -->
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #475569; cursor: pointer;">
         <input type="checkbox" [(ngModel)]="newItem.chua_ro_chu" (ngModelChange)="onUnknownOwnerChange('create')" />
-        Đồ nhặt được trên xe, chưa xác định chủ sở hữu (chỉ cần tuyến xe và ngày di chuyển)
+        Đồ nhân viên nhặt được trên xe (chưa xác định chủ sở hữu)
       </label>
 
-      <!-- 2. Mô tả vật phẩm thất lạc (Rộng ra) -->
+      <!-- 2. Thông tin chuyến lấy từ tra cứu -->
+      <div style="display: flex; gap: 16px; margin-top: 16px;" *ngIf="newItem.ma_don_hang">
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Mã đơn / Mã vé</label>
+          <input type="text" [value]="newItem.ma_don_hang + (newItem.ma_ve ? ' · ' + newItem.ma_ve : '')" class="form-input-control" readonly style="background:#f1f5f9" />
+        </div>
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Tuyến xe</label>
+          <input type="text" [value]="newItem.tuyen_xe" class="form-input-control" readonly style="background:#f1f5f9" />
+        </div>
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Ngày di chuyển</label>
+          <input type="text" [value]="formatDate(newItem.ngay_di_chuyen)" class="form-input-control" readonly style="background:#f1f5f9" />
+        </div>
+      </div>
+      <div class="form-group-unified" style="margin-top: 16px;" *ngIf="newItem.chua_ro_chu && !newItem.ma_don_hang">
+        <label class="field-label-lbl">Mã lịch trình nơi nhặt được <span class="required">*</span></label>
+        <input type="text" id="create-ma-lich-trinh" [(ngModel)]="newItem.ma_lich_trinh" placeholder="VD: LT001 (hoặc tra cứu mã vé ở trên)"
+          class="form-input-control" [class.border-red]="createFormSubmitted && !newItem.ma_lich_trinh?.trim()" />
+        <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.ma_lich_trinh?.trim()">Cần mã lịch trình hoặc mã vé để biết đồ nhặt trên chuyến nào</div>
+      </div>
+      <div class="field-error-msg" *ngIf="createFormSubmitted && lookupTicketOptions.length > 1 && !newItem.ma_ve">Vui lòng chọn vé/ghế liên quan</div>
+
+      <!-- 3. Tên & mô tả vật phẩm -->
       <div class="form-group-unified" style="margin-top: 16px;">
-        <label class="field-label-lbl">Mô tả vật phẩm thất lạc <span class="required">*</span></label>
-        <textarea
-          id="create-mo-ta"
-          rows="3"
-          [(ngModel)]="newItem.mo_ta_vat_pham"
-          placeholder="Ví dụ: Ví da cá sấu đen, iPhone 14 Pro màu tím..."
-          class="form-input-control"
-          [class.border-red]="createFormSubmitted && !newItem.mo_ta_vat_pham?.trim()"></textarea>
-        <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.mo_ta_vat_pham?.trim()">
-          Vui lòng nhập mô tả vật phẩm thất lạc
+        <label class="field-label-lbl">Tên vật phẩm <span class="required">*</span></label>
+        <input type="text" id="create-ten-vat-pham" maxlength="150" [(ngModel)]="newItem.ten_vat_pham" placeholder="Ví dụ: Ví da màu đen"
+          class="form-input-control" [class.border-red]="createFormSubmitted && (newItem.ten_vat_pham?.trim()?.length ?? 0) < 3" />
+        <div class="field-error-msg" *ngIf="createFormSubmitted && (newItem.ten_vat_pham?.trim()?.length ?? 0) < 3">Tên vật phẩm tối thiểu 3 ký tự</div>
+      </div>
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Mô tả chi tiết</label>
+        <textarea id="create-mo-ta" rows="3" maxlength="1000" [(ngModel)]="newItem.mo_ta_vat_pham"
+          placeholder="Màu sắc, nhãn hiệu, đồ bên trong..." class="form-input-control"></textarea>
+      </div>
+
+      <!-- 4. Đồ nhặt được: nơi tìm thấy & lưu giữ -->
+      <div style="display: flex; gap: 16px; margin-top: 16px;" *ngIf="newItem.chua_ro_chu">
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Vị trí tìm thấy</label>
+          <input type="text" id="create-vi-tri-tim" maxlength="300" [(ngModel)]="newItem.vi_tri_tim_thay" placeholder="Ghế số 4, cốp xe..." class="form-input-control" />
+        </div>
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Nơi lưu giữ <span class="required">*</span></label>
+          <input type="text" id="create-luu-tru" maxlength="300" [(ngModel)]="newItem.vi_tri_luu_tru" placeholder="Tủ đồ văn phòng VIAGO..."
+            class="form-input-control" [class.border-red]="createFormSubmitted && !newItem.vi_tri_luu_tru?.trim()" />
+          <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.vi_tri_luu_tru?.trim()">Vui lòng nhập nơi lưu giữ</div>
         </div>
       </div>
 
-      <!-- 3. Tuyến xe & Ngày di chuyển & Ngày báo mất (Custom dd/mm/yyyy DatePicker) -->
-      <div style="display: flex; gap: 16px; margin-top: 16px;">
-        <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Tuyến xe <span class="required">*</span></label>
-          <select
-            id="create-tuyen-xe"
-            [(ngModel)]="newItem.tuyen_xe"
-            class="form-input-control"
-            [class.border-red]="createFormSubmitted && !newItem.tuyen_xe">
-            <option value="" disabled selected>Chọn tuyến</option>
-            <option *ngFor="let r of routesList" [value]="r">{{ r }}</option>
-          </select>
-          <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.tuyen_xe">
-            Vui lòng chọn tuyến xe
-          </div>
-        </div>
-
-        <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Ngày di chuyển <span class="required">*</span></label>
-          <app-date-picker
-            id="create-ngay-di"
-            [(ngModel)]="newItem.ngay_di_chuyen"
-            [showLunar]="false"
-            [showClear]="false">
-          </app-date-picker>
-          <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.ngay_di_chuyen">
-            Vui lòng chọn ngày di chuyển
-          </div>
-        </div>
-
-        <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Ngày báo mất <span class="required">*</span></label>
-          <app-date-picker
-            id="create-ngay-bao-mat"
-            [(ngModel)]="newItem.ngay_bao_mat"
-            [showLunar]="false"
-            [showClear]="false">
-          </app-date-picker>
-          <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.ngay_bao_mat">
-            Vui lòng chọn ngày báo mất
-          </div>
-        </div>
-      </div>
-
-      <!-- 4. Số ghế / vị trí phòng -->
+      <!-- 5. Số ghế -->
       <div class="form-group-unified" style="margin-top: 16px;">
         <label class="field-label-lbl">Số ghế / vị trí phòng (nếu nhớ)</label>
-        <input
-          type="text"
-          [(ngModel)]="newItem.vi_tri_ghe"
-          placeholder="Ví dụ: Phòng A12, số ghế 5..."
-          class="form-input-control" />
+        <input type="text" maxlength="30" [(ngModel)]="newItem.vi_tri_ghe" placeholder="Ví dụ: A12" class="form-input-control" />
       </div>
 
-      <!-- 5. Họ tên hành khách -->
+      <!-- 6. Người báo / liên hệ -->
       <div class="form-group-unified" style="margin-top: 16px;">
-        <label class="field-label-lbl">Họ tên hành khách <span class="required" *ngIf="!newItem.chua_ro_chu">*</span></label>
-        <input
-          type="text"
-          id="create-ten-khach"
-          [(ngModel)]="newItem.ten_khach_hang"
-          placeholder="Nguyễn Văn A"
-          class="form-input-control"
-          [class.border-red]="createFormSubmitted && !newItem.chua_ro_chu && !newItem.ten_khach_hang?.trim()" />
-        <div class="field-error-msg" *ngIf="createFormSubmitted && !newItem.chua_ro_chu && !newItem.ten_khach_hang?.trim()">
-          Vui lòng nhập họ tên hành khách
-        </div>
+        <label class="field-label-lbl">Họ tên người báo</label>
+        <input type="text" id="create-ten-khach" maxlength="100" [(ngModel)]="newItem.ten_khach_hang" placeholder="Nguyễn Văn A" class="form-input-control" />
       </div>
-
-      <!-- 6. Số điện thoại & Email (State machine blur & inline error) -->
       <div style="display: flex; gap: 16px; margin-top: 16px;">
         <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Số điện thoại <span class="required" *ngIf="!newItem.chua_ro_chu">*</span></label>
-          <input
-            type="tel"
-            id="create-phone"
-            [(ngModel)]="newItem.so_dien_thoai"
-            (blur)="onBlurPhoneCreate()"
-            (input)="onInputPhoneCreate()"
-            placeholder="0912345678"
-            class="form-input-control"
-            [class.border-red]="phoneErrorCreate" />
-          <div class="field-error-msg" *ngIf="phoneErrorCreate">
-            {{ phoneErrorCreate }}
-          </div>
+          <label class="field-label-lbl">Số điện thoại <span class="required" *ngIf="!newItem.chua_ro_chu && !newItem.ma_don_hang">*</span></label>
+          <input type="tel" id="create-phone" [(ngModel)]="newItem.so_dien_thoai" (blur)="onBlurPhoneCreate()" (input)="onInputPhoneCreate()"
+            placeholder="0912345678" class="form-input-control" [class.border-red]="phoneErrorCreate" />
+          <div class="field-error-msg" *ngIf="phoneErrorCreate">{{ phoneErrorCreate }}</div>
         </div>
-
         <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Địa chỉ Email <span class="required" *ngIf="!newItem.chua_ro_chu">*</span></label>
-          <input
-            type="email"
-            id="create-email"
-            [(ngModel)]="newItem.email"
-            (blur)="onBlurEmailCreate()"
-            (input)="onInputEmailCreate()"
-            placeholder="name@example.com"
-            class="form-input-control"
-            [class.border-red]="emailErrorCreate" />
-          <div class="field-error-msg" *ngIf="emailErrorCreate">
-            {{ emailErrorCreate }}
-          </div>
+          <label class="field-label-lbl">Địa chỉ Email</label>
+          <input type="email" id="create-email" [(ngModel)]="newItem.email" (blur)="onBlurEmailCreate()" (input)="onInputEmailCreate()"
+            placeholder="name@example.com" class="form-input-control" [class.border-red]="emailErrorCreate" />
+          <div class="field-error-msg" *ngIf="emailErrorCreate">{{ emailErrorCreate }}</div>
         </div>
       </div>
 
@@ -461,7 +409,7 @@
     <!-- Modal Footer Actions -->
     <div class="modal-footer-panel modal-footer-actions">
       <button class="btn-footer-secondary" (click)="closeCreateModal()">Hủy bỏ</button>
-      <button class="btn-footer-primary" (click)="saveNewItem()">Lưu thông tin</button>
+      <button class="btn-footer-primary" [disabled]="saving" (click)="saveNewItem()">{{ saving ? 'Đang lưu...' : 'Lưu thông tin' }}</button>
     </div>
   </div>
 </div>
@@ -473,14 +421,14 @@
   <div class="modal-main-container modal-md">
     <div class="modal-header-panel">
       <div style="display: flex; align-items: center; gap: 12px;">
-        <h2 class="modal-title-txt">Chi tiết yêu cầu thất lạc ({{ editingItem.ma_do_that_lac }}{{ editingItem.ma_ve ? ' - ' + editingItem.ma_ve : (editingItem.ma_don_hang ? ' - ' + editingItem.ma_don_hang : '') }})</h2>
+        <h2 class="modal-title-txt">Chi tiết hồ sơ thất lạc ({{ editingItem.ma_do_that_lac }}{{ editingItem.ma_ve ? ' - ' + editingItem.ma_ve : (editingItem.ma_don_hang ? ' - ' + editingItem.ma_don_hang : '') }})</h2>
         <div class="status-pill" [ngClass]="{
           'status-active': editingItem.trang_thai === 'Đang tìm kiếm',
           'status-scheduled': editingItem.trang_thai === 'Đã tìm thấy',
           'status-inactive': editingItem.trang_thai === 'Đã trả khách',
           'status-draft': editingItem.trang_thai === 'Đóng yêu cầu'
         }">
-          <span>{{ editingItem.trang_thai }}</span>
+          <span>{{ editingItem.trang_thai_goc }}</span>
         </div>
       </div>
       <button class="btn-close-modal" (click)="closeEditModal()">
@@ -492,143 +440,64 @@
     </div>
 
     <div class="modal-body-content">
-      <!-- 1. Mã đơn & Mã vé (không bắt buộc) -->
+      <p *ngIf="editLocked" style="margin: 0 0 12px; font-size: 12.5px; color: #b45309;">Hồ sơ đã kết thúc, chỉ xem thông tin.</p>
+
+      <!-- 1. Thông tin chuyến & khách (lấy từ đơn hàng, không sửa) -->
       <div style="display: flex; gap: 16px;">
         <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Mã đơn hàng liên quan</label>
-          <input
-            type="text"
-            id="edit-ma-don"
-            [(ngModel)]="editingItem.ma_don_hang"
-            placeholder="VD: DH00001 (nếu có)"
-            class="form-input-control" />
+          <label class="field-label-lbl">Mã đơn / Mã vé</label>
+          <input type="text" [value]="(editingItem.ma_don_hang || '—') + (editingItem.ma_ve ? ' · ' + editingItem.ma_ve : '')" class="form-input-control" readonly style="background:#f1f5f9" />
         </div>
         <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Mã vé liên quan</label>
-          <input
-            type="text"
-            id="edit-ma-ve"
-            [(ngModel)]="editingItem.ma_ve"
-            placeholder="VD: VE00001 (nếu có)"
-            class="form-input-control" />
+          <label class="field-label-lbl">Loại ghi nhận</label>
+          <input type="text" [value]="editingItem.chua_ro_chu ? 'Nhân viên nhặt được' : 'Khách báo mất'" class="form-input-control" readonly style="background:#f1f5f9" />
         </div>
       </div>
-      <label style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12.5px; color: #475569; cursor: pointer;">
-        <input type="checkbox" [(ngModel)]="editingItem.chua_ro_chu" (ngModelChange)="onUnknownOwnerChange('edit')" />
-        Đồ nhặt được trên xe, chưa xác định chủ sở hữu (chỉ cần tuyến xe và ngày di chuyển)
-      </label>
-
-      <!-- 2. Mô tả vật phẩm thất lạc (Rộng ra) -->
-      <div class="form-group-unified" style="margin-top: 16px;">
-        <label class="field-label-lbl">Mô tả vật phẩm thất lạc <span class="required">*</span></label>
-        <textarea
-          id="edit-mo-ta"
-          rows="3"
-          [(ngModel)]="editingItem.mo_ta_vat_pham"
-          class="form-input-control"
-          [class.border-red]="editFormSubmitted && !editingItem.mo_ta_vat_pham?.trim()"></textarea>
-        <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.mo_ta_vat_pham?.trim()">
-          Vui lòng nhập mô tả vật phẩm thất lạc
-        </div>
-      </div>
-
-      <!-- 3. Tuyến xe & Ngày di chuyển & Ngày báo mất (Custom dd/mm/yyyy DatePicker) -->
       <div style="display: flex; gap: 16px; margin-top: 16px;">
         <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Tuyến xe <span class="required">*</span></label>
-          <select
-            id="edit-tuyen-xe"
-            [(ngModel)]="editingItem.tuyen_xe"
-            class="form-input-control"
-            [class.border-red]="editFormSubmitted && !editingItem.tuyen_xe">
-            <option *ngFor="let r of routesList" [value]="r">{{ r }}</option>
-          </select>
-          <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.tuyen_xe">
-            Vui lòng chọn tuyến xe
-          </div>
+          <label class="field-label-lbl">Tuyến xe</label>
+          <input type="text" [value]="editingItem.tuyen_xe || 'Chưa rõ'" class="form-input-control" readonly style="background:#f1f5f9" />
         </div>
-
         <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Ngày di chuyển <span class="required">*</span></label>
-          <app-date-picker
-            id="edit-ngay-di"
-            [(ngModel)]="editingItem.ngay_di_chuyen"
-            [showLunar]="false"
-            [showClear]="false">
-          </app-date-picker>
-          <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.ngay_di_chuyen">
-            Vui lòng chọn ngày di chuyển
-          </div>
+          <label class="field-label-lbl">Ngày di chuyển</label>
+          <input type="text" [value]="formatDate(editingItem.ngay_di_chuyen)" class="form-input-control" readonly style="background:#f1f5f9" />
         </div>
-
         <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Ngày báo mất <span class="required">*</span></label>
-          <app-date-picker
-            id="edit-ngay-bao-mat"
-            [(ngModel)]="editingItem.ngay_bao_mat"
-            [showLunar]="false"
-            [showClear]="false">
-          </app-date-picker>
-          <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.ngay_bao_mat">
-            Vui lòng chọn ngày báo mất
-          </div>
+          <label class="field-label-lbl">Thời điểm báo/ghi nhận</label>
+          <input type="text" [value]="formatDateTime(editingItem.ngay_bao_mat)" class="form-input-control" readonly style="background:#f1f5f9" />
         </div>
       </div>
-
-      <!-- 4. Số ghế -->
-      <div class="form-group-unified" style="margin-top: 16px;">
-        <label class="field-label-lbl">Số ghế / vị trí phòng (nếu nhớ)</label>
-        <input
-          type="text"
-          [(ngModel)]="editingItem.vi_tri_ghe"
-          class="form-input-control" />
-      </div>
-
-      <!-- 5. Tên khách hàng -->
-      <div class="form-group-unified" style="margin-top: 16px;">
-        <label class="field-label-lbl">Họ tên hành khách <span class="required" *ngIf="!editingItem.chua_ro_chu">*</span></label>
-        <input
-          type="text"
-          id="edit-ten-khach"
-          [(ngModel)]="editingItem.ten_khach_hang"
-          class="form-input-control"
-          [class.border-red]="editFormSubmitted && !editingItem.chua_ro_chu && !editingItem.ten_khach_hang?.trim()" />
-        <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.chua_ro_chu && !editingItem.ten_khach_hang?.trim()">
-          Vui lòng nhập họ tên hành khách
-        </div>
-      </div>
-
-      <!-- 6. SĐT & Email (State machine blur & inline error) -->
       <div style="display: flex; gap: 16px; margin-top: 16px;">
         <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Số điện thoại <span class="required" *ngIf="!editingItem.chua_ro_chu">*</span></label>
-          <input
-            type="tel"
-            id="edit-phone"
-            [(ngModel)]="editingItem.so_dien_thoai"
-            (blur)="onBlurPhoneEdit()"
-            (input)="onInputPhoneEdit()"
-            class="form-input-control"
-            [class.border-red]="phoneErrorEdit" />
-          <div class="field-error-msg" *ngIf="phoneErrorEdit">
-            {{ phoneErrorEdit }}
-          </div>
+          <label class="field-label-lbl">Người báo</label>
+          <input type="text" [value]="editingItem.ten_khach_hang || 'Chưa xác định'" class="form-input-control" readonly style="background:#f1f5f9" />
         </div>
-
         <div class="form-group-unified" style="flex: 1;">
-          <label class="field-label-lbl">Địa chỉ Email <span class="required" *ngIf="!editingItem.chua_ro_chu">*</span></label>
-          <input
-            type="email"
-            id="edit-email"
-            [(ngModel)]="editingItem.email"
-            (blur)="onBlurEmailEdit()"
-            (input)="onInputEmailEdit()"
-            class="form-input-control"
-            [class.border-red]="emailErrorEdit" />
-          <div class="field-error-msg" *ngIf="emailErrorEdit">
-            {{ emailErrorEdit }}
-          </div>
+          <label class="field-label-lbl">Số điện thoại</label>
+          <input type="text" [value]="editingItem.so_dien_thoai || 'N/A'" class="form-input-control" readonly style="background:#f1f5f9" />
         </div>
+        <div class="form-group-unified" style="flex: 1;">
+          <label class="field-label-lbl">Email</label>
+          <input type="text" [value]="editingItem.email || 'N/A'" class="form-input-control" readonly style="background:#f1f5f9" />
+        </div>
+      </div>
+
+      <!-- 2. Tên & mô tả vật phẩm -->
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Tên vật phẩm <span class="required">*</span></label>
+        <input type="text" id="edit-ten-vat-pham" maxlength="150" [(ngModel)]="editingItem.ten_vat_pham" [disabled]="editLocked"
+          class="form-input-control" [class.border-red]="editFormSubmitted && (editingItem.ten_vat_pham?.trim()?.length ?? 0) < 3" />
+        <div class="field-error-msg" *ngIf="editFormSubmitted && !editLocked && (editingItem.ten_vat_pham?.trim()?.length ?? 0) < 3">Tên vật phẩm tối thiểu 3 ký tự</div>
+      </div>
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Mô tả chi tiết</label>
+        <textarea id="edit-mo-ta" rows="3" maxlength="1000" [(ngModel)]="editingItem.mo_ta_vat_pham" [disabled]="editLocked" class="form-input-control"></textarea>
+      </div>
+
+      <!-- 3. Số ghế -->
+      <div class="form-group-unified" style="margin-top: 16px;">
+        <label class="field-label-lbl">Số ghế / vị trí phòng</label>
+        <input type="text" maxlength="30" [(ngModel)]="editingItem.vi_tri_ghe" [disabled]="editLocked" class="form-input-control" />
       </div>
 
       <!-- 7. Hình ảnh vật phẩm lúc mất (Redesigned like Create modal dropzone) -->
@@ -671,12 +540,38 @@
         <select
           [(ngModel)]="editingItem.trang_thai"
           (ngModelChange)="onStatusChange()"
+          [disabled]="editLocked"
           class="form-input-control">
-          <option value="Đang tìm kiếm">Đang tìm kiếm</option>
-          <option value="Đã tìm thấy">Đã tìm thấy</option>
-          <option value="Đã trả khách">Đã trả khách</option>
-          <option value="Đóng yêu cầu">Đóng yêu cầu</option>
+          <option *ngFor="let st of statusOptions(editingItem)" [value]="st">{{ st }}</option>
         </select>
+        <small *ngIf="editingItem.trang_thai === 'Đã trả khách' && editingItem.trang_thai_goc !== 'Đã trả khách' && editingItem.chua_ro_chu" style="font-size: 11.5px; color: #b45309;">
+          Đồ nhặt được cần xác nhận một yêu cầu nhận đồ trước khi trả khách.
+        </small>
+      </div>
+
+      <div class="form-group-unified" style="margin-top: 16px;" *ngIf="editingItem.trang_thai === 'Đóng yêu cầu' && editingItem.trang_thai_goc !== 'Đóng yêu cầu'">
+        <label class="field-label-lbl">Lý do đóng yêu cầu <span class="required">*</span></label>
+        <textarea id="edit-ly-do-dong" rows="2" maxlength="1000" [(ngModel)]="editingItem.ly_do_dong" class="form-input-control"
+          [class.border-red]="editFormSubmitted && !editingItem.ly_do_dong?.trim()"></textarea>
+        <div class="field-error-msg" *ngIf="editFormSubmitted && !editingItem.ly_do_dong?.trim()">Vui lòng nhập lý do đóng</div>
+      </div>
+
+      <!-- Yêu cầu nhận đồ của khách -->
+      <div class="form-group-unified" style="margin-top: 16px;" *ngIf="editingItem.yeu_cau_nhan.length">
+        <label class="field-label-lbl">Yêu cầu nhận đồ ({{ editingItem.yeu_cau_nhan.length }})</label>
+        <div *ngFor="let c of editingItem.yeu_cau_nhan" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: 12.5px;">
+          <div style="display: flex; justify-content: space-between; gap: 8px;">
+            <strong>{{ c.id }} · {{ c.statusLabel }}</strong>
+            <span style="color: #64748b;">{{ formatDateTime(c.submittedAt) }}</span>
+          </div>
+          <div>Mã đơn/vé: {{ c.orderId || '—' }}{{ c.ticketId ? ' · ' + c.ticketId : '' }} · SĐT: {{ c.phone }}</div>
+          <div style="color: #334155; margin-top: 4px;">Đặc điểm nhận dạng: {{ c.description }}</div>
+          <div *ngIf="c.handledBy" style="color: #64748b;">Xử lý bởi {{ c.handledBy }} lúc {{ formatDateTime(c.handledAt) }}</div>
+          <div *ngIf="c.status === 'ChoXacMinh'" style="display: flex; gap: 8px; margin-top: 8px;">
+            <button type="button" class="btn-footer-secondary" style="padding: 4px 12px; font-size: 12px;" (click)="decideClaim(c, 'reject')">Từ chối</button>
+            <button type="button" class="btn-footer-primary" style="padding: 4px 12px; font-size: 12px;" (click)="decideClaim(c, 'approve')">Xác nhận đúng chủ</button>
+          </div>
+        </div>
       </div>
 
       <!-- 9. Khung Thông tin tìm thấy vật phẩm (Redesigned Dropzone matching Create modal) -->
@@ -691,28 +586,40 @@
 
         <div class="found-info-body">
           <div class="form-group-unified">
-            <label class="field-label-lbl">Vị trí tìm thấy <span class="required" *ngIf="editingItem.trang_thai === 'Đã tìm thấy' || editingItem.trang_thai === 'Đã trả khách'">*</span></label>
+            <label class="field-label-lbl">Vị trí tìm thấy <span class="required" *ngIf="editingItem.trang_thai === 'Đã tìm thấy'">*</span></label>
             <textarea
               id="edit-vi-tri-tim"
               rows="2"
               [(ngModel)]="editingItem.vi_tri_tim_thay"
-              placeholder="Ví dụ: Ghế số 4, Cốp xe, Kho chứa đồ..."
+              [disabled]="editLocked"
+              placeholder="Ví dụ: Ghế số 4, Cốp xe..."
               class="form-input-control"
-              [class.border-red]="editFormSubmitted && (editingItem.trang_thai === 'Đã tìm thấy' || editingItem.trang_thai === 'Đã trả khách') && !editingItem.vi_tri_tim_thay?.trim()"></textarea>
-            <div class="field-error-msg" *ngIf="editFormSubmitted && (editingItem.trang_thai === 'Đã tìm thấy' || editingItem.trang_thai === 'Đã trả khách') && !editingItem.vi_tri_tim_thay?.trim()">
+              [class.border-red]="editFormSubmitted && editingItem.trang_thai === 'Đã tìm thấy' && !editingItem.vi_tri_tim_thay?.trim()"></textarea>
+            <div class="field-error-msg" *ngIf="editFormSubmitted && editingItem.trang_thai === 'Đã tìm thấy' && !editingItem.vi_tri_tim_thay?.trim()">
               Vui lòng nhập vị trí tìm thấy vật phẩm
             </div>
           </div>
 
           <div class="form-group-unified" style="margin-top: 14px;">
-            <label class="field-label-lbl">Thời gian tìm thấy (Ngày & Giờ) <span class="required" *ngIf="editingItem.trang_thai === 'Đã tìm thấy' || editingItem.trang_thai === 'Đã trả khách'">*</span></label>
+            <label class="field-label-lbl">Nơi lưu giữ <span class="required" *ngIf="editingItem.trang_thai === 'Đã tìm thấy'">*</span></label>
+            <input type="text" id="edit-luu-tru" maxlength="300" [(ngModel)]="editingItem.vi_tri_luu_tru" [disabled]="editLocked"
+              placeholder="Tủ đồ văn phòng VIAGO..." class="form-input-control"
+              [class.border-red]="editFormSubmitted && editingItem.trang_thai === 'Đã tìm thấy' && !editingItem.vi_tri_luu_tru?.trim()" />
+            <div class="field-error-msg" *ngIf="editFormSubmitted && editingItem.trang_thai === 'Đã tìm thấy' && !editingItem.vi_tri_luu_tru?.trim()">
+              Vui lòng nhập nơi lưu giữ
+            </div>
+          </div>
+
+          <div class="form-group-unified" style="margin-top: 14px;">
+            <label class="field-label-lbl">Thời gian tìm thấy (Ngày & Giờ) <span class="required" *ngIf="editingItem.trang_thai === 'Đã tìm thấy'">*</span></label>
             <input
               type="datetime-local"
               id="edit-thoi-gian-tim"
               [(ngModel)]="editingItem.thoi_gian_tim_thay"
+              [disabled]="editLocked"
               class="form-input-control"
-              [class.border-red]="editFormSubmitted && (editingItem.trang_thai === 'Đã tìm thấy' || editingItem.trang_thai === 'Đã trả khách') && !editingItem.thoi_gian_tim_thay?.trim()" />
-            <div class="field-error-msg" *ngIf="editFormSubmitted && (editingItem.trang_thai === 'Đã tìm thấy' || editingItem.trang_thai === 'Đã trả khách') && !editingItem.thoi_gian_tim_thay?.trim()">
+              [class.border-red]="editFormSubmitted && editingItem.trang_thai === 'Đã tìm thấy' && !editingItem.thoi_gian_tim_thay" />
+            <div class="field-error-msg" *ngIf="editFormSubmitted && editingItem.trang_thai === 'Đã tìm thấy' && !editingItem.thoi_gian_tim_thay">
               Vui lòng chọn thời gian tìm thấy vật phẩm
             </div>
             <small style="font-size: 11.5px; color: #047857; margin-top: 2px;" *ngIf="editingItem.thoi_gian_tim_thay">Hiển thị: {{ formatDateTime(editingItem.thoi_gian_tim_thay) }}</small>
@@ -759,6 +666,7 @@
         <label class="field-label-lbl">Ghi chú / Nhật ký xử lý</label>
         <textarea
           [(ngModel)]="editingItem.ghi_chu"
+          [disabled]="editLocked"
           placeholder="Lịch sử liên hệ, bàn giao..."
           class="form-input-control"
           rows="2"
@@ -769,7 +677,7 @@
     <!-- Modal Footer Actions -->
     <div class="modal-footer-panel modal-footer-actions">
       <button class="btn-footer-secondary" (click)="closeEditModal()">Hủy bỏ</button>
-      <button class="btn-footer-primary" (click)="saveEditItem()">Lưu thông tin</button>
+      <button class="btn-footer-primary" *ngIf="!editLocked" [disabled]="saving" (click)="saveEditItem()">{{ saving ? 'Đang lưu...' : 'Lưu thông tin' }}</button>
     </div>
   </div>
 </div>

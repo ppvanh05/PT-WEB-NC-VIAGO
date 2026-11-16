@@ -931,8 +931,40 @@
 
 .form-row-2 {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.form-row-2 > .form-group,
+.form-row-dates > .form-group {
+  min-width: 0;
+}
+
+/* Ô ngày giờ cần ~190px để hiện đủ "11/16/2026 08:00 AM": khung hẹp thì tự xuống dòng thay vì tràn */
+.form-row-dates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+/* Tra cứu: ô mã, ô SĐT và nút nằm cùng một hàng */
+.lookup-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.lookup-form .lookup-submit {
+  height: 40px;
+  padding: 0 28px;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .lookup-form {
+    grid-template-columns: 1fr;
+  }
 }
 
 .input-label {

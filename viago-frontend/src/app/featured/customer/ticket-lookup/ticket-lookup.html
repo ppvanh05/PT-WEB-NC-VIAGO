@@ -27,7 +27,17 @@
             <p class="text-error text-xs font-semibold leading-relaxed">{{ searchError }}</p>
           </div>
 
-          <!-- Sample data hint -->
+          <!-- Đăng nhập: xem đơn thật của tài khoản để đánh giá chuyến đi -->
+          <div class="lookup-account-box">
+            <ng-container *ngIf="auth.currentUser(); else lookupLoginHint">
+              <p>Bạn đang đăng nhập với số <strong>{{ loggedInPhone }}</strong>.</p>
+              <app-button variant="outline" class="full-width" (clicked)="openMyOrders()">Xem đơn hàng của tài khoản</app-button>
+            </ng-container>
+            <ng-template #lookupLoginHint>
+              <p>Đã có tài khoản? Đăng nhập để xem đơn hàng và đánh giá chuyến đi không cần OTP.</p>
+              <app-button variant="ghost" class="full-width" (clicked)="openLogin()">Đăng nhập</app-button>
+            </ng-template>
+          </div>
         </div>
       </div>
 
@@ -89,6 +99,7 @@
           <div class="lookup-orders-empty" role="status">
             <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
             <h3>{{ orders.length ? 'Không tìm thấy mã đơn này' : 'Chưa có đơn hàng' }}</h3>
+            <app-button *ngIf="bookingCode.trim()" variant="primary" [loading]="findingRealOrder" (clicked)="findRealOrder()">Tìm mã {{ bookingCode.trim().toUpperCase() }} trong hệ thống</app-button>
             <p>{{ orders.length ? 'Mã đơn không khớp với đơn hàng của số điện thoại đã xác thực. Kiểm tra lại mã hoặc xem tất cả đơn.' : 'Không tìm thấy đơn hàng của số điện thoại này.' }}</p>
             <app-button *ngIf="bookingCode && orders.length" variant="outline" (clicked)="bookingCode = ''">Xem tất cả đơn</app-button>
           </div>
@@ -806,6 +817,12 @@
     (closed)="closeReviewModal()" (confirmed)="submitReview()">
     <div class="lookup-modal-content">
         <p class="text-text-secondary text-xs font-medium">Vui lòng chấm điểm cho các dịch vụ của chuyến đi và gửi đánh giá của bạn.</p>
+        <div *ngIf="reviewableTickets.length > 1" class="flex flex-col gap-1.5">
+          <label for="review-ticket" class="text-xs font-semibold text-text-strong">Vé được đánh giá (mỗi vé 1 lần)</label>
+          <select id="review-ticket" class="lookup-review-select" [(ngModel)]="reviewTicketId">
+            <option *ngFor="let t of reviewableTickets" [value]="t.MaVe">Vé {{ t.MaVe }} · Ghế {{ t.SoGhe }}</option>
+          </select>
+        </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div *ngFor="let criteria of ratingCriteria; let i = index" class="flex flex-col gap-1.5">

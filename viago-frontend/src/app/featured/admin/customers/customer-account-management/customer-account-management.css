@@ -499,11 +499,11 @@ tbody tr.cancelled {
 }
 
 .top-layer {
-  z-index: 80;
+  z-index: calc(var(--z-modal, 1200) + 1);
 }
 
 .confirm-layer {
-  z-index: 100;
+  z-index: calc(var(--z-modal, 1200) + 2);
 }
 
 .detail-modal,

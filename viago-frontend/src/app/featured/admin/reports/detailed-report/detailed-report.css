@@ -1062,3 +1062,20 @@
   line-height: 1.15 !important;
   text-transform: uppercase !important;
 }
+
+/* Toast góc phải (đồng bộ vị trí với các trang admin khác) */
+.page-toast-stack {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: var(--z-toast, 1400);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.page-toast-stack > * {
+  pointer-events: auto;
+}

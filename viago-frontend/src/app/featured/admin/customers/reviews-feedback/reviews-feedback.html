@@ -23,10 +23,8 @@
           <small>Đánh giá thấp (1-3★)</small>
         </div>
         <div class="summary-item revenue">
-          <span class="summary-trip" [title]="ThongKe().chuyenXeTeNhat">
-            {{ ThongKe().chuyenXeTeNhat }}
-          </span>
-          <small>Chuyến cần cải thiện</small>
+          <span [title]="ThongKe().GoiYChuyenCanCaiThien">{{ ThongKe().SoChuyenCanCaiThien }}</span>
+          <small [title]="ThongKe().GoiYChuyenCanCaiThien">Chuyến cần cải thiện (TB ≤ 3★)</small>
         </div>
       </div>
 
@@ -160,7 +158,16 @@
     </div>
 
     <div class="table-scroll">
-      @if (DanhSachLoc().length === 0) {
+      @if (DangTai()) {
+        <div class="empty-table">
+          <h3>Đang tải đánh giá...</h3>
+        </div>
+      } @else if (LoiTaiDuLieu()) {
+        <div class="empty-table">
+          <h3>{{ LoiTaiDuLieu() }}</h3>
+          <app-button size="sm" variant="outline" (clicked)="TaiDuLieu()">Thử lại</app-button>
+        </div>
+      } @else if (DanhSachLoc().length === 0) {
         <div class="empty-table">
           <h3>Không có kết quả</h3>
           <p>Thử đổi từ khóa hoặc trạng thái lọc.</p>
@@ -293,6 +300,17 @@
               </div>
 
               <div class="field" style="margin-top: 4px; display: flex; flex-direction: column; gap: 4px">
+                <label for="review-cause-tag">Nguyên nhân phản ánh <small>Dùng cho thống kê CSKH</small></label>
+                <select id="review-cause-tag" [ngModel]="dg.TagNguyenNhan || ''" (ngModelChange)="CapNhatNoiBo(dg, { TagNguyenNhan: $event })"
+                  style="width: 100%; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 8px 10px; font-size: var(--font-size-body-sm)">
+                  <option value="">Chưa gắn nguyên nhân</option>
+                  @for (tag of DanhSachTagNguyenNhan; track tag.value) {
+                    <option [value]="tag.value">{{ tag.label }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="field" style="margin-top: 4px; display: flex; flex-direction: column; gap: 4px">
                 <label for="review-internal-note">Ghi chú nội bộ <small>Chỉ nhân viên nhìn thấy</small></label>
                 <textarea
                   #internalNoteModal id="review-internal-note"
@@ -369,6 +387,12 @@
     <p>Chỉ ẩn nội dung vi phạm quy định. Đánh giá tiêu cực vẫn cần được tiếp nhận và phản hồi. Nội dung bị ẩn được giữ trong quản trị để đối soát.</p>
     <p>{{ target.HoTenKhachHang }} · {{ target.MaDanhGia }}</p>
     <p>{{ target.NoiDungDanhGia }}</p>
+    <label for="review-hide-reason" style="display: block; font-weight: var(--font-weight-semibold); margin-top: 8px">
+      {{ target.TrangThai === 'hien-thi' ? 'Lý do ẩn (bắt buộc)' : 'Ghi chú (không bắt buộc)' }}
+    </label>
+    <textarea id="review-hide-reason" rows="2" maxlength="500" [ngModel]="LyDoAn()" (ngModelChange)="LyDoAn.set($event)"
+      placeholder="VD: Chứa lời lẽ xúc phạm, thông tin cá nhân..."
+      style="width: 100%; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 8px 10px; font-family: inherit; resize: vertical"></textarea>
   }
 </app-modal>
 <app-modal class="review-confirm-modal" [open]="!!PhanHoiMuonXoa()" title="Xóa phản hồi" size="small"

@@ -2053,3 +2053,26 @@ label { text-transform: none; font-weight: var(--font-weight-medium); }
 @media (max-width: 767px) { .lookup-orders-header { flex-direction: row; align-items: flex-start; } }
 
 .lookup-ticket-actions { flex-wrap: wrap; }
+
+/* Đăng nhập để xem đơn thật và đánh giá chuyến đi */
+.lookup-account-box {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--color-border, #e2e8f0);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.lookup-review-select {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 10px;
+  font-size: 13px;
+  background: #fff;
+}

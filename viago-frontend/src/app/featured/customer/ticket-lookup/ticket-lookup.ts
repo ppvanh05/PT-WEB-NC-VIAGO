@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, OnInit, OnDestroy, NgZone, HostListener } from '@angular/core';
+import { Component, ChangeDetectorRef, OnInit, OnDestroy, NgZone, HostListener, inject } from '@angular/core';
 import { create } from 'qrcode';
 import { Router, NavigationSkipped, NavigationSkippedCode } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -12,6 +12,52 @@ import { Textarea } from '../../../shared/components/input/textarea/textarea';
 import { Toast } from '../../../shared/components/toast/toast';
 import { ModalComponent } from '../../../shared/components/modal/modal';
 import { SearchableDropdownComponent } from '../../../shared/components/searchable-dropdown/searchable-dropdown';
+import { AccountsApiService } from '../../../core/services/accounts-api.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { AuthModalService } from '../../../core/services/auth-modal.service';
+
+/** Đơn thật từ GET customer/reviews/orders/... (chỉ dùng cho phần đánh giá chuyến đi). */
+interface ApiLookupOrder {
+  id: string;
+  customerId: string | null;
+  bookerName: string;
+  phone: string;
+  email: string | null;
+  bookedAt: string;
+  route: string;
+  scheduleId: string;
+  departureAt: string;
+  arrivalAt: string;
+  presenceMinutes: number;
+  pickupId: string;
+  pickup: string;
+  dropoffId: string;
+  dropoff: string;
+  plate: string;
+  total: number;
+  paymentMethod: string;
+  editCount: number;
+  editLimit: number;
+  status: ApiLookupStatus;
+  tickets: { id: string; seat: string; passenger: string; price: number; qr: string; status: ApiLookupStatus }[];
+}
+type ApiLookupStatus = 'pending' | 'upcoming' | 'completed' | 'reviewed' | 'cancelled';
+
+const API_STATUS: Record<ApiLookupStatus, 'Chờ thanh toán' | 'Chờ khởi hành' | 'Đã hoàn thành' | 'Đã hủy' | 'Đã đánh giá'> = {
+  pending: 'Chờ thanh toán',
+  upcoming: 'Chờ khởi hành',
+  completed: 'Đã hoàn thành',
+  reviewed: 'Đã đánh giá',
+  cancelled: 'Đã hủy',
+};
+
+/** Tách ngày/giờ theo giờ Việt Nam từ chuỗi ISO. */
+const vnParts = (iso: string) => {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date(iso)).map(x => [x.type, x.value]));
+  return { date: `${p['year']}-${p['month']}-${p['day']}`, dmy: `${p['day']}/${p['month']}/${p['year']}`, time: `${p['hour']}:${p['minute']}` };
+};
 
 interface Ticket {
   MaVe: string;
@@ -53,6 +99,10 @@ interface Order {
   MaLichTrinh?: string;
   GioGoiYCoMat?: string;
   Tickets: Ticket[];
+  /** Đơn thật lấy từ DB (khác dữ liệu mẫu): chỉ phần đánh giá được nối backend. */
+  FromDb?: boolean;
+  /** Đơn thật lấy theo tài khoản đang đăng nhập (gửi đánh giá qua API hồ sơ). */
+  ViaAccount?: boolean;
 }
 
 interface LocationOption {
@@ -376,6 +426,14 @@ export class TicketLookup implements OnInit, OnDestroy {
 
   constructor(private cdr: ChangeDetectorRef, private ngZone: NgZone, private router: Router) {}
 
+  private readonly accountsApi = inject(AccountsApiService);
+  protected readonly auth = inject(AuthService);
+  private readonly authModal = inject(AuthModalService);
+  /** Đang tìm đơn thật theo mã (khách chưa đăng nhập). */
+  findingRealOrder = false;
+  /** Vé được chọn để đánh giá khi đơn thật có nhiều vé đã hoàn thành. */
+  reviewTicketId = '';
+
   ngOnInit(): void {
     this.lookupNavigation = this.router.events.subscribe(event => {
       if (event instanceof NavigationSkipped &&
@@ -389,6 +447,47 @@ export class TicketLookup implements OnInit, OnDestroy {
     const code = params.get('code');
     if (phone) this.phoneNumber = phone.replace(/\D/g, '').slice(0, 10);
     if (code) this.bookingCode = code.trim().toUpperCase();
+    const accountOrder = params.get('order');
+    if (accountOrder) void this.openAccountOrder(accountOrder, params.get('ticket'));
+  }
+
+  /**
+   * Đi từ Hồ sơ → Lịch sử mua vé → Chi tiết: mở thẳng trang Chi tiết vé của đơn thuộc tài khoản,
+   * cùng màn hình với khi tra cứu bằng mã đơn + SĐT.
+   */
+  private async openAccountOrder(code: string, ticketId: string | null): Promise<void> {
+    await this.auth.ready;
+    if (!this.auth.currentUser()) {
+      this.bookingCode = code.trim().toUpperCase();
+      this.showToast('Vui lòng đăng nhập để xem chi tiết vé từ hồ sơ.', 'error');
+      this.cdr.detectChanges();
+      return;
+    }
+    this.isLoading = true;
+    try {
+      const rows = await this.accountsApi.request<ApiLookupOrder[]>('customer/reviews/orders/mine');
+      const row = rows.find(o => o.id === code.trim().toUpperCase());
+      if (!row) {
+        this.showToast('Không tìm thấy đơn hàng này trong tài khoản.', 'error');
+        return;
+      }
+      this.phoneNumber = this.loggedInPhone || row.phone;
+      this.verifiedPhone = this.phoneNumber;
+      this.orders = this.readOrders().filter(order => order.SoDienThoai === this.verifiedPhone);
+      this.addRealOrders(rows.map(item => this.fromApi(item, true)));
+      const order = this.orders.find(o => o.MaDonHang === row.id)!;
+      this.currentOrder = JSON.parse(JSON.stringify(order));
+      this.currentStep = 'results';
+      setTimeout(() => {
+        const index = ticketId ? order.Tickets.findIndex(t => t.MaVe === ticketId) : 0;
+        document.getElementById('ticket-' + Math.max(0, index))?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 200);
+    } catch (error) {
+      this.showToast(error instanceof Error && error.message ? error.message : 'Không tải được chi tiết vé.', 'error');
+    } finally {
+      this.isLoading = false;
+      this.cdr.detectChanges();
+    }
   }
 
   onEditDiemDonBlur(event: FocusEvent) {
@@ -408,6 +507,7 @@ export class TicketLookup implements OnInit, OnDestroy {
 
   get canReview(): boolean {
     if (!this.currentOrder) return false;
+    if (this.currentOrder.FromDb) return this.reviewableTickets.length > 0;
     return this.currentOrder.TrangThaiDonHang === 'Đã hoàn thành'
       && this.currentOrder.Tickets.length > 0
       && this.currentOrder.Tickets.every((ticket) => ticket.TrangThaiVe === 'Đã hoàn thành');
@@ -545,6 +645,160 @@ export class TicketLookup implements OnInit, OnDestroy {
     this.currentOrder = null;
     this.currentStep = 'orders';
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    void this.mergeAccountOrders();
+  }
+
+  // ─── ĐƠN THẬT (chỉ phục vụ đánh giá chuyến đi) ──────────────────────────────
+
+  get loggedInPhone(): string {
+    return (this.auth.currentUser()?.phoneNumber || '').replace(/\D/g, '');
+  }
+
+  openLogin(): void {
+    this.authModal.open('login');
+  }
+
+  /** Khách đã đăng nhập: vào thẳng danh sách đơn của tài khoản, không cần OTP. */
+  openMyOrders(): void {
+    const phone = this.loggedInPhone;
+    if (!phone) return;
+    this.changeLookupPhone();
+    this.phoneNumber = phone;
+    this.verifiedPhone = phone;
+    this.showOrders();
+  }
+
+  /** Đơn thật của tài khoản đang đăng nhập (GET customer/reviews/orders/mine) khi SĐT tra cứu trùng SĐT tài khoản. */
+  private async mergeAccountOrders(): Promise<void> {
+    if (!this.auth.currentUser() || this.loggedInPhone !== this.verifiedPhone) return;
+    try {
+      const rows = await this.accountsApi.request<ApiLookupOrder[]>('customer/reviews/orders/mine');
+      this.addRealOrders(rows.map(row => this.fromApi(row, true)));
+    } catch {
+      // Không tải được đơn thật thì vẫn hiển thị như cũ
+    } finally {
+      this.cdr.detectChanges();
+    }
+  }
+
+  /** Khách chưa đăng nhập: tìm đơn thật theo mã đơn/mã vé + SĐT đã nhập (GET customer/reviews/orders/:code). */
+  async findRealOrder(): Promise<void> {
+    const code = this.bookingCode.trim().toUpperCase();
+    if (!code || !this.verifiedPhone || this.findingRealOrder) return;
+    this.findingRealOrder = true;
+    try {
+      const row = await this.accountsApi.request<ApiLookupOrder>(
+        `customer/reviews/orders/${encodeURIComponent(code)}?phone=${encodeURIComponent(this.verifiedPhone)}`);
+      const order = this.fromApi(row, false);
+      this.addRealOrders([order]);
+      this.bookingCode = order.MaDonHang;
+    } catch (error) {
+      this.showToast(error instanceof Error && error.message ? error.message : 'Không tìm thấy đơn hàng.', 'error');
+    } finally {
+      this.findingRealOrder = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  private addRealOrders(list: Order[]): void {
+    const others = this.orders.filter(o => !list.some(n => n.MaDonHang === o.MaDonHang));
+    this.orders = [...list, ...others];
+  }
+
+  private fromApi(o: ApiLookupOrder, viaAccount: boolean): Order {
+    const dep = vnParts(o.departureAt);
+    const arr = vnParts(o.arrivalAt);
+    const booked = vnParts(o.bookedAt);
+    const presence = vnParts(new Date(new Date(o.departureAt).getTime() - o.presenceMinutes * 60000).toISOString());
+    return {
+      MaDonHang: o.id,
+      MaKhachHang: o.customerId ?? '',
+      HoTenNguoiDi: o.bookerName,
+      SoDienThoai: o.phone,
+      Email: o.email ?? '',
+      ThoiGianDat: `${booked.dmy} ${booked.time}`,
+      SoLuongVeDaDat: o.tickets.length,
+      TenTuyen: o.route,
+      GioKhoiHanh: dep.time,
+      GioTra: arr.time,
+      DepartureDate: dep.date,
+      DiemDon: o.pickup,
+      DiemTra: o.dropoff,
+      ThoiGianCoMatTruoc: `${o.presenceMinutes} phút`,
+      GioCanCoMat: presence.time,
+      TongGiaVe: o.total,
+      PhuongThucThanhToan: o.paymentMethod,
+      TrangThaiDonHang: API_STATUS[o.status],
+      BienSoXe: o.plate,
+      MaDiemDon: o.pickupId,
+      MaDiemTra: o.dropoffId,
+      SoLanDaSua: o.editCount,
+      GioiHanChinhSua: o.editLimit,
+      MaLichTrinh: o.scheduleId,
+      Tickets: o.tickets.map(t => ({
+        MaVe: t.id,
+        SoGhe: t.seat,
+        BienSoXe: o.plate,
+        DiemDon: o.pickup,
+        DiemDonThoiGian: `${dep.time} - ${dep.dmy}`,
+        DiemTra: o.dropoff,
+        DiemTraThoiGian: `${arr.time} - ${arr.dmy}`,
+        GiaVe: t.price,
+        TrangThaiVe: API_STATUS[t.status],
+        MaQRVe: t.qr,
+      })),
+      FromDb: true,
+      ViaAccount: viaAccount,
+    };
+  }
+
+  /** Vé của đơn thật còn đánh giá được (đã hoàn thành, chưa đánh giá). */
+  get reviewableTickets(): Ticket[] {
+    return this.currentOrder?.FromDb ? this.currentOrder.Tickets.filter(t => t.TrangThaiVe === 'Đã hoàn thành') : [];
+  }
+
+  private async reloadRealOrder(order: Order): Promise<void> {
+    const row = order.ViaAccount
+      ? (await this.accountsApi.request<ApiLookupOrder[]>('customer/reviews/orders/mine')).find(o => o.id === order.MaDonHang)
+      : await this.accountsApi.request<ApiLookupOrder>(
+          `customer/reviews/orders/${encodeURIComponent(order.MaDonHang)}?phone=${encodeURIComponent(this.verifiedPhone)}`);
+    if (!row) return;
+    const fresh = this.fromApi(row, !!order.ViaAccount);
+    this.orders = this.orders.map(o => o.MaDonHang === fresh.MaDonHang ? fresh : o);
+    if (this.currentOrder?.MaDonHang === fresh.MaDonHang) this.currentOrder = JSON.parse(JSON.stringify(fresh));
+  }
+
+  /** Gửi đánh giá đơn thật: đã đăng nhập → API hồ sơ; chưa đăng nhập → mã đơn + SĐT người đặt. */
+  private async submitRealReview(): Promise<void> {
+    const order = this.currentOrder!;
+    const ticketId = this.reviewTicketId || this.reviewableTickets[0]?.MaVe;
+    if (!ticketId) {
+      this.showToast('Đơn này không còn vé nào chờ đánh giá.', 'error');
+      return;
+    }
+    const form = new FormData();
+    form.append('scores', JSON.stringify(this.ratingCriteria.map(c => c.Score)));
+    if (this.reviewComment.trim()) form.append('comment', this.reviewComment.trim());
+    if (!order.ViaAccount) {
+      form.append('phone', this.verifiedPhone);
+      form.append('ticketId', ticketId);
+    }
+    this.reviewFiles.forEach(file => form.append('files', file));
+    const path = order.ViaAccount
+      ? `customer/profile/tickets/${encodeURIComponent(ticketId)}/review`
+      : `customer/reviews/orders/${encodeURIComponent(order.MaDonHang)}/review`;
+    this.isLoading = true;
+    try {
+      await this.accountsApi.request(path, 'POST', form);
+      this.closeReviewModal();
+      await this.reloadRealOrder(order);
+      this.showToast(`Đã gửi đánh giá cho vé ${ticketId}. Đánh giá đã hiển thị ở trang Đánh giá.`, 'success');
+    } catch (error) {
+      this.showToast(error instanceof Error && error.message ? error.message : 'Không gửi được đánh giá.', 'error');
+    } finally {
+      this.isLoading = false;
+      this.cdr.detectChanges();
+    }
   }
 
   orderSeats(order: Order): string {
@@ -552,7 +806,7 @@ export class TicketLookup implements OnInit, OnDestroy {
   }
 
   openOrder(order: Order): void {
-    if (!this.verifiedPhone || order.SoDienThoai !== this.verifiedPhone ||
+    if (!this.verifiedPhone || (!order.ViaAccount && order.SoDienThoai !== this.verifiedPhone) ||
         !this.orders.some(item => item.MaDonHang === order.MaDonHang)) return;
     this.currentOrder = JSON.parse(JSON.stringify(order));
     this.currentStep = 'results';
@@ -755,6 +1009,7 @@ export class TicketLookup implements OnInit, OnDestroy {
 
   get isReviewButtonEnabled(): boolean {
     if (!this.currentOrder) return false;
+    if (this.currentOrder.FromDb) return this.reviewableTickets.length > 0;
     const orderStatus = this.currentOrder.TrangThaiDonHang;
     const ticketsStatusValid = this.currentOrder.Tickets.every(
       ticket => ticket.TrangThaiVe === 'Đã hoàn thành'
@@ -810,6 +1065,10 @@ export class TicketLookup implements OnInit, OnDestroy {
 
   openEditOrderModal(): void {
     if (!this.currentOrder) return;
+    if (this.currentOrder.FromDb) {
+      this.showToast('Đổi thông tin đơn hàng thật chưa hỗ trợ trên trang này. Vui lòng liên hệ tổng đài VIAGO.', 'error');
+      return;
+    }
 
     if (this.isEditButtonDisabled) {
       const hoursRemaining = this.getHoursUntilDeparture();
@@ -1054,6 +1313,10 @@ export class TicketLookup implements OnInit, OnDestroy {
 
   openCancelModal(ticket: Ticket): void {
     if (!this.currentOrder) return;
+    if (this.currentOrder.FromDb) {
+      this.showToast('Hủy vé của đơn hàng thật chưa hỗ trợ trên trang này. Vui lòng liên hệ tổng đài VIAGO.', 'error');
+      return;
+    }
     if (this.isTicketCancelDisabled(ticket)) {
       this.showToast(this.getCancelButtonTitle(ticket), 'error');
       return;
@@ -1150,6 +1413,7 @@ export class TicketLookup implements OnInit, OnDestroy {
   }
 
   openReviewModal(): void {
+    this.reviewTicketId = this.reviewableTickets[0]?.MaVe ?? '';
     this.showReviewModal = true;
   }
 
@@ -1188,6 +1452,10 @@ export class TicketLookup implements OnInit, OnDestroy {
     if (!this.currentOrder || this.isReviewSubmitDisabled) return;
     if (this.reviewFieldError) {
       this.showToast('Vui lòng sửa lỗi ở ô nhận xét trước khi gửi.', 'error');
+      return;
+    }
+    if (this.currentOrder.FromDb) {
+      void this.submitRealReview();
       return;
     }
 

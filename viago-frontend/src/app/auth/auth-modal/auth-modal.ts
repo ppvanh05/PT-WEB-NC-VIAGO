@@ -1,6 +1,23 @@
-import { Component, EventEmitter, Output, ViewChildren, QueryList, ElementRef, OnInit, OnDestroy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Output,
+  ViewChildren,
+  QueryList,
+  ElementRef,
+  OnInit,
+  OnDestroy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  Validators,
+  FormsModule,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { getAuth, RecaptchaVerifier } from 'firebase/auth';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -22,14 +39,32 @@ import {
   vnPhoneValidator,
 } from '../../shared/utils/form-validators';
 
-type AuthStep = 'login' | 'forgot' | 'forgot-otp' | 'forgot-reset' | 'register-phone' | 'register-otp' | 'register-password' | 'register-profile' | 'success-status';
+type AuthStep =
+  | 'login'
+  | 'forgot'
+  | 'forgot-otp'
+  | 'forgot-reset'
+  | 'register-phone'
+  | 'register-otp'
+  | 'register-password'
+  | 'register-profile'
+  | 'success-status'
+  | 'login-otp';
 
 @Component({
   selector: 'app-auth-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePickerComponent, PasswordChecklist, PhoneInputDirective, NoAutofillDirective],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    DatePickerComponent,
+    PasswordChecklist,
+    PhoneInputDirective,
+    NoAutofillDirective,
+  ],
   templateUrl: './auth-modal.html',
-  styleUrl: './auth-modal.css'
+  styleUrl: './auth-modal.css',
 })
 export class AuthModal implements OnInit, OnDestroy {
   @Output() close = new EventEmitter<void>();
@@ -65,6 +100,8 @@ export class AuthModal implements OnInit, OnDestroy {
   // OTP State
   otpString = '';
   generatedOtp = '';
+  private loginPhone = '';
+  private loginPassword = '';
   isOtpFocused = false;
   otpTimer = 180;
   otpIntervalId: any = null;
@@ -82,7 +119,7 @@ export class AuthModal implements OnInit, OnDestroy {
     public authService: AuthService,
     private toastService: ToastService,
     private cdr: ChangeDetectorRef,
-    private router: Router
+    private router: Router,
   ) {}
 
   private readonly authModalService = inject(AuthModalService);
@@ -93,6 +130,8 @@ export class AuthModal implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.registerPassword = '';
+    this.loginPassword = '';
     this.stopOtpTimer();
     this.destroyRecaptcha();
   }
@@ -100,25 +139,25 @@ export class AuthModal implements OnInit, OnDestroy {
   private initForms(): void {
     this.loginForm = this.fb.group({
       phoneNumber: ['', [Validators.required, vnPhoneValidator()]],
-      password: ['', [Validators.required]]
+      password: ['', [Validators.required]],
     });
 
     this.forgotForm = this.fb.group({
-      phoneNumber: ['', [Validators.required, vnPhoneValidator()]]
+      phoneNumber: ['', [Validators.required, vnPhoneValidator()]],
     });
 
     this.resetForm = this.fb.group({
       password: ['', [Validators.required, strongPasswordValidator()]],
-      confirmPassword: ['', [Validators.required, matchPasswordValidator('password')]]
+      confirmPassword: ['', [Validators.required, matchPasswordValidator('password')]],
     });
 
     this.registerPhoneForm = this.fb.group({
-      phoneNumber: ['', [Validators.required, vnPhoneValidator()]]
+      phoneNumber: ['', [Validators.required, vnPhoneValidator()]],
     });
 
     this.registerPasswordForm = this.fb.group({
       password: ['', [Validators.required, strongPasswordValidator()]],
-      confirmPassword: ['', [Validators.required, matchPasswordValidator('password')]]
+      confirmPassword: ['', [Validators.required, matchPasswordValidator('password')]],
     });
 
     this.profileForm = this.fb.group({
@@ -126,18 +165,24 @@ export class AuthModal implements OnInit, OnDestroy {
       email: ['', [emailDomainValidator()]],
       gender: [''],
       birthday: ['', [birthDateValidator()]],
-      occupation: ['']
+      occupation: [''],
     });
 
     // Mật khẩu gốc đổi -> kiểm tra lại ô xác nhận
-    [this.resetForm, this.registerPasswordForm].forEach(form => {
-      form.get('password')?.valueChanges.subscribe(() => form.get('confirmPassword')?.updateValueAndValidity({ emitEvent: false }));
+    [this.resetForm, this.registerPasswordForm].forEach((form) => {
+      form
+        .get('password')
+        ?.valueChanges.subscribe(() =>
+          form.get('confirmPassword')?.updateValueAndValidity({ emitEvent: false }),
+        );
     });
 
     // Lỗi server gắn với ô SĐT biến mất ngay khi người dùng sửa lại
-    this.registerPhoneForm.get('phoneNumber')?.valueChanges.subscribe(() => this.phoneServerError = '');
-    this.forgotForm.get('phoneNumber')?.valueChanges.subscribe(() => this.phoneServerError = '');
-    this.loginForm.valueChanges.subscribe(() => this.loginErrorMessage = '');
+    this.registerPhoneForm
+      .get('phoneNumber')
+      ?.valueChanges.subscribe(() => (this.phoneServerError = ''));
+    this.forgotForm.get('phoneNumber')?.valueChanges.subscribe(() => (this.phoneServerError = ''));
+    this.loginForm.valueChanges.subscribe(() => (this.loginErrorMessage = ''));
 
     this.profileForm.valueChanges.subscribe(() => this.calculateProfileCompleteness());
   }
@@ -229,6 +274,21 @@ export class AuthModal implements OnInit, OnDestroy {
 
     const { phoneNumber, password } = this.loginForm.value;
     const result = await this.authService.login(phoneNumber, password);
+    if (result.requiresTwoFactor) {
+      this.loginPhone = phoneNumber;
+      this.loginPassword = password;
+      const sent = await this.authService.sendOTP(phoneNumber, null, 'two-factor');
+      if (!sent.success) {
+        this.loginErrorMessage = sent.message;
+        this.cdr.markForCheck();
+        return;
+      }
+      this.currentStep = 'login-otp';
+      this.otpString = '';
+      this.startOtpTimer();
+      this.cdr.markForCheck();
+      return;
+    }
     if (result.success) {
       this.close.emit();
     } else {
@@ -240,6 +300,30 @@ export class AuthModal implements OnInit, OnDestroy {
 
   // --- REGISTRATION FLOW WIZARD ---
 
+  async verifyLoginOtp(): Promise<void> {
+    const verified = await this.authService.verifyOTP(this.loginPhone, this.otpString);
+    if (!verified.success) {
+      this.otpErrorMessage = verified.message;
+      this.cdr.markForCheck();
+      return;
+    }
+    const result = await this.authService.login(
+      this.loginPhone,
+      this.loginPassword,
+      this.authService.proof(this.loginPhone),
+    );
+    if (result.success) {
+      this.loginPassword = '';
+      this.close.emit();
+    } else this.otpErrorMessage = result.message;
+    this.cdr.markForCheck();
+  }
+  async resendLoginOtp(): Promise<void> {
+    const result = await this.authService.sendOTP(this.loginPhone, null, 'two-factor');
+    this.otpErrorMessage = result.success ? '' : result.message;
+    if (result.success) this.otpString = '';
+    this.cdr.markForCheck();
+  }
   // Step 1: Submit Phone Number for Registration
   async onRegisterPhoneSubmit(): Promise<void> {
     if (!this.validateBeforeSubmit(this.registerPhoneForm)) return;
@@ -287,7 +371,10 @@ export class AuthModal implements OnInit, OnDestroy {
     const { password } = this.registerPasswordForm.value;
 
     if (this.authService.isFirebaseMode) {
-      const linkResult = await this.authService.linkEmailAndPassword(this.registerPhoneNumber, password);
+      const linkResult = await this.authService.linkEmailAndPassword(
+        this.registerPhoneNumber,
+        password,
+      );
       if (!linkResult.success) {
         this.formErrorMessage = linkResult.message;
         this.cdr.detectChanges();
@@ -295,7 +382,7 @@ export class AuthModal implements OnInit, OnDestroy {
       }
     }
 
-    this.registerPassword = await this.authService.hashPassword(password);
+    this.registerPassword = password;
     this.setStep('register-profile');
   }
 
@@ -348,13 +435,18 @@ export class AuthModal implements OnInit, OnDestroy {
     this.formErrorMessage = '';
     const { name, email, gender, birthday, occupation } = this.profileForm.value;
 
-    const result = await this.authService.registerProfile(String(name).trim(), this.registerPhoneNumber, this.registerPassword, {
-      email: String(email || '').trim(),
-      gender,
-      birthday,
-      occupation,
-      avatar: (this.avatarPreview as string) || '/assets/customer/user.png'
-    });
+    const result = await this.authService.registerProfile(
+      String(name).trim(),
+      this.registerPhoneNumber,
+      this.registerPassword,
+      {
+        email: String(email || '').trim(),
+        gender,
+        birthday,
+        occupation,
+        avatar: (this.avatarPreview as string) || '/assets/customer/user.png',
+      },
+    );
 
     if (result.success) {
       this.toastService.showSuccess('Cập nhật hồ sơ thành công!');
@@ -369,7 +461,12 @@ export class AuthModal implements OnInit, OnDestroy {
   // Step 4: Skip Profile Setup (ĐỂ SAU)
   async skipProfile(): Promise<void> {
     this.formErrorMessage = '';
-    const result = await this.authService.registerProfile('', this.registerPhoneNumber, this.registerPassword, {});
+    const result = await this.authService.registerProfile(
+      '',
+      this.registerPhoneNumber,
+      this.registerPassword,
+      {},
+    );
 
     if (result.success) {
       this.showSuccessStatus('Đăng ký tài khoản thành công', 'Đang tự động đăng nhập...');
@@ -476,7 +573,11 @@ export class AuthModal implements OnInit, OnDestroy {
 
     try {
       const auth = getAuth();
-      this.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
+      this.recaptchaVerifier = new RecaptchaVerifier(
+        'recaptcha-container',
+        { size: 'invisible' },
+        auth,
+      );
     } catch (e) {
       console.error('[VIAGO AUTH] Lỗi tạo RecaptchaVerifier:', e);
     }

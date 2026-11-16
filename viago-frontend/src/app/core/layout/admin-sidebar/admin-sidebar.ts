@@ -1,8 +1,10 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, computed, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { SidebarStateService } from '../../services/sidebar-state.service';
+import { AdminSessionService } from '../../services/admin-session.service';
+import { canAccessAdminRoute } from '../../guards/admin-permissions';
 
 interface SubItem {
   label: string;
@@ -27,6 +29,15 @@ interface SidebarItem {
 export class AdminSidebar implements OnInit {
   private sidebarState = inject(SidebarStateService);
   private router = inject(Router);
+  private session = inject(AdminSessionService);
+  readonly visibleMenuItems = computed(() => this.menuItems.flatMap(item => {
+    const account = this.session.account();
+    if (item.children) {
+      const children = item.children.filter(child => !!child.route && canAccessAdminRoute(account, child.route));
+      return children.length ? [{ ...item, children }] : [];
+    }
+    return item.route && canAccessAdminRoute(account, item.route) ? [item] : [];
+  }));
 
   readonly isCollapsed = this.sidebarState.isCollapsed;
   readonly activeRoute = signal(this.router.url.split(/[?#]/)[0]);
@@ -109,7 +120,7 @@ export class AdminSidebar implements OnInit {
     const cleanUrl = url.split('?')[0].split('#')[0];
     this.activeRoute.set(cleanUrl);
 
-    for (const item of this.menuItems) {
+    for (const item of this.visibleMenuItems()) {
       if (item.expandable && item.children) {
         if (item.children.some(child => child.route === cleanUrl)) {
           this.expandedItem.set(item.label);

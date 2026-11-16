@@ -1,6 +1,8 @@
 import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
 import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
+import { inject } from '@angular/core';
 import { Component, OnInit, computed, signal } from '@angular/core';
+import { AccountsApiService } from '../../../../core/services/accounts-api.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Button } from '../../../../shared/components/button/button';
@@ -16,7 +18,7 @@ type CheDoXemBaoCao = 'bieu-do' | 'danh-sach';
 type NguonDat = 'tai-quay' | 'hotline' | 'online';
 type TrangThaiDonHang = 'cho-thanh-toan' | 'da-thanh-toan';
 type TrangThaiDonHangLoc = TrangThaiDonHang | 'da-huy' | 'tat-ca';
-type TrangThaiHoanTien = 'da-hoan' | 'cho-hoan' | 'dang-xu-ly';
+type TrangThaiHoanTien = 'da-hoan' | 'cho-hoan' | 'dang-xu-ly' | 'khong-hoan';
 type LoaiXeId = 'limousine' | 'giuong-nam' | 'cabin';
 type LoaiGheId = 'giuong-nam' | 'limousine' | 'cabin-don' | 'cabin-doi';
 type Tone = 'success' | 'warning' | 'danger' | 'info';
@@ -64,6 +66,51 @@ interface LichSuHuyVe {
   SoVeDaHuyTrongDon: number;
   PhuongThucThanhToan: string;
 }
+
+/** Một dòng của GET admin/reports/cancellations (lich_su_huy_ve + hoàn tiền) */
+interface ApiCancellation {
+  id: string;
+  ticketId: string;
+  orderId: string;
+  customerId: string | null;
+  policyId: string | null;
+  cancelledBy: string;
+  staff: { id: string; name: string } | null;
+  channel: string;
+  passengerName: string;
+  passengerPhone: string;
+  route: string;
+  departureDate: string;
+  departureTime: string;
+  seat: string;
+  seatType: string | null;
+  roomType: string | null;
+  vehicle: { id: string; name: string; plateNumber: string; type: string };
+  originalPrice: number;
+  fee: number;
+  refundAmount: number;
+  refundTransactionId: string | null;
+  refundStatus: 'refunded' | 'pending' | 'processing' | 'failed' | 'none';
+  reason: string;
+  cancelledAt: string;
+  orderStatus: string;
+  orderFullyCancelled: boolean;
+  ticketsInOrder: number;
+  cancelledTicketsInOrder: number;
+  paymentMethod: string | null;
+}
+
+const REFUND_MAP: Record<ApiCancellation['refundStatus'], TrangThaiHoanTien> = {
+  refunded: 'da-hoan',
+  processing: 'dang-xu-ly',
+  pending: 'cho-hoan',
+  failed: 'cho-hoan',
+  none: 'khong-hoan',
+};
+
+const PAYMENT_LABELS: Record<string, string> = {
+  TIEN_MAT: 'Tiền mặt', CHUYEN_KHOAN: 'Chuyển khoản', VIETQR: 'VietQR', VNPAY: 'VNPay', MOMO: 'MoMo', ZALOPAY: 'ZaloPay', THE: 'Thẻ ngân hàng',
+};
 
 interface XuHuongHuyTheoNgay {
   date: string;
@@ -222,54 +269,9 @@ export class CancellationReport implements OnInit {
     { value: 'cabin-doi', label: 'Cabin đôi' }
   ];
 
-  readonly danhSachXe: XeKhach[] = [
-    { maXe: 'LIMO01', tenXe: 'VIAGO Limousine 01', bienSo: '51B-123.45', loaiXe: 'limousine', soCho: 9 },
-    { maXe: 'LIMO02', tenXe: 'VIAGO Limousine 02', bienSo: '51B-234.56', loaiXe: 'limousine', soCho: 9 },
-    { maXe: 'LIMO03', tenXe: 'VIAGO Limousine 03', bienSo: '51B-345.67', loaiXe: 'limousine', soCho: 9 },
-    { maXe: 'GN01', tenXe: 'VIAGO Giường Nằm 01', bienSo: '51F-456.78', loaiXe: 'giuong-nam', soCho: 34 },
-    { maXe: 'GN02', tenXe: 'VIAGO Giường Nằm 02', bienSo: '51F-567.89', loaiXe: 'giuong-nam', soCho: 34 },
-    { maXe: 'GN03', tenXe: 'VIAGO Giường Nằm 03', bienSo: '51F-678.90', loaiXe: 'giuong-nam', soCho: 34 },
-    { maXe: 'GN04', tenXe: 'VIAGO Giường Nằm 04', bienSo: '51F-112.45', loaiXe: 'giuong-nam', soCho: 34 },
-    { maXe: 'CAB01', tenXe: 'VIAGO Cabin 01', bienSo: '51F-789.12', loaiXe: 'cabin', soCho: 22 },
-    { maXe: 'CAB02', tenXe: 'VIAGO Cabin 02', bienSo: '51F-890.23', loaiXe: 'cabin', soCho: 22 },
-    { maXe: 'CAB03', tenXe: 'VIAGO Cabin 03', bienSo: '51F-901.34', loaiXe: 'cabin', soCho: 22 }
-  ];
-
-  private readonly maXeMacDinhTheoTuyen: Record<string, string> = {
-    'HCM-CT': 'LIMO01',
-    'HCM-VT': 'LIMO02',
-    'DL-BMT': 'GN02',
-    'DL-NT': 'CAB01',
-    'CT-RG': 'GN03',
-    'HCM-PT': 'GN04',
-    'HCM-DL': 'CAB02',
-    'HCM-NT': 'GN01',
-    'NT-DN': 'CAB03'
-  };
-
-  private readonly giaCoSoTheoTuyen: Record<string, number> = {
-    'TP.HCM ↔ Cần Thơ': 180000,
-    'TP.HCM ↔ Vũng Tàu': 180000,
-    'Đà Lạt ↔ Buôn Ma Thuột': 220000,
-    'Đà Lạt ↔ Nha Trang': 220000,
-    'Cần Thơ ↔ Rạch Giá': 180000,
-    'TP.HCM ↔ Phan Thiết': 220000,
-    'TP.HCM ↔ Đà Lạt': 320000,
-    'TP.HCM ↔ Nha Trang': 420000,
-    'Nha Trang ↔ Đà Nẵng': 380000
-  };
-
-  private readonly maXeTheoTenTuyen: Record<string, string> = {
-    'TP.HCM ↔ Cần Thơ': 'LIMO01',
-    'TP.HCM ↔ Vũng Tàu': 'LIMO02',
-    'Đà Lạt ↔ Buôn Ma Thuột': 'GN02',
-    'Đà Lạt ↔ Nha Trang': 'CAB01',
-    'Cần Thơ ↔ Rạch Giá': 'GN03',
-    'TP.HCM ↔ Phan Thiết': 'GN04',
-    'TP.HCM ↔ Đà Lạt': 'CAB02',
-    'TP.HCM ↔ Nha Trang': 'GN01',
-    'Nha Trang ↔ Đà Nẵng': 'CAB03'
-  };
+  private readonly api = inject(AccountsApiService);
+  dangTai = signal(false);
+  private readonly tenNhanVien = new Map<string, string>();
 
   danhSachHuy = signal<LichSuHuyVe[]>([]);
   totalBookingsCount = signal(0);
@@ -292,13 +294,10 @@ export class CancellationReport implements OnInit {
   soDongMoiTrang = signal(8);
   toast = signal<{ msg: string; type: 'success' | 'danger' } | null>(null);
 
-  readonly reasonList = [
-    'Tôi đổi kế hoạch',
-    'Đặt nhầm ngày/giờ',
-    'Muốn đổi sang chuyến khác',
-    'Trễ xe / Không kịp giờ',
-    'Lý do cá nhân'
-  ];
+  /** Lý do hủy lấy từ dữ liệu thật */
+  get reasonList(): string[] {
+    return Array.from(new Set(this.danhSachHuy().map(v => v.LyDoHuy).filter(Boolean)));
+  }
 
   readonly nguonDatOptions: Array<{ value: NguonDat | 'tat-ca'; label: string }> = [
     { value: 'tat-ca', label: 'Tất cả nguồn' },
@@ -376,7 +375,7 @@ export class CancellationReport implements OnInit {
     const refundTotal = list.reduce((sum, v) => sum + v.TienHoanLai, 0);
     const feeTotal = list.reduce((sum, v) => sum + v.LePhiHuy, 0);
     const canceledRevenue = list.reduce((sum, v) => sum + v.TienVeGoc, 0);
-    const pendingCount = list.filter(v => v.TrangThaiGiaoDich !== 'da-hoan').length;
+    const pendingCount = list.filter(v => v.TrangThaiGiaoDich === 'cho-hoan' || v.TrangThaiGiaoDich === 'dang-xu-ly').length;
     const totalBookings = Math.max(count, this.tongVeTheoBoLoc());
     const cancelRate = totalBookings > 0 ? (count / totalBookings) * 100 : 0;
     const daHoanCount = list.filter(v => v.TrangThaiGiaoDich === 'da-hoan').length;
@@ -400,7 +399,7 @@ export class CancellationReport implements OnInit {
     const tienHoan = list.reduce((sum, v) => sum + v.TienHoanLai, 0);
     const phiGiuLai = list.reduce((sum, v) => sum + v.LePhiHuy, 0);
     const tienChoHoan = list
-      .filter(v => v.TrangThaiGiaoDich !== 'da-hoan')
+      .filter(v => v.TrangThaiGiaoDich === 'cho-hoan' || v.TrangThaiGiaoDich === 'dang-xu-ly')
       .reduce((sum, v) => sum + v.TienHoanLai, 0);
     const daHoanCount = list.filter(v => v.TrangThaiGiaoDich === 'da-hoan').length;
 
@@ -630,7 +629,8 @@ export class CancellationReport implements OnInit {
     const chart: TrangThaiHoanTienChart[] = [
       { key: 'da-hoan', label: 'Đã hoàn tiền', count: 0, amount: 0, pct: 0, tone: 'success' },
       { key: 'dang-xu-ly', label: 'Đang xử lý', count: 0, amount: 0, pct: 0, tone: 'warning' },
-      { key: 'cho-hoan', label: 'Chờ hoàn tiền', count: 0, amount: 0, pct: 0, tone: 'danger' }
+      { key: 'cho-hoan', label: 'Chờ hoàn tiền', count: 0, amount: 0, pct: 0, tone: 'danger' },
+      { key: 'khong-hoan', label: 'Không hoàn (chưa thanh toán)', count: 0, amount: 0, pct: 0, tone: 'success' }
     ];
 
     list.forEach(v => {
@@ -787,16 +787,18 @@ export class CancellationReport implements OnInit {
   readonly tuyenOptions = computed(() => this.tuyenList().map(value => ({
     value, label: value === 'tat-ca' ? 'Tất cả tuyến' : value
   })));
-  readonly lyDoOptions = [
-    { value: 'tat-ca', label: 'Tất cả lý do' },
-    ...this.reasonList.map(value => ({ value, label: value }))
-  ];
+  get lyDoOptions() {
+    return [
+      { value: 'tat-ca', label: 'Tất cả lý do' },
+      ...this.reasonList.map(value => ({ value, label: value }))
+    ];
+  }
   readonly nhanVienOptions = computed(() => this.nhanVienList().map(value => ({
     value, label: this.LabelNhanVien(value)
   })));
   readonly hoanTienOptions = [
     { value: 'tat-ca', label: 'Tất cả trạng thái' },
-    ...['da-hoan', 'dang-xu-ly', 'cho-hoan'].map(value => ({ value, label: this.LabelTrangThaiHoanTien(value) }))
+    ...['da-hoan', 'dang-xu-ly', 'cho-hoan', 'khong-hoan'].map(value => ({ value, label: this.LabelTrangThaiHoanTien(value) }))
   ];
   readonly trangThaiDonOptions = [
     { value: 'tat-ca', label: 'Tất cả đơn' },
@@ -809,7 +811,7 @@ export class CancellationReport implements OnInit {
 
   ngOnInit() {
     if (window.innerWidth < 768) this.sidebarState.collapse();
-    this.TaiDuLieu();
+    void this.TaiDuLieu();
   }
 
   ChuyenTrang(page: number) {
@@ -913,19 +915,15 @@ export class CancellationReport implements OnInit {
 
   LabelNhanVien(value?: string): string {
     if (!value || value === 'tat-ca') return 'Tất cả nhân viên';
-    const labels: Record<string, string> = {
-      NVBV001: 'NV001 - Quầy vé',
-      NVBV002: 'NV002 - Hotline',
-      NVBV003: 'NV003 - CSKH',
-      SYSTEM: 'Hệ thống'
-    };
-    return labels[value] ?? value;
+    if (value === 'SYSTEM') return 'Khách tự hủy / Hệ thống';
+    return this.tenNhanVien.get(value) ?? value;
   }
 
   LabelTrangThaiHoanTien(value: string): string {
     if (value === 'da-hoan') return 'Đã hoàn tiền';
     if (value === 'dang-xu-ly') return 'Đang xử lý';
     if (value === 'cho-hoan') return 'Chờ hoàn tiền';
+    if (value === 'khong-hoan') return 'Không hoàn';
     return 'Tất cả trạng thái';
   }
 
@@ -1278,6 +1276,7 @@ export class CancellationReport implements OnInit {
   private ChuanHoaTrangThaiHoan(value?: string, trangThaiThanhToan?: string): TrangThaiHoanTien {
     if (value === 'da-hoan') return 'da-hoan';
     if (value === 'dang-xu-ly') return 'dang-xu-ly';
+    if (value === 'khong-hoan') return 'khong-hoan';
     if (value === 'chua-hoan' || value === 'cho-hoan') return 'cho-hoan';
     return trangThaiThanhToan === 'da-thanh-toan' ? 'cho-hoan' : 'da-hoan';
   }
@@ -1326,32 +1325,6 @@ export class CancellationReport implements OnInit {
     if (normalized.includes('limousine') || normalized.includes('vip')) return 'limousine';
     if (normalized.includes('giuong')) return 'giuong-nam';
     return null;
-  }
-
-  private LayMaXeMacDinh(tuyen?: string, maLichTrinh?: string): string {
-    const lichTrinh = String(maLichTrinh || '');
-    const idTuLich = Object.keys(this.maXeMacDinhTheoTuyen).find(id => lichTrinh.startsWith(`${id}-`));
-    if (idTuLich) return this.maXeMacDinhTheoTuyen[idTuLich];
-
-    const tenTuyen = String(tuyen || '').trim();
-    if (this.maXeTheoTenTuyen[tenTuyen]) return this.maXeTheoTenTuyen[tenTuyen];
-
-    const normalized = this.NormalizeSearchText(tenTuyen);
-    const match = Object.keys(this.maXeTheoTenTuyen).find(route => this.NormalizeSearchText(route) === normalized);
-    return match ? this.maXeTheoTenTuyen[match] : 'LIMO01';
-  }
-
-  private LayXeTheoDuLieu(item: any): XeKhach | null {
-    const maXe = String(item?.MaXe ?? '').trim();
-    const bienSo = String(item?.BienSoXe ?? item?.BienSo ?? '').trim();
-    const tenXe = String(item?.TenXe ?? '').trim();
-    const maMacDinh = this.LayMaXeMacDinh(item?.TenTuyenXe ?? item?.TuyenXe, item?.MaLichTrinh ?? item?.MaChuyenXe);
-
-    return this.danhSachXe.find(xe => xe.maXe === maXe)
-      ?? this.danhSachXe.find(xe => xe.bienSo === bienSo)
-      ?? this.danhSachXe.find(xe => xe.tenXe === tenXe)
-      ?? this.danhSachXe.find(xe => xe.maXe === maMacDinh)
-      ?? null;
   }
 
   private LoaiGheTheoSoGhe(soGhe: string, loaiXe: LoaiXeId): LoaiGheId {
@@ -1423,9 +1396,8 @@ export class CancellationReport implements OnInit {
     const thoiDiemHuyIso = item.ThoiDiemHuyIso
       ?? (rawThoiGianHuy.includes('T') ? this.LayIsoTuChuoi(rawThoiGianHuy) : undefined)
       ?? `${thoiGianHuy}T08:00:00`;
-    const xe = this.LayXeTheoDuLieu(item);
-    const maXe = item.MaXe || xe?.maXe || '';
-    const loaiXeId = this.LoaiXeIdTuLabel(item.LoaiXe) ?? xe?.loaiXe ?? 'limousine';
+    const maXe = item.MaXe || '';
+    const loaiXeId = this.LoaiXeIdTuLabel(item.LoaiXe) ?? 'limousine';
     const loaiGheId = this.LoaiGheIdTuLabel(item.LoaiGhe) ?? this.LoaiGheTheoSoGhe(item.SoGhe || '', loaiXeId);
     return {
       MaLichSuHuy: item.MaLichSuHuy ?? `LSH-${maVe}`,
@@ -1435,7 +1407,7 @@ export class CancellationReport implements OnInit {
       NguonHuy: item.NguonHuy ?? 'NhanVienBanVe',
       NguonDat: this.ChuanHoaNguonDat(item.NguonDat),
       MaKhachHang: item.MaKhachHang ?? this.TaoMaKhachHang(item.SdtNguoiDi ?? ''),
-      MaNVBanVe: item.MaNVBanVe ?? 'NVBV001',
+      MaNVBanVe: item.MaNVBanVe ?? 'SYSTEM',
       HoTenNguoiDi: item.HoTenNguoiDi ?? '',
       SdtNguoiDi: item.SdtNguoiDi ?? '',
       TenTuyenXe: item.TenTuyenXe ?? '',
@@ -1443,8 +1415,8 @@ export class CancellationReport implements OnInit {
       GioKhoiHanh: item.GioKhoiHanh ?? '',
       SoGhe: item.SoGhe ?? '',
       MaXe: maXe,
-      TenXe: item.TenXe || xe?.tenXe || '',
-      BienSoXe: item.BienSoXe || xe?.bienSo || '',
+      TenXe: item.TenXe || '',
+      BienSoXe: item.BienSoXe || '',
       LoaiXe: this.LabelLoaiXe(loaiXeId),
       LoaiGhe: this.LabelLoaiGhe(loaiGheId),
       TienVeGoc: tienVeGoc,
@@ -1464,301 +1436,83 @@ export class CancellationReport implements OnInit {
     };
   }
 
-  private DocStorageVe(): any[] {
-    const keys = ['viago_ticket_bookings_v3', 'viago_ticket_bookings_v2', 'viago_ticket_bookings'];
-    for (const key of keys) {
-      const storageData = localStorage.getItem(key);
-      if (!storageData) continue;
-
-      try {
-        const parsed = JSON.parse(storageData);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {
-        console.error('Lỗi parse bookings', e);
+  /** Tải lịch sử hủy vé từ DB và số vé đã bán theo tuyến (để tính tỷ lệ hủy). */
+  private async TaiDuLieu() {
+    this.dangTai.set(true);
+    try {
+      const rows: ApiCancellation[] = [];
+      let ticketsInPeriod = 0;
+      for (let page = 1; ; page++) {
+        const res = await this.api.request<{ items: ApiCancellation[]; summary: { ticketsInPeriod: number }; pagination: { totalPages: number } }>(
+          `admin/reports/cancellations?page=${page}&pageSize=100`, 'GET', undefined, 'admin');
+        rows.push(...res.items);
+        ticketsInPeriod = res.summary?.ticketsInPeriod ?? ticketsInPeriod;
+        if (page >= res.pagination.totalPages || !res.items.length) break;
       }
-    }
-
-    return [];
-  }
-
-  private TaoThongKeTuyenTuVe(tickets: any[], fallbackCancellations: LichSuHuyVe[]) {
-    const routeTotals: Record<string, number> = {};
-
-    tickets.forEach(item => {
-      const route = String(item?.TenTuyenXe ?? item?.TuyenXe ?? '').trim();
-      if (!route) return;
-      routeTotals[route] = (routeTotals[route] || 0) + 1;
-    });
-
-    if (Object.keys(routeTotals).length === 0) {
-      fallbackCancellations.forEach(item => {
-        const soldHint: Record<string, number> = {
-          'TP.HCM ↔ Cần Thơ': 42,
-          'TP.HCM ↔ Vũng Tàu': 38,
-          'Đà Lạt ↔ Buôn Ma Thuột': 28,
-          'Đà Lạt ↔ Nha Trang': 32,
-          'Cần Thơ ↔ Rạch Giá': 24,
-          'TP.HCM ↔ Phan Thiết': 30,
-          'TP.HCM ↔ Đà Lạt': 46,
-          'TP.HCM ↔ Nha Trang': 36,
-          'Nha Trang ↔ Đà Nẵng': 26
-        };
-        routeTotals[item.TenTuyenXe] = soldHint[item.TenTuyenXe] ?? Math.max(12, (routeTotals[item.TenTuyenXe] || 0) + 10);
-      });
-    }
-
-    return routeTotals;
-  }
-
-  private TaiDuLieu() {
-    const tickets = this.DocStorageVe();
-    let dbCancellations: LichSuHuyVe[] = [];
-
-    if (tickets.length > 0) {
-      const layMaDonHang = (ticket: any, index: number) => String(ticket.MaDonHang ?? ticket.MaDon ?? `DH-${ticket.MaVe ?? index + 1}`);
-      const thongKeDonHang = new Map<string, { total: number; canceled: number }>();
-      tickets.forEach((ticket: any, index: number) => {
-        const maDonHang = layMaDonHang(ticket, index);
-        const current = thongKeDonHang.get(maDonHang) ?? { total: 0, canceled: 0 };
-        current.total += 1;
-        if (ticket.TrangThaiVe === 'da-huy') current.canceled += 1;
-        thongKeDonHang.set(maDonHang, current);
-      });
-
-      const cancelledTickets = tickets.filter(v => v.TrangThaiVe === 'da-huy');
-      dbCancellations = cancelledTickets.map((v: any, index: number) => {
-        const noteInfo = this.TachThongTinGhiChu(v.GhiChu);
-        const tienVeGoc = Number(v.TienVeGoc ?? v.GiaVe ?? v.TongGiaVe ?? 0);
-        let lePhiHuy = Number(v.LePhiHuy ?? 0);
-        let tienHoanLai = Number(v.TienHoanLai ?? noteInfo.tienHoan ?? Math.max(0, tienVeGoc - lePhiHuy));
-
-        if (noteInfo.tienHoan !== undefined) {
-          tienHoanLai = noteInfo.tienHoan;
-          lePhiHuy = Math.max(0, tienVeGoc - tienHoanLai);
+      const routes: { name: string; revenue: { ticketsSold: number } }[] = [];
+      try {
+        for (let page = 1; ; page++) {
+          const res = await this.api.request<{ items: { name: string; revenue: { ticketsSold: number } }[]; pagination: { totalPages: number } }>(
+            `admin/reports/routes?page=${page}&pageSize=100`, 'GET', undefined, 'admin');
+          routes.push(...res.items);
+          if (page >= res.pagination.totalPages || !res.items.length) break;
         }
+      } catch {
+        // Không có quyền báo cáo tuyến: tỷ lệ hủy theo tuyến tính trên số vé hủy
+      }
 
-        const thoiGianHuyRaw = v.ThoiGianHuy ?? v.NgayHuy ?? noteInfo.ngayHuy ?? v.NgayKhoiHanh ?? v.NgayDi;
-        const thoiGianHuy = this.LayNgayTuChuoi(thoiGianHuyRaw) || noteInfo.ngayHuy || this.NgayFile();
-        const trangThaiThanhToan = v.TrangThaiDonHang ?? v.TrangThaiThanhToan;
-        const maDonHang = layMaDonHang(v, index);
-        const thongKeDon = thongKeDonHang.get(maDonHang);
-
+      this.tenNhanVien.clear();
+      const list = rows.map((r, index) => {
+        if (r.staff) this.tenNhanVien.set(r.staff.id, `${r.staff.id} - ${r.staff.name}`);
+        const channel = this.NormalizeSearchText(r.channel);
         return this.ChuanHoaLichSuHuyVe({
-          MaLichSuHuy: v.MaLichSuHuy ?? `LSH-${v.MaVe}`,
-          MaVe: v.MaVe ?? `VE-HUY-DB-${index + 1}`,
-          MaDonHang: maDonHang,
-          MaChinhSach: v.MaChinhSach ?? this.MaChinhSachTheoPhi(lePhiHuy, tienVeGoc),
-          NguonHuy: v.NguonHuy ?? 'NhanVienBanVe',
-          NguonDat: this.ChuanHoaNguonDat(v.NguonDat),
-          MaKhachHang: v.MaKhachHang ?? this.TaoMaKhachHang(v.SdtNguoiDi ?? v.SoDienThoai ?? ''),
-          MaNVBanVe: v.MaNVBanVe ?? (v.NguonDat === 'hotline' ? 'NVBV002' : 'NVBV001'),
-          HoTenNguoiDi: v.HoTenNguoiDi ?? v.TenKhachHang ?? '',
-          SdtNguoiDi: v.SdtNguoiDi ?? v.SoDienThoai ?? '',
-          TenTuyenXe: v.TenTuyenXe ?? v.TuyenXe ?? '',
-          NgayKhoiHanh: this.LayNgayTuChuoi(v.NgayKhoiHanh ?? v.NgayDi),
-          GioKhoiHanh: v.GioKhoiHanh ?? v.GioChay ?? '',
-          SoGhe: v.SoGhe ?? v.Ghe ?? '',
-          MaXe: v.MaXe ?? '',
-          TenXe: v.TenXe ?? '',
-          BienSoXe: v.BienSoXe ?? v.BienSo ?? '',
-          LoaiXe: v.LoaiXe ?? '',
-          LoaiGhe: v.LoaiGhe ?? '',
-          TienVeGoc: tienVeGoc,
-          TyLePhiHuyApDung: v.TyLePhiHuyApDung ?? this.TinhTyLePhiHuy(lePhiHuy, tienVeGoc),
-          LePhiHuy: lePhiHuy,
-          TienHoanLai: tienHoanLai,
-          MaGiaoDichHoan: v.MaGiaoDichHoan ?? (v.TrangThaiGiaoDich === 'da-hoan' ? `GDH-${v.MaVe}` : undefined),
-          ThoiGianHuy: thoiGianHuy,
-          ThoiDiemHuyIso: v.ThoiGianHuy && String(v.ThoiGianHuy).includes('T')
-            ? this.LayIsoTuChuoi(v.ThoiGianHuy)
-            : `${thoiGianHuy}T08:00:00`,
-          LyDoHuy: noteInfo.lyDo ?? v.LyDoHuy ?? 'Lý do cá nhân',
-          TrangThaiGiaoDich: this.ChuanHoaTrangThaiHoan(v.TrangThaiGiaoDich ?? v.TrangThaiHoan, trangThaiThanhToan),
-          TrangThaiDonHang: this.ChuanHoaTrangThaiDonHang(trangThaiThanhToan),
-          DonHangDaHuyToanBo: thongKeDon ? thongKeDon.total > 0 && thongKeDon.total === thongKeDon.canceled : true,
-          TongVeTrongDon: thongKeDon?.total ?? 1,
-          SoVeDaHuyTrongDon: thongKeDon?.canceled ?? 1,
-          PhuongThucThanhToan: this.LabelPhuongThucThanhToan(v.PhuongThucThanhToan ?? v.HinhThucThanhToan ?? 'tien-mat')
+          MaLichSuHuy: r.id,
+          MaVe: r.ticketId,
+          MaDonHang: r.orderId,
+          MaChinhSach: r.policyId ?? '',
+          NguonHuy: r.cancelledBy === 'KhachHang' ? 'KhachHang' : 'NhanVienBanVe',
+          NguonDat: channel.includes('online') ? 'online' : channel.includes('hotline') ? 'hotline' : 'tai-quay',
+          MaKhachHang: r.customerId ?? '',
+          MaNVBanVe: r.staff?.id ?? 'SYSTEM',
+          HoTenNguoiDi: r.passengerName,
+          SdtNguoiDi: r.passengerPhone,
+          TenTuyenXe: r.route,
+          NgayKhoiHanh: r.departureDate,
+          GioKhoiHanh: r.departureTime,
+          SoGhe: r.seat,
+          MaXe: r.vehicle?.id,
+          TenXe: r.vehicle?.name,
+          BienSoXe: r.vehicle?.plateNumber,
+          LoaiXe: r.vehicle?.type,
+          LoaiGhe: [r.seatType, r.roomType].filter(v => v && v !== 'KhongApDung').join(' '),
+          TienVeGoc: r.originalPrice,
+          LePhiHuy: r.fee,
+          TienHoanLai: r.refundAmount,
+          MaGiaoDichHoan: r.refundTransactionId ?? undefined,
+          ThoiGianHuy: new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(r.cancelledAt)),
+          ThoiDiemHuyIso: r.cancelledAt,
+          LyDoHuy: r.reason,
+          TrangThaiGiaoDich: REFUND_MAP[r.refundStatus] ?? 'cho-hoan',
+          TrangThaiDonHang: r.orderStatus.startsWith('ChoThanhToan') ? 'cho-thanh-toan' : 'da-thanh-toan',
+          DonHangDaHuyToanBo: r.orderFullyCancelled,
+          TongVeTrongDon: r.ticketsInOrder,
+          SoVeDaHuyTrongDon: r.cancelledTicketsInOrder,
+          PhuongThucThanhToan: r.paymentMethod ? (PAYMENT_LABELS[r.paymentMethod] ?? r.paymentMethod) : 'Chưa thanh toán',
         }, index);
       });
+
+      const canceledByRoute: Record<string, number> = {};
+      list.forEach(v => { canceledByRoute[v.TenTuyenXe] = (canceledByRoute[v.TenTuyenXe] || 0) + 1; });
+      const routeTotals: Record<string, number> = {};
+      routes.forEach(r => { routeTotals[r.name] = r.revenue.ticketsSold + (canceledByRoute[r.name] || 0); });
+
+      this.danhSachHuy.set(list);
+      this.tongVeTheoTuyen.set(routeTotals);
+      this.totalBookingsCount.set(Math.max(ticketsInPeriod, list.length));
+    } catch (error) {
+      this.HienToast(error instanceof Error ? error.message : 'Không tải được báo cáo hoàn hủy.', 'danger');
+    } finally {
+      this.dangTai.set(false);
     }
-
-    const mockCancellations: Partial<LichSuHuyVe>[] = [
-      {
-        MaVe: 'VE10000018-3A',
-        MaDonHang: 'DH10000018',
-        HoTenNguoiDi: 'Phạm Thị Thúy',
-        SdtNguoiDi: '0975612345',
-        TenTuyenXe: 'TP.HCM ↔ Cần Thơ',
-        NgayKhoiHanh: '2026-06-28',
-        GioKhoiHanh: '10:45',
-        SoGhe: '3A',
-        MaXe: 'LIMO01',
-        TenXe: 'VIAGO Limousine 01',
-        BienSoXe: '51B-123.45',
-        LoaiXe: 'Limousine',
-        LoaiGhe: 'Ghế VIP',
-        TienVeGoc: 220000,
-        LePhiHuy: 0,
-        TienHoanLai: 220000,
-        ThoiGianHuy: '2026-06-27',
-        ThoiDiemHuyIso: '2026-06-27T09:20:00',
-        LyDoHuy: 'Tôi đổi kế hoạch',
-        TrangThaiGiaoDich: 'da-hoan',
-        PhuongThucThanhToan: 'Chuyển khoản',
-        NguonDat: 'tai-quay',
-        MaNVBanVe: 'NVBV001',
-        TrangThaiDonHang: 'da-thanh-toan',
-        DonHangDaHuyToanBo: false,
-        TongVeTrongDon: 3,
-        SoVeDaHuyTrongDon: 1
-      },
-      {
-        MaVe: 'VE10000024-1B',
-        MaDonHang: 'DH10000024',
-        HoTenNguoiDi: 'Hoàng Minh Quân',
-        SdtNguoiDi: '0348995511',
-        TenTuyenXe: 'TP.HCM ↔ Đà Lạt',
-        NgayKhoiHanh: '2026-06-29',
-        GioKhoiHanh: '22:00',
-        SoGhe: '1B',
-        MaXe: 'CAB02',
-        TenXe: 'VIAGO Cabin 02',
-        BienSoXe: '51F-890.23',
-        LoaiXe: 'Cabin',
-        LoaiGhe: 'Cabin đôi',
-        TienVeGoc: 580000,
-        LePhiHuy: 290000,
-        TienHoanLai: 290000,
-        ThoiGianHuy: '2026-06-28',
-        ThoiDiemHuyIso: '2026-06-28T11:35:00',
-        LyDoHuy: 'Muốn đổi sang chuyến khác',
-        TrangThaiGiaoDich: 'cho-hoan',
-        PhuongThucThanhToan: 'Tiền mặt',
-        NguonDat: 'hotline',
-        MaNVBanVe: 'NVBV002',
-        TrangThaiDonHang: 'da-thanh-toan',
-        DonHangDaHuyToanBo: true,
-        TongVeTrongDon: 1,
-        SoVeDaHuyTrongDon: 1
-      },
-      {
-        MaVe: 'VE10000021-7A',
-        MaDonHang: 'DH10000021',
-        HoTenNguoiDi: 'Nguyễn Văn Đạt',
-        SdtNguoiDi: '0909552233',
-        TenTuyenXe: 'Đà Lạt ↔ Nha Trang',
-        NgayKhoiHanh: '2026-06-30',
-        GioKhoiHanh: '08:30',
-        SoGhe: '7A',
-        MaXe: 'CAB01',
-        TenXe: 'VIAGO Cabin 01',
-        BienSoXe: '51F-789.12',
-        LoaiXe: 'Cabin',
-        LoaiGhe: 'Cabin đơn',
-        TienVeGoc: 280000,
-        LePhiHuy: 0,
-        TienHoanLai: 280000,
-        ThoiGianHuy: '2026-06-27',
-        ThoiDiemHuyIso: '2026-06-27T15:10:00',
-        LyDoHuy: 'Đặt nhầm ngày/giờ',
-        TrangThaiGiaoDich: 'da-hoan',
-        PhuongThucThanhToan: 'Thẻ ngân hàng',
-        NguonDat: 'online',
-        MaNVBanVe: 'SYSTEM',
-        TrangThaiDonHang: 'cho-thanh-toan',
-        DonHangDaHuyToanBo: true,
-        TongVeTrongDon: 1,
-        SoVeDaHuyTrongDon: 1
-      },
-      {
-        MaVe: 'VE10000020-3B',
-        MaDonHang: 'DH10000020',
-        HoTenNguoiDi: 'Bùi Thị Hà',
-        SdtNguoiDi: '0918776655',
-        TenTuyenXe: 'Đà Lạt ↔ Buôn Ma Thuột',
-        NgayKhoiHanh: '2026-06-28',
-        GioKhoiHanh: '13:00',
-        SoGhe: '3B',
-        MaXe: 'GN02',
-        TenXe: 'VIAGO Giường Nằm 02',
-        BienSoXe: '51F-567.89',
-        LoaiXe: 'Giường nằm',
-        LoaiGhe: 'Giường đơn',
-        TienVeGoc: 220000,
-        LePhiHuy: 220000,
-        TienHoanLai: 0,
-        ThoiGianHuy: '2026-06-28',
-        ThoiDiemHuyIso: '2026-06-28T10:45:00',
-        LyDoHuy: 'Trễ xe / Không kịp giờ',
-        TrangThaiGiaoDich: 'dang-xu-ly',
-        PhuongThucThanhToan: 'Chuyển khoản',
-        NguonDat: 'hotline',
-        MaNVBanVe: 'NVBV002',
-        TrangThaiDonHang: 'da-thanh-toan'
-      },
-      {
-        MaVe: 'VE10000025-4B',
-        MaDonHang: 'DH10000025',
-        HoTenNguoiDi: 'Vũ Hoài Lâm',
-        SdtNguoiDi: '0932114477',
-        TenTuyenXe: 'TP.HCM ↔ Nha Trang',
-        NgayKhoiHanh: '2026-07-01',
-        GioKhoiHanh: '20:30',
-        SoGhe: '4B',
-        MaXe: 'GN01',
-        TenXe: 'VIAGO Giường Nằm 01',
-        BienSoXe: '51F-456.78',
-        LoaiXe: 'Giường nằm',
-        LoaiGhe: 'Giường đơn',
-        TienVeGoc: 420000,
-        LePhiHuy: 210000,
-        TienHoanLai: 210000,
-        ThoiGianHuy: '2026-06-30',
-        ThoiDiemHuyIso: '2026-06-30T19:00:00',
-        LyDoHuy: 'Lý do cá nhân',
-        TrangThaiGiaoDich: 'da-hoan',
-        PhuongThucThanhToan: 'Thẻ ngân hàng',
-        NguonDat: 'online',
-        MaNVBanVe: 'SYSTEM',
-        TrangThaiDonHang: 'da-thanh-toan'
-      },
-      {
-        MaVe: 'VE10000026-8B',
-        MaDonHang: 'DH10000026',
-        HoTenNguoiDi: 'Lê Thu Hương',
-        SdtNguoiDi: '0981335599',
-        TenTuyenXe: 'Nha Trang ↔ Đà Nẵng',
-        NgayKhoiHanh: '2026-06-30',
-        GioKhoiHanh: '21:30',
-        SoGhe: '8B',
-        MaXe: 'CAB03',
-        TenXe: 'VIAGO Cabin 03',
-        BienSoXe: '51F-901.34',
-        LoaiXe: 'Cabin',
-        LoaiGhe: 'Cabin đơn',
-        TienVeGoc: 440000,
-        LePhiHuy: 132000,
-        TienHoanLai: 308000,
-        ThoiGianHuy: '2026-06-29',
-        ThoiDiemHuyIso: '2026-06-29T14:20:00',
-        LyDoHuy: 'Muốn đổi sang chuyến khác',
-        TrangThaiGiaoDich: 'dang-xu-ly',
-        PhuongThucThanhToan: 'Chuyển khoản',
-        NguonDat: 'tai-quay',
-        MaNVBanVe: 'NVBV001',
-        TrangThaiDonHang: 'da-thanh-toan'
-      }
-    ];
-
-    const mockRows = mockCancellations.map((item, index) => this.ChuanHoaLichSuHuyVe(item, index));
-    const sourceRows = tickets.length > 0 ? dbCancellations : mockRows;
-    const finalCancellations = Array.from(new Map(sourceRows.map(item => [item.MaVe, item])).values());
-    const routeTotals = this.TaoThongKeTuyenTuVe(tickets, finalCancellations);
-    const totalBookings = Object.values(routeTotals).reduce((sum, value) => sum + value, 0);
-
-    this.danhSachHuy.set(finalCancellations);
-    this.tongVeTheoTuyen.set(routeTotals);
-    this.totalBookingsCount.set(Math.max(totalBookings, finalCancellations.length));
   }
 }

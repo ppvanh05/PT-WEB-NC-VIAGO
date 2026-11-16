@@ -15,12 +15,10 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render the shared components demo', async () => {
+  it('should render a single router outlet', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Shared Components');
-    expect(compiled.querySelectorAll('app-toast')).toHaveLength(4);
-    expect(compiled.querySelector('app-pagination')).toBeTruthy();
+    expect(compiled.querySelectorAll('router-outlet')).toHaveLength(1);
   });
 });

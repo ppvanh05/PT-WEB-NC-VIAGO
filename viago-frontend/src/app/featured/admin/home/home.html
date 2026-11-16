@@ -1,5 +1,6 @@
 <!-- Nội dung trang chủ: Welcome section + Quick action cards + Wave decoration -->
 <div class="container-3">
+  @if (accessDenied) { <p role="alert">Tài khoản của bạn chưa được cấp quyền truy cập chức năng này. Vui lòng chọn mục được phép trong menu.</p> }
 
   <!-- Welcome Header -->
   <div class="welcome-header">
@@ -29,7 +30,8 @@
   <div class="quick-action-cards">
 
     <!-- Card: Quản lý đặt vé -->
-    <div class="background-border-2">
+    @if (firstAllowed(bookingRoutes)) {
+    <div class="background-border-2" [routerLink]="firstAllowed(bookingRoutes)" role="link" tabindex="0" (keydown.enter)="navigate(bookingRoutes)">
       <div class="background-wrapper">
         <div class="background">
           <div class="div-2">
@@ -52,9 +54,11 @@
       </div>
       <p class="p">Tạo mới, quản lý và theo dõi vé</p>
     </div>
+    }
 
     <!-- Card: Quản lý điều phối -->
-    <div class="background-border-3">
+    @if (firstAllowed(dispatchRoutes)) {
+    <div class="background-border-3" [routerLink]="firstAllowed(dispatchRoutes)" role="link" tabindex="0" (keydown.enter)="navigate(dispatchRoutes)">
       <div class="background-wrapper">
         <div class="background">
           <div class="div-2">
@@ -78,9 +82,11 @@
         <p class="text-wrapper-3">Quản lý tuyến xe, lịch trình, phương tiện</p>
       </div>
     </div>
+    }
 
     <!-- Card: Khách hàng -->
-    <div class="background-border-3">
+    @if (firstAllowed(customerRoutes)) {
+    <div class="background-border-3" [routerLink]="firstAllowed(customerRoutes)" role="link" tabindex="0" (keydown.enter)="navigate(customerRoutes)">
       <div class="background-wrapper">
         <div class="background">
           <div class="div-2">
@@ -104,9 +110,11 @@
         <p class="text-wrapper-3">Quản lý khách hàng, đánh giá, phản hồi</p>
       </div>
     </div>
+    }
 
     <!-- Card: Báo cáo -->
-    <div class="background-border-3">
+    @if (firstAllowed(reportRoutes)) {
+    <div class="background-border-3" [routerLink]="firstAllowed(reportRoutes)" role="link" tabindex="0" (keydown.enter)="navigate(reportRoutes)">
       <div class="background-wrapper">
         <div class="background">
           <div class="div-2">
@@ -130,6 +138,7 @@
         <p class="text-wrapper-3">Xem báo cáo, thống kê và phân tích dữ liệu</p>
       </div>
     </div>
+    }
 
   </div>
 </div>

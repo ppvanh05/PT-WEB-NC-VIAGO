@@ -1,9 +1,28 @@
 import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
 import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Toast } from '../../../../shared/components/toast/toast';
 import { ToastService } from '../../../../core/services/toast.service';
+import { AccountsApiService } from '../../../../core/services/accounts-api.service';
+
+/** Một dòng của GET admin/reports/revenue (lich_trinh + chi phí chuyến). */
+interface ApiTrip {
+  scheduleId: string;
+  route: string;
+  plateNumber: string;
+  vehicleType: string;
+  departureDate: string;
+  departureTime: string;
+  passengers: number;
+  totalSeats: number;
+  ticketRevenue: number;
+  cost: { fuel: number; toll: number; salary: number; other: number } | null;
+  driver: string | null;
+  assistant: string | null;
+  status: ChuyenXeReportItem['trangThai'];
+}
 
 export interface ChiPhiVanHanh {
   nhienLieu: number; // Dầu / Xăng
@@ -25,7 +44,8 @@ export interface ChuyenXeReportItem {
   chiPhi: ChiPhiVanHanh;
   taiXeChinh: string;
   phuXe: string;
-  trangThai: 'running' | 'waiting' | 'completed' | 'locked';
+  trangThai: 'running' | 'waiting' | 'completed' | 'locked' | 'cancelled';
+  coChiPhi: boolean;
 }
 
 @Component({
@@ -33,6 +53,7 @@ export interface ChuyenXeReportItem {
   standalone: true,
   imports: [
     CommonModule,
+    Toast,
     FormsModule,
     AdminPageHeader,
     AdminTabs,
@@ -42,13 +63,25 @@ export interface ChuyenXeReportItem {
 })
 export class DetailedReportComponent implements OnInit {
   protected readonly toastService = inject(ToastService);
+  protected readonly toastStack = this.toastService.toasts$;
+  protected dismissToast(id: string): void {
+    this.toastService.dismissToast(id);
+  }
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly accountsApi = inject(AccountsApiService);
+  /** App chạy không có zone.js: gọi API xong thì báo Angular vẽ lại giao diện. */
+  private readonly api = {
+    request: <T>(...args: Parameters<AccountsApiService['request']>): Promise<T> =>
+      this.accountsApi.request<T>(...args).finally(() => this.cdr.markForCheck()),
+  };
   trips: ChuyenXeReportItem[] = [];
+  loading = false;
 
 
   // Filters State
   filters = {
-    fromDate: '2026-06-20',
-    toDate: '2026-06-26',
+    fromDate: '',
+    toDate: '',
     tuyenXe: 'Tất cả các tuyến',
     bienSo: 'Tất cả xe',
     trangThai: 'Tất cả trạng thái'
@@ -87,96 +120,49 @@ export class DetailedReportComponent implements OnInit {
   };
 
   ngOnInit() {
-    this.generateTrips();
-
-    const routesSet = new Set(this.trips.map(t => t.tuyenXe));
-    this.availableRoutes = ['Tất cả các tuyến', ...Array.from(routesSet)];
-
-    const platesSet = new Set(this.trips.map(t => t.bienSo));
-    this.availablePlates = ['Tất cả xe', ...Array.from(platesSet)];
-
-    this.onViewReport();
+    void this.loadTrips();
   }
 
-  generateTrips() {
-    const routeTemplates = [
-      { name: 'TP.HCM ↔ Cần Thơ', price: 180000, baseFuel: 900000, baseBot: 280000 },
-      { name: 'TP.HCM ↔ Vũng Tàu', price: 160000, baseFuel: 600000, baseBot: 180000 },
-      { name: 'TP.HCM ↔ Đà Lạt', price: 250000, baseFuel: 2000000, baseBot: 450000 },
-      { name: 'Đà Lạt ↔ Nha Trang', price: 170000, baseFuel: 800000, baseBot: 150000 },
-      { name: 'TP.HCM ↔ Nha Trang', price: 300000, baseFuel: 2400000, baseBot: 380000 },
-      { name: 'Cần Thơ ↔ Rạch Giá', price: 150000, baseFuel: 500000, baseBot: 100000 },
-      { name: 'Đà Lạt ↔ Buôn Ma Thuột', price: 220000, baseFuel: 1400000, baseBot: 200000 },
-      { name: 'TP.HCM ↔ Phan Thiết', price: 200000, baseFuel: 1000000, baseBot: 220000 },
-      { name: 'Nha Trang ↔ Đà Nẵng', price: 350000, baseFuel: 3200000, baseBot: 650000 }
-    ];
-
-    const vehicles = [
-      { plate: '77B-09842', type: 'Limousine 1', seats: 22 },
-      { plate: '77B-08021', type: 'Limousine 2', seats: 22 },
-      { plate: '77B-02082', type: 'Limousine 3', seats: 22 },
-      { plate: '77B-05114', type: 'Giường nằm 1', seats: 36 },
-      { plate: '77B-09999', type: 'Cabin VIP', seats: 24 }
-    ];
-
-    const drivers = [
-      'Trần Hoàng Long', 'Nguyễn Văn Nam', 'Lê Hoàng Hải', 'Phạm Minh Đức', 'Bùi Công Danh',
-      'Nguyễn Tiến Dũng', 'Phạm Thanh Sơn', 'Lê Minh Tuấn', 'Vũ Quốc Khánh', 'Đỗ Anh Đức',
-      'Hoàng Văn Thái', 'Nguyễn Mạnh Hùng', 'Phan Thanh Hải', 'Bùi Xuân Trường', 'Trần Hữu Khang',
-      'Đặng Hoàng Gia', 'Lý Huỳnh Đức', 'Trần Minh Quân', 'Nguyễn Tấn Đạt', 'Lê Hồng Phong'
-    ];
-
-    const codrivers = [
-      'Lê Thế Hùng', 'Nguyễn Đức Minh', 'Đỗ Hoàng Sơn', 'Vũ Gia Bảo',
-      'Phạm Công Thành', 'Nguyễn Hữu Thọ', 'Trần Văn Kiệt', 'Bùi Tiến Dũng'
-    ];
-
-    const startId = 1001;
-    const dates = ['2026-06-20', '2026-06-21', '2026-06-22', '2026-06-23', '2026-06-24', '2026-06-25', '2026-06-26'];
-    const times = ['06:00', '08:00', '10:15', '13:00', '15:30', '18:00', '20:15', '22:00'];
-
-    const generated: ChuyenXeReportItem[] = [];
-
-    for (let i = 0; i < 77; i++) {
-      const date = dates[i % dates.length];
-      const time = times[i % times.length];
-      const route = routeTemplates[i % routeTemplates.length];
-      const vehicle = vehicles[i % vehicles.length];
-      const driver = drivers[i % drivers.length];
-      const codriver = codrivers[i % codrivers.length];
-
-      const seats = vehicle.seats;
-      const soKhach = Math.floor(seats * 0.5) + Math.floor(Math.random() * (seats * 0.5 + 1));
-      const revenue = soKhach * route.price;
-
-      const fuel = route.baseFuel + (Math.floor(Math.random() * 21) - 10) * 10000;
-      const bot = route.baseBot;
-      const salary = 400000 + (seats > 24 ? 300000 : 150000);
-      const meals = 100000 + Math.floor(Math.random() * 11) * 10000;
-
-      generated.push({
-        maChuyen: `LT${startId + i}`,
-        tuyenXe: route.name,
-        bienSo: vehicle.plate,
-        loaiXe: vehicle.type,
-        khoiHanhDate: date,
-        khoiHanhTime: time,
-        soKhach: soKhach,
-        tongGhe: seats,
-        doanhThuVe: revenue,
+  /** Tải toàn bộ chuyến từ DB; lọc ngày/tuyến/xe/trạng thái làm trên trình duyệt. */
+  async loadTrips() {
+    this.loading = true;
+    try {
+      const rows: ApiTrip[] = [];
+      for (let page = 1; ; page++) {
+        const res = await this.api.request<{ items: ApiTrip[]; pagination: { totalPages: number } }>(
+          `admin/reports/revenue?page=${page}&pageSize=100`, 'GET', undefined, 'admin');
+        rows.push(...res.items);
+        if (page >= res.pagination.totalPages || !res.items.length) break;
+      }
+      this.trips = rows.map(r => ({
+        maChuyen: r.scheduleId,
+        tuyenXe: r.route,
+        bienSo: r.plateNumber,
+        loaiXe: r.vehicleType,
+        khoiHanhDate: r.departureDate,
+        khoiHanhTime: r.departureTime,
+        soKhach: r.passengers,
+        tongGhe: r.totalSeats,
+        doanhThuVe: r.ticketRevenue,
         chiPhi: {
-          nhienLieu: fuel,
-          cauDuongBOT: bot,
-          luongChuyen: salary,
-          benBaiAnUong: meals
+          nhienLieu: r.cost?.fuel ?? 0,
+          cauDuongBOT: r.cost?.toll ?? 0,
+          luongChuyen: r.cost?.salary ?? 0,
+          benBaiAnUong: r.cost?.other ?? 0,
         },
-        taiXeChinh: driver,
-        phuXe: codriver,
-        trangThai: date === '2026-06-26' && time > '15:00' ? 'running' : 'completed'
-      });
+        coChiPhi: !!r.cost && (r.cost.fuel + r.cost.toll + r.cost.salary + r.cost.other) > 0,
+        taiXeChinh: r.driver ?? '',
+        phuXe: r.assistant ?? '',
+        trangThai: r.status,
+      }));
+      this.availableRoutes = ['Tất cả các tuyến', ...new Set(this.trips.map(t => t.tuyenXe))];
+      this.availablePlates = ['Tất cả xe', ...new Set(this.trips.map(t => t.bienSo))];
+    } catch (error) {
+      this.toastService.showError(error instanceof Error ? error.message : 'Không tải được báo cáo chuyến xe.');
+    } finally {
+      this.loading = false;
+      this.onViewReport();
     }
-
-    this.trips = generated;
   }
 
   onViewReport() {
@@ -224,8 +210,8 @@ export class DetailedReportComponent implements OnInit {
 
   onResetFilters() {
     this.filters = {
-      fromDate: '2026-06-20',
-      toDate: '2026-06-26',
+      fromDate: '',
+      toDate: '',
       tuyenXe: 'Tất cả các tuyến',
       bienSo: 'Tất cả xe',
       trangThai: 'Tất cả trạng thái'

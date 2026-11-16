@@ -1010,3 +1010,52 @@
     align-items: stretch !important;
   }
 }
+
+/* Form thao tác trong drawer (báo giá, thu tiền, phân công, bảng giá) */
+.drawer-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.drawer-form .full-width { grid-column: span 2; }
+.drawer-field { display: flex; flex-direction: column; gap: 4px; }
+.drawer-field label { font-size: 12px; font-weight: 600; color: var(--slate); }
+.drawer-field input,
+.drawer-field select,
+.drawer-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13.5px;
+}
+.drawer-actions-inline { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.btn-danger-outline {
+  border: 1px solid var(--danger, #dc2626);
+  color: var(--danger, #dc2626);
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.drawer-note { font-size: 12.5px; color: var(--slate); margin: 6px 0 0; }
+@media (max-width: 640px) {
+  .drawer-form { grid-template-columns: 1fr; }
+  .drawer-form .full-width { grid-column: span 1; }
+}
+
+/* Toast góc phải (đồng bộ vị trí với các trang admin khác) */
+.page-toast-stack {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: var(--z-toast, 1400);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.page-toast-stack > * {
+  pointer-events: auto;
+}

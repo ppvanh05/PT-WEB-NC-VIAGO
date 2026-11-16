@@ -1,3 +1,9 @@
+<!-- Toast góc phải: admin-layout không vẽ ToastService nên trang tự hiển thị -->
+<div class="page-toast-stack" aria-live="polite">
+  @for (t of (toastStack | async) ?? []; track t.id) {
+    <app-toast [variant]="t.type" [title]="t.title ?? ''" [message]="t.message" (closed)="dismissToast(t.id)" />
+  }
+</div>
 <div class="baocao-container">
   <!-- Main Report Panel (Header, Stats, and Filters wrapped inside one card) -->
   <app-admin-page-header title="Báo cáo thống kê doanh thu chuyến xe" section="BÁO CÁO QUẢN TRỊ">
@@ -189,6 +195,7 @@
           <option value="completed">Đã hoàn thành</option>
           <option value="running">Đang chạy</option>
           <option value="waiting">Chờ khởi hành</option>
+          <option value="cancelled">Đã hủy</option>
         </select>
       </div>
     </div>

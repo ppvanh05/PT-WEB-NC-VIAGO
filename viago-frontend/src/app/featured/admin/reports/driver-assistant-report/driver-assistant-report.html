@@ -320,6 +320,7 @@
                   type="month"
                   class="styled-month-input"
                   [(ngModel)]="selectedMonthYear"
+                  (ngModelChange)="onMonthChange()"
                   title="Chọn tháng và năm"
                 />
               </div>
@@ -434,7 +435,7 @@
 
                     <!-- Hiển thị lịch sử nhắc SMS nếu có -->
                     <div class="sms-sent-history" *ngIf="p.smsSentCount">
-                      <span class="sms-badge-tag">✓ Đã nhắc SMS ({{ p.smsSentCount }} lần)</span>
+                      <span class="sms-badge-tag">✓ Đã nhắc ({{ p.smsSentCount }} lần)</span>
                     </div>
                   </ng-container>
                   <ng-template #assistantLicense>
@@ -456,9 +457,9 @@
                     class="btn-sms-remind"
                     [class.btn-sms-again]="(p.smsSentCount || 0) > 0"
                     (click)="openSmsModal(p)"
-                    [title]="(p.smsSentCount || 0) > 0 ? 'Đã nhắc ' + p.smsSentCount + ' lần (Gần nhất: ' + p.lastSmsSentAt + '). Bấm để gửi lại SMS' : 'Gửi SMS nhắc đổi bằng lái'"
+                    [title]="(p.smsSentCount || 0) > 0 ? 'Đã nhắc ' + p.smsSentCount + ' lần (Gần nhất: ' + p.lastSmsSentAt + '). Bấm để ghi nhận lần nhắc mới' : 'Ghi nhận đã nhắc tài xế đổi bằng lái'"
                   >
-                    {{ (p.smsSentCount || 0) > 0 ? '📲 Gửi lại SMS (' + p.smsSentCount + ')' : '📲 Gửi SMS nhắc bằng' }}
+                    {{ (p.smsSentCount || 0) > 0 ? '📞 Ghi nhận nhắc lại (' + p.smsSentCount + ')' : '📞 Ghi nhận đã nhắc' }}
                   </button>
                   <span *ngIf="!isLicenseExpiringSoon(p)" class="text-muted-dash">-</span>
                 </td>
@@ -482,9 +483,9 @@
   <!-- Form Modal SMS với Tiêu đề Căn giữa và Nút Cam như Xuất Excel -->
   <app-modal
     [open]="showSmsModal"
-    [title]="'📲 Xác nhận gửi SMS nhắc nhở đổi bằng lái'"
+    [title]="'📞 Ghi nhận đã nhắc đổi bằng lái'"
     [confirmMode]="true"
-    [confirmText]="'Gửi SMS ngay'"
+    [confirmText]="sendingReminder ? 'Đang lưu...' : 'Ghi nhận đã nhắc'"
     [cancelText]="'Hủy bỏ'"
     (closed)="closeSmsModal()"
     (confirmed)="confirmSendSms()"
@@ -492,7 +493,7 @@
    [fixedLayout]="true" [fitContent]="true">
     <div class="sms-modal-body" *ngIf="selectedDriverForSms">
       <p class="sms-intro-text">
-        Hệ thống sẽ gửi tin nhắn SMS thông báo nhắc nhở gia hạn bằng lái xe đến số điện thoại của tài xế:
+        Hệ thống không gửi SMS tự động. Hãy gọi điện/nhắn tin cho tài xế, sau đó bấm xác nhận để lưu số lần nhắc vào hệ thống:
       </p>
       <div class="sms-driver-card">
         <div class="sms-info-row">
@@ -504,7 +505,7 @@
           <span class="sms-info-val font-bold text-navy">{{ selectedDriverForSms.hoTen }}</span>
         </div>
         <div class="sms-info-row">
-          <span class="sms-info-label">Số điện thoại nhận SMS:</span>
+          <span class="sms-info-label">Số điện thoại liên hệ:</span>
           <span class="sms-info-val font-bold text-phone">{{ selectedDriverForSms.soDienThoai }}</span>
         </div>
         <div class="sms-info-row">
@@ -517,7 +518,7 @@
         <div class="sms-info-row" *ngIf="selectedDriverForSms.smsSentCount">
           <span class="sms-info-label">Lịch sử nhắc nhở:</span>
           <span class="sms-info-val font-bold text-orange-dark">
-            Đã gửi {{ selectedDriverForSms.smsSentCount }} lần (Lần cuối: {{ selectedDriverForSms.lastSmsSentAt }})
+            Đã nhắc {{ selectedDriverForSms.smsSentCount }} lần (Lần cuối: {{ selectedDriverForSms.lastSmsSentAt }})
           </span>
         </div>
       </div>

@@ -1,7 +1,8 @@
 import { AdminTabs } from '../../../../shared/components/admin-tabs/admin-tabs';
 import { AdminPageHeader } from '../../../../shared/components/admin-page-header/admin-page-header';
 import { Pagination } from '../../../../shared/components/pagination/pagination';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { AccountsApiService } from '../../../../core/services/accounts-api.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalComponent } from '../../../../shared/components/modal/modal';
@@ -18,9 +19,36 @@ export interface Personnel {
   hangBangLai: string; // 'E' | 'D' | 'Không yêu cầu bằng lái'
   thoiHanBangLai: string; // Date string 'DD/MM/YYYY' or empty for assistant driver
   trangThai: string; // 'Đang hoạt động' | 'Đã khóa'
-  smsSentCount?: number; // Số lần đã gửi SMS nhắc nhở
+  smsSentCount?: number; // Số lần đã nhắc đổi bằng (tai_xe_phu_xe.solannhachangplx)
   lastSmsSentAt?: string; // Thời gian nhắc gần nhất
+  soChuyen: number; // Số chuyến trong tháng đang xem
 }
+
+/** Một dòng của GET admin/reports/drivers */
+interface ApiPersonnel {
+  no: number;
+  id: string;
+  name: string;
+  birthDate: string | null;
+  phone: string;
+  nationalId: string;
+  role: 'TaiXe' | 'PhuXe';
+  roleLabel: string;
+  licenseClass: string | null;
+  licenseExpiry: string | null;
+  status: string;
+  statusLabel: string;
+  reminderCount: number;
+  lastReminderAt: string | null;
+  trips: number;
+}
+
+/** yyyy-MM-dd → dd/MM/yyyy */
+const toVnDate = (iso: string | null) => (iso ? iso.slice(0, 10).split('-').reverse().join('/') : '');
+const formatDateTime = (iso: string | null) =>
+  iso
+    ? new Date(iso).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' })
+    : '';
 
 @Component({
   selector: 'app-driver-assistant-report',
@@ -38,42 +66,18 @@ export interface Personnel {
   styleUrl: './driver-assistant-report.css'
 })
 export class DriverAssistantReport implements OnInit {
-  // Baseline Date: Hôm nay 08/10/2026
-  readonly referenceDate: Date = new Date(2026, 9, 8); // 08/10/2026
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly accountsApi = inject(AccountsApiService);
+  /** App chạy không có zone.js: gọi API xong thì báo Angular vẽ lại giao diện. */
+  private readonly api = {
+    request: <T>(...args: Parameters<AccountsApiService['request']>): Promise<T> =>
+      this.accountsApi.request<T>(...args).finally(() => this.cdr.markForCheck()),
+  };
+  loading = false;
+  sendingReminder = false;
 
-  // Toàn bộ danh sách 30 nhân sự ban đầu với mốc 08/10/2026
-  allPersonnel: Personnel[] = [
-    { stt: 1, maNhanSu: 'TX100001', hoTen: 'Nguyễn Văn Minh', ngaySinh: '15/03/1985', soDienThoai: '0901234567', cccd: '079085001234', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '20/08/2028', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 2, maNhanSu: 'TX100002', hoTen: 'Trần Quốc Huy', ngaySinh: '22/07/1988', soDienThoai: '0912345678', cccd: '079088002345', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '10/01/2027', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 3, maNhanSu: 'TX100003', hoTen: 'Lê Hoàng Nam', ngaySinh: '10/12/1983', soDienThoai: '0933456789', cccd: '079083003456', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '05/04/2029', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 4, maNhanSu: 'TX100004', hoTen: 'Phạm Đức Thành', ngaySinh: '28/01/1990', soDienThoai: '0944567890', cccd: '079090004567', vaiTro: 'Tài xế', hangBangLai: 'D', thoiHanBangLai: '18/09/2028', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 5, maNhanSu: 'TX100005', hoTen: 'Võ Thanh Tùng', ngaySinh: '07/05/1987', soDienThoai: '0965678901', cccd: '079087005678', vaiTro: 'Tài xế', hangBangLai: 'D', thoiHanBangLai: '05/11/2026', trangThai: 'Đang hoạt động', smsSentCount: 0 }, // Sắp hết hạn <30 ngày (còn 28 ngày)
-    { stt: 6, maNhanSu: 'TX100006', hoTen: 'Nguyễn Tiến Dũng', ngaySinh: '14/02/1986', soDienThoai: '0902345671', cccd: '079086006789', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '12/10/2029', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 7, maNhanSu: 'TX100007', hoTen: 'Hoàng Nhật Anh', ngaySinh: '19/11/1989', soDienThoai: '0913456782', cccd: '079089007890', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '25/03/2028', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 8, maNhanSu: 'TX100008', hoTen: 'Đỗ Mạnh Hùng', ngaySinh: '05/08/1984', soDienThoai: '0934567893', cccd: '079084008901', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '20/11/2026', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 9, maNhanSu: 'TX100009', hoTen: 'Ngô Chí Thành', ngaySinh: '26/04/1991', soDienThoai: '0945678904', cccd: '079091009012', vaiTro: 'Tài xế', hangBangLai: 'D', thoiHanBangLai: '17/01/2029', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 10, maNhanSu: 'TX100010', hoTen: 'Đặng Hoàng Long', ngaySinh: '31/10/1988', soDienThoai: '0966789015', cccd: '079088010123', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '15/02/2027', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 11, maNhanSu: 'TX100011', hoTen: 'Bùi Xuân Trường', ngaySinh: '08/12/1985', soDienThoai: '0903456712', cccd: '079085011234', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '15/10/2026', trangThai: 'Đang hoạt động', smsSentCount: 0 }, // Sắp hết hạn <30 ngày (còn 7 ngày)
-    { stt: 12, maNhanSu: 'TX100012', hoTen: 'Dương Đình Bảo', ngaySinh: '23/06/1992', soDienThoai: '0914567823', cccd: '079092012345', vaiTro: 'Tài xế', hangBangLai: 'D', thoiHanBangLai: '08/02/2028', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 13, maNhanSu: 'TX100013', hoTen: 'Vũ Minh Triết', ngaySinh: '11/01/1984', soDienThoai: '0935678934', cccd: '079084013456', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '20/03/2027', trangThai: 'Đã khóa', smsSentCount: 0 },
-    { stt: 14, maNhanSu: 'TX100014', hoTen: 'Phan Văn Đức', ngaySinh: '09/09/1989', soDienThoai: '0946789045', cccd: '079089014567', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '15/06/2029', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 15, maNhanSu: 'TX100015', hoTen: 'Đỗ Cao Cường', ngaySinh: '17/04/1986', soDienThoai: '0967890156', cccd: '079086015678', vaiTro: 'Tài xế', hangBangLai: 'D', thoiHanBangLai: '11/03/2028', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 16, maNhanSu: 'TX100016', hoTen: 'Lâm Hoàng Vĩnh', ngaySinh: '03/07/1987', soDienThoai: '0904567123', cccd: '079087016789', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '15/12/2026', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 17, maNhanSu: 'TX100017', hoTen: 'Trịnh Đình Quang', ngaySinh: '29/10/1991', soDienThoai: '0915678234', cccd: '079091017890', vaiTro: 'Tài xế', hangBangLai: 'D', thoiHanBangLai: '14/01/2029', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 18, maNhanSu: 'TX100018', hoTen: 'Đinh Văn Toàn', ngaySinh: '12/05/1983', soDienThoai: '0936789345', cccd: '079083018901', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '05/09/2028', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 19, maNhanSu: 'TX100019', hoTen: 'Quách Công Minh', ngaySinh: '25/08/1990', soDienThoai: '0947890456', cccd: '079090019012', vaiTro: 'Tài xế', hangBangLai: 'D', thoiHanBangLai: '19/07/2027', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 20, maNhanSu: 'TX100020', hoTen: 'Phùng Khắc Chính', ngaySinh: '06/12/1985', soDienThoai: '0968901567', cccd: '079085020123', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '08/11/2029', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 21, maNhanSu: 'TX100021', hoTen: 'Tạ Minh Tuấn', ngaySinh: '21/02/1988', soDienThoai: '0905432109', cccd: '079088021234', vaiTro: 'Tài xế', hangBangLai: 'E', thoiHanBangLai: '13/04/2028', trangThai: 'Đang hoạt động', smsSentCount: 0 },
-    { stt: 22, maNhanSu: 'TX100022', hoTen: 'Nguyễn Chí Thanh', ngaySinh: '18/07/1987', soDienThoai: '0916543210', cccd: '079087022345', vaiTro: 'Tài xế', hangBangLai: 'D', thoiHanBangLai: '28/10/2026', trangThai: 'Đã khóa', smsSentCount: 0 }, // Sắp hết hạn <30 ngày (còn 20 ngày)
-    { stt: 23, maNhanSu: 'PX200001', hoTen: 'Nguyễn Thị Hoa', ngaySinh: '12/09/1995', soDienThoai: '0976789012', cccd: '079095023456', vaiTro: 'Phụ xe', hangBangLai: 'Không yêu cầu bằng lái', thoiHanBangLai: '', trangThai: 'Đang hoạt động' },
-    { stt: 24, maNhanSu: 'PX200002', hoTen: 'Bùi Văn Đức', ngaySinh: '25/11/1998', soDienThoai: '0987890123', cccd: '079098024567', vaiTro: 'Phụ xe', hangBangLai: 'Không yêu cầu bằng lái', thoiHanBangLai: '', trangThai: 'Đang hoạt động' },
-    { stt: 25, maNhanSu: 'PX200003', hoTen: 'Lê Quốc Bảo', ngaySinh: '18/02/1996', soDienThoai: '0398901234', cccd: '079096025678', vaiTro: 'Phụ xe', hangBangLai: 'Không yêu cầu bằng lái', thoiHanBangLai: '', trangThai: 'Đang hoạt động' },
-    { stt: 26, maNhanSu: 'PX200004', hoTen: 'Phan Gia Hưng', ngaySinh: '04/06/1999', soDienThoai: '0389012345', cccd: '079099026789', vaiTro: 'Phụ xe', hangBangLai: 'Không yêu cầu bằng lái', thoiHanBangLai: '', trangThai: 'Đang hoạt động' },
-    { stt: 27, maNhanSu: 'PX200005', hoTen: 'Đặng Nhật Quang', ngaySinh: '30/08/1997', soDienThoai: '0370123456', cccd: '079097027890', vaiTro: 'Phụ xe', hangBangLai: 'Không yêu cầu bằng lái', thoiHanBangLai: '', trangThai: 'Đang hoạt động' },
-    { stt: 28, maNhanSu: 'PX200006', hoTen: 'Mai Văn Nam', ngaySinh: '14/01/1996', soDienThoai: '0361234567', cccd: '079096028901', vaiTro: 'Phụ xe', hangBangLai: 'Không yêu cầu bằng lái', thoiHanBangLai: '', trangThai: 'Đang hoạt động' },
-    { stt: 29, maNhanSu: 'PX200007', hoTen: 'Cao Tiến Đạt', ngaySinh: '22/10/1994', soDienThoai: '0352345678', cccd: '079094029012', vaiTro: 'Phụ xe', hangBangLai: 'Không yêu cầu bằng lái', thoiHanBangLai: '', trangThai: 'Đang hoạt động' },
-    { stt: 30, maNhanSu: 'PX200008', hoTen: 'Hoàng Trọng Nghĩa', ngaySinh: '05/03/2000', soDienThoai: '0343456789', cccd: '079100030123', vaiTro: 'Phụ xe', hangBangLai: 'Không yêu cầu bằng lái', thoiHanBangLai: '', trangThai: 'Đã khóa' }
-  ];
+  // Dữ liệu từ GET admin/reports/drivers
+  allPersonnel: Personnel[] = [];
 
   // Danh sách sau lọc
   filteredPersonnel: Personnel[] = [];
@@ -83,10 +87,11 @@ export class DriverAssistantReport implements OnInit {
   activeTab: 'bieu-do' | 'danh-sach' = 'bieu-do';
 
   // Bộ chọn Tháng/Năm linh hoạt dạng input type="month" (chuẩn HTML5, YYYY-MM)
-  selectedMonthYear: string = '2026-10';
+  selectedMonthYear: string = new Date().toISOString().slice(0, 7);
+  private loadedMonth = '';
 
   get displaySelectedMonthYear(): string {
-    if (!this.selectedMonthYear) return 'Tháng 10/2026';
+    if (!this.selectedMonthYear) return '';
     const parts = this.selectedMonthYear.split('-');
     if (parts.length === 2) {
       const year = parts[0];
@@ -134,37 +139,78 @@ export class DriverAssistantReport implements OnInit {
   }
 
   ngOnInit() {
-    this.calculateStats();
-    this.onResetFilters();
+    void this.load();
+  }
+
+  /** Tải nhân sự kèm số chuyến trong tháng đang chọn. */
+  async load() {
+    this.loading = true;
+    const month = this.selectedMonthYear || new Date().toISOString().slice(0, 7);
+    const [y, m] = month.split('-').map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    const range = `from=${month}-01&to=${month}-${String(lastDay).padStart(2, '0')}`;
+    try {
+      const rows: ApiPersonnel[] = [];
+      for (let page = 1; ; page++) {
+        const res = await this.api.request<{ items: ApiPersonnel[]; pagination: { totalPages: number } }>(
+          `admin/reports/drivers?page=${page}&pageSize=100&${range}`, 'GET', undefined, 'admin');
+        rows.push(...res.items);
+        if (page >= res.pagination.totalPages || !res.items.length) break;
+      }
+      this.allPersonnel = rows.map((r, i) => ({
+        stt: i + 1,
+        maNhanSu: r.id,
+        hoTen: r.name,
+        ngaySinh: toVnDate(r.birthDate),
+        soDienThoai: r.phone ?? '',
+        cccd: r.nationalId ?? '',
+        vaiTro: r.role === 'TaiXe' ? 'Tài xế' : 'Phụ xe',
+        hangBangLai: r.licenseClass ?? 'Không yêu cầu bằng lái',
+        thoiHanBangLai: toVnDate(r.licenseExpiry),
+        trangThai: r.statusLabel,
+        smsSentCount: r.reminderCount,
+        lastSmsSentAt: formatDateTime(r.lastReminderAt),
+        soChuyen: r.trips,
+      }));
+      this.loadedMonth = month;
+    } catch (error) {
+      this.triggerToast('Không tải được dữ liệu', error instanceof Error ? error.message : 'Lỗi tải báo cáo tài xế/phụ xe.', 'error');
+    } finally {
+      this.loading = false;
+      this.calculateStats();
+      this.applyFilters();
+    }
+  }
+
+  onMonthChange() {
+    if (this.selectedMonthYear && this.selectedMonthYear !== this.loadedMonth) void this.load();
+  }
+
+  /** Mốc hôm nay (0h) để tính hạn bằng lái. */
+  private today(): Date {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
+
+  private parseVnDate(value: string): Date | null {
+    const parts = value.split('/');
+    if (parts.length !== 3) return null;
+    return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
   }
 
   isLicenseExpiringSoon(p: Personnel): boolean {
     if (p.vaiTro !== 'Tài xế' || !p.thoiHanBangLai) return false;
-    const parts = p.thoiHanBangLai.split('/');
-    if (parts.length !== 3) return false;
-
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
-    const expDate = new Date(year, month, day);
-
-    const currentDate = new Date(2026, 9, 8); // 08/10/2026
-    const thirtyDaysLater = new Date(2026, 9, 8 + 30); // 07/11/2026
-
-    return expDate >= currentDate && expDate <= thirtyDaysLater;
+    const expDate = this.parseVnDate(p.thoiHanBangLai);
+    if (!expDate) return false;
+    const today = this.today();
+    const thirtyDaysLater = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 30);
+    return expDate <= thirtyDaysLater;
   }
 
   getDaysUntilExpiration(p: Personnel): number {
-    if (!p.thoiHanBangLai) return 0;
-    const parts = p.thoiHanBangLai.split('/');
-    if (parts.length !== 3) return 0;
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
-    const expDate = new Date(year, month, day);
-    const currentDate = new Date(2026, 9, 8);
-    const diffTime = expDate.getTime() - currentDate.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const expDate = p.thoiHanBangLai ? this.parseVnDate(p.thoiHanBangLai) : null;
+    if (!expDate) return 0;
+    return Math.ceil((expDate.getTime() - this.today().getTime()) / (1000 * 60 * 60 * 24));
   }
 
   get expiringPersonnelList(): Personnel[] {
@@ -272,21 +318,27 @@ export class DriverAssistantReport implements OnInit {
     this.selectedDriverForSms = null;
   }
 
-  confirmSendSms() {
-    if (this.selectedDriverForSms) {
-      const driver = this.selectedDriverForSms;
-      driver.smsSentCount = (driver.smsSentCount || 0) + 1;
-
-      const now = new Date();
-      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} — ${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
-      driver.lastSmsSentAt = timeStr;
-
+  /** Ghi nhận đã nhắc đổi bằng (POST admin/reports/drivers/:id/license-reminders) — không gửi SMS thật. */
+  async confirmSendSms() {
+    const driver = this.selectedDriverForSms;
+    if (!driver || this.sendingReminder) return;
+    this.sendingReminder = true;
+    try {
+      const res = await this.api.request<{ reminderCount: number; lastReminderAt: string; daysLeft: number }>(
+        `admin/reports/drivers/${encodeURIComponent(driver.maNhanSu)}/license-reminders`, 'POST', {}, 'admin');
+      driver.smsSentCount = res.reminderCount;
+      driver.lastSmsSentAt = formatDateTime(res.lastReminderAt);
       this.closeSmsModal();
       this.triggerToast(
-        'Gửi SMS thành công',
-        `Đã gửi SMS nhắc nhở đổi bằng lái đến tài xế ${driver.hoTen} (${driver.soDienThoai}) lần thứ ${driver.smsSentCount}!`,
+        'Đã ghi nhận nhắc đổi bằng',
+        `Đã ghi nhận nhắc tài xế ${driver.hoTen} (${driver.soDienThoai}) lần thứ ${res.reminderCount}. Vui lòng liên hệ tài xế qua điện thoại/Zalo.`,
         'success'
       );
+    } catch (error) {
+      this.closeSmsModal();
+      this.triggerToast('Chưa ghi nhận được', error instanceof Error ? error.message : 'Không ghi nhận được lần nhắc.', 'error');
+    } finally {
+      this.sendingReminder = false;
     }
   }
 
@@ -402,17 +454,13 @@ export class DriverAssistantReport implements OnInit {
   }
 
   getLicenseExpiringInDaysRangeCount(startDays: number, endDays: number): number {
-    const startDate = new Date(2026, 9, 8 + startDays);
-    const endDate = new Date(2026, 9, 8 + endDays);
+    const today = this.today();
+    const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + startDays);
+    const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + endDays);
     return this.filteredPersonnel.filter(p => {
       if (p.vaiTro !== 'Tài xế' || !p.thoiHanBangLai) return false;
-      const parts = p.thoiHanBangLai.split('/');
-      if (parts.length !== 3) return false;
-      const day = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10) - 1;
-      const year = parseInt(parts[2], 10);
-      const expDate = new Date(year, month, day);
-      return expDate > startDate && expDate <= endDate;
+      const expDate = this.parseVnDate(p.thoiHanBangLai);
+      return !!expDate && expDate > startDate && expDate <= endDate;
     }).length;
   }
 
@@ -428,55 +476,22 @@ export class DriverAssistantReport implements OnInit {
     return this.getLicenseExpiringInDaysRangeCount(90, 180);
   }
 
+  /** Số chuyến thật trong tháng đang chọn (lich_trinh có tài xế/phụ xe này). */
   get combinedPerformanceList() {
-    let monthNum = 10;
-    let yearNum = 2026;
-    if (this.selectedMonthYear) {
-      const parts = this.selectedMonthYear.split('-');
-      if (parts.length === 2) {
-        yearNum = parseInt(parts[0], 10) || 2026;
-        monthNum = parseInt(parts[1], 10) || 10;
-      }
-    }
-
-    const totalSeed = yearNum * 12 + monthNum;
-
     return this.filteredPersonnel.map(p => {
-      const charSum = p.maNhanSu.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      let trips = ((charSum + totalSeed * 7) % 26) + 4;
-
-      if (p.maNhanSu === 'TX100001') trips = Math.min(30, trips + 6);
-      else if (p.maNhanSu === 'TX100002') trips = Math.min(30, trips + 4);
-
+      const trips = p.soChuyen;
       let label = 'Đạt yêu cầu';
       let colorClass = 'bg-green';
-
-      if (p.vaiTro === 'Tài xế') {
-        if (trips > 25) {
-          label = 'Cảnh báo quá tải';
-          colorClass = 'bg-orange';
-        } else if (trips < 15) {
-          label = 'Hiệu suất thấp';
-          colorClass = 'bg-blue-light';
-        }
-      } else {
-        if (trips > 22) {
-          label = 'Cảnh báo quá tải';
-          colorClass = 'bg-orange';
-        } else if (trips < 12) {
-          label = 'Hiệu suất thấp';
-          colorClass = 'bg-blue-light';
-        }
+      const high = p.vaiTro === 'Tài xế' ? 25 : 22;
+      const low = p.vaiTro === 'Tài xế' ? 15 : 12;
+      if (trips > high) {
+        label = 'Cảnh báo quá tải';
+        colorClass = 'bg-orange';
+      } else if (trips < low) {
+        label = 'Hiệu suất thấp';
+        colorClass = 'bg-blue-light';
       }
-
-      return {
-        ma: p.maNhanSu,
-        ten: p.hoTen,
-        vaiTro: p.vaiTro,
-        trips: trips,
-        label: label,
-        colorClass: colorClass
-      };
+      return { ma: p.maNhanSu, ten: p.hoTen, vaiTro: p.vaiTro, trips, label, colorClass };
     }).sort((a, b) => b.trips - a.trips);
   }
 
@@ -490,7 +505,7 @@ export class DriverAssistantReport implements OnInit {
 
   onExportExcel() {
     let csvContent = '\uFEFF';
-    csvContent += 'STT,Mã nhân sự,Họ và tên,Ngày sinh,Số điện thoại,CCCD,Vai trò,Bằng lái & Thời hạn,Trạng thái,Số lần nhắc SMS,Lần nhắc gần nhất\n';
+    csvContent += 'STT,Mã nhân sự,Họ và tên,Ngày sinh,Số điện thoại,CCCD,Vai trò,Bằng lái & Thời hạn,Trạng thái,Số lần nhắc đổi bằng,Lần nhắc gần nhất\n';
 
     this.filteredPersonnel.forEach(p => {
       const bangLaiCol = p.vaiTro === 'Tài xế'

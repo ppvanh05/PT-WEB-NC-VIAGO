@@ -1,6 +1,25 @@
-import { ChangeDetectorRef, Component, ElementRef, EventEmitter, OnDestroy, OnInit, Output, ViewChild, inject } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  EventEmitter,
+  OnDestroy,
+  OnInit,
+  Output,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AbstractControl, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+} from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ModalComponent } from '../../shared/components/modal/modal';
@@ -30,7 +49,14 @@ function notSameAsValidator(otherField: string): ValidatorFn {
 @Component({
   selector: 'app-security-settings-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ModalComponent, PasswordChecklist, NoAutofillDirective],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    ModalComponent,
+    PasswordChecklist,
+    NoAutofillDirective,
+  ],
   templateUrl: './security-settings-modal.html',
   styleUrl: './security-settings-modal.css',
 })
@@ -73,7 +99,10 @@ export class SecuritySettingsModal implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.passwordForm = this.fb.group({
       currentPassword: ['', [Validators.required]],
-      newPassword: ['', [Validators.required, strongPasswordValidator(), notSameAsValidator('currentPassword')]],
+      newPassword: [
+        '',
+        [Validators.required, strongPasswordValidator(), notSameAsValidator('currentPassword')],
+      ],
       confirmPassword: ['', [Validators.required, matchPasswordValidator('newPassword')]],
     });
 
@@ -101,7 +130,10 @@ export class SecuritySettingsModal implements OnInit, OnDestroy {
   }
 
   get showMismatch(): boolean {
-    return shouldShowMismatch(this.passwordForm.get('confirmPassword'), this.passwordForm.get('newPassword')?.value);
+    return shouldShowMismatch(
+      this.passwordForm.get('confirmPassword'),
+      this.passwordForm.get('newPassword')?.value,
+    );
   }
 
   requestClose(): void {
@@ -125,30 +157,17 @@ export class SecuritySettingsModal implements OnInit, OnDestroy {
     const user = this.authService.currentUser();
     if (!user) return;
 
-    const { currentPassword } = this.passwordForm.value;
     this.loading = true;
-    const hashedCurrent = await this.authService.hashPassword(currentPassword);
-    if (user.passwordHash !== hashedCurrent && user.password !== currentPassword) {
-      this.loading = false;
-      this.currentPasswordServerError = 'Mật khẩu hiện tại không chính xác.';
-      this.passwordForm.get('currentPassword')?.reset('', { emitEvent: false });
-      this.cdr.detectChanges();
-      focusFirstInvalidField(this.host.nativeElement);
-      return;
-    }
-
-    const result = await this.authService.sendOTP(user.phoneNumber, null, 'forgot');
+    const result = await this.authService.changePassword(
+      this.passwordForm.value.currentPassword,
+      this.passwordForm.value.newPassword,
+    );
     this.loading = false;
     if (result.success) {
-      this.generatedOtp = result.otp || '';
-      this.otpString = '';
-      this.otpErrorMessage = '';
-      this.step = 2;
-      this.startOtpTimer();
-      this.focusOtp();
-    } else {
-      this.currentPasswordServerError = result.message;
-    }
+      this.step = 3;
+      this.passwordForm.reset();
+      setTimeout(() => this.close.emit(), 2000);
+    } else this.currentPasswordServerError = result.message;
     this.cdr.detectChanges();
   }
 
@@ -206,7 +225,10 @@ export class SecuritySettingsModal implements OnInit, OnDestroy {
       return;
     }
 
-    const resetResult = await this.authService.resetPassword(user.phoneNumber, this.passwordForm.value.newPassword);
+    const resetResult = await this.authService.resetPassword(
+      user.phoneNumber,
+      this.passwordForm.value.newPassword,
+    );
     if (resetResult.success) {
       this.step = 3;
       this.stopOtpTimer();

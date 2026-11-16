@@ -1,9 +1,12 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Pagination } from '../../../shared/components/pagination/pagination';
+import { AccountsApiService } from '../../../core/services/accounts-api.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 export interface CriterionRating {
+  key?: string;
   name: string;
   score: number;
   maxScore: number;
@@ -16,23 +19,59 @@ export interface ReviewReply {
 }
 
 export interface ReviewItem {
-  id: number;
+  id: string;
   authorName: string;
   avatarColor: string;
   avatarInitials: string;
   verifiedTrip: boolean;
   date: string;
+  /** ISO, dùng để sắp xếp mới/cũ */
+  createdAt: string;
   rating: number; // 1-5
   content: string;
   busType: string;
   route: string;
-  category: string;
+  /** Điểm từng tiêu chí theo tên hiển thị, dùng cho bộ lọc tiêu chí */
+  criteriaScores: Record<string, number | null>;
   hasImages: boolean;
   images?: string[];
   helpfulCount: number;
   isHelpfulClicked?: boolean;
   reply?: ReviewReply;
 }
+
+/** Dữ liệu trả về từ GET /customer/reviews (backend customer/reviews). */
+interface ApiReview {
+  id: string;
+  authorName: string;
+  authorInitials: string;
+  verifiedTrip: boolean;
+  createdAt: string;
+  rating: number;
+  content: string;
+  vehicleType: string;
+  route: { id: string; label: string };
+  criteria: { key: string; label: string; score: number | null }[];
+  media: { url: string; type: 'Anh' | 'Video' }[];
+  helpfulCount: number;
+  isHelpful: boolean;
+  reply: { author: string; createdAt: string | null; content: string } | null;
+}
+interface ApiSummary {
+  averageRating: number | null;
+  total: number;
+  withComment: number;
+  withMedia: number;
+  criteria: { key: string; label: string; score: number | null; maxScore: number }[];
+}
+interface ApiOptions {
+  vehicleTypes: { value: string; label: string }[];
+  routes: { value: string; label: string }[];
+}
+
+const AVATAR_COLORS = ['#e91e63', '#3f51b5', '#10b981', '#f59e0b', '#0284c7', '#8b5cf6', '#06b6d4', '#ef4444'];
+const formatDate = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }) : '';
 
 @Component({
   selector: 'app-reviews',
@@ -41,25 +80,27 @@ export interface ReviewItem {
   templateUrl: './reviews.html',
   styleUrl: './reviews.css',
 })
-export class Reviews {
+export class Reviews implements OnInit {
   @ViewChild('topFilterSection') topFilterSectionRef!: ElementRef;
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly accountsApi = inject(AccountsApiService);
+  /** App chạy không có zone.js: gọi API xong thì báo Angular vẽ lại giao diện. */
+  private readonly api = {
+    request: <T>(...args: Parameters<AccountsApiService['request']>): Promise<T> =>
+      this.accountsApi.request<T>(...args).finally(() => this.cdr.markForCheck()),
+  };
+  private readonly toast = inject(ToastService);
 
-  // Overall Statistics
-  overallRating = 4.8;
+  // Thống kê lấy từ GET /customer/reviews/summary
+  overallRating = 0;
   maxRating = 5;
-  totalReviewsCount = 152;
-  hasCommentsCount = 152;
-  hasImagesCount = 90;
+  totalReviewsCount = 0;
+  hasCommentsCount = 0;
+  hasImagesCount = 0;
+  loading = true;
+  loadError = '';
 
-  criteriaList: CriterionRating[] = [
-    { name: 'An toàn', score: 4.4, maxScore: 5 },
-    { name: 'Thông tin chính xác', score: 4.5, maxScore: 5 },
-    { name: 'Thông tin đầy đủ', score: 4.5, maxScore: 5 },
-    { name: 'Thái độ nhân viên', score: 4.9, maxScore: 5 },
-    { name: 'Tiện nghi & thoải mái', score: 4.5, maxScore: 5 },
-    { name: 'Chất lượng dịch vụ', score: 4.4, maxScore: 5 },
-    { name: 'Đúng giờ', score: 4.4, maxScore: 5 },
-  ];
+  criteriaList: CriterionRating[] = [];
 
   // Filters state
   activeTab: 'all' | 'has_comment' | 'has_image' = 'all';
@@ -67,7 +108,8 @@ export class Reviews {
   selectedBusType: string = 'all';
   selectedRoute: string = 'all';
   searchKeyword: string = '';
-  selectedCategory: string = 'all';
+  /** Các tiêu chí đang chọn (chọn nhiều); rỗng = tất cả. Đánh giá phải đạt ≥ 4 điểm ở MỌI tiêu chí đã chọn. */
+  selectedCategories: string[] = [];
   selectedSort: string = 'newest';
 
   // Mobile filter toggle
@@ -82,135 +124,71 @@ export class Reviews {
 
   reviewsData: ReviewItem[] = [];
 
-  // Clean bus types
-  busTypeOptions = [
-    'Limousine 9 chỗ',
-    'Giường nằm 34 chỗ',
-    'Cabin 22 phòng'
-  ];
+  // Danh sách lọc lấy từ GET /customer/reviews/options
+  busTypeOptions: string[] = [];
+  routeOptions: string[] = [];
 
-  // Routes list
-  routeOptions = [
-    'TP.HCM ↔ Cần Thơ',
-    'TP.HCM ↔ Vũng Tàu',
-    'Đà Lạt ↔ Buôn Ma Thuột',
-    'Đà Lạt ↔ Nha Trang',
-    'Cần Thơ ↔ Rạch Giá',
-    'TP.HCM ↔ Phan Thiết',
-    'TP.HCM ↔ Đà Lạt',
-    'TP.HCM ↔ Nha Trang',
-    'Nha Trang ↔ Đà Nẵng'
-  ];
-
-  constructor() {
-    this.generate152Reviews();
+  ngOnInit(): void {
+    void this.load();
   }
 
-  private generate152Reviews(): void {
-    const names = [
-      'Đỗ Thanh Phương', 'Trần Hoàng Nam', 'Nguyễn Văn Hải', 'Lê Mỹ Duyên',
-      'Phạm Minh Đức', 'Vũ Quốc Bảo', 'Hoàng Ánh Nguyệt', 'Đặng Tiến Dũng',
-      'Ngô Thu Trang', 'Trịnh Khánh Linh', 'Bùi Đức Anh', 'Phan Châu Giang',
-      'Đinh Hoàng Việt', 'Cao Thanh Hà', 'Mai Tuyết Nhi', 'Trương Gia Huy',
-      'Võ Khánh Vân', 'Lê Tấn Phát', 'Nguyễn Quỳnh Anh', 'Hồ Bảo Lâm',
-      'Dương Phương Thảo', 'Lý Văn Khoa', 'Đoàn Nhật Minh', 'Huỳnh Bích Ngọc'
-    ];
-
-    const colors = ['#e91e63', '#3f51b5', '#10b981', '#f59e0b', '#0284c7', '#8b5cf6', '#06b6d4', '#ef4444'];
-    
-    const categories = [
-      'An toàn', 'Thông tin chính xác', 'Thông tin đầy đủ',
-      'Thái độ nhân viên', 'Tiện nghi & thoải mái', 'Chất lượng dịch vụ', 'Đúng giờ'
-    ];
-
-    const sampleImages = [
-      'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=600&auto=format&fit=crop&q=80'
-    ];
-
-    const commentsByBusType: { [key: string]: string[] } = {
-      'Limousine 9 chỗ': [
-        'Xe Limousine 9 chỗ ghế da VIP bọc da êm ái, bác tài chạy cẩn thận, đón đúng giờ tận nơi. Đánh giá 5 sao cho chất lượng dịch vụ!',
-        'Dịch vụ xe Limousine 9 chỗ tuyệt vời. Ghế ngồi rộng rãi ngả lưng dễ chịu, nước uống khăn lạnh đầy đủ trong suốt hành trình.',
-        'Đi xe 9 chỗ sang trọng, không gian yên tĩnh, không đón khách dọc đường. Rất hài lòng với trải nghiệm chuyến đi của VIAGO!',
-        'Xe 9 chỗ chạy rất êm ru, có cổng sạc USB riêng tại mỗi ghế VIP rất tiện lợi cho công việc khi di chuyển.'
-      ],
-      'Giường nằm 34 chỗ': [
-        'Xe giường nằm 34 chỗ sạch sẻ, chăn gối thơm tho. Bác tài lái xe rất êm không bị xóc hay say xe, đón đúng giờ hẹn.',
-        'Giường nằm 34 chỗ rộng rãi, rèm che riêng tư. Chuyến đi đêm giấc ngủ rất ngon và thoải mái, nhân viên hỗ trợ chu đáo.',
-        'Nhà xe phục vụ xe giường nằm 34 chỗ chất lượng cao, thông tin chính xác trên app và trả khách đúng bến an toàn.',
-        'Xe giường nằm sạch đẹp, điều hòa mát lạnh, nhân viên hỗ trợ cất sắp xếp hành lý cho hành khách rất nhiệt tình.'
-      ],
-      'Cabin 22 phòng': [
-        'Xe Cabin 22 phòng cực kỳ sang trọng và riêng tư, có tivi giải trí và cổng sạc riêng. Trải nghiệm tuyệt vời xứng đáng 5 sao!',
-        'Phòng Cabin 22 chỗ rộng rãi thoải mái cho chuyến đi đường dài. Không gian yên tĩnh, giường nằm đệm êm ái như ở nhà.',
-        'Rất thích dòng xe Cabin 22 phòng này của VIAGO, rèm kéo riêng tư hoàn toàn, đi đêm ngủ ngon giấc tới sáng.',
-        'Chuyến xe Cabin 22 phòng chất lượng đỉnh cao. Tài xế chạy vững tay an toàn, nhân viên hướng dẫn thân thiện chu đáo.'
-      ]
-    };
-
-    const items: ReviewItem[] = [];
-
-    const ratingPattern = [5, 4, 3, 5, 5, 2, 5, 4, 1, 5];
-
-    for (let i = 1; i <= 152; i++) {
-      const name = names[(i - 1) % names.length];
-      const initials = name.split(' ').map(n => n[0]).join('').slice(-2).toUpperCase();
-      const color = colors[(i - 1) % colors.length];
-      const rating = ratingPattern[(i - 1) % ratingPattern.length];
-
-      const busType = this.busTypeOptions[(i - 1) % this.busTypeOptions.length];
-      const route = this.routeOptions[(i - 1) % this.routeOptions.length];
-      const category = categories[(i - 1) % categories.length];
-      const hasImg = i <= 90; // Exactly 90 reviews with images
-      const day = String((i % 28) + 1).padStart(2, '0');
-      const month = String(((i % 5) + 5)).padStart(2, '0');
-
-      const busComments = commentsByBusType[busType];
-      const commentText = busComments[(i - 1) % busComments.length];
-
-      const reviewItem: ReviewItem = {
-        id: i,
-        authorName: name,
-        avatarColor: color,
-        avatarInitials: initials,
-        verifiedTrip: true,
-        date: `${day}/${month}/2026`,
-        rating: rating,
-        content: commentText,
-        busType: busType,
-        route: route,
-        category: category,
-        hasImages: hasImg,
-        images: hasImg ? (i % 2 === 0 ? [sampleImages[0], sampleImages[1]] : [sampleImages[0]]) : undefined,
-        helpfulCount: Math.floor((152 - i) / 3) + 8,
-        isHelpfulClicked: false
-      };
-
-      if (i === 1) {
-        reviewItem.reply = {
-          author: 'VIAGO Team',
-          date: '21/06/2026',
-          content: 'Cảm ơn chị Phương đã tin tưởng lựa chọn VIAGO. Rất hân hạnh được phục vụ chị trên những hành trình tiếp theo!'
-        };
-      } else if (i === 3) {
-        reviewItem.reply = {
-          author: 'VIAGO Team',
-          date: '19/08/2026',
-          content: 'Chào anh Hải, VIAGO chân thành cảm ơn đánh giá tích cực của anh. Chúc anh luôn có những chuyến đi thượng lộ bình an!'
-        };
-      } else if (i === 6) {
-        reviewItem.reply = {
-          author: 'VIAGO Team',
-          date: '06/08/2026',
-          content: 'Cảm ơn anh Bảo đã trải nghiệm dịch vụ của VIAGO! Hẹn gặp lại anh trong chuyến đi sắp tới.'
-        };
-      }
-
-      items.push(reviewItem);
+  /** Tải thống kê, bộ lọc và toàn bộ đánh giá đang hiển thị; lọc/sắp xếp làm trên trình duyệt. */
+  async load(): Promise<void> {
+    this.loading = true;
+    this.loadError = '';
+    try {
+      const [summary, options, reviews] = await Promise.all([
+        this.api.request<ApiSummary>('customer/reviews/summary'),
+        this.api.request<ApiOptions>('customer/reviews/options'),
+        this.loadAllReviews(),
+      ]);
+      this.overallRating = summary.averageRating ?? 0;
+      this.totalReviewsCount = summary.total;
+      this.hasCommentsCount = summary.withComment;
+      this.hasImagesCount = summary.withMedia;
+      this.criteriaList = summary.criteria.map(c => ({ key: c.key, name: c.label, score: c.score ?? 0, maxScore: c.maxScore }));
+      this.busTypeOptions = options.vehicleTypes.map(v => v.label);
+      this.routeOptions = options.routes.map(r => r.label);
+      this.reviewsData = reviews.map((r, index) => this.toItem(r, index));
+    } catch (error) {
+      this.loadError = error instanceof Error ? error.message : 'Không tải được đánh giá.';
+    } finally {
+      this.loading = false;
     }
+  }
 
-    this.reviewsData = items;
+  private async loadAllReviews(): Promise<ApiReview[]> {
+    const rows: ApiReview[] = [];
+    for (let page = 1; ; page++) {
+      const result = await this.api.request<{ items: ApiReview[]; pagination: { totalPages: number } }>(
+        `customer/reviews?page=${page}&pageSize=100&sort=newest`,
+      );
+      rows.push(...result.items);
+      if (page >= result.pagination.totalPages || !result.items.length) return rows;
+    }
+  }
+
+  private toItem(r: ApiReview, index: number): ReviewItem {
+    const images = r.media.filter(m => m.type === 'Anh').map(m => m.url);
+    return {
+      id: r.id,
+      authorName: r.authorName,
+      avatarColor: AVATAR_COLORS[index % AVATAR_COLORS.length],
+      avatarInitials: r.authorInitials,
+      verifiedTrip: r.verifiedTrip,
+      date: formatDate(r.createdAt),
+      createdAt: r.createdAt,
+      rating: r.rating,
+      content: r.content,
+      busType: r.vehicleType,
+      route: r.route.label,
+      criteriaScores: Object.fromEntries(r.criteria.map(c => [c.label, c.score])),
+      hasImages: images.length > 0,
+      images,
+      helpfulCount: r.helpfulCount,
+      isHelpfulClicked: r.isHelpful,
+      reply: r.reply ? { author: r.reply.author, date: formatDate(r.reply.createdAt), content: r.reply.content } : undefined,
+    };
   }
 
   get filteredReviews(): ReviewItem[] {
@@ -239,7 +217,7 @@ export class Reviews {
       }
 
       // Category filter
-      if (this.selectedCategory !== 'all' && item.category !== this.selectedCategory) {
+      if (this.selectedCategories.some(cat => (item.criteriaScores[cat] ?? 0) < 4)) {
         return false;
       }
 
@@ -258,9 +236,9 @@ export class Reviews {
       return true;
     }).sort((a, b) => {
       if (this.selectedSort === 'newest') {
-        return b.id - a.id;
+        return b.createdAt.localeCompare(a.createdAt);
       } else if (this.selectedSort === 'oldest') {
-        return a.id - b.id;
+        return a.createdAt.localeCompare(b.createdAt);
       } else if (this.selectedSort === 'rating_high') {
         return b.rating - a.rating;
       } else if (this.selectedSort === 'rating_low') {
@@ -303,9 +281,20 @@ export class Reviews {
     this.resetPagination();
   }
 
+  /** 'all' bỏ chọn hết; tiêu chí khác thì bật/tắt trong danh sách đang chọn. */
   setCategory(cat: string): void {
-    this.selectedCategory = cat;
+    if (cat === 'all') {
+      this.selectedCategories = [];
+    } else if (this.selectedCategories.includes(cat)) {
+      this.selectedCategories = this.selectedCategories.filter(c => c !== cat);
+    } else {
+      this.selectedCategories = [...this.selectedCategories, cat];
+    }
     this.resetPagination();
+  }
+
+  isCategorySelected(cat: string): boolean {
+    return this.selectedCategories.includes(cat);
   }
 
   clearFilters(): void {
@@ -314,7 +303,7 @@ export class Reviews {
     this.selectedBusType = 'all';
     this.selectedRoute = 'all';
     this.searchKeyword = '';
-    this.selectedCategory = 'all';
+    this.selectedCategories = [];
     this.selectedSort = 'newest';
     this.resetPagination();
   }
@@ -345,13 +334,18 @@ export class Reviews {
     }
   }
 
-  toggleHelpful(review: ReviewItem): void {
-    if (review.isHelpfulClicked) {
-      review.helpfulCount--;
-      review.isHelpfulClicked = false;
-    } else {
-      review.helpfulCount++;
-      review.isHelpfulClicked = true;
+  /** Bấm/bỏ "Hữu ích": lưu vào DB, mỗi trình duyệt chỉ tính một lượt. */
+  async toggleHelpful(review: ReviewItem): Promise<void> {
+    const on = !review.isHelpfulClicked;
+    try {
+      const result = await this.api.request<{ helpfulCount: number; isHelpful: boolean }>(
+        `customer/reviews/${encodeURIComponent(review.id)}/helpful`,
+        on ? 'POST' : 'DELETE',
+      );
+      review.helpfulCount = result.helpfulCount;
+      review.isHelpfulClicked = result.isHelpful;
+    } catch (error) {
+      this.toast.showError(error instanceof Error ? error.message : 'Không ghi nhận được lượt hữu ích.');
     }
   }
 
