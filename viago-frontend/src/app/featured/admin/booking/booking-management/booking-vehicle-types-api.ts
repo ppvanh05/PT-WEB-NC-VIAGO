@@ -1,14 +1,16 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { AdminSessionService } from '../../../../core/services/admin-session.service';
 
 @Injectable({ providedIn: 'root' })
 export class BookingVehicleTypesApi {
+  private readonly session = inject(AdminSessionService);
   async getAllVehicleTypes(): Promise<string[]> {
     let response: Response;
     try {
       response = await fetch(
-        'http://localhost:3000/admin/booking-management/getAllVehicleTypes',
+        '/api/admin/booking-management/getAllVehicleTypes',
         {
-          headers: { Accept: 'application/json' },
+          headers: { Accept: 'application/json', ...this.session.headers() },
           cache: 'no-store',
           signal: AbortSignal.timeout(10000),
         },

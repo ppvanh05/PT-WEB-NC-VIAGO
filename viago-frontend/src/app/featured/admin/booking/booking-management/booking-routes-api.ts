@@ -1,10 +1,12 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { AdminSessionService } from '../../../../core/services/admin-session.service';
 
 export interface BookingRoutePoint {
   id: string;
   name: string;
   address: string;
   city: string;
+  at?: string;
 }
 
 export interface BookingRouteTrip {
@@ -26,6 +28,8 @@ export interface BookingRouteTrip {
     name: string | null;
     licensePlate: string;
     type: string;
+    amenities?: string[];
+    registrationDue?: string;
   };
   departureDate: string;
   departureTime: string;
@@ -111,6 +115,7 @@ function isBookingRouteTrip(value: unknown): value is BookingRouteTrip {
 
 @Injectable({ providedIn: 'root' })
 export class BookingRoutesApi {
+  private readonly session = inject(AdminSessionService);
   async getAllRoutes(
     from: string,
     to: string,
@@ -122,9 +127,9 @@ export class BookingRoutesApi {
     let response: Response;
     try {
       response = await fetch(
-        `http://localhost:3000/admin/booking-management/getAllRoutes?${query}`,
+        `/api/admin/booking-management/getAllRoutes?${query}`,
         {
-          headers: { Accept: 'application/json' },
+          headers: { Accept: 'application/json', ...this.session.headers() },
           cache: 'no-store',
           signal: AbortSignal.timeout(10000),
         },

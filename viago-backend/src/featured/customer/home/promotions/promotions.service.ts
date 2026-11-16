@@ -219,8 +219,24 @@ export class HomePromotionsService {
     legs: { routeId: string; subtotal: number }[],
     phone: string,
     authorization?: string,
+    operator = false,
   ) {
-    const customer = await this.customer(authorization, tx);
+    // The operator is authenticated by the admin guard. Never create or update a
+    // customer profile while booking on their behalf.
+    const customer = operator
+      ? await tx.khach_hang.findFirst({
+          where: { sodienthoai: phone, trangthai: 'HoatDong' },
+          select: {
+            makhachhang: true,
+            hotenkhachhang: true,
+            sodienthoai: true,
+            email: true,
+            ngaysinh: true,
+            mahang: true,
+            trangthai: true,
+          },
+        })
+      : await this.customer(authorization, tx);
     if (!code?.trim())
       return { discount: 0, promotionId: null, walletId: null, customer };
     code = code.trim().toUpperCase();

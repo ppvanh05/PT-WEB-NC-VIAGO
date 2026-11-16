@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { AdminSessionService } from '../../../../core/services/admin-session.service';
 
 export interface CustomerBookingInfo {
   makhachhang: string;
@@ -29,15 +30,16 @@ export interface RawTicketRow {
 
 @Injectable({ providedIn: 'root' })
 export class BookingCustomerApi {
+  private readonly session = inject(AdminSessionService);
   async getCustomerInfoByPhone(phone: string): Promise<CustomerBookingInfo | null> {
     const clean = phone.trim();
     if (!clean) return null;
     const query = new URLSearchParams({ phone: clean });
     try {
       const response = await fetch(
-        `http://localhost:3000/admin/booking-management/getCustomerInfoByPhone?${query}`,
+        `/api/admin/booking-management/getCustomerInfoByPhone?${query}`,
         {
-          headers: { Accept: 'application/json' },
+          headers: { Accept: 'application/json', ...this.session.headers() },
           cache: 'no-store',
           signal: AbortSignal.timeout(6000),
         },
@@ -53,9 +55,9 @@ export class BookingCustomerApi {
   async getAllRoutesName(): Promise<string[]> {
     try {
       const response = await fetch(
-        'http://localhost:3000/admin/booking-management/getAllRoutesName',
+        '/api/admin/booking-management/getAllRoutesName',
         {
-          headers: { Accept: 'application/json' },
+          headers: { Accept: 'application/json', ...this.session.headers() },
           cache: 'no-store',
           signal: AbortSignal.timeout(6000),
         },
@@ -72,9 +74,9 @@ export class BookingCustomerApi {
   async getAllTickets(): Promise<RawTicketRow[]> {
     try {
       const response = await fetch(
-        'http://localhost:3000/admin/booking-management/getAllTickets',
+        '/api/admin/booking-management/getAllTickets',
         {
-          headers: { Accept: 'application/json' },
+          headers: { Accept: 'application/json', ...this.session.headers() },
           cache: 'no-store',
           signal: AbortSignal.timeout(8000),
         },

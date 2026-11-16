@@ -3,11 +3,18 @@ import {
   ExecutionContext,
   HttpException,
   Injectable,
+  type RawBodyRequest,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from 'node:crypto';
 import type { Request, Response } from 'express';
+import { sepayWebhookSecret } from '../payments/sepay.config';
 const COOKIE = 'viago_home';
 export function homeSession(request: Request) {
   const token = request.headers.cookie
@@ -72,15 +79,31 @@ export class HomeSessionGuard implements CanActivate {
 @Injectable()
 export class SepayWebhookGuard implements CanActivate {
   canActivate(context: ExecutionContext) {
-    const secret = process.env.SEPAY_WEBHOOK_API_KEY;
-    if (!secret || secret.length < 32)
+    const secret = sepayWebhookSecret();
+    if (!secret)
       throw new ServiceUnavailableException(
-        'Webhook thanh toán chưa được cấu hình.',
+        'Khóa HMAC webhook thanh toán chưa được cấu hình.',
       );
-    const header =
-      context.switchToHttp().getRequest<Request>().headers.authorization ?? '';
-    const actual = Buffer.from(header),
-      expected = Buffer.from('Apikey ' + secret);
+    const request = context
+      .switchToHttp()
+      .getRequest<RawBodyRequest<Request>>();
+    const signature = request.headers['x-sepay-signature'];
+    const timestamp = request.headers['x-sepay-timestamp'];
+    if (
+      typeof signature !== 'string' ||
+      !/^sha256=[a-fA-F0-9]{64}$/.test(signature) ||
+      typeof timestamp !== 'string' ||
+      !/^[1-9]\d{0,11}$/.test(timestamp) ||
+      Math.abs(Math.floor(Date.now() / 1000) - Number(timestamp)) > 300 ||
+      !Buffer.isBuffer(request.rawBody)
+    )
+      throw new UnauthorizedException('Webhook không hợp lệ.');
+    // Verify the original bytes. Re-serializing parsed JSON changes the signature.
+    const actual = Buffer.from(signature.slice(7), 'hex');
+    const expected = createHmac('sha256', secret)
+      .update(timestamp + '.', 'utf8')
+      .update(request.rawBody)
+      .digest();
     if (actual.length !== expected.length || !timingSafeEqual(actual, expected))
       throw new UnauthorizedException('Webhook không hợp lệ.');
     return true;

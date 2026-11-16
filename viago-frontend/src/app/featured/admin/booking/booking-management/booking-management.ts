@@ -12,6 +12,7 @@ import { Pagination } from '../../../../shared/components/pagination/pagination'
 import { AfterViewInit, Component, ElementRef, OnInit, ViewChild, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CounterOrder, CounterOrders } from '../counter-orders/counter-orders';
+import { AdminBookingOrders } from '../booking-orders';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BookingCustomerApi, RawTicketRow } from './booking-customer-api';
@@ -88,6 +89,7 @@ type BookingListRow =
   standalone: true,
   imports: [
     CounterOrders,
+    AdminBookingOrders,
     DatePickerComponent,
     Toast,
     BookingDialog,
@@ -492,6 +494,9 @@ export class BookingManagement implements OnInit, AfterViewInit {
   });
 
   readonly counterOrders = viewChild(CounterOrders);
+  readonly adminOrders = viewChild(AdminBookingOrders);
+  OrderSource(order: CounterOrder): NguonDat { return order.source === 'TaiQuay' ? 'tai-quay' : order.source === 'Hotline' ? 'hotline' : 'online'; }
+  InspectOrder(order: CounterOrder) { if (order.adminCreated) void this.adminOrders()?.open(order.id, order); else this.counterOrders()?.inspect(order); }
 
   DepartureDate(value: string): string {
     const time = Date.parse(value);
@@ -520,9 +525,9 @@ export class BookingManagement implements OnInit, AfterViewInit {
           || (/^[\d\s()+.-]+$/.test(query) && !!digits && order.phone.replace(/\D/g, '').includes(digits)))
         && (!this.locTuyen() || this.KhopLocTuyenMotChieu(route, this.locTuyen()))
         && (!this.locNgay() || date === this.locNgay())
-        && (this.locTrangThaiVe() === 'tat-ca' || statuses[this.locTrangThaiVe()] === order.status)
-        && (this.locTrangThaiDonHang() === 'tat-ca' || payments[this.locTrangThaiDonHang()] === order.status)
-        && (this.locNguonDat() === 'tat-ca' || this.locNguonDat() === 'online');
+        && (this.locTrangThaiVe() === 'tat-ca' || statuses[this.locTrangThaiVe()] === order.status || (['GiuCho', 'cho-thanh-toan'].includes(this.locTrangThaiVe()) && order.status === 'ChoThanhToanOnline'))
+        && (this.locTrangThaiDonHang() === 'tat-ca' || payments[this.locTrangThaiDonHang()] === order.status || (this.locTrangThaiDonHang() === 'pending' && order.status === 'ChoThanhToanOnline'))
+        && (this.locNguonDat() === 'tat-ca' || this.locNguonDat() === this.OrderSource(order));
     });
   });
 
@@ -547,7 +552,7 @@ export class BookingManagement implements OnInit, AfterViewInit {
     return {
       tong: list.length + seats(),
       daBan: list.filter(v => v.TrangThaiDonHang === 'da-thanh-toan' && v.TrangThaiVe !== 'da-huy' && v.TrangThaiVe !== 'DaHuy').length + seats('DaThanhToan'),
-      giuCho: list.filter(v => v.TrangThaiVe !== 'da-huy' && v.TrangThaiVe !== 'DaHuy' && (v.TrangThaiVe === 'GiuCho' || v.TrangThaiVe === 'giu-cho' || v.TrangThaiDonHang !== 'da-thanh-toan' || (v.balanceDue || 0) > 0)).length + seats('ChoThanhToanTrucTiep'),
+      giuCho: list.filter(v => v.TrangThaiVe !== 'da-huy' && v.TrangThaiVe !== 'DaHuy' && (v.TrangThaiVe === 'GiuCho' || v.TrangThaiVe === 'giu-cho' || v.TrangThaiDonHang !== 'da-thanh-toan' || (v.balanceDue || 0) > 0)).length + seats('ChoThanhToanTrucTiep') + seats('ChoThanhToanOnline'),
       daHuy: list.filter(v => v.TrangThaiVe === 'da-huy' || v.TrangThaiVe === 'DaHuy').length + seats('DaHuy'),
       doanhThu: list.reduce((sum,v) => sum + paid(v) - completed(v), 0) + orders.filter(o => o.status === 'DaThanhToan').reduce((sum, o) => sum + o.total, 0),
       choHoan: list.filter(v => !refunded(v)).reduce((sum,v) => sum + refund(v), 0),

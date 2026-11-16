@@ -1,7 +1,9 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { CounterGuard } from '../../customer/home/booking/counter.controller';
 import { AdminBookingManagementService } from './booking-management.service';
 
 @Controller('admin/booking-management')
+@UseGuards(CounterGuard)
 export class AdminBookingManagementController {
   constructor(private readonly service: AdminBookingManagementService) {}
 

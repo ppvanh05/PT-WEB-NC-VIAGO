@@ -27,7 +27,7 @@ describe('Unified booked tickets list', () => {
       imports: [BookingManagement],
       providers: [provideRouter([]), { provide: AdminContentApi, useValue: { request } }],
     });
-    vi.spyOn(BookingManagement.prototype, 'TaiDuLieu').mockImplementation(function (this: BookingManagement) {
+    vi.spyOn(BookingManagement.prototype, 'TaiDuLieu').mockImplementation(async function (this: BookingManagement) {
       this.danhSachVe.set([{ ...ticket }]);
     });
   });

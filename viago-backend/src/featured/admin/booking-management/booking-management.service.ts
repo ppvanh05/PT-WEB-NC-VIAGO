@@ -14,17 +14,20 @@ export class AdminBookingManagementService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getAllPoints(): Promise<string[]> {
-    const points = await this.prisma.diem_don_tra.findMany({
+    const routes = await this.prisma.tuyen_xe.findMany({
       where: {
         trangthai: 'HoatDong',
-        tinhthanh: { not: '' },
       },
-      select: { tinhthanh: true },
-      distinct: ['tinhthanh'],
-      orderBy: { tinhthanh: 'asc' },
+      select: { diemdi: true, diemden: true },
     });
-
-    return points.map(({ tinhthanh }) => tinhthanh.trim()).filter(Boolean);
+    // Search uses the route's own labels (e.g. Nha Trang rather than Khánh Hòa).
+    return [
+      ...new Set(
+        routes
+          .flatMap((route) => [route.diemdi.trim(), route.diemden.trim()])
+          .filter(Boolean),
+      ),
+    ].sort((a, b) => a.localeCompare(b, 'vi'));
   }
 
   async getAllVehicleTypes(): Promise<string[]> {
@@ -129,79 +132,108 @@ export class AdminBookingManagementService {
           orderBy: { thutu: 'asc' },
         },
         ghe_chuyen: {
-          include: { ghe: true },
+          include: {
+            ghe: true,
+            _count: {
+              select: { ve_xe: { where: { trangthaive: { not: 'DaHuy' } } } },
+            },
+          },
           orderBy: { ghe: { thutuhienthi: 'asc' } },
         },
       },
       orderBy: { thoigiankhoihanh: 'asc' },
     });
 
-    return schedules.map((schedule) => {
-      const seats = schedule.ghe_chuyen.map((seat) => {
-        const status =
-          seat.trangthaighe === 'DangGiu' &&
-          seat.giuchoden &&
-          seat.giuchoden <= now
-            ? 'Trong'
-            : seat.trangthaighe;
+    return schedules
+      .filter(
+        (schedule) =>
+          schedule.thoigiankhoihanh.getTime() -
+            schedule.songaymobantruoc * 86400000 <=
+          now.getTime(),
+      )
+      .map((schedule) => {
+        const seats = schedule.ghe_chuyen.map((seat) => {
+          const status = seat._count.ve_xe
+            ? 'DaBan'
+            : seat.ghe.trangthai !== 'HoatDong' ||
+                !schedule.xe.masodoghe ||
+                seat.ghe.masodoghe !== schedule.xe.masodoghe
+              ? 'Khoa'
+              : seat.trangthaighe === 'DangGiu' &&
+                  seat.giuchoden &&
+                  seat.giuchoden <= now
+                ? 'Trong'
+                : seat.trangthaighe;
+          return {
+            id: seat.maghechuyen,
+            name: seat.ghe.soghe,
+            floor: seat.ghe.tang,
+            column: seat.ghe.day,
+            row: seat.ghe.hang,
+            type: seat.ghe.loaighe,
+            status,
+            price: Number(seat.giaghe),
+          };
+        });
+
         return {
-          id: seat.maghechuyen,
-          name: seat.ghe.soghe,
-          floor: seat.ghe.tang,
-          column: seat.ghe.day,
-          row: seat.ghe.hang,
-          type: seat.ghe.loaighe,
-          status,
-          price: Number(seat.giaghe),
+          id: schedule.malichtrinh,
+          route: {
+            id: schedule.tuyen_xe.matuyenduong,
+            name: schedule.tuyen_xe.tentuyen,
+            from: schedule.tuyen_xe.diemdi,
+            to: schedule.tuyen_xe.diemden,
+            distance: Number(schedule.tuyen_xe.khoangcach),
+            durationMinutes: schedule.tuyen_xe.thoigiandichuyenphut,
+            basePrice: Number(schedule.tuyen_xe.giacoso),
+            tripsPerDay: schedule.tuyen_xe.sochuyenmoingay,
+            pickupPoints: schedule.lich_trinh_diem
+              .filter(
+                (point) =>
+                  point.loaidiemtuyen === 'Don' &&
+                  point.diem_don_tra.trangthai === 'HoatDong',
+              )
+              .map(({ diem_don_tra: point, thoigiandukien }) => ({
+                id: point.madiem,
+                name: point.tendiem,
+                address: point.diachi,
+                city: point.tinhthanh,
+                at: thoigiandukien.toISOString(),
+              })),
+            dropoffPoints: schedule.lich_trinh_diem
+              .filter(
+                (point) =>
+                  point.loaidiemtuyen === 'Tra' &&
+                  point.diem_don_tra.trangthai === 'HoatDong',
+              )
+              .map(({ diem_don_tra: point, thoigiandukien }) => ({
+                id: point.madiem,
+                name: point.tendiem,
+                address: point.diachi,
+                city: point.tinhthanh,
+                at: thoigiandukien.toISOString(),
+              })),
+          },
+          vehicle: {
+            id: schedule.xe.maxe,
+            name: schedule.xe.tenxe,
+            licensePlate: schedule.xe.biensoxe,
+            type: schedule.xe.loaixe,
+            amenities: schedule.xe.tiennghi,
+            registrationDue: schedule.xe.handangkiem.toISOString().slice(0, 10),
+          },
+          departureDate: date,
+          departureTime: schedule.giokhoihanh.toISOString().slice(11, 16),
+          departureAt: schedule.thoigiankhoihanh.toISOString(),
+          arrivalAt: schedule.thoigiandendukien.toISOString(),
+          status: schedule.trangthai,
+          price: Number(schedule.giavecoso),
+          seatCount: seats.length,
+          availableSeatCount: seats.filter((seat) => seat.status === 'Trong')
+            .length,
+          seats,
         };
       });
-
-      return {
-        id: schedule.malichtrinh,
-        route: {
-          id: schedule.tuyen_xe.matuyenduong,
-          name: schedule.tuyen_xe.tentuyen,
-          from: schedule.tuyen_xe.diemdi,
-          to: schedule.tuyen_xe.diemden,
-          distance: Number(schedule.tuyen_xe.khoangcach),
-          durationMinutes: schedule.tuyen_xe.thoigiandichuyenphut,
-          basePrice: Number(schedule.tuyen_xe.giacoso),
-          tripsPerDay: schedule.tuyen_xe.sochuyenmoingay,
-          pickupPoints: schedule.lich_trinh_diem
-            .filter((point) => point.loaidiemtuyen === 'Don')
-            .map(({ diem_don_tra: point }) => ({
-              id: point.madiem,
-              name: point.tendiem,
-              address: point.diachi,
-              city: point.tinhthanh,
-            })),
-          dropoffPoints: schedule.lich_trinh_diem
-            .filter((point) => point.loaidiemtuyen === 'Tra')
-            .map(({ diem_don_tra: point }) => ({
-              id: point.madiem,
-              name: point.tendiem,
-              address: point.diachi,
-              city: point.tinhthanh,
-            })),
-        },
-        vehicle: {
-          id: schedule.xe.maxe,
-          name: schedule.xe.tenxe,
-          licensePlate: schedule.xe.biensoxe,
-          type: schedule.xe.loaixe,
-        },
-        departureDate: date,
-        departureTime: schedule.giokhoihanh.toISOString().slice(11, 16),
-        departureAt: schedule.thoigiankhoihanh.toISOString(),
-        arrivalAt: schedule.thoigiandendukien.toISOString(),
-        status: schedule.trangthai,
-        price: Number(schedule.giavecoso),
-        seatCount: seats.length,
-        availableSeatCount: seats.filter((seat) => seat.status === 'Trong')
-          .length,
-        seats,
-      };
-    });
   }
 
   async getCustomerInfoByPhone(phone: string) {
@@ -216,10 +248,7 @@ export class AdminBookingManagementService {
 
     const customer = await this.prisma.khach_hang.findFirst({
       where: {
-        OR: [
-          { sodienthoai: cleanPhone },
-          { sodienthoai: rawPhone },
-        ],
+        OR: [{ sodienthoai: cleanPhone }, { sodienthoai: rawPhone }],
       },
       include: {
         don_hang: {

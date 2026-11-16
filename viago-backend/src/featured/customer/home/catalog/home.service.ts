@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { readSepayConfig } from '../payments/sepay.config';
 import { CustomerNewsService } from '../../news/news.service';
 import { PublicNewsQueryDto } from '../../news/news.dto';
 import {
@@ -109,7 +110,16 @@ export const normalizedCity = (value: string) =>
     .replace(/^(?:tphcm|hcm|tphochiminh|thanhphohochiminh)$/, 'hochiminh');
 export const readTrip = (tx: Prisma.TransactionClient, id: string) =>
   tx.lich_trinh.findUnique({ where: { malichtrinh: id }, select: tripSelect });
-export function tripIsOpen(trip: HomeTrip, now = new Date()) {
+export function tripIsOpen(
+  trip: Pick<
+    HomeTrip,
+    'trangthai' | 'thoigiankhoihanh' | 'thoigiandongbanve' | 'songaymobantruoc'
+  > & {
+    tuyen_xe: Pick<HomeTrip['tuyen_xe'], 'trangthai'>;
+    xe: Pick<HomeTrip['xe'], 'trangthai'>;
+  },
+  now = new Date(),
+) {
   return (
     trip.trangthai === 'DangMoBan' &&
     trip.tuyen_xe.trangthai === 'HoatDong' &&
@@ -121,8 +131,11 @@ export function tripIsOpen(trip: HomeTrip, now = new Date()) {
   );
 }
 export function seatState(
-  seat: HomeSeat,
-  trip: HomeTrip,
+  seat: Pick<
+    HomeSeat,
+    '_count' | 'trangthaighe' | 'giuchoden' | 'sessiongiucho'
+  > & { ghe: Pick<HomeSeat['ghe'], 'trangthai' | 'masodoghe'> },
+  trip: { xe: Pick<HomeTrip['xe'], 'masodoghe'> },
   session?: string,
   now = new Date(),
 ) {
@@ -167,11 +180,13 @@ export class CustomerHomeService {
   ) {}
 
   options() {
+    const payment = readSepayConfig();
     return {
       today: todayVN(),
       maxSeatsPerOrder: 5,
       maxRoundTripSeatsPerLeg: 2,
       maximumHoldMinutes: 10,
+      paymentEnvironment: payment.environment,
       vehicleTypes: Object.entries(VEHICLES).map(([code, label]) => ({
         code,
         label,
@@ -185,16 +200,7 @@ export class CustomerHomeService {
         {
           id: 'vietqr',
           name: 'VietQR / Chuyển khoản',
-          configured: !!(
-            process.env.VIETQR_BANK_ID &&
-            /^[a-zA-Z0-9]{2,30}$/.test(process.env.VIETQR_BANK_ID) &&
-            process.env.VIETQR_ACCOUNT_NO &&
-            /^[a-zA-Z0-9]{4,40}$/.test(process.env.VIETQR_ACCOUNT_NO) &&
-            process.env.VIETQR_ACCOUNT_NAME &&
-            process.env.SEPAY_BANK_NAME &&
-            process.env.SEPAY_WEBHOOK_API_KEY &&
-            process.env.SEPAY_WEBHOOK_API_KEY.length >= 32
-          ),
+          configured: payment.configured,
         },
         { id: 'counter', name: 'Thanh toán tại quầy', configured: true },
       ],

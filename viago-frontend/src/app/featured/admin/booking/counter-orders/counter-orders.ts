@@ -21,6 +21,8 @@ export interface CounterOrder {
   total: number;
   seatCount: number;
   status: string;
+  source?: 'Online' | 'TaiQuay' | 'Hotline';
+  adminCreated?: boolean;
 }
 @Component({
   selector: 'app-counter-orders',
@@ -72,6 +74,7 @@ export class CounterOrders implements OnInit {
       (
         {
           ChoThanhToanTrucTiep: 'Chờ thu tiền',
+          ChoThanhToanOnline: 'Chờ chuyển khoản',
           DaThanhToan: 'Đã thanh toán',
           DaHuy: 'Đã hủy',
           HetHanThanhToan: 'Hết hạn',

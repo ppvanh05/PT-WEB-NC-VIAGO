@@ -1,0 +1,329 @@
+@if (!embedded) {
+  <section class="admin-orders">
+    <div class="orders-heading">
+      <div>
+        <h2>Đơn đặt vé của nhân viên</h2>
+        <p>Theo dõi đơn giữ chỗ, thanh toán và vé đã xuất.</p>
+      </div>
+      <app-button variant="outline" size="sm" [loading]="loading()" (clicked)="load()"
+        >Làm mới</app-button
+      >
+    </div>
+    @if (error() && !selected()) {
+      <p class="orders-error" role="alert">{{ error() }}</p>
+    }
+    <div class="orders-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Mã đơn</th>
+            <th>Khách hàng</th>
+            <th>Chuyến xe</th>
+            <th>Tổng tiền</th>
+            <th>Trạng thái</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td>{{ row.id }}</td>
+              <td>
+                {{ row.name }}<small>{{ row.phone }}</small>
+              </td>
+              <td>
+                {{ row.route
+                }}<small>{{ row.departureAt | date: 'HH:mm dd/MM/yyyy' : '+0700' }}</small>
+              </td>
+              <td>{{ row.total | number }}đ</td>
+              <td>{{ label(row.status) }}</td>
+              <td>
+                <app-button variant="outline" size="sm" (clicked)="open(row.id)"
+                  >Xem đơn</app-button
+                >
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6">{{ loading() ? 'Đang tải...' : 'Chưa có đơn đặt vé.' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (totalPages() > 1) {
+      <div class="orders-pagination">
+        <app-button
+          variant="outline"
+          size="sm"
+          [disabled]="page <= 1 || loading()"
+          (clicked)="load(page - 1)"
+          >Trước</app-button
+        ><span>Trang {{ page }} / {{ totalPages() }}</span
+        ><app-button
+          variant="outline"
+          size="sm"
+          [disabled]="page >= totalPages() || loading()"
+          (clicked)="load(page + 1)"
+          >Sau</app-button
+        >
+      </div>
+    }
+  </section>
+}
+<app-modal
+  [open]="!!detailId()"
+  title="Thông tin đặt vé"
+  size="large"
+  [loading]="saving()"
+  (closed)="close()"
+>
+  @if (detailLoading()) {
+    <div class="detail-pending" aria-busy="true" role="status">
+      <span class="detail-eyebrow">Mã đặt vé</span><h3>{{ detailId() }}</h3>
+      @if (preview(); as row) { <p>{{ row.name }} · {{ row.phone }}</p>@if (row.from && row.to) { <p>{{ row.from }} → {{ row.to }}</p> }<strong>{{ row.total | number }}đ</strong> }
+      <div class="detail-skeleton" aria-hidden="true"></div><div class="detail-skeleton short" aria-hidden="true"></div>
+      <p>Đang tải chi tiết đặt vé...</p>
+    </div>
+  } @else if (error() && !selected()) {
+    <div class="detail-pending"><h3>{{ detailId() }}</h3><p class="orders-error" role="alert">{{ error() }}</p><app-button variant="outline" (clicked)="open(detailId()!, preview() ?? undefined)">Thử lại</app-button></div>
+  }
+  @if (selected(); as order) {
+    <div class="order-detail">
+      <div class="order-banner">
+        <div class="receipt-brand">
+          <img src="/assets/brand/logo.png" alt="VIAGO" />
+          <div>
+            <span class="detail-eyebrow">Mã đặt vé</span>
+            <h3>{{ order.id }}</h3>
+          </div>
+        </div>
+        <span
+          class="order-status"
+          [class.is-paid]="order.status === 'paid'"
+          [class.is-closed]="order.status === 'expired' || order.status === 'cancelled'"
+        >
+          <span class="status-dot" aria-hidden="true"></span>{{ label(order.status) }}
+        </span>
+      </div>
+      <div class="order-layout">
+        <section class="order-information" aria-label="Thông tin đơn vé">
+          <div class="journey-card">
+            <span class="detail-eyebrow">Chuyến đi của bạn</span>
+            <div class="journey-route">
+              <strong>{{ order.legs[0]?.trip?.from || 'Điểm đi' }}</strong
+              ><svg class="detail-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 12h16m-6-6 6 6-6 6" /></svg
+              ><strong>{{ order.legs[0]?.trip?.to || 'Điểm đến' }}</strong>
+            </div>
+            <p>
+              <svg class="detail-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" /></svg
+              >{{ order.legs[0]?.trip?.departureAt | date: 'HH:mm · dd/MM/yyyy' : '+0700' }}
+            </p>
+            <div class="journey-seats">
+              <span>Ghế đã chọn</span><strong>{{ seatNames(order) || '—' }}</strong>
+            </div>
+          </div>
+          <h4 class="detail-section-title">Thông tin khách hàng</h4>
+          <dl class="order-facts">
+            <dt>Khách hàng</dt>
+            <dd>
+              <strong>{{ order.passenger.name }}</strong
+              ><small>{{ order.passenger.phone }}</small>
+            </dd>
+            <dt>Điểm đón</dt>
+            <dd>{{ pointName(order, 'pickup') }}</dd>
+            <dt>Điểm trả</dt>
+            <dd>{{ pointName(order, 'dropoff') }}</dd>
+            <dt>Hình thức</dt>
+            <dd>{{ order.method === 'vietqr' ? 'Chuyển khoản QR' : 'Tiền mặt' }}</dd>
+          </dl>
+          <div class="receipt-message">
+            <svg class="detail-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z" />
+              <path d="m8 12 3 3 5-6" />
+            </svg>
+            <p>
+              Thông tin đặt vé của bạn được lưu giữ tại VIAGO.<br /><strong
+                >Chúc bạn một hành trình an toàn và thoải mái.</strong
+              >
+            </p>
+          </div>
+        </section>
+        <section class="payment-card" aria-label="Thanh toán đơn vé">
+          <div class="payment-heading">
+            <svg class="detail-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="3" />
+              <path d="M3 10h18m-6 5h2" />
+            </svg>
+            <h4>
+              {{
+                order.status === 'paid'
+                  ? 'Thanh toán hoàn tất'
+                  : order.method === 'vietqr'
+                    ? 'Hoàn tất thanh toán'
+                    : 'Thanh toán tại quầy'
+              }}
+            </h4>
+          </div>
+          <div class="payment-amount">
+            <span>Tổng thanh toán</span><strong>{{ order.total | number }}<small>đ</small></strong>
+          </div>
+          @if (error()) {
+            <p class="orders-error" role="alert">{{ error() }}</p>
+          }
+          @if (order.requiresReview) {
+            <p class="orders-warning" role="status">
+              Thanh toán đang được kiểm tra. Vui lòng liên hệ nhân viên để được hỗ trợ.
+            </p>
+          }
+          @if (order.status === 'pending') {
+            <div class="payment-deadline">
+              <svg class="detail-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="13" r="8" />
+                <path d="M9 2h6m-3 3V2m0 7v4l2 2" /></svg
+              ><span
+                >Hoàn tất trước <strong>{{ order.expiresAt | date: 'HH:mm:ss' : '+0700' }}</strong
+                ><small
+                  >{{ order.expiresAt | date: 'dd/MM/yyyy' : '+0700' }} · Ghế được trả khi hết
+                  hạn</small
+                ></span
+              >
+            </div>
+            @if (order.transfer; as transfer) {
+              <div class="transfer">
+                <div class="qr-frame">
+                  <img [src]="transfer.qrUrl" alt="QR chuyển khoản cho đơn đặt vé" />
+                </div>
+                <div class="qr-network">
+                  <img src="/assets/customer/VietQR_Logo.png" alt="VietQR" /><span
+                    >Chuyển khoản ngân hàng</span
+                  >
+                </div>
+                <div class="transfer-recipient">
+                  <span>Người thụ hưởng</span><strong>{{ transfer.accountName }}</strong>
+                </div>
+                <dl class="transfer-facts">
+                  <dt>Số tài khoản</dt>
+                  <dd class="copy-value">
+                    <span>{{ transfer.accountNumber }}</span
+                    ><button
+                      type="button"
+                      class="copy-button"
+                      aria-label="Sao chép số tài khoản"
+                      (click)="copyPaymentValue(transfer.accountNumber, 'account')"
+                    >
+                      <svg class="detail-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="8" y="8" width="12" height="12" rx="2" />
+                        <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+                      </svg>
+                    </button>
+                  </dd>
+                  <dt>Ngân hàng</dt>
+                  <dd>{{ bankName(transfer.bankId) }}</dd>
+                </dl>
+                <div class="transfer-reference">
+                  <span>Nội dung chuyển khoản</span>
+                  <div class="reference-value">
+                    <strong>{{ transfer.content }}</strong
+                    ><button
+                      type="button"
+                      class="copy-button"
+                      aria-label="Sao chép nội dung chuyển khoản"
+                      (click)="copyPaymentValue(transfer.content, 'content')"
+                    >
+                      <svg class="detail-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="8" y="8" width="12" height="12" rx="2" />
+                        <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                @if (copyFeedback()) {
+                  <p class="copy-feedback" role="status">{{ copyFeedback() }}</p>
+                }
+                <p class="payment-waiting" role="status">
+                  <span class="status-dot" aria-hidden="true"></span>Đang chờ thanh toán<br /><span
+                    >Trạng thái sẽ tự cập nhật khi thanh toán hoàn tất.</span
+                  >
+                </p>
+              </div>
+            } @else if (order.method === 'counter') {
+              <p class="counter-message">
+                Vui lòng hoàn tất thanh toán tại quầy để nhận vé cho chuyến đi của bạn.
+              </p>
+            }
+          }
+          @if (order.status === 'paid') {
+            <p class="orders-success" role="status">
+              <svg class="detail-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="m8 12 3 3 5-6" /></svg
+              >Đã ghi nhận thanh toán. Vé chính thức:
+            </p>
+            <ul class="issued-tickets">
+              @for (ticket of order.tickets; track ticket.id) {
+                <li>
+                  <strong>{{ ticket.id }}</strong
+                  ><span>Ghế {{ ticket.seat }} · {{ ticket.paidAmount | number }}đ</span>
+                </li>
+              }
+            </ul>
+          }
+          @if (order.status === 'expired' || order.status === 'cancelled') {
+            <p class="closed-notice">
+              {{
+                order.status === 'expired'
+                  ? 'Đơn đã hết thời gian thanh toán. Vui lòng tạo đơn mới nếu khách vẫn muốn đặt vé.'
+                  : 'Đơn đã được hủy. Các ghế giữ chỗ đã được trả lại.'
+              }}
+            </p>
+          }
+        </section>
+      </div>
+      <div class="order-footer">
+        @if (order.status === 'pending') {
+          <div class="cancel-disclosure">
+            <button
+              type="button"
+              class="cancel-toggle"
+              [attr.aria-expanded]="cancelExpanded()"
+              [disabled]="saving()"
+              (click)="cancelExpanded.set(!cancelExpanded())"
+            >
+              Thao tác quản lý
+            </button>
+            @if (cancelExpanded()) {
+              <div class="order-cancel">
+                @if (order.method === 'counter') {
+                  <label class="order-check"
+                    ><input type="checkbox" [(ngModel)]="acknowledged" [disabled]="saving()" />Tôi
+                    xác nhận đã thu đủ {{ order.total | number }}đ tiền mặt.</label
+                  >
+                  <app-button [loading]="saving()" [disabled]="!acknowledged" (clicked)="confirm()"
+                    >Xác nhận thu tiền mặt</app-button
+                  >
+                }
+                <label for="admin-order-cancel-reason">Lý do hủy giữ chỗ</label
+                ><input
+                  id="admin-order-cancel-reason"
+                  [(ngModel)]="cancelReason"
+                  maxlength="500"
+                  [disabled]="saving()"
+                /><app-button
+                  variant="outline"
+                  [disabled]="!cancelReason.trim() || saving()"
+                  (clicked)="cancel()"
+                  >Hủy đơn giữ chỗ</app-button
+                >
+              </div>
+            }
+          </div>
+        }
+        <app-button variant="outline" [disabled]="saving()" (clicked)="close()">Đóng</app-button>
+      </div>
+    </div>
+  }
+</app-modal>
