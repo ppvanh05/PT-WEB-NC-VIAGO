@@ -4,7 +4,7 @@ export async function aboutRequest<T>(
   signal?: AbortSignal,
 ): Promise<T> {
   const multipart = body instanceof FormData;
-  const response = await fetch('/customer/about' + path, {
+  const response = await fetch('/api/customer/about' + path, {
     method: body ? 'POST' : 'GET',
     credentials: 'include',
     headers: {

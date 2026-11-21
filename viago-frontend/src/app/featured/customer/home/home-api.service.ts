@@ -138,7 +138,7 @@ export class HomeApiService {
     body?: unknown,
     method = body === undefined ? 'GET' : 'POST',
   ): Promise<T> {
-    const response = await fetch('/customer/home' + path, {
+    const response = await fetch('/api/customer/home' + path, {
       method,
       credentials: 'include',
       signal: AbortSignal.timeout(20000),

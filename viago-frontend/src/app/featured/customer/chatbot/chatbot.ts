@@ -89,7 +89,7 @@ export class Chatbot implements AfterViewChecked, OnDestroy {
     return this.initializing;
   }
   private async request<T>(path: string, body?: object): Promise<T> {
-    const response = await fetch('/customer/chatbot' + path, {
+    const response = await fetch('/api/customer/chatbot' + path, {
       credentials: 'include',
       method: body ? 'POST' : 'GET',
       ...(body
@@ -127,7 +127,7 @@ export class Chatbot implements AfterViewChecked, OnDestroy {
     this.isTyping = snapshot.processing;
     this.source?.close();
     const source = new EventSource(
-      `/customer/chatbot/conversations/${encodeURIComponent(id)}/events?after=${snapshot.cursor}`,
+      `/api/customer/chatbot/conversations/${encodeURIComponent(id)}/events?after=${snapshot.cursor}`,
       { withCredentials: true },
     );
     this.source = source;

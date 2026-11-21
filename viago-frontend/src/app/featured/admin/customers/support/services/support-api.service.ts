@@ -21,7 +21,7 @@ export class SupportApiService {
   private readonly session = inject(AdminSessionService);
   private readonly router = inject(Router);
   private async request<T>(path: string, body?: object): Promise<T> {
-    const response = await fetch('/admin/support' + path, {
+    const response = await fetch('/api/admin/support' + path, {
       credentials: 'include',
       method: body === undefined ? 'GET' : 'POST',
       signal: AbortSignal.timeout(path.endsWith('/draft') ? 90000 : 20000),
