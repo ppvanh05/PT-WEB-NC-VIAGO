@@ -100,7 +100,7 @@ export class DriversAssistants implements OnInit {
   totalPages = 1;
 
   private http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:3000/admin/dispatch/drivers-assistants';
+  private readonly apiUrl = '/api/admin/dispatch/drivers-assistants';
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {

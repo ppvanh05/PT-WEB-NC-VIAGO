@@ -136,7 +136,7 @@ export class SchedulesComponent implements OnInit {
   centeredToastSubtitle = '';
 
   private http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:3000/admin/dispatch/schedules';
+  private readonly apiUrl = '/api/admin/dispatch/schedules';
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
@@ -159,9 +159,9 @@ export class SchedulesComponent implements OnInit {
     try {
       const [trips, routes, vehicles, personnel] = await Promise.all([
         firstValueFrom(this.http.get<LichTrinh[]>(this.apiUrl)),
-        firstValueFrom(this.http.get<any[]>('http://localhost:3000/admin/dispatch/routes')),
-        firstValueFrom(this.http.get<any[]>('http://localhost:3000/admin/dispatch/vehicles')),
-        firstValueFrom(this.http.get<any[]>('http://localhost:3000/admin/dispatch/drivers-assistants')),
+        firstValueFrom(this.http.get<any[]>('/api/admin/dispatch/routes')),
+        firstValueFrom(this.http.get<any[]>('/api/admin/dispatch/vehicles')),
+        firstValueFrom(this.http.get<any[]>('/api/admin/dispatch/drivers-assistants')),
       ]);
       this.allTrips = trips;
       this.routesDb = routes.filter(r => r.status === 'active');

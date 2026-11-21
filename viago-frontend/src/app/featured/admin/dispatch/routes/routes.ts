@@ -131,7 +131,7 @@ export class RoutesComponent implements OnInit {
 
   private cdr = inject(ChangeDetectorRef);
   private http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:3000/admin/dispatch/routes';
+  private readonly apiUrl = '/api/admin/dispatch/routes';
 
   ngOnInit() {
     void this.loadRoutes();

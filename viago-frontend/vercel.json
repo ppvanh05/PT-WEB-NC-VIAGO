@@ -1,0 +1,9 @@
+
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://pt-web-nc-viago-backend.onrender.com/:path*"
+    }
+  ]
+}

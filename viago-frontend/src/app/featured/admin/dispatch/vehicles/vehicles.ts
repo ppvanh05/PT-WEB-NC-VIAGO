@@ -97,7 +97,7 @@ export class VehiclesComponent implements OnInit {
 
   private http = inject(HttpClient);
   private toastService = inject(ToastService);
-  private readonly apiUrl = 'http://localhost:3000/admin/dispatch/vehicles';
+  private readonly apiUrl = '/api/admin/dispatch/vehicles';
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {

@@ -32,7 +32,7 @@ export interface DiemDonTra {
   styleUrls: ['./pickup-dropoff.css']
 })
 export class PickupDropoffComponent implements OnInit {
-  private readonly apiUrl = 'http://localhost:3000/admin/dispatch/pickup-dropoff';
+  private readonly apiUrl = '/api/admin/dispatch/pickup-dropoff';
   activeTab: 'don-tra' | 'dung' | 'locked' = 'don-tra';
 
   // Mock data
