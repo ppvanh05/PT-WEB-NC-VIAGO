@@ -39,7 +39,7 @@
                   Áp dụng từ {{ doc.effectiveDate | date: 'dd/MM/yyyy' }} · Cập nhật
                   {{ doc.updatedAt | date: 'dd/MM/yyyy' : '+0700' }}
                 </p>
-                <div class="document-body" [innerHTML]="doc.content"></div>
+                <div class="document-body" [innerHTML]="contentForDisplay(doc.content)"></div>
                 @if (doc.cancellationRules.length) {
                   <section class="cancellation">
                     <h3>Phí hủy theo thời gian trước khởi hành</h3>

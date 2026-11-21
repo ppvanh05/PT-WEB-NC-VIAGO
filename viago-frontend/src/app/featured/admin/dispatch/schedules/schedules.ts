@@ -140,7 +140,12 @@ export class SchedulesComponent implements OnInit {
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
-    void this.loadSchedules();
+    this.routesDb = [];
+    this.driversList = [];
+    this.codriversList = [];
+    this.carsList = [];
+    this.platesDb = {};
+    void this.loadSchedulesFromBackend();
     this.extractRoutesList();
     this.initDateStrip();
     this.extractPointsList();
@@ -149,6 +154,27 @@ export class SchedulesComponent implements OnInit {
   }
 
   private async loadSchedules() { try { this.allTrips = await firstValueFrom(this.http.get<LichTrinh[]>(this.apiUrl)); this.extractRoutesList(); this.extractPointsList(); this.initDateStrip(); this.filterTrips(); this.cdr.detectChanges(); } catch { this.toastService.showError('Không thể tải danh sách lịch trình.'); } }
+
+  private async loadSchedulesFromBackend() {
+    try {
+      const [trips, routes, vehicles, personnel] = await Promise.all([
+        firstValueFrom(this.http.get<LichTrinh[]>(this.apiUrl)),
+        firstValueFrom(this.http.get<any[]>('http://localhost:3000/admin/dispatch/routes')),
+        firstValueFrom(this.http.get<any[]>('http://localhost:3000/admin/dispatch/vehicles')),
+        firstValueFrom(this.http.get<any[]>('http://localhost:3000/admin/dispatch/drivers-assistants')),
+      ]);
+      this.allTrips = trips;
+      this.routesDb = routes.filter(r => r.status === 'active');
+      const activeVehicles = vehicles.filter(v => v.status === 'Đang hoạt động');
+      this.carsList = activeVehicles.map(v => v.name).filter(Boolean);
+      this.platesDb = Object.fromEntries(activeVehicles.map(v => [v.name, { plate: v.licensePlate, seats: v.seats }]));
+      this.driversList = personnel.filter(p => p.role === 'Tài xế' && p.status === 'Đang hoạt động').map(p => p.name);
+      this.codriversList = personnel.filter(p => p.role === 'Phụ xe' && p.status === 'Đang hoạt động').map(p => p.name);
+      this.extractRoutesList(); this.extractPointsList(); this.initDateStrip(); this.filterTrips();
+      this.generateSeatMap(this.carsList.length ? this.platesDb[this.carsList[0]].seats : 0);
+      this.cdr.detectChanges();
+    } catch { this.toastService.showError('Không thể tải dữ liệu lịch trình từ backend.'); }
+  }
 
   extractPointsList() {
     this.startPointsList = Array.from(new Set(this.routesDb.map(r => r.startPoint)));

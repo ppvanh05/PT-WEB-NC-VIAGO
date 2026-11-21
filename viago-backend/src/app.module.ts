@@ -26,6 +26,7 @@ import { AdminReviewsFeedbackModule } from './featured/admin/customers/reviews-f
 import { AdminLostAndFoundModule } from './featured/admin/customers/lost-and-found/lost-and-found.module';
 import { AdminContractRentalsModule } from './featured/admin/contract-rentals/contract-rentals.module';
 import { AdminReportsModule } from './featured/admin/reports/reports.module';
+import { CustomerInvoiceModule } from './featured/customer/invoice/invoice.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { AdminReportsModule } from './featured/admin/reports/reports.module';
     AdminLostAndFoundModule,
     AdminContractRentalsModule,
     AdminReportsModule,
+    CustomerInvoiceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

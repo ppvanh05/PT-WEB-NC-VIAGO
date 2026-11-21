@@ -44,7 +44,7 @@
     </div>
     <div class="featured-grid">
       <div class="featured-card" *ngFor="let route of featuredRoutes">
-        <img [src]="route.image" [alt]="route.to" class="card-bg">
+        <img [src]="route.image" [alt]="route.to" class="card-bg" (error)="$any($event.target).src = '/assets/customer/night_bus_highway.png'">
         <div class="card-overlay"></div>
         <div class="card-content">
           <div class="card-tags">
@@ -91,7 +91,7 @@
     <div class="routes-grid" *ngIf="filteredRoutes.length > 0; else emptyState">
       <div class="compact-card viago-card" *ngFor="let route of filteredRoutes">
         <div class="compact-image">
-          <img [src]="route.image" [alt]="route.to">
+          <img [src]="route.image" [alt]="route.to" (error)="$any($event.target).src = '/assets/customer/night_bus_highway.png'">
         </div>
         <div class="compact-body">
           <h4 class="compact-title">{{ route.from }} ↔ {{ route.to }}</h4>

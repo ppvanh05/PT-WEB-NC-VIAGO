@@ -46,6 +46,13 @@
             <option *ngFor="let point of startPoints" [value]="point">{{ point }}</option>
           </select>
         </div>
+
+        <div class="form-row">
+          <div class="form-item col-4"><label>Ngày bắt đầu áp dụng *</label><input type="date" [(ngModel)]="currentRoute.startApplyDate" /></div>
+          <div class="form-item col-4"><label>Ngày kết thúc áp dụng</label><input type="date" [(ngModel)]="currentRoute.endApplyDate" [min]="currentRoute.startApplyDate" /></div>
+          <div class="form-item col-4"><label>Giờ khởi hành (5 chuyến/ngày)</label><div style="display:flex;gap:8px;flex-wrap:wrap"><label *ngFor="let time of ['08:00','10:00','12:00','14:00','16:00']"><input type="checkbox" [checked]="currentRoute.departureTimes?.includes(time)" (change)="toggleDepartureTime(time)" /> {{time}}</label></div></div>
+        </div>
+        <div class="form-row"><div class="form-item col-12"><label>Ngày hoạt động</label><div style="display:flex;gap:14px;flex-wrap:wrap"><label *ngFor="let day of [{n:1,l:'Thứ 2'},{n:2,l:'Thứ 3'},{n:3,l:'Thứ 4'},{n:4,l:'Thứ 5'},{n:5,l:'Thứ 6'},{n:6,l:'Thứ 7'},{n:7,l:'Chủ nhật'}]"><input type="checkbox" [checked]="currentRoute.weekdays?.includes(day.n)" (change)="toggleWeekday(day.n)" /> {{day.l}}</label></div></div></div>
       </div>
 
       <div class="filter-input-wrapper col-3">
@@ -278,12 +285,32 @@
           </div>
         </div>
 
+        <div class="route-schedule-config">
+          <div class="form-row route-date-row">
+            <div class="form-item col-6"><label>Ngày bắt đầu áp dụng *</label><input type="date" [(ngModel)]="currentRoute.startApplyDate" /></div>
+            <div class="form-item col-6"><label>Ngày kết thúc áp dụng</label><input type="date" [(ngModel)]="currentRoute.endApplyDate" [min]="currentRoute.startApplyDate" /></div>
+          </div>
+          <div class="route-config-section"><label class="route-config-title">Ngày hoạt động trong tuần *</label><div class="route-weekday-picker"><label class="route-weekday-option" *ngFor="let day of [{n:1,l:'T2'},{n:2,l:'T3'},{n:3,l:'T4'},{n:4,l:'T5'},{n:5,l:'T6'},{n:6,l:'T7'},{n:7,l:'CN'}]" [class.is-selected]="currentRoute.weekdays?.includes(day.n)"><input type="checkbox" [checked]="currentRoute.weekdays?.includes(day.n)" (change)="toggleWeekday(day.n)" /><span class="route-checkmark">✓</span><span>{{ day.l }}</span></label></div></div>
+          <div class="route-config-section"><label class="route-config-title">Giờ khởi hành *</label><div class="route-time-chips"><span class="route-time-chip" *ngFor="let time of currentRoute.departureTimes || []"><strong>{{ time }}</strong><button type="button" (click)="removeDepartureTime(time)" aria-label="Xóa giờ">×</button></span><button type="button" class="route-add-time-button" (click)="showAddTime = !showAddTime">＋ Thêm giờ</button></div><p class="route-config-hint">Mỗi giờ khởi hành tương ứng với một chuyến xe trong ngày hoạt động.</p><div class="route-add-time-panel" *ngIf="showAddTime"><label>Chọn giờ khởi hành (00:00 - 23:59)</label><div class="route-add-time-row"><input type="text" inputmode="numeric" maxlength="5" placeholder="HH:mm" [(ngModel)]="newDepartureTime" /><button type="button" (click)="addDepartureTime(); showAddTime = false">Thêm</button></div></div></div>
+        </div>
+
         <!-- Dashed Divider -->
         <div class="form-dashed-divider"></div>
 
         <!-- Station Setup Section when BOTH Start and End are selected AND NOT equal (Image B) -->
-        <div class="stations-setup-container"
+        <div class="stations-setup-container route-points-config"
           *ngIf="currentRoute.startPoint && currentRoute.endPoint && currentRoute.startPoint !== currentRoute.endPoint">
+          <h4>Cấu hình điểm đón/trả</h4>
+          <p>Tìm kiếm và chọn điểm trên tuyến, nhập thời gian dự kiến từ điểm đầu.</p>
+          <div class="route-points-head"><span>Địa điểm</span><span>Phút</span><span>Đón</span><span>Trả</span><span></span></div>
+          <div class="route-point-row" *ngFor="let point of currentRoute.routePoints || []; let i = index">
+            <span class="route-point-name">{{ point.name }}</span>
+            <input class="route-point-minutes" type="number" min="{{ i ? (currentRoute.routePoints?.[i - 1]?.minutesFromStart || 0) : 0 }}" [readonly]="i === 0" [value]="point.minutesFromStart" (change)="updateRoutePointMinutes(i, $any($event.target).value)" />
+            <input type="checkbox" [checked]="point.pickup" (change)="toggleRoutePointKind(i, 'pickup')" />
+            <input type="checkbox" [checked]="point.dropoff" (change)="toggleRoutePointKind(i, 'dropoff')" />
+            <button type="button" class="route-point-remove" (click)="removeRoutePoint(i)">×</button>
+          </div>
+          <div class="route-point-add"><select [(ngModel)]="newRoutePointName"><option value="">Chọn điểm trên tuyến</option><option *ngFor="let point of availableRoutePoints()" [value]="point">{{ point }}</option></select><button type="button" (click)="addRoutePoint()">＋ Thêm điểm</button></div>
           <h4 class="stations-setup-heading">Thiết lập điểm đỗ của tuyến:</h4>
 
           <div class="stations-three-cols stations-two-cols">

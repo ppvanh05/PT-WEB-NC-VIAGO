@@ -290,9 +290,10 @@ export class Home implements OnInit, OnDestroy {
       this.featuredRoutes = data.featuredRoutes.map((r) => ({
         ...r,
         label: r.from,
-        image: r.image || '/assets/customer/logo.png',
+        image: this.routeImage(r.image, r.from, r.to),
         duration: `${Math.floor(r.durationMinutes / 60)} giờ ${r.durationMinutes % 60} phút`,
       }));
+      this.cd.detectChanges();
       this.homeNews = data.latestNews;
       this.homeReviews = data.reviews;
       this.reviewStatistics = data.reviewStatistics;
@@ -315,6 +316,19 @@ export class Home implements OnInit, OnDestroy {
       this.marketingLoading = false;
       this.cd.markForCheck();
     }
+  }
+  private routeImage(image: string | null | undefined, from = '', to = ''): string {
+    const value = (image || '').trim();
+    if (value && /^(https?:|data:|\/)/i.test(value)) return value;
+    if (value) return `/assets/customer/${value.replace(/^\/+/, '')}`;
+    const text = `${from} ${to}`.toLowerCase();
+    if (text.includes('đà lạt') || text.includes('da lat')) return '/assets/customer/da_lat.jpg';
+    if (text.includes('nha trang')) return '/assets/customer/nha_trang.jpg';
+    if (text.includes('đà nẵng') || text.includes('da nang')) return '/assets/customer/da_nang.jpg';
+    if (text.includes('cần thơ') || text.includes('can tho')) return '/assets/customer/can_tho.jpg';
+    if (text.includes('vũng tàu') || text.includes('vung tau')) return '/assets/customer/vung_tau.jpg';
+    if (text.includes('phan thiết') || text.includes('phan thiet')) return '/assets/customer/phan_thiet.jpg';
+    return '/assets/customer/night_bus_highway.png';
   }
   private async refreshWallet(): Promise<void> {
     this.walletPromotions = [];

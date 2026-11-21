@@ -1,0 +1,376 @@
+
+> viago-backend@0.0.1 prestart:dev
+> node scripts/check-port.cjs
+
+
+> viago-backend@0.0.1 start:dev
+> nest start --watch --path tsconfig.dev.json
+
+[2J[3J[H[[90m6:48:26 AM[0m] Starting compilation in watch mode...
+
+[[90m6:48:37 AM[0m] Found 0 errors. Watching for file changes.
+
+[Nest] 30472  - 11/18/2026, 6:48:38 AM     LOG [NestFactory] Starting Nest application...
+[Nest] 30472  - 11/18/2026, 6:48:38 AM     LOG [InstanceLoader] PrismaModule dependencies initialized +25ms
+[Nest] 30472  - 11/18/2026, 6:48:38 AM     LOG [InstanceLoader] IntegrationsModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:38 AM     LOG [InstanceLoader] PaymentIntegrationModule dependencies initialized +1ms
+[Nest] 30472  - 11/18/2026, 6:48:38 AM     LOG [InstanceLoader] ChatbotIntegrationModule dependencies initialized +1ms
+[Nest] 30472  - 11/18/2026, 6:48:38 AM     LOG [InstanceLoader] MapsIntegrationModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:38 AM     LOG [InstanceLoader] WeatherIntegrationModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:38 AM     LOG [InstanceLoader] AdminDispatchModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] SharedModule dependencies initialized +9ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AppModule dependencies initialized +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AccountsAccessModule dependencies initialized +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] CustomerInvoiceModule dependencies initialized +2ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminRoutesModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminSchedulesModule dependencies initialized +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminPickupDropoffModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminVehiclesModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminDriversAssistantsModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] CustomerTripSearchModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] ContentAccessModule dependencies initialized +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] CustomerNewsModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] CustomerContractRentalsModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminPoliciesModule dependencies initialized +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminNewsModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminPromotionsModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] CustomerLostAndFoundModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminReviewsFeedbackModule dependencies initialized +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminLostAndFoundModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminContractRentalsModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminReportsModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] CustomerReviewsModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] CustomerAboutModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AccountsModule dependencies initialized +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminAuthModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminIntakeModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminBookingManagementModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] CustomerHomeModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] CustomerChatbotModule dependencies initialized +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [InstanceLoader] AdminCustomerSupportModule dependencies initialized +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AppController {/}: +6ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/, GET} route +3ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] LookupController {/customer/ticket-lookup}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/ticket-lookup/session, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/ticket-lookup/session, DELETE} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/ticket-lookup/orders, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/ticket-lookup/orders/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/ticket-lookup/orders/:id, PATCH} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/ticket-lookup/orders/:id/tickets/:ticketId/print, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] ReviewMediaController {/customer/review-media}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/review-media/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] CustomerAuthController {/customer/auth}: +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/auth/login, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/auth/register, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/auth/otp/request, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/auth/otp/verify, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/auth/reset-password, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/auth/me, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/auth/logout, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] CustomerProfileController {/customer/profile}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/profile/tickets/:id/review, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/profile, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/profile, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/profile/change-password, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/profile/sessions, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/profile/sessions, DELETE} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/profile/sessions/:id, DELETE} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/profile/lock, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/profile/two-factor, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/profile/tickets, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/profile/vouchers, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] EmployeesController {/admin/employees}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/employees/options, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/employees, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/employees/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/employees, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/employees/:id, PUT} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/employees/:id/status, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/employees/:id/logs, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] CustomersController {/admin/customers}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/customers/:id/password, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/customers/options, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/customers, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/customers/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/customers, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/customers/:id, PATCH} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/customers/:id/status, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/customers/:id/tickets, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/customers/:id/logs, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] ActivityLogsController {/admin/activity-logs}: +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/activity-logs/statistics, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/activity-logs, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/activity-logs/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminPoliciesController {/admin/policies}: +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/policies, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/policies/statistics, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/policies/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/policies, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/policies/:id/status, PATCH} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/policies/:id, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminAuthController {/admin/auth}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/auth/otp/request, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/auth/otp/verify, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/auth/change-password, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/auth/sessions, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/auth/sessions, DELETE} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/auth/sessions/:id, DELETE} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/auth/login, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/auth/me, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/auth/logout, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminNewsController {/admin/news}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/news, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/news/statistics, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/news/:id, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/news, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/news/:id, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/news/:id/status, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/news/:id/comments, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/news/:id/comments/:commentId/status, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/news/:id/comments/:commentId, DELETE} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminPromotionsController {/admin/promotions}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/promotions, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/promotions/statistics, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/promotions/options, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/promotions/:id, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/promotions/:id/statistics, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/promotions/:id/usages, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/promotions, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/promotions/:id, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/promotions/:id/status, PATCH} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/promotions/:id, DELETE} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] CustomerAboutController {/customer/about}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/about-us, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/contact, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/contact, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/faq/categories, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/faq, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/faq/:id, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/policies/types, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/policies, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/policies/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/terms/types, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/terms, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/terms/:id, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/guide, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/guide/:slug, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/careers/options, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/careers, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/careers/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/about/careers/:id/applications, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] CustomerNewsController {/customer/news}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/news, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/news/categories, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/news/featured, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/news/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/news/:id/related, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/news/:id/views, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/news/:id/comments, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/news/:id/comments, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/news/:id/comments/:commentId/replies, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/news/:id/comments/:commentId/replies, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/news/:id/comments/:commentId/like, PUT} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/news/:id/comments/:commentId/like, DELETE} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] CustomerHomeController {/customer/home}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/options, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/cities, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/routes, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/news, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/reviews, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/destination/weather, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/trips, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/trips/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/trips/:id/seats, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] HomeBookingController {/customer/home}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/holds, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/holds, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/holds, DELETE} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/quote, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/orders, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/orders/pending, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/orders/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/orders/:id/cancel, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/orders/:id/payment, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/orders/:id/print, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/tickets/:token, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/tickets/:token/print, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] HomePromotionsController {/customer/home}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/promotions, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/vouchers, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/promotions/:code/claim, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/customer, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] CounterOrdersController {/admin/counter-orders}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/counter-orders, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/counter-orders/:id/confirm, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] HomePaymentWebhookController {/customer/home/payments}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/home/payments/sepay, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] CustomerChatbotController {/customer/chatbot}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/chatbot/health, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/chatbot/conversations, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/chatbot/conversations/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/chatbot/conversations, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/chatbot/conversations/:id/messages, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/chatbot/conversations/:id/handoff/confirm, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/chatbot/conversations/:id/handoff/decline, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/chatbot/conversations/:id/close, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/chatbot/conversations/:id/messages, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/chatbot/conversations/:id/handoff, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/chatbot/conversations/:id/resume, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/chatbot/conversations/:id/events, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] SupportKnowledgeController {/admin/knowledge}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/knowledge/documents, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/knowledge/documents/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/knowledge/documents, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/knowledge/documents/:id, DELETE} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/knowledge/documents/:id/reprocess, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/knowledge/sync-project, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] SupportStaffController {/admin/support}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/support/context, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/support/agents, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/support/workspace, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/support/conversations, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/support/conversations/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/support/conversations/:id/claim, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/support/conversations/:id/reassign, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/support/conversations/:id/release, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/support/conversations/:id/messages, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/support/conversations/:id/draft, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/support/conversations/:id/translate, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/support/conversations/:id/resolve, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/support/conversations/:id/close, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminIntakeController {/admin}: +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/jobs, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/jobs/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/jobs, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/jobs/:id, PATCH} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contacts, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contacts/options, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contacts/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contacts/:id/status, PATCH} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/applications, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/applications/options, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/applications/:id, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/applications/:id/cv, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/applications/:id/status, PATCH} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminBookingManagementController {/admin/booking-management}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/getAllPoint, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/getAllVehicleTypes, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/getAllRoutes, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/getCustomerInfoByPhone, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/getAllRoutesName, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/getAllTickets, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminBookingOrdersController {/admin/booking-management}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/options, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/trips/:tripId/seats, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/holds, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/holds/:holdId, DELETE} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/quote, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/orders, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/orders, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/orders/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/orders/:id/confirm-payment, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/booking-management/orders/:id/cancel, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminRoutesController {/admin/dispatch/routes}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/routes, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/routes, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/routes/:id, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/routes/:id/status, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminSchedulesController {/admin/dispatch/schedules}: +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/schedules, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/schedules, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/schedules/generate-range, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/schedules/:id, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/schedules/:id/status, PATCH} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminPickupDropoffController {/admin/dispatch/pickup-dropoff}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/pickup-dropoff, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/pickup-dropoff, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/pickup-dropoff/:id, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/pickup-dropoff/:id/status, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminVehiclesController {/admin/dispatch/vehicles}: +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/vehicles, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/vehicles, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/vehicles/:id, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/vehicles/:id/status, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminDriversAssistantsController {/admin/dispatch/drivers-assistants}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/drivers-assistants, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/drivers-assistants, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/drivers-assistants/:id, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/dispatch/drivers-assistants/:id/status, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] CustomerTripSearchController {/customer/trip-search}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/trip-search, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] CustomerReviewsController {/customer/reviews}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/reviews/summary, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/reviews/options, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/reviews, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/reviews/:id/helpful, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/reviews/:id/helpful, DELETE} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/reviews/orders/mine, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/reviews/orders/:code, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/reviews/orders/:code/review, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/reviews/eligibility/:ticketId, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] CustomerLostAndFoundController {/customer/lost-and-found}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/lost-and-found/items, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/lost-and-found/routes, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/lost-and-found/bookings/:code, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/lost-and-found/reports, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/lost-and-found/media/:name, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/lost-and-found/items/:id/claims, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/lost-and-found/status/:code, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] CustomerContractRentalsController {/customer/contract-rentals}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/contract-rentals/vehicles, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/contract-rentals/vehicles/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/contract-rentals/drivers, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/contract-rentals/promotions, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/contract-rentals/estimate, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/contract-rentals/requests, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/contract-rentals/requests/:code, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/contract-rentals/requests/:code/quote-decision, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminReviewsFeedbackController {/admin/reviews-feedback}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reviews-feedback/summary, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reviews-feedback/options, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reviews-feedback, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reviews-feedback/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reviews-feedback/:id/reply, PUT} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reviews-feedback/:id/reply, DELETE} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reviews-feedback/:id/workflow, PATCH} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reviews-feedback/:id/visibility, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminLostAndFoundController {/admin/lost-and-found}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/lost-and-found/media, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/lost-and-found/summary, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/lost-and-found/tickets/:code, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/lost-and-found, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/lost-and-found/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/lost-and-found, POST} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/lost-and-found/:id, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/lost-and-found/:id/status, PATCH} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/lost-and-found/claims/:claimId, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminContractRentalsController {/admin/contract-rentals}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/summary, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/vehicle-types, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/price-list, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/price-list/:id, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/requests, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/requests/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/requests/:id/cancel, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/requests/:id/quotes, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/quotes, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/quotes/:id, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/quotes/:id/decision, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/quotes/:id/contract, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/contracts, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/contracts/:id, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/contracts/:id/assignment-options, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/contracts/:id/assignments, PUT} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/contracts/:id/payments, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/contract-rentals/contracts/:id/status, PATCH} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] AdminReportsController {/admin/reports}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reports/cancellations, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reports/revenue, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reports/routes, GET} route +1ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reports/customers, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reports/drivers, GET} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/admin/reports/drivers/:id/license-reminders, POST} route +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RoutesResolver] CustomerInvoiceController {/customer/invoice}: +0ms
+[Nest] 30472  - 11/18/2026, 6:48:39 AM     LOG [RouterExplorer] Mapped {/customer/invoice/lookup, GET} route +1ms

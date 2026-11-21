@@ -288,7 +288,7 @@
             <article class="route-card">
               <img
                 [src]="route.image"
-                (error)="$any($event.target).src = '/assets/customer/logo.png'"
+                (error)="$any($event.target).src = '/assets/customer/night_bus_highway.png'"
                 [alt]="route.label + ' → ' + route.to"
                 loading="lazy"
               />
@@ -526,7 +526,7 @@
                 <div class="timeline">
                   <div>
                     <strong>{{ time(trip.departureAt) }}</strong
-                    ><span>{{ trip.pickup[0].name }}</span>
+                    ><span>{{ trip.pickup[0]?.name || 'Chưa có điểm đón' }}</span>
                   </div>
                   <div class="timeline-line">
                     <span>{{ duration(trip) }}</span>
@@ -534,7 +534,7 @@
                   </div>
                   <div>
                     <strong>{{ time(trip.arrivalAt) }}</strong
-                    ><span>{{ trip.dropoff[0].name }}</span>
+                    ><span>{{ trip.dropoff[0]?.name || 'Chưa có điểm trả' }}</span>
                   </div>
                 </div>
                 <div class="trip-vehicle">
@@ -655,20 +655,10 @@
                     </div>
                   }
                   @if (expandedTab === 'policy') {
-                    <div class="policy-cards">
-                      <article class="policy-card policy-hold">
-                        <span class="policy-tag">Giữ chỗ</span>
-                        <h3>Thanh toán trong 10 phút</h3>
-                        <p>Vé được xác nhận khi thanh toán thành công.</p>
-                      </article>
-                      <article class="policy-card policy-arrival">
-                        <span class="policy-tag">Trước giờ đi</span>
-                        <h3>Có mặt trước 15 phút</h3>
-                        <p>Tuân thủ quy định hành lý của chuyến xe.</p>
-                      </article>
-                      <a class="policy-link" routerLink="/customer/chinh-sach" target="_blank"
-                        >Xem chính sách đầy đủ →</a
-                      >
+                    <div class="trip-policy-list">
+                      <section class="trip-policy-item"><h3>1. Quy định đặt vé &amp; Thanh toán</h3><ul><li>Quý khách vui lòng thanh toán trong vòng 10 phút sau khi chọn chỗ thành công để giữ chỗ.</li><li>Sau 10 phút nếu không hoàn tất thanh toán, hệ thống sẽ tự động huỷ vé để nhường cơ hội cho hành khách khác.</li><li>Thông tin vé điện tử và mã đặt chỗ sẽ được gửi trực tiếp đến Email/Số điện thoại của Quý khách.</li></ul></section>
+                      <section class="trip-policy-item"><h3>2. Chính sách huỷ vé &amp; Đổi lịch</h3><ul><li>Huỷ vé trước 24 giờ so với giờ khởi hành: Hoàn tiền 100% (trừ phí chuyển khoản nếu có).</li><li>Huỷ vé từ 12 - 24 giờ trước giờ khởi hành: Hoàn tiền 50% hoặc đổi lịch trình miễn phí.</li><li>Huỷ vé dưới 12 giờ trước giờ khởi hành: Không hỗ trợ hoàn tiền hoặc đổi vé.</li><li>Mỗi vé chỉ được hỗ trợ thay đổi lịch trình tối đa 01 lần.</li></ul></section>
+                      <section class="trip-policy-item"><h3>3. Quy định hành lý &amp; Trẻ em</h3><ul><li>Mỗi hành khách được mang theo tối đa 20kg hành lý ký gửi và 1 hành lý xách tay gọn nhẹ.</li><li>Không mang theo các vật dụng dễ cháy nổ, chất cấm hoặc động vật sống lên khoang xe.</li><li>Trẻ em dưới 6 tuổi đi kèm người lớn được miễn phí vé nếu ngồi chung ghế (tối đa 1 trẻ em/ghế).</li></ul></section>
                     </div>
                   }
                 </div>
@@ -1801,7 +1791,7 @@
           <article class="schedule-stop">
             <small>KHỞI HÀNH</small><strong>{{ time(trip.departureAt) }}</strong
             ><span>{{ date(trip.departureAt) }}</span>
-            <p>{{ trip.pickup[0].name }}</p>
+            <p>{{ trip.pickup[0]?.name || 'Chưa có điểm đón' }}</p>
           </article>
           <div class="schedule-duration">
             <span>Thời gian di chuyển</span><strong>{{ duration(trip) }}</strong
@@ -1810,7 +1800,7 @@
           <article class="schedule-stop schedule-arrival">
             <small>ĐẾN NƠI</small><strong>{{ time(trip.arrivalAt) }}</strong
             ><span>{{ date(trip.arrivalAt) }}</span>
-            <p>{{ trip.dropoff[0].name }}</p>
+            <p>{{ trip.dropoff[0]?.name || 'Chưa có điểm trả' }}</p>
           </article>
         </div>
       }

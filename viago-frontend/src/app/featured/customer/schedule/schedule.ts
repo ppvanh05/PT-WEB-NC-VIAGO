@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -54,6 +54,7 @@ export class Schedule implements OnInit {
   };
 
   private readonly api = inject(HomeApiService);
+  private readonly cd = inject(ChangeDetectorRef);
   error = '';
   async ngOnInit() {
     try {
@@ -71,7 +72,7 @@ export class Schedule implements OnInit {
             distance: r.distance + ' km',
             duration: r.durationMinutes + ' phút',
             price: r.price,
-            image: r.image || '/assets/brand/logo.png',
+            image: this.routeImage(r.image, r.from, r.to),
             vehicleTypes: r.vehicleTypes || [],
           })),
         );
@@ -79,9 +80,24 @@ export class Schedule implements OnInit {
       } while (page <= pages);
       this.filteredRoutes = [...this.allRoutes];
       this.featuredRoutes = this.allRoutes.slice(0, 3);
+      this.cd.detectChanges();
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Không tải được tuyến xe.';
     }
+  }
+
+  private routeImage(image: string | null | undefined, from = '', to = ''): string {
+    const value = (image || '').trim();
+    if (value && /^(https?:|data:|\/)/i.test(value)) return value;
+    if (value) return `/assets/customer/${value.replace(/^\/+/, '')}`;
+    const text = `${from} ${to}`.toLowerCase();
+    if (text.includes('đà lạt') || text.includes('da lat')) return '/assets/customer/da_lat.jpg';
+    if (text.includes('nha trang')) return '/assets/customer/nha_trang.jpg';
+    if (text.includes('đà nẵng') || text.includes('da nang')) return '/assets/customer/da_nang.jpg';
+    if (text.includes('cần thơ') || text.includes('can tho')) return '/assets/customer/can_tho.jpg';
+    if (text.includes('vũng tàu') || text.includes('vung tau')) return '/assets/customer/vung_tau.jpg';
+    if (text.includes('phan thiết') || text.includes('phan thiet')) return '/assets/customer/phan_thiet.jpg';
+    return '/assets/customer/night_bus_highway.png';
   }
 
   onSearch() {

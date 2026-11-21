@@ -1,0 +1,2 @@
+6:55:03 AM [vite] (client) [console.warn] [BookingCustomerApi] Lỗi gọi getAllTickets: TimeoutError: signal timed out
+6:55:09 AM [vite] (client) [console.warn] [BookingCustomerApi] Lỗi gọi getAllTickets: TimeoutError: signal timed out

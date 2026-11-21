@@ -121,11 +121,11 @@ export function tripIsOpen(
   now = new Date(),
 ) {
   return (
-    trip.trangthai === 'DangMoBan' &&
+    (trip.trangthai === 'DangMoBan' || trip.trangthai === 'DangChay') &&
     trip.tuyen_xe.trangthai === 'HoatDong' &&
-    trip.xe.trangthai === 'DangHoatDong' &&
-    trip.thoigiankhoihanh > now &&
-    trip.thoigiandongbanve > now &&
+    (!trip.xe || trip.xe.trangthai === 'DangHoatDong') &&
+    (trip.trangthai === 'DangChay' || trip.thoigiankhoihanh > now) &&
+    (trip.trangthai === 'DangChay' || trip.thoigiandongbanve > now) &&
     trip.thoigiankhoihanh.getTime() - trip.songaymobantruoc * 86400000 <=
       now.getTime()
   );
@@ -218,19 +218,15 @@ export class CustomerHomeService {
     return this.overviewInFlight;
   }
   private async readOverview() {
-    // Each paginated section already uses its own consistent read transaction.
-    // Run them in sequence so a home load does not occupy four connections.
-    const cities = await this.cities();
-    const routes = await this.routes(
-      Object.assign(new HomeRoutesDto(), { pageSize: 3 }),
-    );
-    const promotions = await this.promotions.list(
-      Object.assign(new HomePageDto(), { pageSize: 3 }),
-    );
-    const news = await this.latestNews(3);
-    const reviews = await this.reviews(
-      Object.assign(new HomePageDto(), { pageSize: 3 }),
-    );
+    // These reads are independent. Run them together so the first render is
+    // not delayed by the slowest marketing section.
+    const [cities, routes, promotions, news, reviews] = await Promise.all([
+      this.cities(),
+      this.routes(Object.assign(new HomeRoutesDto(), { pageSize: 3 })),
+      this.promotions.list(Object.assign(new HomePageDto(), { pageSize: 3 })),
+      this.latestNews(3),
+      this.reviews(Object.assign(new HomePageDto(), { pageSize: 3 })),
+    ]);
     return {
       banners: [1, 2, 3].map((index) => ({
         id: String(index),
@@ -459,7 +455,7 @@ export class CustomerHomeService {
       now = new Date();
     const conditions = [
       Prisma.sql`l.matuyenduong IN (${Prisma.join(routeIds)})`,
-      Prisma.sql`l.trangthai='DangMoBan' AND x.trangthai='DangHoatDong' AND l.thoigiankhoihanh > ${now} AND l.thoigiandongbanve > ${now}`,
+      Prisma.sql`l.trangthai IN ('DangMoBan','DangChay') AND (x.maxe IS NULL OR x.trangthai='DangHoatDong') AND (l.thoigiankhoihanh > ${now} OR (l.trangthai='DangChay' AND l.thoigiandendukien > ${now}))`,
       Prisma.sql`l.thoigiankhoihanh BETWEEN ${start} AND ${new Date(start.getTime() + 86400000 - 1)}`,
       Prisma.sql`l.thoigiankhoihanh - l.songaymobantruoc * INTERVAL '1 day' <= ${now}`,
     ];
@@ -482,7 +478,7 @@ export class CustomerHomeService {
       );
     }
     conditions.push(
-      Prisma.sql`(SELECT count(*) FROM ghe_chuyen gc JOIN ghe g ON g.maghe=gc.maghe WHERE gc.malichtrinh=l.malichtrinh AND g.trangthai='HoatDong' AND g.masodoghe=x.masodoghe AND (gc.trangthaighe='Trong' OR (gc.trangthaighe='DangGiu' AND gc.giuchoden<=${now}) OR (gc.trangthaighe='DangGiu' AND gc.sessiongiucho=${session ?? ''} AND gc.giuchoden>${now})) AND NOT EXISTS (SELECT 1 FROM ve_xe v WHERE v.maghechuyen=gc.maghechuyen AND v.trangthaive<>'DaHuy'))>=${query.count}`,
+      Prisma.sql`(x.maxe IS NULL OR (SELECT count(*) FROM ghe_chuyen gc JOIN ghe g ON g.maghe=gc.maghe WHERE gc.malichtrinh=l.malichtrinh AND g.trangthai='HoatDong' AND g.masodoghe=x.masodoghe AND (gc.trangthaighe='Trong' OR (gc.trangthaighe='DangGiu' AND gc.giuchoden<=${now}) OR (gc.trangthaighe='DangGiu' AND gc.sessiongiucho=${session ?? ''} AND gc.giuchoden>${now})) AND NOT EXISTS (SELECT 1 FROM ve_xe v WHERE v.maghechuyen=gc.maghechuyen AND v.trangthaive<>'DaHuy'))>=${query.count})`,
     );
     const where = Prisma.join(conditions, ' AND '),
       order =
@@ -494,10 +490,10 @@ export class CustomerHomeService {
     return this.prisma.$transaction(
       async (tx) => {
         const [count] = await tx.$queryRaw<{ total: bigint }[]>(
-          Prisma.sql`SELECT count(*) AS total FROM lich_trinh l JOIN xe x ON x.maxe=l.maxe WHERE ${where}`,
+          Prisma.sql`SELECT count(*) AS total FROM lich_trinh l LEFT JOIN xe x ON x.maxe=l.maxe WHERE ${where}`,
         );
         const ids = await tx.$queryRaw<{ malichtrinh: string }[]>(
-          Prisma.sql`SELECT l.malichtrinh FROM lich_trinh l JOIN xe x ON x.maxe=l.maxe WHERE ${where} ORDER BY ${order}, l.malichtrinh ASC LIMIT ${query.pageSize} OFFSET ${(query.page - 1) * query.pageSize}`,
+          Prisma.sql`SELECT l.malichtrinh FROM lich_trinh l LEFT JOIN xe x ON x.maxe=l.maxe WHERE ${where} ORDER BY ${order}, l.malichtrinh ASC LIMIT ${query.pageSize} OFFSET ${(query.page - 1) * query.pageSize}`,
         );
         const rows = await tx.lich_trinh.findMany({
           where: { malichtrinh: { in: ids.map((item) => item.malichtrinh) } },
@@ -566,11 +562,11 @@ export class CustomerHomeService {
       arrivalAt: row.thoigiandendukien.toISOString(),
       saleClosesAt: row.thoigiandongbanve.toISOString(),
       status: tripIsOpen(row) ? 'open' : 'closed',
-      type: VEHICLES[row.xe.loaixe],
-      typeCode: row.xe.loaixe,
+      type: row.xe ? VEHICLES[row.xe.loaixe] : 'Chưa phân công xe',
+      typeCode: row.xe?.loaixe || null,
       price: Number(row.giavecoso),
       distance: Number(row.tuyen_xe.khoangcach),
-      image: row.xe.anhxe,
+      image: row.xe?.anhxe || null,
       seats: seats.map((s) => s.id),
       seatDetails: seats,
       availableSeats: seats.filter((s) =>
@@ -579,7 +575,7 @@ export class CustomerHomeService {
       soldSeats: seats.filter((s) => s.status === 'sold').map((s) => s.id),
       pickup: points('Don'),
       dropoff: points('Tra'),
-      amenities: row.xe.tiennghi,
+      amenities: row.xe?.tiennghi || [],
       holdMinutes: Math.max(0, Math.min(10, row.thoigiangiuchophut)),
     };
   }

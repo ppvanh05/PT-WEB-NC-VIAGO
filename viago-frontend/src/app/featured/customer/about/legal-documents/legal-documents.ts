@@ -80,4 +80,9 @@ export class LegalDocuments implements OnInit {
   scrollTo(id: string) {
     document.getElementById('legal-' + id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  /** Keeps an editor-entered list number attached to the sentence below it. */
+  contentForDisplay(content: string): string {
+    return content.replace(/(^|[\r\n])(\s*\d+\.)\s*[\r\n]+(?=\S)/g, '$1$2 ');
+  }
 }

@@ -167,6 +167,10 @@ button.vehicle-image:focus-visible { outline: 3px solid var(--color-primary-600)
 .policy-card { padding: var(--space-4); border: 1px solid var(--color-primary-100); border-radius: var(--radius-lg); background: var(--color-primary-50); }
 .policy-card.policy-arrival { background: var(--color-accent-50); border-color: var(--color-accent-100); }
 .policy-card.policy-change { grid-column: 1 / -1; background: var(--color-background); border-color: var(--color-border); }
+.trip-policy-list { display: grid; gap: var(--space-3); padding: var(--space-4); border: 1px solid #334155; border-radius: 14px; background: #fff; }
+.trip-policy-item h3 { margin: 0 0 8px; color: #123063; font-size: 14px; line-height: 1.4; }
+.trip-policy-item ul { margin: 0; padding-left: 1.25rem; color: #334155; font-size: 13px; line-height: 1.65; }
+.trip-policy-item li { padding-left: 2px; }
 .policy-tag { display: inline-block; padding: var(--space-1) var(--space-2); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-primary-600); font-size: var(--font-size-caption); font-weight: var(--font-weight-bold); }
 .policy-arrival .policy-tag { color: var(--color-accent-700); }
 .policy-cards .policy-card h3 { margin: var(--space-2) 0 var(--space-1); font-family: var(--font-family-base); font-size: var(--font-size-body-lg); line-height: var(--line-height-body-lg); }

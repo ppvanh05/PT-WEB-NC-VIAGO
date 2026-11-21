@@ -17,6 +17,10 @@ export interface TuyenXe {
   durationNum?: number; // Raw float in hours
   duration: string;
   tripsPerDay: number;
+  startApplyDate?: string;
+  endApplyDate?: string | null;
+  weekdays?: number[];
+  departureTimes?: string[];
   price: number;
   carTypesList: string[]; // Independent checkboxes
   carTypes: string; // Formatted display string
@@ -25,7 +29,9 @@ export interface TuyenXe {
   dropoffPoints: string[];
   stops: string[];
   shuttles: string[];
+  routePoints?: RoutePointConfig[];
 }
+export interface RoutePointConfig { name: string; minutesFromStart: number; pickup: boolean; dropoff: boolean; }
 
 @Component({
   selector: 'app-admin-routes',
@@ -72,6 +78,9 @@ export class RoutesComponent implements OnInit {
   currentRoute: Partial<TuyenXe> & {
     carTypesObj?: { [key: string]: boolean };
   } = {};
+  newDepartureTime = '12:00';
+  showAddTime = false;
+  newRoutePointName = '';
   errors: { [key: string]: boolean } = {};
 
   provincesList = [
@@ -415,6 +424,7 @@ export class RoutesComponent implements OnInit {
 
   openAddModal() {
     this.isEditMode = false;
+    this.showAddTime = false;
     this.currentRoute = {
       name: '',
       startPoint: '',
@@ -423,12 +433,14 @@ export class RoutesComponent implements OnInit {
       durationNum: undefined,
       duration: '',
       tripsPerDay: 5,
+      startApplyDate: '2026-11-20', endApplyDate: '2026-12-20', weekdays: [1,2,3,4,5,6,7], departureTimes: ['08:00','10:00','12:00','14:00','16:00'],
       price: 150000,
       carTypesList: ['Limousine'],
       carTypesObj: { 'Limousine': true, 'Cabin': false, 'Giường nằm': false, 'Ghế ngồi': false },
       status: 'active',
       pickupPoints: [],
       dropoffPoints: [],
+      routePoints: [],
       stops: [],
       shuttles: []
     };
@@ -440,8 +452,17 @@ export class RoutesComponent implements OnInit {
   openEditModal(route: TuyenXe, event: Event) {
     event.stopPropagation();
     this.isEditMode = true;
+    this.showAddTime = false;
     const cloned = JSON.parse(JSON.stringify(route));
     (cloned as any).durationNum = (cloned as any).durationNum || parseFloat(cloned.duration) || 2.5;
+    cloned.startApplyDate = cloned.startApplyDate || '2026-11-20';
+    cloned.endApplyDate = cloned.endApplyDate || '2026-12-20';
+    cloned.weekdays = Array.isArray(cloned.weekdays) ? cloned.weekdays : [];
+    cloned.departureTimes = Array.isArray(cloned.departureTimes) ? cloned.departureTimes : [];
+    cloned.routePoints = Array.isArray(cloned.routePoints) && cloned.routePoints.length ? cloned.routePoints.map((point: RoutePointConfig) => ({ ...point })) : [
+      ...(cloned.pickupPoints || []).map((name: string, index: number) => ({ name, minutesFromStart: index ? index * 10 : 0, pickup: true, dropoff: false })),
+      ...(cloned.dropoffPoints || []).filter((name: string) => !(cloned.pickupPoints || []).includes(name)).map((name: string, index: number) => ({ name, minutesFromStart: ((cloned.pickupPoints || []).length + index) * 10, pickup: false, dropoff: true })),
+    ];
 
     if (cloned.startPoint && cloned.endPoint && cloned.startPoint === cloned.endPoint) {
       cloned.endPoint = '';
@@ -714,6 +735,16 @@ export class RoutesComponent implements OnInit {
     return !Object.values(this.errors).some(Boolean);
   }
 
+  toggleDepartureTime(time: string) { const values = this.currentRoute.departureTimes || []; this.currentRoute.departureTimes = values.includes(time) ? values.filter((x) => x !== time) : [...values, time]; }
+  toggleWeekday(day: number) { const values = this.currentRoute.weekdays || []; this.currentRoute.weekdays = values.includes(day) ? values.filter((x) => x !== day) : [...values, day]; }
+  addDepartureTime() { const time = this.newDepartureTime; if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return; const values = this.currentRoute.departureTimes || []; if (!values.includes(time)) this.currentRoute.departureTimes = [...values, time].sort(); }
+  removeDepartureTime(time: string) { this.currentRoute.departureTimes = (this.currentRoute.departureTimes || []).filter((x) => x !== time); }
+  availableRoutePoints(): string[] { return [...new Set([...this.getPickupPointsForSelectedProvinces(), ...this.getDropoffPointsForSelectedProvinces()])].filter((name) => !(this.currentRoute.routePoints || []).some((point) => point.name === name)); }
+  addRoutePoint() { const name = this.newRoutePointName; if (!name) return; const points = this.currentRoute.routePoints || []; this.currentRoute.routePoints = [...points, { name, minutesFromStart: points.length ? Math.max(...points.map((p) => p.minutesFromStart)) : 0, pickup: true, dropoff: false }]; this.newRoutePointName = ''; }
+  removeRoutePoint(index: number) { this.currentRoute.routePoints = (this.currentRoute.routePoints || []).filter((_, i) => i !== index); }
+  toggleRoutePointKind(index: number, kind: 'pickup' | 'dropoff') { const points = [...(this.currentRoute.routePoints || [])]; const point = points[index]; if (!point) return; point[kind] = !point[kind]; if (!point.pickup && !point.dropoff) this.removeRoutePoint(index); else this.currentRoute.routePoints = points; }
+  updateRoutePointMinutes(index: number, value: number) { const points = [...(this.currentRoute.routePoints || [])]; const previous = index ? points[index - 1].minutesFromStart : 0; const next = index < points.length - 1 ? points[index + 1].minutesFromStart : undefined; let minutes = Math.max(index ? previous : 0, Number(value) || 0); if (next !== undefined) minutes = Math.min(minutes, next); points[index] = { ...points[index], minutesFromStart: minutes }; this.currentRoute.routePoints = points; }
+
   async saveRoute() {
     if (!this.validateForm()) {
       this.toastService.showError('Vui lòng nhập đầy đủ thông tin hợp lệ.');
@@ -725,7 +756,7 @@ export class RoutesComponent implements OnInit {
     this.currentRoute.carTypesList = selectedCarTypes;
     this.currentRoute.carTypes = selectedCarTypes.join(', ');
     try {
-      const payload = { name: this.currentRoute.name!, startPoint: this.currentRoute.startPoint!, endPoint: this.currentRoute.endPoint!, distanceNum: this.currentRoute.distanceNum!, durationNum: this.currentRoute.durationNum!, tripsPerDay: this.currentRoute.tripsPerDay!, price: this.currentRoute.price!, status: this.currentRoute.status, pickupPoints: this.currentRoute.pickupPoints || [], dropoffPoints: this.currentRoute.dropoffPoints || [] };
+      const payload = { name: this.currentRoute.name!, startPoint: this.currentRoute.startPoint!, endPoint: this.currentRoute.endPoint!, distanceNum: this.currentRoute.distanceNum!, durationNum: this.currentRoute.durationNum!, tripsPerDay: this.currentRoute.departureTimes?.length || 5, price: this.currentRoute.price!, status: this.currentRoute.status, pickupPoints: this.currentRoute.pickupPoints || [], dropoffPoints: this.currentRoute.dropoffPoints || [], routePoints: this.currentRoute.routePoints || [], startApplyDate: this.currentRoute.startApplyDate, endApplyDate: this.currentRoute.endApplyDate, weekdays: this.currentRoute.weekdays, departureTimes: this.currentRoute.departureTimes };
       const saved = this.isEditMode ? await firstValueFrom(this.http.patch<TuyenXe>(`${this.apiUrl}/${this.currentRoute.id}`, payload)) : await firstValueFrom(this.http.post<TuyenXe>(this.apiUrl, payload));
       if (this.isEditMode) { const index = this.allRoutes.findIndex(r => r.id === this.currentRoute.id); if (index >= 0) this.allRoutes[index] = saved; }
       else this.allRoutes.unshift(saved);

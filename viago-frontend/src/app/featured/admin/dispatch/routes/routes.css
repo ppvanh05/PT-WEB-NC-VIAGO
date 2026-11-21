@@ -2019,3 +2019,41 @@
   box-shadow: 0 6px 14px rgba(255, 106, 0, 0.28);
 }
 
+.search-filters-row > .filter-input-wrapper:first-child > .form-row {
+  display: none;
+}
+
+.route-schedule-config { margin-top: 22px; padding-top: 22px; border-top: 1px dashed #d8dee8; }
+.route-date-row { margin-bottom: 18px; }
+.route-config-section { margin: 18px 0; }
+.route-config-title { display: block; margin-bottom: 12px; color: #1f2937; font-size: 16px; font-weight: 700; }
+.route-weekday-picker { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 16px; border: 1px solid #dfe3e8; border-radius: 15px; background: #fff; }
+.route-weekday-option { display: inline-flex; align-items: center; gap: 9px; color: #374151; cursor: pointer; font-size: 15px; }
+.route-weekday-option input { position: absolute; opacity: 0; pointer-events: none; }
+.route-checkmark { display: inline-grid; width: 24px; height: 24px; place-items: center; border: 1px solid #9aaecb; border-radius: 6px; color: transparent; background: #fff; font-size: 16px; font-weight: 700; transition: .15s ease; }
+.route-weekday-option.is-selected .route-checkmark { border-color: #062b78; background: #062b78; color: #fff; }
+.route-time-chips { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 14px; border: 1px solid #dfe3e8; border-radius: 15px; background: #fff; }
+.route-time-chip { display: inline-flex; align-items: center; gap: 12px; min-height: 38px; padding: 0 12px 0 14px; border: 1px solid #dfe3e8; border-radius: 9px; color: #1f2937; background: #fff; }
+.route-time-chip button { border: 0; padding: 0; color: #6b7280; background: transparent; cursor: pointer; font-size: 20px; line-height: 1; }
+.route-add-time-button { min-height: 38px; padding: 0 14px; border: 1px solid #c4d2ea; border-radius: 9px; color: #062b78; background: #e7eef9; cursor: pointer; font-size: 15px; font-weight: 700; }
+.route-config-hint { margin: 9px 0 0; color: #737b86; font-size: 13px; }
+.route-add-time-panel { margin-top: 14px; padding: 14px; border: 1px solid #dfe3e8; border-radius: 15px; background: #fff; }
+.route-add-time-panel label { display: block; margin-bottom: 8px; color: #69717c; font-size: 14px; font-weight: 600; }
+.route-add-time-row { display: flex; gap: 10px; }
+.route-add-time-row input { flex: 1; min-height: 44px; padding: 0 12px; border: 1px solid #dfe3e8; border-radius: 9px; font-size: 16px; }
+.route-add-time-row button { min-width: 72px; border: 0; border-radius: 9px; color: #fff; background: #062b78; cursor: pointer; font-weight: 700; }
+.route-points-config { margin-top: 20px; padding: 20px; border: 1px solid #e1e5eb; border-radius: 14px; }
+.route-points-config > h4 { margin: 0 0 8px; color: #172033; font-size: 18px; }
+.route-points-config > p { margin: 0 0 18px; color: #737b86; }
+.route-points-config .stations-three-cols { display: none !important; }
+.route-points-head, .route-point-row { display: grid; grid-template-columns: minmax(220px, 1fr) 90px 52px 52px 28px; align-items: center; gap: 10px; }
+.route-points-head { padding: 0 8px 8px; color: #69717c; font-size: 13px; font-weight: 700; }
+.route-point-row { margin-bottom: 10px; }
+.route-point-name, .route-point-minutes, .route-point-add select { min-height: 42px; padding: 0 12px; border: 1px solid #dfe3e8; border-radius: 9px; background: #fff; }
+.route-point-name { display: flex; align-items: center; }
+.route-point-minutes { width: 100%; box-sizing: border-box; }
+.route-point-row input[type="checkbox"] { width: 22px; height: 22px; accent-color: #062b78; justify-self: center; }
+.route-point-remove { border: 0; color: #ef4444; background: transparent; cursor: pointer; font-size: 23px; }
+.route-point-add { display: flex; gap: 10px; margin-top: 14px; }
+.route-point-add select { flex: 1; }
+.route-point-add button { min-height: 42px; padding: 0 14px; border: 0; border-radius: 9px; color: #fff; background: #062b78; cursor: pointer; font-weight: 700; }

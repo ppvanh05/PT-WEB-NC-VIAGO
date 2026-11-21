@@ -1,0 +1,62 @@
+
+> viago-frontend@0.0.0 start
+> ng serve --host 127.0.0.1 --port 4200 --hmr=false
+
+> Building...
+√ Building...
+Initial chunk files | Names               |  Raw size
+chunk-DMJ64UFR.js   | -                   |   1.11 MB | 
+chunk-ZCAFYJVK.js   | -                   | 261.09 kB | 
+chunk-WL43LF3W.js   | -                   |  88.82 kB | 
+main.js             | main                |  34.37 kB | 
+styles.css          | styles              |  22.56 kB | 
+chunk-PINA5ZFE.js   | -                   |   5.00 kB | 
+chunk-AZDDZ67U.js   | -                   |   2.35 kB | 
+
+                    | Initial total       |   1.52 MB
+
+Lazy chunk files    | Names               |  Raw size
+chunk-EHJX2IVS.js   | home                | 704.41 kB | 
+chunk-ABDIJFLI.js   | customer-layout     | 609.53 kB | 
+chunk-YRLX4VSS.js   | new-booking         | 501.05 kB | 
+chunk-WCBP2ZCQ.js   | booking-management  | 445.67 kB | 
+chunk-5LTV5VE5.js   | profile             | 432.36 kB | 
+chunk-2DM42IUQ.js   | ticket-lookup       | 361.63 kB | 
+chunk-H3X2OSN5.js   | cancellation-report | 300.06 kB | 
+chunk-TIBSS3AL.js   | contract-rentals    | 239.80 kB | 
+chunk-DGI7OQ6R.js   | reviews-feedback    | 222.38 kB | 
+chunk-EQKA6LAO.js   | lost-and-found      | 221.73 kB | 
+chunk-C2KEUOAC.js   | services            | 206.80 kB | 
+chunk-UX4PPJ76.js   | schedules           | 194.95 kB | 
+chunk-GLVTJNXL.js   | routes              | 189.89 kB | 
+chunk-VWOC5TLY.js   | support             | 188.34 kB | 
+chunk-BOZDRARS.js   | drivers-assistants  | 186.23 kB | 
+...and 67 more lazy chunks files. Use "--verbose" to show all the files.
+
+Application bundle generation complete. [16.258 seconds] - 2026-11-17T23:48:42.609Z
+
+Watch mode enabled. Watching for file changes...
+NOTE: Raw file sizes do not reflect development server per-request transformations.
+  ➜  Local:   http://127.0.0.1:4200/
+> Changes detected. Rebuilding...
+√ Changes detected. Rebuilding...
+Initial chunk files | Names     |  Raw size
+main.js             | main      |  34.37 kB | 
+
+Lazy chunk files    | Names     |  Raw size
+chunk-ZOSB4M3P.js   | schedules | 196.49 kB | 
+
+Application bundle generation complete. [12.222 seconds] - 2026-11-18T00:04:25.811Z
+
+Page reload sent to client(s).
+> Changes detected. Rebuilding...
+√ Changes detected. Rebuilding...
+Initial chunk files | Names     |  Raw size
+main.js             | main      |  34.37 kB | 
+
+Lazy chunk files    | Names     |  Raw size
+chunk-JG25Q3VM.js   | schedules | 196.62 kB | 
+
+Application bundle generation complete. [0.991 seconds] - 2026-11-18T00:04:26.811Z
+
+Page reload sent to client(s).
