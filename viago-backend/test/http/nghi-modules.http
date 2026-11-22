@@ -1,0 +1,423 @@
+### =====================================================================
+### THỬ API PHẦN CỦA NGHI (đánh giá, thuê xe, đồ thất lạc, 5 báo cáo)
+### Cách dùng: cài extension "REST Client" (Huachao Mao) trong VS Code,
+### chạy backend (cd viago-backend → npm run start:dev), rồi bấm
+### "Send Request" phía trên từng yêu cầu. Chạy TỪ TRÊN XUỐNG theo từng phần.
+###
+### ⚠️ Dòng ghi "GHI DB" sẽ lưu dữ liệu thật vào Supabase chung của nhóm.
+### Tài khoản mẫu chỉ đăng nhập được khi chạy ở máy cá nhân
+### (.env có NODE_ENV=development, ADMIN/CUSTOMER_ALLOW_LOCAL_SEED_LOGIN=true,
+### và yêu cầu phải đến từ 127.0.0.1).
+###
+### 🔑 Mật khẩu và email của các tài khoản mẫu KHÔNG được lưu trong repo.
+### Trước khi chạy, hãy chép test/http/.env.example thành test/http/.env
+### (tệp .env đã nằm trong .gitignore nên không bị đẩy lên GitHub) rồi điền
+### giá trị thật. Nếu REST Client báo không đọc được {{$dotenv ...}}, chép
+### tệp .env đó ra thư mục gốc của workspace là được.
+### =====================================================================
+
+@host = http://localhost:3000
+
+
+### ---------------------------------------------------------------------
+### 0. ĐĂNG NHẬP (chạy trước, các yêu cầu sau tự lấy token)
+### ---------------------------------------------------------------------
+
+# @name admin
+POST {{host}}/admin/auth/login
+Content-Type: application/json
+
+{ "username": "{{$dotenv VIAGO_SEED_ADMIN_USERNAME}}", "password": "{{$dotenv VIAGO_SEED_ADMIN_PASSWORD}}" }
+
+###
+
+# @name customer
+POST {{host}}/customer/auth/login
+Content-Type: application/json
+
+{ "username": "{{$dotenv VIAGO_SEED_CUSTOMER_USERNAME}}", "password": "{{$dotenv VIAGO_SEED_CUSTOMER_PASSWORD}}" }
+
+###
+@adminToken = {{admin.response.body.token}}
+@customerToken = {{customer.response.body.token}}
+
+
+### =====================================================================
+### 1. KHÁCH – ĐÁNH GIÁ CHUYẾN ĐI (customer/reviews)
+### =====================================================================
+
+### 1.1 Thống kê đầu trang: điểm trung bình, số sao, điểm từng tiêu chí
+GET {{host}}/customer/reviews/summary
+
+### 1.2 Dữ liệu cho bộ lọc (loại xe, tuyến, tiêu chí)
+GET {{host}}/customer/reviews/options
+
+### 1.3 Danh sách: lọc + sắp xếp (tab=all|has_comment|has_media, rating=1..5,
+###     vehicleType, routeId, criterion, search, sort=newest|oldest|rating_high|rating_low|helpful)
+GET {{host}}/customer/reviews?page=1&pageSize=5&sort=helpful
+
+###
+GET {{host}}/customer/reviews?tab=has_media&criterion=safety
+
+### 1.4 Bấm "Hữu ích" (GHI DB, bấm lần 2 không tăng) rồi bỏ bấm
+POST {{host}}/customer/reviews/DG001/helpful
+
+###
+DELETE {{host}}/customer/reviews/DG001/helpful
+
+### 1.5 Kiểm tra vé có được đánh giá không (cần đăng nhập khách)
+###     VE001 đã đánh giá → eligible=false; VE012 hoàn thành, chưa đánh giá → eligible=true
+GET {{host}}/customer/reviews/eligibility/VE012
+Authorization: Bearer {{customerToken}}
+
+### 1.6 Gửi đánh giá (API của Lê, GHI DB). Gửi lần 2 cùng vé → 409 "Vé này đã được đánh giá."
+###     scores = 6 tiêu chí: an toàn, sạch sẽ, thái độ, đúng giờ, thông tin, tiện nghi
+POST {{host}}/customer/profile/tickets/VE012/review
+Authorization: Bearer {{customerToken}}
+Content-Type: multipart/form-data; boundary=VIAGO
+
+--VIAGO
+Content-Disposition: form-data; name="scores"
+
+[5,4,5,4,5,4]
+--VIAGO
+Content-Disposition: form-data; name="comment"
+
+Xe sạch, tài xế chạy êm, đến nơi đúng giờ.
+--VIAGO--
+
+
+### =====================================================================
+### 2. ADMIN – ĐÁNH GIÁ & PHẢN HỒI (admin/reviews-feedback)
+### =====================================================================
+
+### 2.1 Tổng quan: cần phản hồi, quá hạn 24h, theo nguyên nhân, chuyến cần cải thiện
+GET {{host}}/admin/reviews-feedback/summary
+Authorization: Bearer {{adminToken}}
+
+### 2.2 Bộ lọc
+GET {{host}}/admin/reviews-feedback/options
+Authorization: Bearer {{adminToken}}
+
+### 2.3 Hàng đợi (queue=all|needs_reply|low_rating, stars=1,2,3, processing=pending|done,
+###     causeTag=tai-xe|van-hanh|thoi-tiet|khach-chu-quan|none, sort=urgent|newest|oldest|rating_low)
+GET {{host}}/admin/reviews-feedback?queue=needs_reply&sort=urgent
+Authorization: Bearer {{adminToken}}
+
+### 2.4 Chi tiết: thông tin chuyến, tài xế, trễ giờ, số đánh giá cùng chuyến
+GET {{host}}/admin/reviews-feedback/DG002
+Authorization: Bearer {{adminToken}}
+
+### 2.5 Phản hồi khách (GHI DB) – tự chuyển trạng thái xử lý sang "da-xong"
+PUT {{host}}/admin/reviews-feedback/DG002/reply
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "content": "Cảm ơn chị đã góp ý, VIAGO đã bổ sung chăn mỏng cho các chuyến đêm." }
+
+### 2.6 Cập nhật xử lý nội bộ (GHI DB): trạng thái, mức khẩn cấp, ghi chú, nguyên nhân
+PATCH {{host}}/admin/reviews-feedback/DG002/workflow
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "processingStatus": "da-xong", "urgency": "TrungBinh", "causeTag": "van-hanh", "internalNote": "Đã báo kho bổ sung chăn." }
+
+### 2.7 Ẩn đánh giá vi phạm (GHI DB, bắt buộc lý do) rồi hiện lại
+PATCH {{host}}/admin/reviews-feedback/DG002/visibility
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "visible": false, "reason": "Thử chức năng ẩn nội dung vi phạm" }
+
+###
+PATCH {{host}}/admin/reviews-feedback/DG002/visibility
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "visible": true }
+
+
+### =====================================================================
+### 3. KHÁCH – THUÊ XE HỢP ĐỒNG (customer/contract-rentals)
+### =====================================================================
+
+### 3.1 Loại xe + giá niêm yết, tài xế, khuyến mãi thuê xe
+GET {{host}}/customer/contract-rentals/vehicles
+
+###
+GET {{host}}/customer/contract-rentals/drivers
+
+###
+GET {{host}}/customer/contract-rentals/promotions
+
+### 3.2 Tính giá tạm (không ghi DB). TuLai tính theo ngày; CoTaiXe tính theo chuyến (NoiTinh|LienTinh)
+POST {{host}}/customer/contract-rentals/estimate
+Content-Type: application/json
+
+{ "vehicleTypeId": "LXT002", "rentalType": "TuLai", "startAt": "2026-12-20T08:00:00+07:00", "endAt": "2026-12-23T08:00:00+07:00", "promoCode": "SUMMERTRIP", "phone": "0909123456" }
+
+### 3.3 Gửi yêu cầu thuê xe (GHI DB) → nhận mã YCTX...
+# @name rentalRequest
+POST {{host}}/customer/contract-rentals/requests
+Content-Type: application/json
+
+{
+  "fullName": "Khách Thử Nghiệm",
+  "phone": "0909123456",
+  "email": "khachthu@example.com",
+  "vehicleTypeId": "LXT001",
+  "rentalType": "CoTaiXe",
+  "tripScope": "LienTinh",
+  "pickup": "Văn phòng Quận 1, TP.HCM",
+  "destination": "Vũng Tàu",
+  "startAt": "2026-12-20T07:00:00+07:00",
+  "endAt": "2026-12-20T19:00:00+07:00",
+  "passengers": 8,
+  "vehicles": 1,
+  "note": "Đoàn gia đình, cần nước uống"
+}
+
+###
+@rentalCode = {{rentalRequest.response.body.code}}
+
+### 3.4 Tra cứu tiến trình bằng mã + SĐT người gửi
+GET {{host}}/customer/contract-rentals/requests/{{rentalCode}}?phone=0909123456
+
+
+### =====================================================================
+### 4. ADMIN – THUÊ XE HỢP ĐỒNG (admin/contract-rentals)
+###    Luồng: yêu cầu → báo giá → khách đồng ý → hợp đồng → phân công → cọc → chạy → thu đủ → hoàn thành
+### =====================================================================
+
+### 4.1 Tổng quan, bảng giá chuẩn, danh sách yêu cầu
+GET {{host}}/admin/contract-rentals/summary
+Authorization: Bearer {{adminToken}}
+
+###
+GET {{host}}/admin/contract-rentals/price-list
+Authorization: Bearer {{adminToken}}
+
+###
+GET {{host}}/admin/contract-rentals/requests?status=ChoBaoGia
+Authorization: Bearer {{adminToken}}
+
+### 4.2 Lập báo giá cho yêu cầu vừa gửi ở 3.3 (GHI DB). Bỏ trống thì lấy theo bảng giá chuẩn.
+# @name quote
+POST {{host}}/admin/contract-rentals/requests/{{rentalCode}}/quotes
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "surcharge": 200000, "validDays": 3 }
+
+###
+@quoteCode = {{quote.response.body.code}}
+
+### 4.3 Khách đồng ý báo giá – từ phía khách (GHI DB)
+POST {{host}}/customer/contract-rentals/requests/{{rentalCode}}/quote-decision
+Content-Type: application/json
+
+{ "phone": "0909123456", "decision": "accept" }
+
+### 4.4 Lập hợp đồng từ báo giá đã đồng ý (GHI DB)
+# @name contract
+POST {{host}}/admin/contract-rentals/quotes/{{quoteCode}}/contract
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{}
+
+###
+@contractCode = {{contract.response.body.code}}
+
+### 4.5 Xe và tài xế còn trống trong thời gian hợp đồng
+GET {{host}}/admin/contract-rentals/contracts/{{contractCode}}/assignment-options
+Authorization: Bearer {{adminToken}}
+
+### 4.6 Phân công (GHI DB). Lấy vehicleId/driverId có "available": true ở bước 4.5
+PUT {{host}}/admin/contract-rentals/contracts/{{contractCode}}/assignments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "items": [ { "vehicleId": "XE011", "driverId": "NS016" } ] }
+
+### 4.7 Thu cọc (GHI DB) – số tiền lấy "depositRequired" trong hợp đồng → chuyển "Đã cọc"
+POST {{host}}/admin/contract-rentals/contracts/{{contractCode}}/payments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "type": "TienCoc", "method": "CHUYEN_KHOAN", "amount": {{contract.response.body.depositRequired}} }
+
+### 4.8 Bắt đầu chuyến (GHI DB)
+PATCH {{host}}/admin/contract-rentals/contracts/{{contractCode}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "status": "DangThucHien" }
+
+### 4.9 Thu phần còn lại (GHI DB) – số tiền = total - depositRequired.
+###     Với yêu cầu mẫu ở 3.3: 2.500.000 (liên tỉnh) + 200.000 phụ phí = 2.700.000; cọc 810.000 → còn 1.890.000
+POST {{host}}/admin/contract-rentals/contracts/{{contractCode}}/payments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "type": "ThanhToanConLai", "method": "TIEN_MAT", "amount": 1890000 }
+
+### 4.10 Hoàn thành (GHI DB) – chỉ được khi đã thu đủ
+PATCH {{host}}/admin/contract-rentals/contracts/{{contractCode}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "status": "HoanThanh" }
+
+### 4.11 Xem chi tiết hợp đồng + lịch sử yêu cầu
+GET {{host}}/admin/contract-rentals/contracts/{{contractCode}}
+Authorization: Bearer {{adminToken}}
+
+###
+GET {{host}}/admin/contract-rentals/requests/{{rentalCode}}
+Authorization: Bearer {{adminToken}}
+
+
+### =====================================================================
+### 5. KHÁCH – ĐỒ THẤT LẠC (customer/lost-and-found)
+### =====================================================================
+
+### 5.1 Danh sách đồ nhặt được công khai (status=stored|processing|returned, routeId, search, from, to)
+GET {{host}}/customer/lost-and-found/items
+
+###
+GET {{host}}/customer/lost-and-found/routes
+
+### 5.2 Tra mã đơn/mã vé + SĐT người đặt để điền sẵn form (sai SĐT → 404)
+GET {{host}}/customer/lost-and-found/bookings/DH006?phone=0901234510
+
+### 5.3 Báo mất đồ (GHI DB). Muốn kèm ảnh: thêm phần "files" (tối đa 3 ảnh JPG/PNG/WebP)
+POST {{host}}/customer/lost-and-found/reports
+Content-Type: multipart/form-data; boundary=VIAGO
+
+--VIAGO
+Content-Disposition: form-data; name="bookingCode"
+
+DH006
+--VIAGO
+Content-Disposition: form-data; name="phone"
+
+0901234510
+--VIAGO
+Content-Disposition: form-data; name="itemName"
+
+Tai nghe Sony màu đen
+--VIAGO
+Content-Disposition: form-data; name="description"
+
+Tai nghe chụp tai Sony WH-1000XM4 màu đen, để ở túi lưng ghế
+--VIAGO
+Content-Disposition: form-data; name="fullName"
+
+Nguyễn Thành Đạt
+--VIAGO--
+
+### 5.4 Yêu cầu nhận lại đồ đang lưu giữ. DTL00002 đã có yêu cầu chờ của SĐT này → báo 409
+POST {{host}}/customer/lost-and-found/items/DTL00002/claims
+Content-Type: application/json
+
+{ "bookingCode": "DH003", "phone": "0901234503", "description": "iPhone 13 Pro xanh dương, ốp trong suốt, màn hình trầy nhẹ" }
+
+### 5.5 Tra cứu tình trạng bằng mã báo mất (DTL...) hoặc mã yêu cầu nhận (YCND...) + SĐT
+GET {{host}}/customer/lost-and-found/status/DTL00002?phone=0901234503
+
+###
+GET {{host}}/customer/lost-and-found/status/YCND001?phone=0901234503
+
+
+### =====================================================================
+### 6. ADMIN – ĐỒ THẤT LẠC (admin/lost-and-found)
+### =====================================================================
+
+### 6.1 Tổng quan + danh sách (status, type, hasPendingClaims=true, search, from, to)
+GET {{host}}/admin/lost-and-found/summary
+Authorization: Bearer {{adminToken}}
+
+###
+GET {{host}}/admin/lost-and-found?hasPendingClaims=true
+Authorization: Bearer {{adminToken}}
+
+### 6.2 Tra mã vé/mã đơn để điền nhanh form
+GET {{host}}/admin/lost-and-found/tickets/VE001
+Authorization: Bearer {{adminToken}}
+
+### 6.3 Ghi nhận đồ nhặt được trên xe (GHI DB)
+POST {{host}}/admin/lost-and-found
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "type": "NhanVienNhatDuoc", "scheduleId": "LT002", "itemName": "Ô dù gấp màu xanh", "description": "Nhặt ở hàng ghế cuối", "foundLocation": "Hàng ghế cuối xe", "storageLocation": "Tủ đồ văn phòng Quận 1" }
+
+### 6.4 Chuyển "Đang tìm kiếm" → "Đã tìm thấy" (GHI DB, cần vị trí tìm thấy + nơi lưu giữ)
+PATCH {{host}}/admin/lost-and-found/DTL00001/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "status": "DaTimThay", "foundLocation": "Hộc để đồ ghế 1A", "storageLocation": "Tủ đồ thất lạc văn phòng VIAGO" }
+
+### 6.5 Duyệt yêu cầu nhận đồ (GHI DB) – các yêu cầu khác của cùng món tự bị từ chối
+PATCH {{host}}/admin/lost-and-found/claims/YCND001
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "decision": "approve", "note": "Khách mô tả đúng đặc điểm" }
+
+### 6.6 Trả đồ cho khách (GHI DB)
+PATCH {{host}}/admin/lost-and-found/DTL00002/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "status": "DaTraKhach", "note": "Đã bàn giao trực tiếp tại văn phòng" }
+
+
+### =====================================================================
+### 7. ADMIN – 5 BÁO CÁO (admin/reports). Lọc ngày: from=yyyy-MM-dd&to=yyyy-MM-dd
+### =====================================================================
+
+### 7.1 Báo cáo hoàn hủy
+GET {{host}}/admin/reports/cancellations
+Authorization: Bearer {{adminToken}}
+
+### 7.2 Báo cáo chi tiết (doanh thu, chi phí, lợi nhuận theo chuyến)
+GET {{host}}/admin/reports/revenue?from=2026-10-28&to=2026-10-28
+Authorization: Bearer {{adminToken}}
+
+### 7.3 Báo cáo tuyến xe
+GET {{host}}/admin/reports/routes
+Authorization: Bearer {{adminToken}}
+
+### 7.4 Báo cáo khách hàng (type=member|guest, tierId, sort=spent|tickets|newest)
+GET {{host}}/admin/reports/customers
+Authorization: Bearer {{adminToken}}
+
+### 7.5 Báo cáo tài xế/phụ xe (role, status, licenseClass=D|E|none, licenseState=valid|expiring|expired|none)
+GET {{host}}/admin/reports/drivers
+Authorization: Bearer {{adminToken}}
+
+### 7.6 Ghi nhận nhắc đổi bằng lái (GHI DB) – chỉ tài xế có bằng còn ≤ 30 ngày; tài xế còn hạn dài sẽ báo 400
+POST {{host}}/admin/reports/drivers/NS003/license-reminders
+Authorization: Bearer {{adminToken}}
+
+
+### =====================================================================
+### 8. THỬ PHÂN QUYỀN: nhân viên điều phối xem được báo cáo nhưng KHÔNG xem được đánh giá (403)
+### =====================================================================
+
+# @name dispatcher
+POST {{host}}/admin/auth/login
+Content-Type: application/json
+
+{ "username": "{{$dotenv VIAGO_SEED_DISPATCHER_USERNAME}}", "password": "{{$dotenv VIAGO_SEED_DISPATCHER_PASSWORD}}" }
+
+###
+GET {{host}}/admin/reports/routes
+Authorization: Bearer {{dispatcher.response.body.token}}
+
+###
+GET {{host}}/admin/reviews-feedback/summary
+Authorization: Bearer {{dispatcher.response.body.token}}
