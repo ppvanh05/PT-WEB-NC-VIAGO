@@ -113,6 +113,47 @@ async function run(tx) {
     terms: true,
     key,
   });
+  // Kenh truc tuyen chi nhan VietQR, nen moi don do khach tu tao trong bai
+  // kiem thu nay deu la don VietQR va can cong thanh toan da duoc cau hinh.
+  const sepayKeys = [
+    'VIETQR_BANK_ID',
+    'SEPAY_MODE',
+    'SEPAY_ACCOUNT_NO',
+    'VIETQR_ACCOUNT_NO',
+    'VIETQR_ACCOUNT_NAME',
+    'SEPAY_BANK_NAME',
+    'SEPAY_WEBHOOK_SECRET',
+  ];
+  const sepayPrior = Object.fromEntries(
+    sepayKeys.map((k) => [k, process.env[k]]),
+  );
+  for (const k of sepayKeys) delete process.env[k];
+  Object.assign(process.env, {
+    VIETQR_BANK_ID: 'TESTBANK',
+    VIETQR_ACCOUNT_NO: 'TEST0001',
+    VIETQR_ACCOUNT_NAME: 'Integration Test',
+    SEPAY_BANK_NAME: 'TestBank',
+    SEPAY_WEBHOOK_SECRET: randomBytes(32).toString('hex'),
+  });
+  const restoreSepay = () => {
+    for (const k of sepayKeys) {
+      if (sepayPrior[k] === undefined) delete process.env[k];
+      else process.env[k] = sepayPrior[k];
+    }
+  };
+  const webhook = (data) => postSepayWebhook(api, data);
+  let transferId = Math.floor(Date.now() / 1000);
+  const transfer = (o, extra = {}) => ({
+    id: ++transferId,
+    gateway: 'TestBank',
+    accountNumber: 'TEST0001',
+    transferType: 'in',
+    transferAmount: o.total,
+    content: o.paymentCode,
+    transactionDate: new Date(Date.now() - 1000).toISOString(),
+    referenceCode: 'TEST-' + suffix + '-' + o.id,
+    ...extra,
+  });
   await check(
     'online booking offers VietQR only and reports its configuration',
     async () => {
@@ -135,8 +176,11 @@ async function run(tx) {
   await check(
     'real search and seat hold persist in Supabase and exclude other visitors',
     async () => {
+      // Chon chuyen con mo ban it nhat 20 phut nua: thoi han giu cho bang
+      // min(10 phut, cau hinh chuyen, gio dong ban), nen neu lay chuyen sap
+      // dong ban thi cho giu se het han ngay giua bai kiem thu.
       const [candidate] =
-        await tx.$queryRaw`SELECT t.diemdi,t.diemden,to_char(l.thoigiankhoihanh AT TIME ZONE 'Asia/Ho_Chi_Minh','YYYY-MM-DD') AS date FROM lich_trinh l JOIN tuyen_xe t ON t.matuyenduong=l.matuyenduong JOIN xe x ON x.maxe=l.maxe WHERE l.trangthai='DangMoBan' AND t.trangthai='HoatDong' AND x.trangthai='DangHoatDong' AND l.thoigiankhoihanh>now() AND l.thoigiandongbanve>now() AND l.thoigiankhoihanh-l.songaymobantruoc*interval '1 day'<=now() ORDER BY l.thoigiankhoihanh LIMIT 1`;
+        await tx.$queryRaw`SELECT t.diemdi,t.diemden,to_char(l.thoigiankhoihanh AT TIME ZONE 'Asia/Ho_Chi_Minh','YYYY-MM-DD') AS date FROM lich_trinh l JOIN tuyen_xe t ON t.matuyenduong=l.matuyenduong JOIN xe x ON x.maxe=l.maxe WHERE l.trangthai='DangMoBan' AND t.trangthai='HoatDong' AND x.trangthai='DangHoatDong' AND l.thoigiankhoihanh>now() AND l.thoigiandongbanve>now()+interval '20 minutes' AND l.thoigiankhoihanh-l.songaymobantruoc*interval '1 day'<=now() ORDER BY l.thoigiankhoihanh LIMIT 1`;
       assert(candidate, 'Need at least one open future trip');
       const response = (
         await a
@@ -203,7 +247,7 @@ async function run(tx) {
     },
   );
   await check(
-    'create saves a pending cash order/payment without issuing paid tickets; retries are idempotent',
+    'create saves a pending VietQR order/payment without issuing paid tickets; retries are idempotent',
     async () => {
       const body = orderBody([leg]);
       await a
@@ -219,18 +263,20 @@ async function run(tx) {
       created.push(order.id);
       assert.match(order.id, /^DH\d{3,}$/);
       assert.equal(order.status, 'pending');
-      assert.equal(order.method, 'counter');
+      assert.equal(order.method, 'vietqr');
+      assert.match(order.paymentCode, /^VIAGO[0-9]{8}$/);
       assert.equal(order.tickets.length, 0);
       const stored = await tx.don_hang.findUniqueOrThrow({
         where: { madonhang: order.id },
       });
-      assert.equal(stored.trangthaidonhang, 'ChoThanhToanTrucTiep');
+      assert.equal(stored.trangthaidonhang, 'ChoThanhToanOnline');
       assert.equal(stored.emailnguoidat, email);
       assert.equal(Number(stored.tongthanhtoan), seats[0].price);
       const payment = await tx.thanh_toan.findFirstOrThrow({
         where: { madonhang: order.id },
       });
-      assert.equal(payment.phuongthucthanhtoan, 'TIEN_MAT');
+      assert.equal(payment.phuongthucthanhtoan, 'VIETQR');
+      assert.equal(payment.kenhthanhtoan, 'SePay');
       assert.equal(payment.trangthaithanhtoan, 'ChoThanhToan');
       assert.equal(await tx.ve_xe.count({ where: { madonhang: order.id } }), 0);
       assert.equal(
@@ -258,32 +304,46 @@ async function run(tx) {
     },
   );
   await check(
-    'only authenticated staff can receive cash; confirmation persists tickets, payment allocation and audit',
+    'a VietQR order cannot be collected as cash and an authenticated webhook persists tickets and allocation',
     async () => {
-      await api
-        .post('/admin/counter-orders/' + order.id + '/confirm')
+      // Don truc tuyen khong con nam trong danh sach thu tien mat tai quay.
+      assert.equal(
+        (
+          await admin('get', '/admin/counter-orders?search=' + order.id).expect(
+            200,
+          )
+        ).body.pagination.total,
+        0,
+      );
+      await admin('post', '/admin/counter-orders/' + order.id + '/confirm')
         .send({})
-        .expect(401);
-      const list = (
-        await admin('get', '/admin/counter-orders?search=' + order.id).expect(
-          200,
-        )
+        .expect(409);
+      assert.equal(await tx.ve_xe.count({ where: { madonhang: order.id } }), 0);
+      const qr = (
+        await a
+          .get('/customer/home/orders/' + order.id + '/payment')
+          .expect(200)
       ).body;
-      assert.equal(list.pagination.total, 1);
-      assert.equal(list.data[0].id, order.id);
+      assert.equal(qr.amount, order.total);
+      assert.equal(qr.content, order.paymentCode);
+      await b.get('/customer/home/orders/' + order.id + '/payment').expect(404);
+      const money = transfer(order);
+      await api
+        .post('/customer/home/payments/sepay')
+        .send(money)
+        .expect(401);
+      const confirmed = (await webhook(money).expect(201)).body;
+      assert.equal(confirmed.processed, true, JSON.stringify(confirmed));
       const paid = (
-        await admin('post', '/admin/counter-orders/' + order.id + '/confirm')
-          .send({})
-          .expect(201)
+        await a.get('/customer/home/orders/' + order.id).expect(200)
       ).body;
       assert.equal(paid.status, 'paid');
       assert.equal(paid.tickets.length, 1);
       assert.match(paid.tickets[0].id, /^VE\d{3,}$/);
       const payment = await tx.thanh_toan.findFirstOrThrow({
-        where: { madonhang: order.id },
+        where: { madonhang: order.id, trangthaithanhtoan: 'ThanhCong' },
       });
-      assert.equal(payment.trangthaithanhtoan, 'ThanhCong');
-      assert.equal(payment.manhanvienthu, staff.manhanvien);
+      assert.equal(payment.phuongthucthanhtoan, 'VIETQR');
       assert.equal(
         (
           await tx.ghe_chuyen.findUniqueOrThrow({
@@ -297,20 +357,6 @@ async function run(tx) {
       });
       assert.equal(allocations.length, 1);
       assert.equal(Number(allocations[0].sotienphanbo), order.total);
-      assert(
-        await tx.nhat_ky_he_thong.count({
-          where: {
-            madoituong: order.id,
-            manhanvien: staff.manhanvien,
-            hanhdong: 'XacNhanThuTienTaiQuay',
-          },
-        }),
-      );
-      assert.equal(
-        (await a.get('/customer/home/orders/' + order.id).expect(200)).body
-          .status,
-        'paid',
-      );
       await a
         .get('/customer/home/tickets/' + paid.tickets[0].token)
         .expect(200);
@@ -318,9 +364,8 @@ async function run(tx) {
         .post('/customer/home/orders/' + order.id + '/print')
         .send({})
         .expect(200);
-      await admin('post', '/admin/counter-orders/' + order.id + '/confirm')
-        .send({})
-        .expect(201);
+      // Webhook gui lai khong duoc xuat them ve.
+      assert.equal((await webhook(money).expect(201)).body.duplicate, true);
       assert.equal(await tx.ve_xe.count({ where: { madonhang: order.id } }), 1);
     },
   );
@@ -374,7 +419,7 @@ async function run(tx) {
     },
   );
   await check(
-    'expiration releases the hold and prevents cash confirmation or ticket issuance',
+    'expiration releases the hold and prevents payment confirmation or ticket issuance',
     async () => {
       const other = { ...leg, seats: [seats[2].id] };
       await c
@@ -424,7 +469,7 @@ async function run(tx) {
     },
   );
   await check(
-    'round-trip reservation links both legs and cash confirmation issues both tickets exactly once',
+    'round-trip reservation links both legs and one VietQR payment issues both tickets exactly once',
     async () => {
       const reverse = (
         await c
@@ -472,13 +517,27 @@ async function run(tx) {
         where: { madonhang: root.madonhangkhuhoi },
       });
       assert.equal(linked.madonhangkhuhoi, root.madonhang);
+      // Don khu hoi dat truc tuyen cung chi thanh toan bang VietQR.
+      assert.match(pending.paymentCode, /^VIAGO[0-9]{8}$/);
+      await admin('post', '/admin/counter-orders/' + pending.id + '/confirm')
+        .send({})
+        .expect(409);
+      const money = transfer(pending);
+      const confirmed = (await webhook(money).expect(201)).body;
+      assert.equal(confirmed.processed, true, JSON.stringify(confirmed));
       const paid = (
-        await admin('post', '/admin/counter-orders/' + pending.id + '/confirm')
-          .send({})
-          .expect(201)
+        await c.get('/customer/home/orders/' + pending.id).expect(200)
       ).body;
       assert.equal(paid.status, 'paid');
       assert.equal(paid.tickets.length, 2);
+      // Gui lai webhook khong duoc xuat them ve cho ca hai chieu.
+      assert.equal((await webhook(money).expect(201)).body.duplicate, true);
+      assert.equal(
+        await tx.ve_xe.count({
+          where: { madonhang: { in: pending.legs.map((l) => l.orderId) } },
+        }),
+        2,
+      );
       const payment = await tx.thanh_toan.findFirstOrThrow({
         where: { madonhang: pending.id },
       });
@@ -608,6 +667,7 @@ async function run(tx) {
       }
     },
   );
+  restoreSepay();
   throw new Error('ROLLBACK_BOOKING_SUCCESS');
 }
 (async () => {

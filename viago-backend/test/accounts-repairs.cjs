@@ -132,25 +132,43 @@ async function main() {
         throw e;
       }
     },
-    phien_dang_nhap: {
-      findFirst: async () => ({
+    // Guard doc phien bang mot cau SQL thuan (readActiveAccountSession),
+    // khong con qua phien_dang_nhap.findFirst nua.
+    $queryRaw: async () => [
+      {
         maphien: 'PDN_TEST',
+        mataikhoan: 'TK_TEST',
+        thoigianhethan: new Date(Date.now() + 3600000),
+        thoigianhoatdongcuoi: new Date(),
         tai_khoan: {
           mataikhoan: 'TK_TEST',
           vaitrotaikhoan: 'KhachHang',
-          trangthai: 'HoatDong',
           khach_hang: {
             makhachhang: 'KH_TEST',
             hotenkhachhang: 'QA',
             trangthai: 'HoatDong',
           },
+          nhan_vien: null,
         },
-      }),
+      },
+    ],
+    // nextCode('danh_gia', 'DG', 3) doc so lon nhat dang co.
+    $queryRawUnsafe: async () => [{ max: reviews.length }],
+    phien_dang_nhap: {
       updateMany: async () => ({ count: 0 }),
     },
     ve_xe: {
       findFirst: async (q) =>
-        q.where.mave === 'VE_SELF' ? { mave: 'VE_SELF' } : null,
+        q.where.mave === 'VE_SELF'
+          ? {
+              mave: 'VE_SELF',
+              trangthaive: 'DaHoanThanh',
+              // Luon bao chua co danh gia de mo phong hai yeu cau gui cung luc:
+              // kiem tra truoc do deu lot, chi khoa duy nhat (P2002) chan lai.
+              danh_gia: null,
+              don_hang: { makhachhang: 'KH_TEST' },
+            }
+          : null,
     },
     danh_gia: {
       create: async (q) => {
@@ -158,6 +176,7 @@ async function main() {
           throw new Prisma.PrismaClientKnownRequestError('Duplicate', {
             code: 'P2002',
             clientVersion: '6.19.3',
+            meta: { target: ['mave'] },
           });
         reviews.push(q.data);
         return q.data;
