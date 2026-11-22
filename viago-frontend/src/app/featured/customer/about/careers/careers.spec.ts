@@ -38,7 +38,7 @@ describe('Database-backed careers', () => {
     expect(page.selectedJob?.description).toBe('Server content');
     page.openApplicationForm(page.selectedJob!);
     expect(page.applicationForm.position).toBe('REAL_JOB');
-    expect(fetchMock).toHaveBeenCalledWith('/customer/about/careers/REAL_JOB', expect.anything());
+    expect(fetchMock).toHaveBeenCalledWith('/api/customer/about/careers/REAL_JOB', expect.anything());
   });
   it('uploads multipart CV data and removes UI-only position from submitted fields', async () => {
     const fetchMock = vi.fn().mockResolvedValue(json({ received: true }));
@@ -55,7 +55,7 @@ describe('Database-backed careers', () => {
     await page.submitApplication();
     const [url, options] = fetchMock.mock.calls[0];
     const form = options.body as FormData;
-    expect(url).toBe('/customer/about/careers/REAL_JOB/applications');
+    expect(url).toBe('/api/customer/about/careers/REAL_JOB/applications');
     expect(form.get('position')).toBeNull();
     expect(form.get('agreeTerms')).toBe('true');
     expect(form.get('cv')).toBeInstanceOf(File);

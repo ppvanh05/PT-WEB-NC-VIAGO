@@ -43,7 +43,7 @@ function fakeTx({ hoursLeft, otherActiveTickets = 1, paid = 200000, method = 'VI
   return tx;
 }
 
-test('tỷ lệ hoàn theo mốc 24 giờ / 12 giờ và lỗi nhà xe', () => {
+void test('tỷ lệ hoàn theo mốc 24 giờ / 12 giờ và lỗi nhà xe', () => {
   assert.equal(refundRateFor(30), 100);
   assert.equal(refundRateFor(24), 100);
   assert.equal(refundRateFor(12), 50);
@@ -51,7 +51,7 @@ test('tỷ lệ hoàn theo mốc 24 giờ / 12 giờ và lỗi nhà xe', () => {
   assert.equal(refundRateFor(2, true), 100);
 });
 
-test('khách hủy trước 30 giờ: hoàn 100%, mở lại ghế, đơn hủy một phần, tạo yêu cầu hoàn', async () => {
+void test('khách hủy trước 30 giờ: hoàn 100%, mở lại ghế, đơn hủy một phần, tạo yêu cầu hoàn', async () => {
   const tx = fakeTx({ hoursLeft: 30 });
   const r = await cancelPaidTicket(tx, { ticketId: 'VE1', source: 'KhachHang', reason: 'Đổi kế hoạch' });
   assert.equal(r.refundAmount, 200000);
@@ -63,7 +63,7 @@ test('khách hủy trước 30 giờ: hoàn 100%, mở lại ghế, đơn hủy 
   assert.equal(tx.state.refunds[0].phuongthuchoan, 'VeGiaoDichGoc');
 });
 
-test('khách hủy trong khoảng 12–24 giờ: hoàn 50%; hủy vé cuối thì đơn Đã hủy', async () => {
+void test('khách hủy trong khoảng 12–24 giờ: hoàn 50%; hủy vé cuối thì đơn Đã hủy', async () => {
   const tx = fakeTx({ hoursLeft: 15, otherActiveTickets: 0, method: 'TIEN_MAT' });
   const r = await cancelPaidTicket(tx, { ticketId: 'VE1', source: 'KhachHang', reason: 'Bận việc' });
   assert.equal(r.refundAmount, 100000);
@@ -72,7 +72,7 @@ test('khách hủy trong khoảng 12–24 giờ: hoàn 50%; hủy vé cuối th�
   assert.equal(tx.state.refunds[0].phuongthuchoan, 'TienMat');
 });
 
-test('khách không tự hủy khi còn dưới 12 giờ; nhân viên hủy được nhưng không hoàn', async () => {
+void test('khách không tự hủy khi còn dưới 12 giờ; nhân viên hủy được nhưng không hoàn', async () => {
   await assert.rejects(
     () => cancelPaidTicket(fakeTx({ hoursLeft: 5 }), { ticketId: 'VE1', source: 'KhachHang', reason: 'x' }),
     /12 giờ/,
@@ -83,7 +83,7 @@ test('khách không tự hủy khi còn dưới 12 giờ; nhân viên hủy đư
   assert.equal(tx.state.refunds.length, 0);
 });
 
-test('nhà xe không phục vụ: hoàn 100% dù sát giờ; gọi lặp trả kết quả cũ', async () => {
+void test('nhà xe không phục vụ: hoàn 100% dù sát giờ; gọi lặp trả kết quả cũ', async () => {
   const tx = fakeTx({ hoursLeft: 2 });
   const input = { ticketId: 'VE1', source: 'NhanVienBanVe', reason: 'Xe hỏng', carrierFault: true };
   const first = await cancelPaidTicket(tx, input);
@@ -93,7 +93,7 @@ test('nhà xe không phục vụ: hoàn 100% dù sát giờ; gọi lặp trả k
   assert.equal(tx.state.histories.length, 1);
 });
 
-test('không hủy vé đã qua giờ khởi hành hoặc vé đã hủy', async () => {
+void test('không hủy vé đã qua giờ khởi hành hoặc vé đã hủy', async () => {
   await assert.rejects(
     () => cancelPaidTicket(fakeTx({ hoursLeft: -1 }), { ticketId: 'VE1', source: 'NhanVienBanVe', reason: 'x' }),
     /khởi hành/,
@@ -103,7 +103,7 @@ test('không hủy vé đã qua giờ khởi hành hoặc vé đã hủy', async
   await assert.rejects(() => cancelPaidTicket(tx, { ticketId: 'VE1', source: 'KhachHang', reason: 'x' }), /chờ khởi hành/);
 });
 
-test('xác nhận hoàn tiền: thành công hoặc thất bại rồi xử lý lại', async () => {
+void test('xác nhận hoàn tiền: thành công hoặc thất bại rồi xử lý lại', async () => {
   const tx = fakeTx({ hoursLeft: 30 });
   const r = await cancelPaidTicket(tx, { ticketId: 'VE1', source: 'KhachHang', reason: 'x' });
   const failed = await completeRefund(tx, { refundId: r.refundId, success: false, note: 'Sai tài khoản' });

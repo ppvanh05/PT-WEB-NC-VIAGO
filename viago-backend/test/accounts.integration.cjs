@@ -93,6 +93,22 @@ const accounts = {
     khach_hang: null,
   },
 };
+const staffRecord = {
+  manhanvien: 'NV_TEST',
+  hodem: 'Nguyễn An',
+  ten: 'Ninh',
+  hoten: 'Nhân viên kiểm thử',
+  sodienthoai: '0900000001',
+  email: 'nv.test@viago.vn',
+  gioitinh: 'Nam',
+  ngaysinh: new Date('1990-05-06T00:00:00.000Z'),
+  diachi: null,
+  ghichu: null,
+  anhdaidien: null,
+  trangthai: 'HoatDong',
+  vai_tro: { tenvaitro: 'NhanVienBanVe' },
+};
+const writes = { staff: [], account: [], audit: [] };
 const db = {
   bang_hang_thanh_vien: { findMany: async () => [] },
   $connect: async () => {},
@@ -132,12 +148,37 @@ const db = {
     count: async () => 0,
     groupBy: async () => [],
   },
-  nhan_vien: { findMany: async () => [], count: async () => 0, groupBy: async () => [] },
+  nhan_vien: {
+    findMany: async () => [],
+    count: async () => 0,
+    groupBy: async () => [],
+    findUniqueOrThrow: async (q) => {
+      assert.equal(q.where.manhanvien, 'NV_TEST');
+      return staffRecord;
+    },
+    update: async (q) => {
+      writes.staff.push(q.data);
+      return staffRecord;
+    },
+  },
+  tai_khoan: {
+    update: async (q) => {
+      writes.account.push({ where: q.where, data: q.data });
+      return {};
+    },
+  },
   don_hang: { aggregate: async () => ({ _sum: { tongthanhtoan: null } }) },
   ve_xe: { count: async () => 0, findMany: async () => [] },
   vai_tro: { findMany: async () => [] },
   quyen_han: { findMany: async () => [] },
-  nhat_ky_he_thong: { findMany: async () => [], count: async () => 0 },
+  nhat_ky_he_thong: {
+    findMany: async () => [],
+    count: async () => 0,
+    create: async (q) => {
+      writes.audit.push(q.data);
+      return q.data;
+    },
+  },
 };
 let app;
 async function main() {
@@ -158,6 +199,7 @@ async function main() {
     '/admin/customers',
     '/admin/activity-logs',
     '/admin/auth/sessions',
+    '/admin/auth/profile',
   ])
     await api.get(path).expect(401);
   await api
@@ -236,6 +278,77 @@ async function main() {
     .expect(400);
   console.log(
     'PASS HTTP module wiring, role/permission isolation, DTO validation, profile and pagination',
+  );
+
+  // Hồ sơ cá nhân của nhân viên: tự đọc/tự sửa, không cần quyền quản lý tài khoản.
+  await api.get('/admin/auth/profile').set('Authorization', auth('customer')).expect(403);
+  const staffProfile = await api
+    .get('/admin/auth/profile')
+    .set('Authorization', auth('staff'))
+    .expect(200);
+  assert.equal(staffProfile.body.staffId, 'NV_TEST');
+  assert.equal(staffProfile.body.lastName, 'Nguyễn An');
+  assert.equal(staffProfile.body.firstName, 'Ninh');
+  assert.equal(staffProfile.body.birthday, '1990-05-06');
+  assert.equal(staffProfile.body.roleName, 'NhanVienBanVe');
+  assert.equal(staffProfile.body.address, '');
+  assert.ok(!JSON.stringify(staffProfile.body).includes('matkhau'));
+  const edit = {
+    lastName: ' Trần Bảo ',
+    firstName: 'Nghịa',
+    displayName: 'Trần Bảo Nghịa',
+    phoneNumber: '0900000002',
+    email: 'Nghia.TB@VIAGO.VN',
+    gender: 'Nam',
+    birthday: '1992-01-02',
+    address: '12 Lê Lợi',
+    notes: '',
+  };
+  for (const invalid of [
+    { ...edit, phoneNumber: '123' },
+    { ...edit, email: 'nghia@viago' },
+    { ...edit, gender: 'Naḿ' },
+    { ...edit, birthday: '2026-02-30' },
+    { ...edit, displayName: '' },
+    { ...edit, roleId: 'VT001' },
+    { ...edit, trangthai: 'DaKhoa' },
+  ])
+    await api
+      .patch('/admin/auth/profile')
+      .set('Authorization', auth('staff'))
+      .send(invalid)
+      .expect(400);
+  await api
+    .patch('/admin/auth/profile')
+    .set('Authorization', auth('staff'))
+    .send({ ...edit, birthday: '2099-01-01' })
+    .expect(400);
+  assert.equal(writes.staff.length, 0);
+  await api
+    .patch('/admin/auth/profile')
+    .set('Authorization', auth('staff'))
+    .send(edit)
+    .expect(200);
+  assert.equal(writes.staff.length, 1);
+  const saved = writes.staff[0];
+  assert.equal(saved.hodem, 'Trần Bảo');
+  assert.equal(saved.ten, 'Nghịa');
+  assert.equal(saved.hoten, 'Trần Bảo Nghịa');
+  assert.equal(saved.email, 'nghia.tb@viago.vn');
+  assert.equal(saved.ghichu, null);
+  assert.equal(saved.ngaysinh.toISOString().slice(0, 10), '1992-01-02');
+  for (const field of ['mavaitro', 'trangthai', 'loaihopdong', 'ngayvaolam'])
+    assert.ok(!(field in saved), `hồ sơ tự sửa không được ghi ${field}`);
+  assert.equal(writes.account[0].where.mataikhoan, 'TK_staff');
+  assert.equal(writes.account[0].data.sodienthoai, '0900000002');
+  assert.equal(writes.account[0].data.email, 'nghia.tb@viago.vn');
+  const audit = writes.audit.at(-1);
+  assert.equal(audit.hanhdong, 'UPDATE_PROFILE');
+  assert.equal(audit.banglienquan, 'nhan_vien');
+  assert.equal(audit.madoituong, 'NV_TEST');
+  assert.equal(audit.manhanvien, 'NV_TEST');
+  console.log(
+    'PASS staff self-service profile: reads own record, saves name/contact, cannot touch role or status',
   );
 
   const originalMode = process.env.ACCOUNT_OTP_MODE;

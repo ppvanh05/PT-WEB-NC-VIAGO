@@ -28,7 +28,7 @@ describe('Customer contact submissions', () => {
     };
     await page.submit();
     expect(fetchMock).toHaveBeenCalledWith(
-      '/customer/about/contact',
+      '/api/customer/about/contact',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({

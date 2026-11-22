@@ -15,6 +15,8 @@ aside { display: flex; flex-direction: column; align-items: center; gap: var(--s
 footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
 .profile-form > footer { flex-shrink: 0; margin-top: var(--space-4); }
 .error { display: block; color: var(--color-danger-500); font-size: var(--font-size-caption); margin-top: var(--space-1); }
+.profile-loading { margin: var(--space-4) 0; color: var(--color-text-secondary); }
+.profile-error { margin: var(--space-3) 0 0; color: var(--color-danger-500); font-size: var(--font-size-caption); }
 .password-input { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-1); align-items: start; }
 .password-input app-button { margin-top: calc(var(--line-height-body) + var(--space-2)); }
 svg { width: var(--space-5); height: var(--space-5); fill: none; stroke: currentColor; stroke-width: 1.8; }

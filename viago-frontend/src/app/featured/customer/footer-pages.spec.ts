@@ -35,6 +35,24 @@ const job = {
   workEnvironment: '',
   howToApply: '',
 };
+const scheduleRoute = {
+  id: 'TX_TEST',
+  from: 'TP.HCM',
+  to: 'Nha Trang',
+  distance: 430,
+  durationMinutes: 480,
+  price: 280000,
+  image: '',
+  vehicleTypes: ['Giường nằm'],
+};
+const scheduleTrip = {
+  departureAt: '2026-11-23T07:00:00Z',
+  typeCode: 'Giường nằm',
+  price: 280000,
+  amenities: ['Wifi'],
+  pickup: [{ name: 'Bến xe Miền Đông' }],
+  dropoff: [{ name: 'Bến xe Nha Trang' }],
+};
 const article = { id:'TT_TEST', slug:'tin-tu-supabase', title:'Tin tức từ API', category:'promotion', categoryLabel:'Khuyến mãi', image:'/assets/customer/logo.png', date:'08/11/2026', author:'VIAGO', summary:'Tóm tắt từ API', content:'<p>' + 'Nội dung bài viết đã lưu trong database. '.repeat(12) + '</p>', tags:[], viewCount:1, commentCount:0, isFeatured:true, publishedAt:'2026-11-08T00:00:00Z' };
 
 describe('Pages linked from the customer footer', () => {
@@ -71,6 +89,8 @@ describe('Pages linked from the customer footer', () => {
           : input.includes('/customer/news/TT_TEST/related') ? {data:[]}
           : input.includes('/customer/news/TT_TEST') ? article
           : input.includes('/customer/news?') ? {data:[article],pagination:{total:1,totalPages:1}}
+          : input.includes('/routes?') ? {data:[scheduleRoute],pagination:{total:1,totalPages:1}}
+          : input.includes('/trips?') ? {outbound:{data:[scheduleTrip]},inbound:{data:[scheduleTrip]}}
           : input.includes('/about-us') ? {statistics:{activeRoutes:15,activeVehicles:13,tripsToday:4}}
           : input.includes('/policies') || input.includes('/terms') ? {data:[],pagination:{totalPages:0}}
           :
@@ -162,10 +182,12 @@ describe('Pages linked from the customer footer', () => {
   it('searches routes and displays the schedule detail modal', async () => {
     const harness = await RouterTestingHarness.create();
     const page = await harness.navigateByUrl('/customer/lich-trinh', Schedule);
+    await vi.waitFor(() => expect(page.allRoutes.length).toBeGreaterThan(0));
     page.searchTerm = 'Nha Trang';
     page.onSearch();
     expect(page.filteredRoutes.length).toBeGreaterThan(0);
-    page.viewSchedule(page.filteredRoutes[0]);
+    await page.viewSchedule(page.filteredRoutes[0]);
+    harness.routeDebugElement?.injector.get(ChangeDetectorRef).markForCheck();
     harness.detectChanges();
     expect(harness.routeNativeElement?.querySelector('.schedule-modal-content')).toBeTruthy();
     page.closeSchedule();

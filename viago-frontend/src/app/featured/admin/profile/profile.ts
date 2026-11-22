@@ -8,6 +8,13 @@ import { DatePickerComponent } from '../../../shared/components/date-picker/date
 import { Component, ChangeDetectorRef, inject, EventEmitter, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
+export interface AdminProfileHeader {
+  staffId: string;
+  roleLabel: string;
+  statusLabel: string;
+  active: boolean;
+}
+
 export interface AdminProfileData {
   familyName: string;
   givenName: string;
@@ -46,6 +53,11 @@ export class AdminProfile {
     familyName: '', givenName: '', displayName: '', phone: '', email: '',
     gender: '', birthday: '', address: '', notes: '', avatarUrl: '',
   };
+  header: AdminProfileHeader = { staffId: '', roleLabel: '', statusLabel: '', active: true };
+  loading = false;
+  loadError = '';
+  saving = false;
+  saveError = '';
   avatarError = '';
   readingAvatar = false;
   fieldErrors: Partial<Record<keyof AdminProfileData, string>> = {};
@@ -67,23 +79,62 @@ export class AdminProfile {
     return Object.entries(this.fieldErrors).map(([field, message]) => ({ field, label: labels[field], message }));
   }
 
-  open(profile: AdminProfileData): void {
+  open(profile: AdminProfileData, header?: AdminProfileHeader): void {
     this.selectionVersion++;
     this.draft = { ...profile };
+    if (header) this.header = { ...header };
     this.avatarError = '';
     this.fieldErrors = {};
     this.readingAvatar = false;
     this.profileTouched = {};
+    this.loading = false;
+    this.loadError = '';
+    this.saving = false;
+    this.saveError = '';
     this.profileOpen = true; this.changeDetector.markForCheck();
+  }
+
+  /** Mở hộp thoại ở trạng thái đang tải hồ sơ từ backend. */
+  openLoading(): void {
+    this.selectionVersion++;
+    this.loading = true;
+    this.loadError = '';
+    this.saving = false;
+    this.saveError = '';
+    this.profileOpen = true; this.changeDetector.markForCheck();
+  }
+
+  /** Backend trả lỗi khi tải hồ sơ: giữ hộp thoại mở để người dùng thấy lý do. */
+  failLoad(message: string): void {
+    this.loading = false;
+    this.loadError = message;
+    this.changeDetector.markForCheck();
+  }
+
+  /** Backend đã lưu xong: đóng hộp thoại. */
+  finishSave(): void {
+    this.saving = false;
+    this.saveError = '';
+    this.close();
+  }
+
+  /** Backend từ chối: giữ nguyên dữ liệu đang nhập và hiển thị lỗi. */
+  failSave(message: string): void {
+    this.saving = false;
+    this.saveError = message;
+    this.changeDetector.markForCheck();
   }
 
   close(): void {
     this.selectionVersion++;
+    this.saving = false;
+    this.saveError = '';
     this.profileOpen = false; this.closePassword(); this.changeDetector.markForCheck();
     this.dismissed.emit();
   }
 
   save(): void {
+    if (this.saving || this.loading) return;
     for (const key of ['familyName', 'givenName', 'displayName', 'phone', 'email', 'address', 'notes'] as const) {
       this.draft[key] = this.draft[key].trim();
     }
@@ -93,7 +144,8 @@ export class AdminProfile {
       for (const key of Object.keys(this.draft) as (keyof AdminProfileData)[]) this.profileTouched[key] = true;
       return;
     }
-    this.close();
+    this.saveError = '';
+    this.saving = true;
     this.saved.emit({ ...this.draft });
   }
 

@@ -23,7 +23,7 @@ export class AdminRoutesService {
   async create(payload: RoutePayload) {
     this.validate(payload);
     const id = `TD-${Date.now()}`;
-    const row = await this.prisma.tuyen_xe.create({ data: { matuyenduong: id, tentuyen: payload.name, diemdi: payload.startPoint, diemden: payload.endPoint, khoangcach: payload.distanceNum, thoigiandichuyenphut: Math.round(payload.durationNum * 60), giacoso: payload.price, sochuyenmoingay: payload.tripsPerDay, trangthai: payload.status === 'locked' ? 'NgungHoatDong' : 'HoatDong', thoigiantao: new Date(), thoigiancapnhat: new Date() } });
+    await this.prisma.tuyen_xe.create({ data: { matuyenduong: id, tentuyen: payload.name, diemdi: payload.startPoint, diemden: payload.endPoint, khoangcach: payload.distanceNum, thoigiandichuyenphut: Math.round(payload.durationNum * 60), giacoso: payload.price, sochuyenmoingay: payload.tripsPerDay, trangthai: payload.status === 'locked' ? 'NgungHoatDong' : 'HoatDong', thoigiantao: new Date(), thoigiancapnhat: new Date() } });
     await this.saveConfig(id, payload);
     await this.syncPoints(id, payload);
     return this.findOne(id);

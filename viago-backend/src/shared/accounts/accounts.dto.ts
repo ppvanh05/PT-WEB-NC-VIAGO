@@ -204,6 +204,25 @@ export class EmployeeUpdateDto {
   @IsOptional() permissions?: string[];
   @IsOptional() @IsBoolean() applyRolePermissions?: boolean;
 }
+// PATCH: nhân viên tự sửa hồ sơ của mình; vai trò, quyền và hợp đồng không nằm ở đây.
+export class AdminProfileDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(600000)
+  @Matches(
+    /^(https:\/\/[^\s]+|data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+|\/assets\/[^\s]+|)$/,
+  )
+  avatar?: string;
+  @trimmed() @IsString() @MinLength(1) @MaxLength(100) lastName: string;
+  @trimmed() @IsString() @MinLength(1) @MaxLength(100) firstName: string;
+  @trimmed() @IsString() @MinLength(1) @MaxLength(100) displayName: string;
+  @Matches(/^0\d{9}$/) phoneNumber: string;
+  @IsEmail() @MaxLength(254) email: string;
+  @IsOptional() @IsIn(['Nam', 'Nu', 'Khac']) gender?: 'Nam' | 'Nu' | 'Khac';
+  @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/) birthday?: string;
+  @IsOptional() @trimmed() @IsString() @MaxLength(300) address?: string;
+  @IsOptional() @trimmed() @IsString() @MaxLength(1000) notes?: string;
+}
 export class LogQueryDto extends PageDto {
   @IsOptional() @IsString() @MaxLength(80) action?: string;
   @IsOptional() @IsIn(['ThanhCong', 'ThatBai']) result?:

@@ -1,6 +1,12 @@
 <app-modal [open]="profileOpen" size="large" [fixedLayout]="true" [fitContent]="true" title="Thông tin cá nhân" (closed)="close()">
-  <div modal-header-extra class="subtitle"><span>NVQT100001 ·</span><app-badge label="Quản trị viên" variant="primary" /><app-badge label="Đang hoạt động" variant="success" /></div>
-  <form class="profile-form" (submit)="$event.preventDefault(); save()" novalidate>
+  <div modal-header-extra class="subtitle">
+    @if (header.staffId) { <span>{{ header.staffId }} ·</span> }
+    @if (header.roleLabel) { <app-badge [label]="header.roleLabel" variant="primary" /> }
+    @if (header.statusLabel) { <app-badge [label]="header.statusLabel" [variant]="header.active ? 'success' : 'danger'" /> }
+  </div>
+  @if (loading) { <p class="profile-loading" role="status">Đang tải thông tin cá nhân…</p> }
+  @if (loadError) { <p class="profile-error" role="alert">{{ loadError }}</p> }
+  <form class="profile-form" (submit)="$event.preventDefault(); save()" novalidate [hidden]="loading || loadError">
     <div class="profile-body">
       <aside>
         <div class="avatar">
@@ -35,7 +41,8 @@
         <app-textarea label="Ghi chú" name="notes" id="profile-notes" [rows]="2" [maxlength]="1000" placeholder="Nhập ghi chú…" [value]="draft.notes" (valueChange)="updateProfileField('notes', $event)" [error]="profileFieldError('notes')" />
       </div>
     </div>
-    <footer><app-button variant="outline" (clicked)="close()">Hủy</app-button><app-button variant="secondary" type="submit" [disabled]="readingAvatar">Lưu thay đổi</app-button></footer>
+    @if (saveError) { <p class="profile-error" role="alert">{{ saveError }}</p> }
+    <footer><app-button variant="outline" (clicked)="close()">Hủy</app-button><app-button variant="secondary" type="submit" [disabled]="readingAvatar || saving">{{ saving ? 'Đang lưu…' : 'Lưu thay đổi' }}</app-button></footer>
   </form>
 </app-modal>
 <app-modal class="password-dialog" [open]="passwordOpen" [size]="passwordSucceeded ? 'small' : 'medium'" [title]="passwordSucceeded ? '' : 'Đổi mật khẩu'" [showCloseButton]="!passwordSucceeded" (closed)="closePassword()" [fixedLayout]="true" [fitContent]="true">

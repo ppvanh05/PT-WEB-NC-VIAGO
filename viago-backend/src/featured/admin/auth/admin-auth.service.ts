@@ -1,5 +1,12 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AccountsAccess } from '../../../shared/accounts/accounts-access';
+import type { Identity } from '../../../shared/accounts/accounts-access';
+import { calendarDate } from '../../../shared/accounts/account-security';
+import type { AdminProfileDto } from '../../../shared/accounts/accounts.dto';
 import { CustomerAuthService } from '../../customer/auth/customer-auth.service';
 import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
@@ -198,6 +205,97 @@ export class AdminAuthService {
       account: this.view(session.mataikhoan, staff),
       expiresAt: session.thoigianhethan,
     };
+  }
+  private staffOf(identity: Identity) {
+    if (!identity.staffId)
+      throw new UnauthorizedException('Vui lòng đăng nhập quản trị.');
+    return identity.staffId;
+  }
+  async profile(identity: Identity) {
+    const staff = await this.prisma.nhan_vien.findUniqueOrThrow({
+      where: { manhanvien: this.staffOf(identity) },
+      include: { vai_tro: { select: { tenvaitro: true } } },
+    });
+    return {
+      staffId: staff.manhanvien,
+      lastName: staff.hodem,
+      firstName: staff.ten,
+      displayName: staff.hoten,
+      phoneNumber: staff.sodienthoai,
+      email: staff.email,
+      gender: staff.gioitinh,
+      birthday: staff.ngaysinh.toISOString().slice(0, 10),
+      address: staff.diachi || '',
+      notes: staff.ghichu || '',
+      avatar: staff.anhdaidien || '',
+      roleName: staff.vai_tro.tenvaitro,
+      status: staff.trangthai,
+    };
+  }
+  async updateProfile(
+    identity: Identity,
+    dto: AdminProfileDto,
+    req: Request,
+  ) {
+    const staffId = this.staffOf(identity);
+    const birthday = dto.birthday ? calendarDate(dto.birthday) : undefined;
+    if (birthday && birthday > new Date())
+      throw new BadRequestException('Ngày sinh phải ở quá khứ.');
+    const email = dto.email.toLowerCase();
+    await this.prisma.$transaction(
+      async (tx) => {
+        const before = await tx.nhan_vien.findUniqueOrThrow({
+          where: { manhanvien: staffId },
+          select: { hoten: true, sodienthoai: true, email: true },
+        });
+        const now = new Date();
+        await tx.nhan_vien.update({
+          where: { manhanvien: staffId },
+          data: {
+            hodem: dto.lastName,
+            ten: dto.firstName,
+            hoten: dto.displayName,
+            sodienthoai: dto.phoneNumber,
+            email,
+            gioitinh: dto.gender,
+            ngaysinh: birthday,
+            diachi: dto.address === undefined ? undefined : dto.address || null,
+            ghichu: dto.notes === undefined ? undefined : dto.notes || null,
+            anhdaidien: dto.avatar === undefined ? undefined : dto.avatar || null,
+            thoigiancapnhat: now,
+          },
+        });
+        await tx.tai_khoan.update({
+          where: { mataikhoan: identity.accountId },
+          data: {
+            sodienthoai: dto.phoneNumber,
+            email,
+            thoigiancapnhat: now,
+          },
+        });
+        await this.access.audit(
+          tx,
+          identity,
+          req,
+          'UPDATE_PROFILE',
+          'nhan_vien',
+          staffId,
+          'Nhân viên tự cập nhật thông tin cá nhân.',
+          {
+            name: before.hoten,
+            phoneNumber: before.sodienthoai,
+            email: before.email,
+          },
+          {
+            name: dto.displayName,
+            phoneNumber: dto.phoneNumber,
+            email,
+          },
+        );
+      },
+      { timeout: 10000 },
+    );
+    return this.profile(identity);
   }
   async logout(authorization?: string, req?: Request) {
     const token = adminToken(authorization);

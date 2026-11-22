@@ -6,6 +6,7 @@ import {
   Param,
   Headers,
   HttpCode,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -24,6 +25,7 @@ import {
 } from '../../../shared/accounts/accounts-access';
 import type { AccountRequest } from '../../../shared/accounts/accounts-access';
 import {
+  AdminProfileDto,
   OtpRequestDto,
   OtpVerifyDto,
   PasswordDto,
@@ -51,6 +53,17 @@ export class AdminAuthController {
     @Req() req: Request,
   ) {
     return this.auth.verifyOtp(dto, req);
+  }
+  @Get('profile') @UseGuards(AccountsGuard) @AccountScope('admin') staffProfile(
+    @Req() req: AccountRequest,
+  ) {
+    return this.service.profile(req.identity);
+  }
+  @Patch('profile')
+  @UseGuards(AccountsGuard)
+  @AccountScope('admin')
+  saveProfile(@Body() dto: AdminProfileDto, @Req() req: AccountRequest) {
+    return this.service.updateProfile(req.identity, dto, req);
   }
   @Post('change-password')
   @UseGuards(AccountsGuard)

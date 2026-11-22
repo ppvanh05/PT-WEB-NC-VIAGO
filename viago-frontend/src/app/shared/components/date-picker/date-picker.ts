@@ -27,7 +27,10 @@ export class DatePickerComponent implements ControlValueAccessor, OnChanges, Aft
     const width = Math.min(320, Math.max(0, right - left)); calendar.style.width = `${width}px`;
     const below = Math.max(0, bottom - anchor.bottom - gap), above = Math.max(0, anchor.top - top - gap);
     calendar.style.maxHeight = 'none';
-    const height = calendar.offsetHeight, placeAbove = below < height && above > below;
+    const natural = calendar.offsetHeight || calendar.scrollHeight, placeAbove = below < natural && above > below;
+    const height = Math.min(natural, Math.max(0, placeAbove ? above : below));
+    calendar.style.maxHeight = `${height}px`;
+    calendar.style.overflowY = natural > height ? 'auto' : '';
     const preferredTop = placeAbove ? anchor.top - gap - height : anchor.bottom + gap;
     calendar.style.position = 'fixed'; calendar.style.left = `${Math.max(left, Math.min(anchor.left, right - width))}px`; calendar.style.top = `${Math.max(top, Math.min(preferredTop, bottom - height))}px`;
   }

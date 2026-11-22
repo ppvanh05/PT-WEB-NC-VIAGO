@@ -103,6 +103,12 @@ export class AdminSessionService {
     this.account.set(account);
     sessionStorage.setItem('viago_admin_account', JSON.stringify(account));
   }
+  /** Cập nhật phần hiển thị của phiên sau khi nhân viên tự sửa hồ sơ. */
+  patchAccount(patch: Partial<AdminAccount>): void {
+    const account = this.account();
+    if (!account) return;
+    this.setAccount({ ...account, ...patch });
+  }
   invalidate() {
     this.clear();
   }

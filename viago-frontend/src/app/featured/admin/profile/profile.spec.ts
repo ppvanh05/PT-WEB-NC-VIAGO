@@ -90,6 +90,57 @@ describe('Admin profile', () => {
     expect(saved).toHaveBeenCalledWith(expect.objectContaining({ displayName: 'Nguyễn An Ninh' }));
   });
 
+  it('waits for the backend before closing and keeps edits when the save is rejected', async () => {
+    const fixture = await setup();
+    const component = fixture.componentInstance;
+    component.draft.displayName = 'Nguyễn An Ninh';
+    component.save();
+    expect(component.saving).toBe(true);
+    expect(component.profileOpen).toBe(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.profile-form button[type=submit]').disabled).toBe(true);
+    component.failSave('Số điện thoại, email hoặc tên đăng nhập đã tồn tại.');
+    fixture.detectChanges();
+    expect(component.saving).toBe(false);
+    expect(component.profileOpen).toBe(true);
+    expect(component.draft.displayName).toBe('Nguyễn An Ninh');
+    expect(fixture.nativeElement.querySelector('.profile-error').textContent).toContain('đã tồn tại');
+    component.save();
+    component.finishSave();
+    expect(component.profileOpen).toBe(false);
+    expect(component.saveError).toBe('');
+  });
+
+  it('reports a failed load instead of showing an empty form', async () => {
+    const fixture = await setup();
+    const component = fixture.componentInstance;
+    component.openLoading();
+    fixture.detectChanges();
+    expect(component.loading).toBe(true);
+    expect(fixture.nativeElement.querySelector('.profile-loading')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.profile-form').hidden).toBe(true);
+    const saved = vi.spyOn(component.saved, 'emit');
+    component.save();
+    expect(saved).not.toHaveBeenCalled();
+    component.failLoad('Không tải được thông tin cá nhân.');
+    fixture.detectChanges();
+    expect(component.loading).toBe(false);
+    expect(fixture.nativeElement.querySelector('.profile-error').textContent).toContain('Không tải được');
+  });
+
+  it('shows the staff code, role and status from the loaded record', async () => {
+    const fixture = await setup();
+    fixture.componentInstance.open(original, {
+      staffId: 'NVBV100007', roleLabel: 'Nhân viên bán vé',
+      statusLabel: 'Đã khóa', active: false,
+    });
+    fixture.detectChanges();
+    const subtitle = fixture.nativeElement.querySelector('.subtitle').textContent;
+    expect(subtitle).toContain('NVBV100007');
+    expect(subtitle).toContain('Nhân viên bán vé');
+    expect(subtitle).toContain('Đã khóa');
+  });
+
   it('rejects a non-image upload', async () => {
     const fixture = await setup();
     fixture.componentInstance.onFileSelected({ target: {

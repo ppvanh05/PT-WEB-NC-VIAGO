@@ -102,7 +102,7 @@ export async function writeTicketReview(
     // P2002: trùng mave (gửi 2 lần cùng lúc) hoặc trùng mã DG do 2 khách gửi cùng lúc
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
       throw new ConflictException(
-        String(error.meta?.target ?? '').includes('mave')
+        JSON.stringify(error.meta?.target ?? '').includes('mave')
           ? 'Vé này đã được đánh giá.'
           : 'Hệ thống đang bận, vui lòng gửi lại đánh giá.',
       );
