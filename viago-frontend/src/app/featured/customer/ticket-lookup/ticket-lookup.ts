@@ -1093,13 +1093,6 @@ export class TicketLookup implements OnInit, OnDestroy {
 
   openCancelModal(ticket: Ticket): void {
     if (!this.currentOrder) return;
-    if (this.currentOrder.FromDb) {
-      this.showToast(
-        'Hủy vé của đơn hàng thật chưa hỗ trợ trên trang này. Vui lòng liên hệ tổng đài VIAGO.',
-        'error',
-      );
-      return;
-    }
     if (this.isTicketCancelDisabled(ticket)) {
       this.showToast(this.getCancelButtonTitle(ticket), 'error');
       return;
@@ -1159,6 +1152,11 @@ export class TicketLookup implements OnInit, OnDestroy {
     const orderCode = this.currentOrder.MaDonHang;
     const ticketCode = this.selectedCancelTicket.MaVe;
 
+    if (this.currentOrder.FromDb) {
+      void this.cancelRealTicket(orderCode, ticketCode);
+      return;
+    }
+
     setTimeout(() => {
       this.ngZone.run(() => {
         const dbOrder = this.DanhSachVeMock.find((o) => o.MaDonHang === orderCode);
@@ -1195,6 +1193,40 @@ export class TicketLookup implements OnInit, OnDestroy {
         this.showToast('Hủy vé thành công.', 'success');
       });
     }, 200);
+  }
+
+  /** Hủy vé của đơn thật qua API; hệ thống tính tiền hoàn theo chính sách và tạo yêu cầu hoàn tiền. */
+  private async cancelRealTicket(orderCode: string, ticketCode: string): Promise<void> {
+    const reason = this.selectedCancelReason;
+    try {
+      const row = await this.accountsApi.request<ApiLookupOrder & { cancellation?: { refundAmount: number } }>(
+        'customer/ticket-lookup/orders/' +
+          encodeURIComponent(orderCode) +
+          '/tickets/' +
+          encodeURIComponent(ticketCode) +
+          '/cancel',
+        'POST',
+        { reason },
+      );
+      const fresh = this.fromApi(row, !!this.currentOrder?.ViaAccount);
+      this.orders = this.orders.map((o) => (o.MaDonHang === fresh.MaDonHang ? fresh : o));
+      this.currentOrder = fresh;
+      const refund = row.cancellation?.refundAmount ?? 0;
+      this.showToast(
+        refund > 0
+          ? `Hủy vé thành công. Số tiền hoàn dự kiến ${refund.toLocaleString('vi-VN')} đ đang được xử lý.`
+          : 'Hủy vé thành công.',
+        'success',
+      );
+      this.showCancelModal = false;
+      this.showCancelConfirmModal = false;
+      this.selectedCancelTicket = null;
+    } catch (e) {
+      this.showToast(e instanceof Error ? e.message : 'Không hủy được vé.', 'error');
+    } finally {
+      this.isLoading = false;
+      this.cdr.detectChanges();
+    }
   }
 
   private syncOrderStatusAfterTicketCancel(order: Order): void {

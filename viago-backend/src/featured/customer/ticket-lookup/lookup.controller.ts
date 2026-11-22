@@ -19,6 +19,7 @@ import {
   IsString,
   Matches,
   MaxLength,
+  MinLength,
 } from 'class-validator';
 import type { Request, Response } from 'express';
 import { validation } from '../chatbot/common/chatbot.validation';
@@ -36,6 +37,9 @@ export class LookupEditDto {
   email?: string;
   @IsOptional() @IsString() @MaxLength(80) pickupId?: string;
   @IsOptional() @IsString() @MaxLength(80) dropoffId?: string;
+}
+export class LookupCancelDto {
+  @IsString() @MinLength(3) @MaxLength(300) reason: string;
 }
 @Controller('customer/ticket-lookup')
 @UseGuards(SupportRateGuard)
@@ -73,5 +77,13 @@ export class LookupController {
     @Param('ticketId') ticket: string,
   ) {
     return this.service.print(req, id, ticket);
+  }
+  @Post('orders/:id/tickets/:ticketId/cancel') cancel(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('ticketId') ticket: string,
+    @Body() dto: LookupCancelDto,
+  ) {
+    return this.service.cancelTicket(req, id, ticket, dto.reason);
   }
 }

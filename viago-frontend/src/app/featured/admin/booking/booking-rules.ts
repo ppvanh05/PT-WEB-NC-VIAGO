@@ -15,6 +15,7 @@ export interface BookingState {
   transactionCode?: string;
   paidAmount?: number;
   balanceDue?: number;
+  refundId?: string | null;
   refundAmount?: number;
   refundFee?: number;
   refundReason?: string;

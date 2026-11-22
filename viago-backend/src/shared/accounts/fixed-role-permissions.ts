@@ -5,7 +5,6 @@ export const PERMISSION_GROUPS: Record<string, readonly string[]> = {
   khachhang: ['QuanLyTaiKhoanKhachHang'],
   nhanvien: ['QuanLyTaiKhoanNhanVien', 'QuanLyTaiKhoanNoiBo'],
   chinhsach: ['QuanLyChinhSach'],
-  tukhoacam: ['QuanLyTuKhoaCam'],
   baocao: ['BaoCaoDoanhThu', 'BaoCaoKhachHang', 'BaoCaoTaiXePhuXe', 'BaoCaoTuyenXe', 'BaoCaoHoanHuy'],
   nhatky: ['QuanLyNhatKyHoatDong'],
   danhgiaphanhoi: ['QuanLyDanhGiaVaPhanHoi'],
@@ -17,9 +16,9 @@ export const PERMISSION_GROUPS: Record<string, readonly string[]> = {
 export const FIXED_ROLE_GROUPS: Record<string, readonly string[]> = {
   QuanTriVien: Object.keys(PERMISSION_GROUPS),
   BanQuanLy: ['baocao'],
-  NhanVienDieuPhoi: ['dieuphoi', 'baocao', 'nhatky'],
-  NhanVienBanVe: ['datve', 'baocao'],
-  NhanVienCSKH: ['khachhang', 'tukhoacam', 'danhgiaphanhoi', 'dothatlac', 'baocao'],
+  NhanVienDieuPhoi: ['dieuphoi', 'nhatky'],
+  NhanVienBanVe: ['datve'],
+  NhanVienCSKH: ['khachhang', 'danhgiaphanhoi', 'dothatlac', 'thuexehopdong'],
 };
 
 export type PermissionCatalogRow = { maquyen: string; tenquyen: string };

@@ -13,6 +13,7 @@ import { AccountsAccess } from '../../../shared/accounts/accounts-access';
 import { digest, newId } from '../../../shared/accounts/account-security';
 import { CustomerAuthService } from '../auth/customer-auth.service';
 import type { LookupEditDto } from './lookup.controller';
+import { cancelPaidTicket } from '../../../shared/ticket-cancellation';
 const cookie = 'viago_lookup';
 const include = {
   ghe_chuyen: { select: { ghe: { select: { soghe: true } } } },
@@ -354,6 +355,27 @@ export class LookupService {
         return this.view(row);
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+  async cancelTicket(req: Request, id: string, ticketId: string, reason: string) {
+    const scope = await this.scope(req);
+    let accountId: string | null = null;
+    if (req.headers.authorization)
+      accountId = (await this.access.authenticate(req.headers.authorization)).accountId ?? null;
+    return this.db.$transaction(
+      async (tx) => {
+        const row = await this.row(tx, scope, id);
+        if (!row.ve_xe.some((v) => v.mave === ticketId))
+          throw new NotFoundException('Vé không thuộc đơn đặt vé này.');
+        const result = await cancelPaidTicket(tx, {
+          ticketId,
+          source: 'KhachHang',
+          reason: reason.trim(),
+          accountId,
+        });
+        return { ...this.view(await this.row(tx, scope, id)), cancellation: result };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20000 },
     );
   }
 }

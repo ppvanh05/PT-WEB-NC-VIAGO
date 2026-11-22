@@ -7,10 +7,11 @@ const catalog = names.map((tenquyen, index) => ({ tenquyen, maquyen: 'Q' + Strin
 const ids = values => values.map(n => 'Q' + String(n).padStart(3, '0'));
 
 async function main() {
-  assert.deepEqual(fixedRolePermissions('NhanVienBanVe', catalog).permissionIds, ids([3,4,5,6,7,8,9,14,16,32,33,34,35,36]));
-  assert.deepEqual(fixedRolePermissions('NhanVienDieuPhoi', catalog).permissionIds, ids([8,14,20,21,22,23,24,29,32,33,34,35,36]));
+  assert.deepEqual(fixedRolePermissions('NhanVienBanVe', catalog).permissionIds, ids([3,4,5,6,7,8,9,14,16]));
+  assert.deepEqual(fixedRolePermissions('NhanVienDieuPhoi', catalog).permissionIds, ids([8,14,20,21,22,23,24,29]));
   assert.deepEqual(fixedRolePermissions('BanQuanLy', catalog).permissionIds, ids([8,14,32,33,34,35,36]));
-  assert.equal(fixedRolePermissions('QuanTriVien', catalog).permissionIds.length, 36);
+  assert.deepEqual(fixedRolePermissions('NhanVienCSKH', catalog).permissionIds, ids([8,14,18,19,25,27]));
+  assert.equal(fixedRolePermissions('QuanTriVien', catalog).permissionIds.length, 35);
   assert.equal(fixedRolePermissions('UnknownRole', catalog), null);
   let available = catalog, deletes = 0, assigned = [];
   const before = { manhanvien: 'QA_NV', mataikhoan: 'QA_TK', mavaitro: 'VT002', vai_tro: { tenvaitro: 'NhanVienBanVe' }, nhan_vien_quyen_han: [{ maquyen: 'Q005' }] };
@@ -30,11 +31,11 @@ async function main() {
   const actor = { accountId: 'QA_ADMIN', staffId: 'QA_OTHER', roleName: 'QuanTriVien', permissions: [] };
   const dto = { roleId: 'VT002', birthday: '1990-01-01', startDate: '2020-01-01', email: 'qa@example.invalid', firstName: 'QA', lastName: 'Test' };
   const resolved = await service.validate(tx, dto, actor);
-  assert.equal(resolved.permissions.length, 14);
+  assert.equal(resolved.permissions.length, 9);
   await assert.rejects(() => service.validate(tx, { ...dto, permissions: ['Q004'] }, actor), e => e.getStatus() === 400);
   await assert.rejects(() => service.validate(tx, { ...dto, roleId: 'VT003' }, actor, before), e => e.getStatus() === 400);
   await assert.rejects(() => service.validate(tx, { ...dto, applyRolePermissions: true }, { ...actor, roleName: 'BanQuanLy', permissions: [] }, before), e => e.getStatus() === 403);
-  available = catalog.filter(p => p.maquyen !== 'Q032');
+  available = catalog.filter(p => p.maquyen !== 'Q016');
   await assert.rejects(() => service.validate(tx, dto, actor), e => e.getStatus() === 503);
   available = catalog;
   await service.update(before.manhanvien, dto, actor, {});

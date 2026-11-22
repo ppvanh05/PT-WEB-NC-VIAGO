@@ -35,6 +35,16 @@ export interface RawTicketRow {
   trangThaiVe: 'GiuCho' | 'ChoKhoiHanh' | 'DaHoanThanh' | 'DaHuy';
   trangThaiDonHang: string;
   thoiGianDat: string;
+  paidAmount?: number;
+  daThanhToan?: boolean;
+  refundId?: string | null;
+  refundAmount?: number;
+  refundFee?: number;
+  refundReason?: string;
+  refundStatus?: 'processing' | 'completed' | 'failed';
+  refundedAmount?: number;
+  refundedAt?: string;
+  cancelledAt?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -97,5 +107,31 @@ export class BookingCustomerApi {
       console.warn('[BookingCustomerApi] Lỗi gọi getAllTickets:', err);
       return [];
     }
+  }
+
+  /** Hủy vé đã thanh toán; trả lỗi rõ ràng để màn hình hiển thị. */
+  cancelTicket(ticketId: string, reason: string, carrierFault: boolean) {
+    return this.post(`tickets/${encodeURIComponent(ticketId)}/cancel`, { reason, carrierFault });
+  }
+
+  /** Ghi nhận kết quả hoàn tiền thủ công. */
+  completeRefund(refundId: string, success: boolean) {
+    return this.post(`refunds/${encodeURIComponent(refundId)}/complete`, { success });
+  }
+
+  private async post(path: string, body: unknown): Promise<unknown> {
+    const response = await fetch(`/api/admin/booking-management/${path}`, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...this.session.headers() },
+      body: JSON.stringify(body),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      const message = (data as { message?: string | string[] } | null)?.message;
+      throw new Error(Array.isArray(message) ? message.join(' ') : message || 'Không thực hiện được thao tác.');
+    }
+    return data;
   }
 }

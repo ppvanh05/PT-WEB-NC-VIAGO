@@ -1,6 +1,15 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { loai_xe_enum } from '@prisma/client';
+import { Prisma, loai_xe_enum } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { cancelPaidTicket, completeRefund } from '../../../shared/ticket-cancellation';
+import type { CounterActor } from '../../customer/home/booking/counter.controller';
+
+const REFUND_STATUS: Record<string, 'processing' | 'completed' | 'failed' | undefined> = {
+  ChoXuLy: 'processing',
+  DangXuLy: 'processing',
+  ThanhCong: 'completed',
+  ThatBai: 'failed',
+};
 
 export interface GetAllRoutesQuery {
   from: string;
@@ -320,6 +329,20 @@ export class AdminBookingManagementService {
         madiemtra: true,
         trangthaive: true,
         thoigiantao: true,
+        phan_bo_thanh_toan_ve: {
+          where: { thanh_toan: { trangthaithanhtoan: 'ThanhCong' } },
+          select: { sotienphanbo: true },
+        },
+        lich_su_huy_ve: {
+          orderBy: { thoigianyeucau: 'desc' },
+          take: 1,
+          select: { lydohuy: true, phihuy: true, tienhoanlai: true, thoigianhuy: true, nguonhuy: true },
+        },
+        hoan_tien: {
+          orderBy: { thoigiantao: 'desc' },
+          take: 1,
+          select: { mahoantien: true, sotienhoan: true, trangthaihoantien: true, thoigianhoan: true },
+        },
         don_hang: {
           select: {
             madonhang: true,
@@ -417,7 +440,63 @@ export class AdminBookingManagementService {
         thoiGianDat: ve.don_hang?.thoigiandat
           ? ve.don_hang.thoigiandat.toISOString()
           : ve.thoigiantao.toISOString(),
+        ...this.refundInfo(ve),
       };
     });
+  }
+
+  private refundInfo(ve: {
+    phan_bo_thanh_toan_ve: { sotienphanbo: Prisma.Decimal }[];
+    lich_su_huy_ve: { lydohuy: string; phihuy: Prisma.Decimal; tienhoanlai: Prisma.Decimal; thoigianhuy: Date | null }[];
+    hoan_tien: { mahoantien: string; sotienhoan: Prisma.Decimal; trangthaihoantien: string; thoigianhoan: Date | null }[];
+  }) {
+    const paidAmount = ve.phan_bo_thanh_toan_ve.reduce((sum, a) => sum + Number(a.sotienphanbo), 0);
+    const cancel = ve.lich_su_huy_ve[0];
+    const refund = ve.hoan_tien[0];
+    const refundStatus = refund ? REFUND_STATUS[refund.trangthaihoantien] : undefined;
+    return {
+      paidAmount,
+      daThanhToan: paidAmount > 0,
+      refundId: refund?.mahoantien ?? null,
+      refundAmount: cancel ? Number(cancel.tienhoanlai) : undefined,
+      refundFee: cancel ? Number(cancel.phihuy) : undefined,
+      refundReason: cancel?.lydohuy,
+      refundStatus,
+      refundedAmount: refundStatus === 'completed' ? Number(refund!.sotienhoan) : 0,
+      refundedAt: refund?.thoigianhoan?.toISOString(),
+      cancelledAt: cancel?.thoigianhuy?.toISOString(),
+    };
+  }
+
+  cancelTicket(id: string, dto: { reason: string; carrierFault?: boolean }, actor: CounterActor) {
+    return this.prisma.$transaction(
+      (tx) =>
+        cancelPaidTicket(tx, {
+          ticketId: id,
+          source: 'NhanVienBanVe',
+          reason: dto.reason.trim(),
+          carrierFault: !!dto.carrierFault,
+          accountId: actor.id,
+          staffId: actor.staffId,
+        }),
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20000 },
+    );
+  }
+
+  async completeRefund(
+    id: string,
+    dto: { success: boolean; transactionCode?: string; note?: string },
+    actor: CounterActor,
+  ) {
+    const row = await this.prisma.$transaction(
+      (tx) => completeRefund(tx, { refundId: id, ...dto, accountId: actor.id, staffId: actor.staffId }),
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20000 },
+    );
+    return {
+      refundId: row.mahoantien,
+      status: REFUND_STATUS[row.trangthaihoantien],
+      amount: Number(row.sotienhoan),
+      refundedAt: row.thoigianhoan?.toISOString() ?? null,
+    };
   }
 }

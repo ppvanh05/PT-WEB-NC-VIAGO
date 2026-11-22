@@ -206,16 +206,19 @@ export class BookingManagement implements OnInit, AfterViewInit {
   EditValid() { const ve = this.veDuocChon(); return !this.processing() && !!ve && this.NhomVeCungDon(ve).every(v => this.CoTheSua(v) && validName(this.editPassengers()[v.MaVe] ?? '')) && this.CoTheSua(ve) && (!this.CoTheSuaMaGiamGia(ve) || !this.editMaGiamGia().trim() || couponResult(this.editMaGiamGia(), this.tuyenList.find(t => t.name === ve.TenTuyenXe)?.id ?? '', this.NhomVeCungDon(ve).reduce((sum, t) => sum + t.GiaVe + (t.GiamGia || 0), 0)).valid) && validName(this.editTen()) && validPhone(this.editSdt()) && validEmail(this.editEmail()) && this.LayDiemDonTheoTuyen(ve.TenTuyenXe).includes(this.editDiemDon()) && this.LayDiemTraTheoTuyen(ve.TenTuyenXe).includes(this.editDiemTra()); }
   async FinishRefund(success: boolean) {
     const selected = this.veDuocChon(); if (!selected || this.processing() || (!['refund-processing','refund-failed'].includes(selected.paymentStatus || '') && !['processing','failed'].includes(selected.refundStatus || ''))) return;
-    this.processing.set(true); await new Promise(r => setTimeout(r, 500));
-    const next = this.danhSachVe().map(v => v.MaVe === selected.MaVe ? { ...v,
-      paymentStatus: v.TrangThaiVe === 'da-huy' ? success ? 'refunded' as const : 'refund-failed' as const : v.paymentStatus,
-      refundStatus: success ? 'completed' as const : 'failed' as const,
-      refundedAt: success ? new Date().toISOString() : undefined,
-      refundedAmount: (v.refundedAmount || 0) + (success ? v.refundAmount || 0 : 0),
-      membershipPoints: v.TrangThaiVe === 'da-huy' ? 0 : Math.floor(v.GiaVe / 10000),
-      TrangThaiGiaoDich: success ? 'da-hoan' as const : 'chua-hoan' as const } : v);
-    this.danhSachVe.set(next); this.LuuDuLieu(next); this.veDuocChon.set(next.find(v => v.MaVe === selected.MaVe)!); this.processing.set(false);
-    this.HienToast(success ? 'Đã hoàn tiền.' : 'Hoàn tiền thất bại. Vui lòng thử lại.', success ? 'success' : 'danger');
+    if (!selected.refundId) { this.HienToast('Vé chưa có khoản hoàn tiền trong hệ thống.', 'danger'); return; }
+    this.processing.set(true);
+    try {
+      await this.bookingApi.completeRefund(selected.refundId, success);
+      await this.TaiDuLieu();
+      const fresh = this.danhSachVe().find(v => v.MaVe === selected.MaVe);
+      if (fresh) this.veDuocChon.set(fresh);
+      this.HienToast(success ? 'Đã hoàn tiền.' : 'Đã ghi nhận hoàn tiền thất bại.', success ? 'success' : 'danger');
+    } catch (e) {
+      this.HienToast(e instanceof Error ? e.message : 'Không cập nhật được hoàn tiền.', 'danger');
+    } finally {
+      this.processing.set(false);
+    }
   }
   async MockOnlinePayment(success: boolean) {
     const selected = this.veDuocChon(); if (!selected || selected.bookingSource !== 'online' || normalizeTicket(selected).orderStatus !== 'held' || this.processing()) return;
@@ -322,7 +325,7 @@ export class BookingManagement implements OnInit, AfterViewInit {
 
   selectedCancelReason = signal('Khách yêu cầu');
 
-  readonly cancelReasons = ['Khách yêu cầu', 'Đổi lịch', 'Đổi chuyến', 'Lỗi đặt vé', 'Khác'];
+  readonly cancelReasons = ['Khách yêu cầu', 'Đổi lịch', 'Đổi chuyến', 'Lỗi đặt vé', 'Nhà xe không thể phục vụ', 'Khác'];
 
   readonly cancelPolicies = [
     { title: 'Hoàn 100%', description: 'Hủy trước 24 giờ khởi hành: hoàn 100% giá trị vé.' },
@@ -778,56 +781,27 @@ coThayDoiSua = computed(() => {
     const cancelGroup = this.applyCancelToGroup();
     const groupTickets = cancelGroup ? this.NhomVeCungDon(selected) : [selected];
     const groupIds = groupTickets.map(g => g.MaVe);
-
-    const bayGio = new Date();
-    const hh = String(bayGio.getHours()).padStart(2, '0');
-    const mm = String(bayGio.getMinutes()).padStart(2, '0');
-    const dd = String(bayGio.getDate()).padStart(2, '0');
-    const MM = String(bayGio.getMonth() + 1).padStart(2, '0');
-    const yyyy = bayGio.getFullYear();
-    const thoiGianHuy = `${hh}:${mm} ngày ${dd}/${MM}/${yyyy}`;
-
-    const updated = this.danhSachVe().map(v => {
-      if (!groupIds.includes(v.MaVe)) return v;
-
-      const refund = this.TinhHoanTien(v);
-      const cancelDetail = v.TrangThaiDonHang !== 'da-thanh-toan' ? `Hủy giữ chỗ - Lý do: ${this.selectedCancelReason() === 'Khác' ? this.cancellationOther().trim() : this.selectedCancelReason()}` : `Đã hủy lúc ${thoiGianHuy} - Lý do: ${this.selectedCancelReason() === 'Khác' ? this.cancellationOther().trim() : this.selectedCancelReason()} - Hoàn: ${refund.soTien.toLocaleString('vi-VN')} đ`;
-      const note = [v.GhiChu || '', cancelDetail].filter(Boolean).join(' | ');
-
-      const next = {
-        ...v,
-        TrangThaiVe: 'da-huy' as TrangThaiVe,
-        orderStatus: 'cancelled' as const,
-        paymentStatus: v.TrangThaiDonHang === 'da-thanh-toan' ? (refund.soTien > 0 ? 'refund-processing' as const : 'paid' as const) : v.paymentStatus,
-        GhiChu: note,
-        NguoiHuy: this.currentUser.name,
-        paidAmount: v.paidAmount ?? (v.TrangThaiDonHang === 'da-thanh-toan' ? v.GiaVe : 0),
-        refundAmount: refund.soTien, refundFee: refund.phiHuy,
-        refundReason: this.selectedCancelReason() === 'Khác' ? this.cancellationOther().trim() : this.selectedCancelReason(),
-        refundStatus: refund.soTien > 0 ? 'processing' as const : undefined,
-        membershipPoints: 0, pointsReversed: v.membershipPoints ?? Math.floor(v.GiaVe / 10000),
-        balanceDue: 0,
-        ThoiGianHuy: bayGio.toISOString(),
-        TrangThaiGiaoDich: v.TrangThaiDonHang === 'da-thanh-toan' ? 'chua-hoan' as const : undefined
-      };
-
-      if (v.MaVe === selected.MaVe) {
-        this.veDuocChon.set(next);
-      }
-      return next;
-    });
-
-    this.processing.set(false);
-    this.danhSachVe.set(updated);
-    this.LuuDuLieu(updated);
-    this.showCancelModal.set(false);
-    this.showCancelConfirmModal.set(false);
-    this.HienToast(
-      cancelGroup
-        ? `Đã hủy ${groupIds.length} vé hiệu lực trong đơn ${selected.MaDonHang || selected.MaVe}.`
-        : `Đã hủy vé ${selected.MaVe}.`,
-      'success'
-    );
+    const reason = this.selectedCancelReason() === 'Khác' ? this.cancellationOther().trim() : this.selectedCancelReason();
+    const carrierFault = this.selectedCancelReason() === 'Nhà xe không thể phục vụ';
+    try {
+      for (const id of groupIds) await this.bookingApi.cancelTicket(id, reason, carrierFault);
+      await this.TaiDuLieu();
+      const fresh = this.danhSachVe().find(v => v.MaVe === selected.MaVe);
+      if (fresh) this.veDuocChon.set(fresh);
+      this.showCancelModal.set(false);
+      this.showCancelConfirmModal.set(false);
+      this.HienToast(
+        cancelGroup
+          ? `Đã hủy ${groupIds.length} vé hiệu lực trong đơn ${selected.MaDonHang || selected.MaVe}.`
+          : `Đã hủy vé ${selected.MaVe}.`,
+        'success'
+      );
+    } catch (e) {
+      await this.TaiDuLieu();
+      this.HienToast(e instanceof Error ? e.message : 'Không hủy được vé.', 'danger');
+    } finally {
+      this.processing.set(false);
+    }
   }
 
   MoPrintModal(ve?: VeXe, scope: 'ticket' | 'order' = 'order') {
@@ -964,6 +938,9 @@ coThayDoiSua = computed(() => {
     }
 
     const paid = Math.min(ve.GiaVe, (ve.paidAmount ?? ve.GiaVe) - (ve.refundedAmount || 0));
+    if (this.selectedCancelReason() === 'Nhà xe không thể phục vụ') {
+      return { tiLe: 100, soTien: paid, phiHuy: 0, moTa: 'Nhà xe không thể phục vụ: hoàn 100%' };
+    }
     const gioConLai = this.SoGioTruocKhoiHanh(ve);
     if (gioConLai >= 24) {
       return { tiLe: 100, soTien: paid, phiHuy: 0, moTa: 'Trước giờ đi từ 24 giờ' };
@@ -1271,10 +1248,23 @@ coThayDoiSua = computed(() => {
       GiaVe: raw.giaVe, LoaiGhe: raw.loaiGhe ?? '', MaXe: raw.maXe, BienSoXe: raw.bienSoXe, TenXe: raw.tenXe, LoaiXe: raw.loaiXe, MaQRVe: raw.maQRVe, MaGheChuyen: raw.maGheChuyen, MaDiemDon: raw.maDiemDon, MaDiemTra: raw.maDiemTra,
       NguonDat: raw.nguonDat === 'TaiQuay' ? 'tai-quay' : raw.nguonDat === 'Hotline' ? 'hotline' : 'online',
       TrangThaiVe: raw.trangThaiVe,
-      TrangThaiDonHang: raw.trangThaiDonHang === 'DaThanhToan' ? 'da-thanh-toan' : 'cho-thanh-toan',
+      TrangThaiDonHang: raw.daThanhToan || raw.trangThaiDonHang === 'DaThanhToan' ? 'da-thanh-toan' : 'cho-thanh-toan',
       ThoiGianDat: raw.thoiGianDat,
       orderStatus: raw.trangThaiVe === 'DaHuy' ? 'cancelled' : raw.trangThaiVe === 'DaHoanThanh' ? 'used' : raw.trangThaiVe === 'GiuCho' ? 'held' : 'confirmed',
-      paymentStatus: raw.trangThaiDonHang === 'DaThanhToan' ? 'paid' : 'pending',
+      paymentStatus: raw.refundStatus === 'completed' ? 'refunded'
+        : raw.refundStatus === 'failed' ? 'refund-failed'
+        : raw.refundStatus === 'processing' ? 'refund-processing'
+        : raw.daThanhToan || raw.trangThaiDonHang === 'DaThanhToan' ? 'paid' : 'pending',
+      paidAmount: raw.paidAmount,
+      refundId: raw.refundId,
+      refundAmount: raw.refundAmount,
+      refundFee: raw.refundFee,
+      refundReason: raw.refundReason,
+      refundStatus: raw.refundStatus,
+      refundedAmount: raw.refundedAmount,
+      refundedAt: raw.refundedAt,
+      ThoiGianHuy: raw.cancelledAt,
+      TrangThaiGiaoDich: raw.refundStatus === 'completed' ? 'da-hoan' : raw.refundStatus ? 'chua-hoan' : undefined,
     });
   }
 
