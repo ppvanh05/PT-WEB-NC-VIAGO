@@ -184,7 +184,7 @@ describe('Home connected data', () => {
     expect(page.paymentMethodOptions.some((m) => m.value === 'vietqr')).toBe(true);
     expect(page.paymentReady).toBe(false);
     await page.createOrder();
-    expect(page.error).toContain('chuyển khoản chưa sẵn sàng');
+    expect(page.error).toContain('VietQR đang tạm ngưng');
     expect(booking.create).not.toHaveBeenCalled();
   });
   it('explains that guests can enter passenger details without requiring sign in', async () => {

@@ -202,7 +202,6 @@ export class CustomerHomeService {
           name: 'VietQR / Chuyển khoản',
           configured: payment.configured,
         },
-        { id: 'counter', name: 'Thanh toán tại quầy', configured: true },
       ],
       termsPath: '/customer/dieu-khoan',
       policiesPath: '/customer/chinh-sach',

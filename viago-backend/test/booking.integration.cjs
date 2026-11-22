@@ -114,12 +114,10 @@ async function run(tx) {
     key,
   });
   await check(
-    'counter booking remains available and online payments report their configuration',
+    'online booking offers VietQR only and reports its configuration',
     async () => {
       const options = (await a.get('/customer/home/options').expect(200)).body;
-      assert(
-        options.paymentMethods.some((m) => m.id === 'counter' && m.configured),
-      );
+      assert(!options.paymentMethods.some((m) => m.id === 'counter'));
       assert(
         options.paymentMethods.some(
           (m) => m.id === 'vietqr' && typeof m.configured === 'boolean',
@@ -211,6 +209,10 @@ async function run(tx) {
       await a
         .post('/customer/home/orders')
         .send({ ...body, terms: false })
+        .expect(400);
+      await a
+        .post('/customer/home/orders')
+        .send({ ...body, method: 'counter' })
         .expect(400);
       order = (await a.post('/customer/home/orders').send(body).expect(201))
         .body;

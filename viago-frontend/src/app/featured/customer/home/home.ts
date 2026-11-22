@@ -579,7 +579,7 @@ export class Home implements OnInit, OnDestroy {
   method = 'vietqr';
   heroIndex = 0;
   get methodName(): string {
-    return this.methods.find((item) => item.id === this.method)?.name || 'Thanh toán tại quầy';
+    return this.methods.find((item) => item.id === this.method)?.name || 'VietQR / Chuyển khoản';
   }
   get homeApiAuthenticated() {
     return this.homeApi.authenticated;
@@ -1374,7 +1374,8 @@ export class Home implements OnInit, OnDestroy {
   async createOrder(): Promise<void> {
     if (this.submitting || !this.canReview) return;
     if (!this.paymentReady) {
-      this.error = 'Phương thức chuyển khoản chưa sẵn sàng. Vui lòng chọn thanh toán tại quầy.';
+      this.error =
+        'Thanh toán chuyển khoản VietQR đang tạm ngưng. Vui lòng thử lại sau hoặc liên hệ hotline để được hỗ trợ.';
       return;
     }
     this.submitting = true;

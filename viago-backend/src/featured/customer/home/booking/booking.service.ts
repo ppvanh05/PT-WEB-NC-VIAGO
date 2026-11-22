@@ -480,6 +480,10 @@ export class HomeBookingService implements OnModuleInit, OnModuleDestroy {
       const subtotal = legs.reduce((sum, leg) => sum + leg.subtotal, 0);
       if (!Number.isSafeInteger(subtotal) || subtotal <= 0)
         throw new BadRequestException('Giá vé không hợp lệ.');
+      if (!admin && dto.method !== 'vietqr')
+        throw new BadRequestException(
+          'Đơn đặt online chỉ thanh toán bằng chuyển khoản VietQR.',
+        );
       if (admin && subtotal - p.discount !== admin.expectedTotal)
         throw new ConflictException({
           code: 'PRICE_CHANGED',
