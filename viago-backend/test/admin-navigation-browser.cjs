@@ -104,8 +104,12 @@ async function main() {
 main().catch(e => { console.error(String(e.stack || e).replaceAll(password, '[REDACTED]')); process.exitCode = 1; })
   .finally(async () => {
     if (browser) await browser.close();
-    if (app) await app.close();
     try {
+      // Clean up BEFORE app.close(). The Nest app owns this very Prisma
+      // instance (it is the overridden provider), so closing it runs
+      // onModuleDestroy -> $disconnect, and a stopped engine cannot be
+      // revived with $connect(); the QA rows would stay in the shared
+      // database.
       await db.$transaction(async tx => {
         await tx.nhat_ky_he_thong.deleteMany({ where: { mataikhoan: { in: accountIds } } });
         await tx.phien_dang_nhap.deleteMany({ where: { mataikhoan: { in: accountIds } } });
@@ -115,5 +119,6 @@ main().catch(e => { console.error(String(e.stack || e).replaceAll(password, '[RE
       }, { timeout: 30000 });
       console.log('CLEANUP disposable navigation QA accounts, permissions, sessions and audits removed');
     } catch (e) { console.error('QA cleanup failed:', e.code || e.name); process.exitCode = 1; }
-    await db.$disconnect();
+    if (app) await app.close();
+    await db.$disconnect().catch(() => {});
   });

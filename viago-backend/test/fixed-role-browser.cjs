@@ -53,8 +53,10 @@ async function main() {
   const rootToken = await root.evaluate(() => sessionStorage.getItem('viago_admin_access_token'));
   const options = await (await root.request.get(base + '/api/admin/employees/options', { headers: { Authorization: 'Bearer ' + rootToken } })).json();
   for (const [label, roleName, expectedMenus] of [
-    ['Nhân viên bán vé', 'NhanVienBanVe', ['Tổng quan', 'Quản lý đặt vé', 'Báo cáo']],
-    ['Nhân viên điều phối', 'NhanVienDieuPhoi', ['Tổng quan', 'Quản lý điều phối', 'Báo cáo', 'Quản lý nhật ký']],
+    // Reports belong to BanQuanLy only since the staff permission update, so
+    // neither fixed role below sees the "Báo cáo" menu any more.
+    ['Nhân viên bán vé', 'NhanVienBanVe', ['Tổng quan', 'Quản lý đặt vé']],
+    ['Nhân viên điều phối', 'NhanVienDieuPhoi', ['Tổng quan', 'Quản lý điều phối', 'Quản lý nhật ký']],
   ]) {
     await root.goto(base + '/admin/staff/accounts');
     await root.getByRole('row').filter({ hasText: `qa-fixed-${run}-0@example.invalid` }).locator('.admin-edit-action').click();
@@ -90,8 +92,12 @@ async function main() {
 
 main().catch(e => { console.error(String(e.stack || e).replaceAll(password, '[REDACTED]')); process.exitCode = 1; }).finally(async () => {
   if (browser) await browser.close();
-  if (app) await app.close();
   try {
+    // Clean up BEFORE app.close(). The Nest app owns this very Prisma
+    // instance (it is the overridden provider), so closing it runs
+    // onModuleDestroy -> $disconnect, and a stopped engine cannot be
+    // revived with $connect(); the QA rows would stay in the shared
+    // database.
     await db.$transaction(async tx => {
       await tx.nhat_ky_he_thong.deleteMany({ where: { mataikhoan: { in: accounts } } });
       await tx.phien_dang_nhap.deleteMany({ where: { mataikhoan: { in: accounts } } });
@@ -101,5 +107,6 @@ main().catch(e => { console.error(String(e.stack || e).replaceAll(password, '[RE
     }, { timeout: 30000 });
     console.log('CLEANUP fixed-role QA accounts, permissions, sessions and audit rows removed');
   } catch (e) { console.error('QA cleanup failed:', e.code || e.name); process.exitCode = 1; }
-  await db.$disconnect();
+  if (app) await app.close();
+  await db.$disconnect().catch(() => {});
 });
