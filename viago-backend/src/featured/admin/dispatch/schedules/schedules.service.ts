@@ -6,7 +6,28 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 export class AdminSchedulesService {
   constructor(private readonly prisma: PrismaService) {}
   private include = { tuyen_xe: true, xe: true, tai_xe_phu_xe_lich_trinh_mataixechinhTotai_xe_phu_xe: true, tai_xe_phu_xe_lich_trinh_maphuxeTotai_xe_phu_xe: true } as const;
-  async findAll() { return (await this.prisma.lich_trinh.findMany({ include: this.include, orderBy: { ngaykhoihanh: 'desc' } })).map((r) => this.toDto(r)); }
+  async findAll() {
+    const rows = await this.prisma.$queryRaw<ScheduleListRow[]>`
+      SELECT l.malichtrinh, l.ngaykhoihanh, l.giokhoihanh, l.thoigiankhoihanh,
+             l.thoigiandendukien, l.giavecoso, l.trangthai,
+             t.tentuyen, t.diemdi, t.diemden,
+             x.biensoxe, x.tenxe, x.loaixe,
+             driver.hoten AS driver_name, assistant.hoten AS assistant_name
+      FROM lich_trinh l
+      JOIN tuyen_xe t ON t.matuyenduong = l.matuyenduong
+      JOIN xe x ON x.maxe = l.maxe
+      JOIN tai_xe_phu_xe driver ON driver.manhansu = l.mataixechinh
+      LEFT JOIN tai_xe_phu_xe assistant ON assistant.manhansu = l.maphuxe
+      ORDER BY l.ngaykhoihanh DESC
+    `;
+    return rows.map(row => this.toDto({
+      ...row,
+      tuyen_xe: row,
+      xe: row,
+      tai_xe_phu_xe_lich_trinh_mataixechinhTotai_xe_phu_xe: { hoten: row.driver_name },
+      tai_xe_phu_xe_lich_trinh_maphuxeTotai_xe_phu_xe: { hoten: row.assistant_name },
+    }));
+  }
   async create(p: SchedulePayload) {
     const id = `LT-${Date.now()}`;
     return this.prisma.$transaction(async (tx) => {
@@ -122,6 +143,24 @@ export class AdminSchedulesService {
   private seats(x: string) { return x === 'Limousine9Cho' ? 9 : x === 'Cabin22Cho' ? 22 : 34; }
   private statusToDb(x: string): any { return ({ waiting: 'ChuaMoBan', running: 'DangChay', completed: 'HoanThanh', locked: 'DaHuy' } as any)[x] || x; }
   private statusToUi(x: string) { return ({ ChuaMoBan: 'waiting', DangMoBan: 'waiting', DangChay: 'running', HoanThanh: 'completed', DaHuy: 'locked' } as any)[x] || 'waiting'; }
+}
+
+interface ScheduleListRow {
+  malichtrinh: string;
+  ngaykhoihanh: Date;
+  giokhoihanh: Date;
+  thoigiankhoihanh: Date;
+  thoigiandendukien: Date;
+  giavecoso: unknown;
+  trangthai: string;
+  tentuyen: string;
+  diemdi: string;
+  diemden: string;
+  biensoxe: string;
+  tenxe: string | null;
+  loaixe: string;
+  driver_name: string;
+  assistant_name: string | null;
 }
 
 export interface SchedulePayload { routeName: string; carName: string; licensePlate?: string; driverName: string; codriverName?: string; departureDate: string; departureTime: string; duration?: string; price?: number; status?: string; }

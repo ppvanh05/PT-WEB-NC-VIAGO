@@ -17,7 +17,9 @@ export class Login {
   private readonly session = inject(AdminSessionService);
   private readonly cd = inject(ChangeDetectorRef);
   busy = false;
-  error = '';
+  error = this.route.snapshot.queryParamMap.get('session') === 'unavailable'
+    ? 'Chưa kiểm tra được phiên quản trị. Vui lòng tải lại trang hoặc thử lại sau.'
+    : '';
   readonly form = new FormGroup({
     email: new FormControl('', {
       nonNullable: true,

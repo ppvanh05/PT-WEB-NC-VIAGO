@@ -7,8 +7,8 @@ const catalog = names.map((tenquyen, index) => ({ tenquyen, maquyen: 'Q' + Strin
 const ids = values => values.map(n => 'Q' + String(n).padStart(3, '0'));
 
 async function main() {
-  assert.deepEqual(fixedRolePermissions('NhanVienBanVe', catalog).permissionIds, ids([3,4,5,6,7,8,9,14,16]));
-  assert.deepEqual(fixedRolePermissions('NhanVienDieuPhoi', catalog).permissionIds, ids([8,14,20,21,22,23,24,29]));
+  assert.deepEqual(fixedRolePermissions('NhanVienBanVe', catalog).permissionIds, ids([3,4,5,6,7,8,9,14,16,25,27]));
+  assert.deepEqual(fixedRolePermissions('NhanVienDieuPhoi', catalog).permissionIds, ids([8,14,20,21,22,23,24]));
   assert.deepEqual(fixedRolePermissions('BanQuanLy', catalog).permissionIds, ids([8,14,32,33,34,35,36]));
   assert.deepEqual(fixedRolePermissions('NhanVienCSKH', catalog).permissionIds, ids([8,14,18,19,25,27]));
   assert.equal(fixedRolePermissions('QuanTriVien', catalog).permissionIds.length, 35);
@@ -31,7 +31,7 @@ async function main() {
   const actor = { accountId: 'QA_ADMIN', staffId: 'QA_OTHER', roleName: 'QuanTriVien', permissions: [] };
   const dto = { roleId: 'VT002', birthday: '1990-01-01', startDate: '2020-01-01', email: 'qa@example.invalid', firstName: 'QA', lastName: 'Test' };
   const resolved = await service.validate(tx, dto, actor);
-  assert.equal(resolved.permissions.length, 9);
+  assert.equal(resolved.permissions.length, 11);
   await assert.rejects(() => service.validate(tx, { ...dto, permissions: ['Q004'] }, actor), e => e.getStatus() === 400);
   await assert.rejects(() => service.validate(tx, { ...dto, roleId: 'VT003' }, actor, before), e => e.getStatus() === 400);
   await assert.rejects(() => service.validate(tx, { ...dto, applyRolePermissions: true }, { ...actor, roleName: 'BanQuanLy', permissions: [] }, before), e => e.getStatus() === 403);

@@ -44,6 +44,7 @@ export function canAccessAdminRoute(account: AdminAccessAccount | null, url: str
   if (!account) return false;
   const path = url.split(/[?#]/)[0].replace(/\/+$/, '');
   if (path === '/admin' || path === '/admin/home') return true;
+  if (account.roleName === 'NhanVienBanVe' && path === '/admin/customers/contacts') return false;
   // The support inbox has its own backend permission, including for administrators.
   if (path === '/admin/customers/support') return account.supportChat === true;
   const required = requirements[aliases[path] || path];

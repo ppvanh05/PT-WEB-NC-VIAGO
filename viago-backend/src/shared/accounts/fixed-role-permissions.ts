@@ -16,8 +16,8 @@ export const PERMISSION_GROUPS: Record<string, readonly string[]> = {
 export const FIXED_ROLE_GROUPS: Record<string, readonly string[]> = {
   QuanTriVien: Object.keys(PERMISSION_GROUPS),
   BanQuanLy: ['baocao'],
-  NhanVienDieuPhoi: ['dieuphoi', 'nhatky'],
-  NhanVienBanVe: ['datve'],
+  NhanVienDieuPhoi: ['dieuphoi'],
+  NhanVienBanVe: ['datve', 'khachhang', 'thuexehopdong'],
   NhanVienCSKH: ['khachhang', 'danhgiaphanhoi', 'dothatlac', 'thuexehopdong'],
 };
 

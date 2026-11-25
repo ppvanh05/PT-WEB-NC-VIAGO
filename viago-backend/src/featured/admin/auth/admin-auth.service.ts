@@ -187,7 +187,9 @@ export class AdminAuthService {
       avatar: staff.anhdaidien || '',
       role: 'admin' as const,
       roleName: staff.vai_tro.tenvaitro,
-      permissions: staff.nhan_vien_quyen_han.map((p) => p.quyen_han.tenquyen),
+      permissions: staff.nhan_vien_quyen_han.map((p) => p.quyen_han.tenquyen).filter(permission =>
+        staff.vai_tro.tenvaitro !== 'NhanVienDieuPhoi' || permission !== 'QuanLyNhatKyHoatDong',
+      ),
       supportChat: staff.nhan_vien_quyen_han.some(
         (p) => p.quyen_han.maquyen === (process.env.CHATBOT_SUPPORT_PERMISSION || 'CSKH_CHAT'),
       ),

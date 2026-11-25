@@ -73,7 +73,9 @@ export class AccountsAccess {
       name: staff?.hoten || customer?.hotenkhachhang || '',
       role: account.vaitrotaikhoan === 'NhanVien' ? 'admin' : 'customer',
       permissions:
-        staff?.nhan_vien_quyen_han.map((p) => p.quyen_han.tenquyen) || [],
+        staff?.nhan_vien_quyen_han.map((p) => p.quyen_han.tenquyen).filter(permission =>
+          staff.vai_tro.tenvaitro !== 'NhanVienDieuPhoi' || permission !== 'QuanLyNhatKyHoatDong',
+        ) || [],
       roleName: staff?.vai_tro.tenvaitro,
       sessionId: session.maphien,
     };

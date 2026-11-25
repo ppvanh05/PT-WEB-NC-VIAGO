@@ -157,13 +157,17 @@ export class SchedulesComponent implements OnInit {
 
   private async loadSchedulesFromBackend() {
     try {
-      const [trips, routes, vehicles, personnel] = await Promise.all([
-        firstValueFrom(this.http.get<LichTrinh[]>(this.apiUrl)),
+      const trips = firstValueFrom(this.http.get<LichTrinh[]>(this.apiUrl)).then(rows => {
+        this.allTrips = rows;
+        this.filterTrips();
+        this.cdr.detectChanges();
+      });
+      const options = Promise.all([
         firstValueFrom(this.http.get<any[]>('/api/admin/dispatch/routes')),
         firstValueFrom(this.http.get<any[]>('/api/admin/dispatch/vehicles')),
         firstValueFrom(this.http.get<any[]>('/api/admin/dispatch/drivers-assistants')),
       ]);
-      this.allTrips = trips;
+      const [, [routes, vehicles, personnel]] = await Promise.all([trips, options]);
       this.routesDb = routes.filter(r => r.status === 'active');
       const activeVehicles = vehicles.filter(v => v.status === 'Đang hoạt động');
       this.carsList = activeVehicles.map(v => v.name).filter(Boolean);

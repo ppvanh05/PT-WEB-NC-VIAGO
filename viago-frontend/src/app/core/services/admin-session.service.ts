@@ -1,4 +1,11 @@
 import { Injectable, signal } from '@angular/core';
+type SessionRestoreResult = boolean | 'unavailable';
+
+class AdminSessionResponseError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
 export interface AdminAccount {
   id: string;
   staffId: string;
@@ -17,7 +24,7 @@ export class AdminSessionService {
   private readonly tokenKey = 'viago_admin_access_token';
   private validatedToken = '';
   private validatedUntil = 0;
-  private restoring?: { token: string; result: Promise<boolean> };
+  private restoring?: { token: string; result: Promise<SessionRestoreResult> };
   headers(): Record<string, string> {
     try {
       const token = sessionStorage.getItem(this.tokenKey);
@@ -46,11 +53,12 @@ export class AdminSessionService {
       throw new Error('Không kết nối được dịch vụ đăng nhập. Kiểm tra backend và thử lại.');
     }
     if (!/\bjson\b/i.test(response.headers.get('content-type') || ''))
-      throw new Error('Chưa kết nối được dịch vụ đăng nhập quản trị.');
+      throw new AdminSessionResponseError('Chưa kết nối được dịch vụ đăng nhập quản trị.', response.status);
     const data = await response.json();
     if (!response.ok)
-      throw new Error(
+      throw new AdminSessionResponseError(
         typeof data.message === 'string' ? data.message : 'Không thực hiện được yêu cầu đăng nhập.',
+        response.status,
       );
     return data as T;
   }
@@ -65,7 +73,7 @@ export class AdminSessionService {
     this.setAccount(data.account);
     this.rememberValidation(data.token);
   }
-  restore(): Promise<boolean> {
+  restore(): Promise<SessionRestoreResult> {
     const token = this.headers()['Authorization'] || '';
     if (!token) {
       this.clear();
@@ -87,23 +95,26 @@ export class AdminSessionService {
     this.validatedToken = token.startsWith('Bearer ') ? token : 'Bearer ' + token;
     this.validatedUntil = Date.now() + 30000;
   }
-  private async restoreToken(token: string): Promise<boolean> {
+  private async restoreToken(token: string): Promise<SessionRestoreResult> {
     try {
       const data = await this.request<{ account: AdminAccount }>('/me');
       if (this.headers()['Authorization'] !== token) return false;
       this.setAccount(data.account);
       this.rememberValidation(token);
       return true;
-    } catch {
-      if (this.headers()['Authorization'] === token) this.clear();
-      return false;
+    } catch (error) {
+      if (this.headers()['Authorization'] !== token) return false;
+      if (error instanceof AdminSessionResponseError && error.status === 401) {
+        this.clear();
+        return false;
+      }
+      return 'unavailable';
     }
   }
   private setAccount(account: AdminAccount) {
     this.account.set(account);
     sessionStorage.setItem('viago_admin_account', JSON.stringify(account));
   }
-  /** Cập nhật phần hiển thị của phiên sau khi nhân viên tự sửa hồ sơ. */
   patchAccount(patch: Partial<AdminAccount>): void {
     const account = this.account();
     if (!account) return;

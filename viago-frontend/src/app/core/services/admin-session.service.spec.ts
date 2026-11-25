@@ -43,4 +43,13 @@ describe('Admin session requests', () => {
     expect(await pending).toBe(false);
     expect(service.account()).toBeNull();
   });
+  it('preserves the token after a gateway error and rechecks it on the next attempt', async () => {
+    sessionStorage.setItem('viago_admin_access_token', 'test-token');
+    fetcher.mockResolvedValueOnce(new Response('Bad Gateway', { status: 502 }));
+    fetcher.mockResolvedValueOnce(json({ account }));
+    expect(await service.restore()).toBe('unavailable');
+    expect(sessionStorage.getItem('viago_admin_access_token')).toBe('test-token');
+    expect(await service.restore()).toBe(true);
+    expect(service.account()?.id).toBe(account.id);
+  });
 });
