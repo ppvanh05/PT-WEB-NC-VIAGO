@@ -145,6 +145,9 @@ export class Schedule implements OnInit {
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
+      // "\u0111" kh\u00f4ng n\u1eb1m trong a-z n\u00ean n\u1ebfu kh\u00f4ng \u0111\u1ed5i th\u00e0nh "d" th\u00ec b\u1ecb x\u00f3a m\u1ea5t:
+      // khi \u0111\u00f3 "L\u00e2m \u0110\u1ed3ng" th\u00e0nh "lamong" v\u00e0 kh\u00f4ng tra ra tuy\u1ebfn \u0110\u00e0 L\u1ea1t n\u00e0o.
+      .replace(/\u0111/g, 'd')
       .replace(/[^a-z0-9]/g, '');
   }
 
