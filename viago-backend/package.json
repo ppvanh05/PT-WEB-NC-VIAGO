@@ -12,6 +12,7 @@
     "test:fixed:roles": "npm run build && node test/fixed-role-permissions.cjs",
     "test:accounts:repairs": "npm run build && node test/accounts-repairs.cjs",
     "test:accounts:browser": "npm --prefix ../viago-frontend run build -- --configuration development --output-path ../artifacts/accounts-browser-build && npm run build && node test/accounts-browser.cjs --test-build",
+    "test:accounts:browser:repairs": "npm --prefix ../viago-frontend run build -- --configuration development --output-path ../artifacts/accounts-browser-build && npm run build && node test/accounts-browser.cjs --test-build --repairs",
     "test:admin:navigation:browser": "npm --prefix ../viago-frontend run build -- --configuration development --output-path ../artifacts/admin-permission-build && npm run build && node test/admin-navigation-browser.cjs",
     "test:fixed:roles:browser": "npm --prefix ../viago-frontend run build -- --configuration development --output-path ../artifacts/fixed-role-build && npm run build && node test/fixed-role-browser.cjs",
     "test:accounts:readonly": "npm run build && node test/accounts-readonly.cjs",
