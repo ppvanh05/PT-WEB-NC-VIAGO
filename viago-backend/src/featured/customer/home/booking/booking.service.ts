@@ -94,7 +94,33 @@ export class HomeBookingService implements OnModuleInit, OnModuleDestroy {
     if (this.expiryTimer) clearInterval(this.expiryTimer);
   }
   cleanupExpired() {
-    return this.write((tx) => this.expire(tx));
+    return this.write(async (tx) => {
+      await this.expire(tx);
+      await this.completeArrivedTickets(tx);
+    });
+  }
+
+  /**
+   * Chuyển vé sang "Đã hoàn thành" khi chuyến đã qua giờ đến dự kiến.
+   * Không có bước này thì vé nằm mãi ở "Chờ khởi hành", kéo theo tab vé đã đi
+   * của khách và chức năng đánh giá chuyến đi không bao giờ mở ra.
+   */
+  async completeArrivedTickets(tx: Tx, limit = 500) {
+    const now = new Date();
+    const arrived = await tx.ve_xe.findMany({
+      where: {
+        trangthaive: 'ChoKhoiHanh',
+        ghe_chuyen: { lich_trinh: { thoigiandendukien: { lt: now } } },
+      },
+      select: { mave: true },
+      take: limit,
+    });
+    if (!arrived.length) return 0;
+    const result = await tx.ve_xe.updateMany({
+      where: { mave: { in: arrived.map((ve) => ve.mave) } },
+      data: { trangthaive: 'DaHoanThanh', thoigiancapnhat: now },
+    });
+    return result.count;
   }
   constructor(
     private readonly prisma: PrismaService,

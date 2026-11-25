@@ -125,7 +125,8 @@ describe('Unified booked tickets list', () => {
     expect(fixture.nativeElement.querySelectorAll('tbody tr')).toHaveLength(3);
     page.danhSachVe.update(rows => [...rows, { ...ticket, MaVe: 'VE200', MaDonHang: 'DH200' }]);
     expect(page.danhSachTongHop()).toHaveLength(11);
-    expect(page.thongKe().tong).toBe(21);
+    // DH200 giờ được tính bằng dòng vé thật của nó (1 vé) thay vì bằng số ghế của đơn (2 ghế).
+    expect(page.thongKe().tong).toBe(20);
     page.CapNhatTuKhoa('DH209');
     expect(page.trangHopLe()).toBe(1);
     expect(page.danhSachPhanTrang().map(row => row.key)).toEqual(['order:DH209']);
@@ -162,6 +163,15 @@ describe('Unified booked tickets list', () => {
     const modal = fixture.nativeElement.querySelector('[role="dialog"]');
     expect(modal.textContent).toContain('Hết hạn');
     expect(modal.querySelector('.modal-button--primary, input[type="checkbox"]')).toBeNull();
+  });
+
+  it('lists the ticket row once a counter order has issued tickets so staff can reach cancel', async () => {
+    request.mockResolvedValue({ data: [{ ...order, status: 'DaThanhToan' }], pagination: { total: 1, totalPages: 1 } });
+    const page = (await render()).componentInstance;
+    expect(page.danhSachTongHop().map(row => row.key).sort()).toEqual(['order:DH200', 'ticket:VE100']);
+    page.danhSachVe.update(rows => [...rows, { ...ticket, MaVe: 'VE201', MaDonHang: 'DH200' }]);
+    // Dòng đơn nhường chỗ cho dòng vé: chi tiết vé mới có thao tác đổi ghế, in vé và hủy vé.
+    expect(page.danhSachTongHop().map(row => row.key).sort()).toEqual(['ticket:VE100', 'ticket:VE201']);
   });
 
   it('shows a load failure alongside existing tickets instead of pretending all orders were loaded', async () => {

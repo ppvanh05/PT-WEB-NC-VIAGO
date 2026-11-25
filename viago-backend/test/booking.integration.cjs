@@ -14,6 +14,9 @@ const { Test } = require('@nestjs/testing'),
 const {
     CustomerHomeModule,
   } = require('../dist/featured/customer/home/home.module'),
+  {
+    HomeBookingService,
+  } = require('../dist/featured/customer/home/booking/booking.service'),
   { PrismaService } = require('../dist/prisma/prisma.service');
 const db = new PrismaClient(),
   suffix = randomBytes(6).toString('hex'),
@@ -668,6 +671,64 @@ async function run(tx) {
     },
   );
   restoreSepay();
+
+  await check(
+    'tickets whose trip passed its expected arrival become completed',
+    async () => {
+      const arrived = await tx.ve_xe.findFirst({
+        where: {
+          trangthaive: 'DaHoanThanh',
+          ghe_chuyen: { lich_trinh: { thoigiandendukien: { lt: new Date() } } },
+        },
+        select: { mave: true },
+      });
+      assert(arrived, 'Need one ticket on a trip that already arrived');
+      // Đưa vé về trạng thái trước chuyến rồi để bước quét tự hoàn tất nó.
+      await tx.ve_xe.update({
+        where: { mave: arrived.mave },
+        data: { trangthaive: 'ChoKhoiHanh' },
+      });
+      const stillWaiting = await tx.ve_xe.findUniqueOrThrow({
+        where: { mave: arrived.mave },
+        select: { trangthaive: true },
+      });
+      assert.equal(stillWaiting.trangthaive, 'ChoKhoiHanh');
+      const moved = await app
+        .get(HomeBookingService)
+        .completeArrivedTickets(prisma);
+      assert(moved >= 1);
+      const after = await tx.ve_xe.findUniqueOrThrow({
+        where: { mave: arrived.mave },
+        select: { trangthaive: true },
+      });
+      assert.equal(after.trangthaive, 'DaHoanThanh');
+    },
+  );
+
+  await check(
+    'tickets on trips that have not arrived yet stay in the pre-departure state',
+    async () => {
+      const upcoming = await tx.ve_xe.findFirst({
+        where: {
+          trangthaive: { not: 'DaHuy' },
+          ghe_chuyen: { lich_trinh: { thoigiandendukien: { gt: new Date() } } },
+        },
+        select: { mave: true },
+      });
+      if (!upcoming) return; // Không có chuyến tương lai nào trong dữ liệu hiện tại.
+      await tx.ve_xe.update({
+        where: { mave: upcoming.mave },
+        data: { trangthaive: 'ChoKhoiHanh' },
+      });
+      await app.get(HomeBookingService).completeArrivedTickets(prisma);
+      const after = await tx.ve_xe.findUniqueOrThrow({
+        where: { mave: upcoming.mave },
+        select: { trangthaive: true },
+      });
+      assert.equal(after.trangthaive, 'ChoKhoiHanh');
+    },
+  );
+
   throw new Error('ROLLBACK_BOOKING_SUCCESS');
 }
 (async () => {

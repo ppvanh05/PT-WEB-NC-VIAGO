@@ -361,8 +361,11 @@ export class BookingManagement implements OnInit, AfterViewInit {
     return this.goiYTuyen().filter(tuyen => this.KhopLocTuyenMotChieu(tuyen, query));
   });
 
+  // Đơn tại quầy đã xuất vé thì hiển thị bằng dòng vé, không hiển thị bằng dòng đơn nữa;
+  // nhờ vậy nhân viên mở được chi tiết vé để đổi ghế, in vé hoặc hủy vé theo UC-NV-03.
+  donDaCoVe = computed(() => new Set(this.danhSachVe().map(ve => ve.MaDonHang).filter(Boolean)));
+
   danhSachLoc = computed(() => {
-    const persistedIds = new Set(this.counterOrders()?.rows().map(order => order.id) ?? []);
     const query = this.tuKhoa();
     const queryDigits = query.replace(/\D/g, '');
     const tuyen = this.locTuyen();
@@ -372,7 +375,7 @@ export class BookingManagement implements OnInit, AfterViewInit {
 
     return this.danhSachVe()
       .filter(v => {
-        if (v.MaDonHang && persistedIds.has(v.MaDonHang)) return false;
+        // Vé luôn được liệt kê; dòng đơn tương ứng sẽ bị ẩn ở donKhachLoc để khỏi trùng.
         const keyword = [
           v.MaDonHang,
           v.MaVe,
@@ -432,7 +435,9 @@ export class BookingManagement implements OnInit, AfterViewInit {
     const payments: Record<string, string> = {
       pending: 'ChoThanhToanTrucTiep', 'da-thanh-toan': 'DaThanhToan', expired: 'HetHanThanhToan',
     };
+    const daCoVe = this.donDaCoVe();
     return (this.counterOrders()?.rows() ?? []).filter(order => {
+      if (daCoVe.has(order.id)) return false;
       const route = `${order.from} → ${order.to}`;
       const date = this.DepartureDate(order.departureAt);
       const text = [order.id, order.name, order.phone, route, date, this.DinhDangNgay(date)].join(' ');
